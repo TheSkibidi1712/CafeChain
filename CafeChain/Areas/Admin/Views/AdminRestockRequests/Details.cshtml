@@ -57,16 +57,17 @@
     var progress = target <= 0 ? 0m : Math.Min(100m, Math.Max(0m, fulfilled / target * 100m));
 }
 
-<link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
+<link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
 
-<main class="ops-shell cc-warehouse-page">
+<main class="restock-page restock-detail-page ops-shell cc-warehouse-page">
 <header class="ops-header cc-warehouse-header cc-warehouse-header--compact cc-warehouse-header--detail">
         <div>
             <div class="ops-eyebrow">Yêu cầu nhập hàng @Model.ReferenceCode · Chi nhánh @(Model.StoreName ?? $"#{Model.StoreId}")</div>
             <h1 class="ops-title">@Model.ItemName</h1>
-            <p class="ops-subtitle">@Model.ItemTypeLabel · Tạo bởi @(Model.CreatedByName ?? $"Nhân viên #{Model.CreatedByStaffId}") lúc @Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
+            <p class="ops-subtitle">@Model.ItemTypeLabel · Tạo bởi @(Model.CreatedByName ?? "Chưa xác định người tạo") lúc @Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
         </div>
-        <div class="ops-actions">
+        <div class="ops-actions restock-header-actions">
+            <span class="ops-badge @AdminStatusDisplay.RestockRequest(Model.Status).CssClass restock-header-status">@AdminStatusDisplay.RestockRequest(Model.Status).Label</span>
             <a class="ops-btn" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách</a>
             @if (Model.StockAlertId.HasValue)
             {
@@ -152,8 +153,8 @@
                         <div><span class="ops-data-label">Kênh thực hiện</span><span class="ops-data-value">@(Model.FulfillmentChannel switch { "TRANSFER" => "Điều chuyển", "EXTERNAL_PURCHASE" => "Mua ngoài", "MIXED" => "Kết hợp", _ => "Chưa quyết định" })</span></div>
                         <div><span class="ops-data-label">Quyết định nguồn cung</span><span class="ops-data-value">@(Model.SourcingDecision switch { RestockSourcingDecisionTypes.Transfer => "Điều chuyển", RestockSourcingDecisionTypes.Purchase => "Mua ngoài", RestockSourcingDecisionTypes.Production => "Sản xuất", RestockSourcingDecisionTypes.Reject => "Từ chối", _ => "Chưa quyết định" })</span></div>
                         <div><span class="ops-data-label">Nguồn nhu cầu</span><span class="ops-data-value">@(Model.StockAlertId.HasValue ? $"#{Model.StockAlertId} · {AdminStatusDisplay.StockAlertType(Model.AlertType)}" : AdminStatusDisplay.RestockSource(Model.SourceType))</span></div>
-                        <div><span class="ops-data-label">Mã tham chiếu nguồn</span><span class="ops-data-value">@(string.IsNullOrWhiteSpace(Model.SourceReferenceId) ? "—" : Model.SourceReferenceId)</span></div>
-                        <div><span class="ops-data-label">Người tiếp nhận</span><span class="ops-data-value">@(Model.AcceptedByName ?? (Model.AcceptedByStaffId.HasValue ? $"Nhân viên #{Model.AcceptedByStaffId}" : "Chưa tiếp nhận"))</span></div>
+                        <div><span class="ops-data-label">Tham chiếu nghiệp vụ</span><span class="ops-data-value">@(string.IsNullOrWhiteSpace(Model.SourceReferenceId) ? "—" : Model.SourceReferenceId)</span></div>
+                        <div><span class="ops-data-label">Người tiếp nhận</span><span class="ops-data-value">@(Model.AcceptedByName ?? "Chưa tiếp nhận")</span></div>
                         <div><span class="ops-data-label">Thời gian tiếp nhận</span><span class="ops-data-value">@(Model.AcceptedAtUtc?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</span></div>
                     </div>
                     <div class="mt-3"><span class="ops-data-label">Ghi chú</span><div class="ops-notice mt-1 mb-0">@(Model.Note ?? "Không có ghi chú")</div></div>
@@ -272,18 +273,18 @@
                     {
                         @foreach (var advice in Model.PurchaseAdvices)
                         {
-                            <div class="ops-notice mb-2"><strong>@advice.AdviceNumber</strong> · @AdminStatusDisplay.Quantity(advice.ProcurementQuantity) @(advice.ProcurementUnitName ?? requestUnitName)<div class="ops-secondary">Trạng thái: @AdminStatusDisplay.PurchaseAdvice(advice.Status).Label · Nhà cung cấp: @(advice.SupplierName ?? "Chưa chọn")</div><a class="ops-btn mt-2" asp-area="Admin" asp-controller="AdminPurchaseAdvices" asp-action="Details" asp-route-id="@advice.PurchaseAdviceId">Xem PA</a></div>
+                            <div class="ops-notice mb-2"><strong>@advice.AdviceNumber</strong> · @AdminStatusDisplay.Quantity(advice.ProcurementQuantity) @(advice.ProcurementUnitName ?? requestUnitName)<div class="ops-secondary">Trạng thái: @AdminStatusDisplay.PurchaseAdvice(advice.Status).Label · Nhà cung cấp: @(advice.SupplierName ?? "Chưa chọn")</div><a class="ops-btn mt-2" asp-area="Admin" asp-controller="AdminPurchaseAdvices" asp-action="Details" asp-route-id="@advice.PurchaseAdviceId">Xem đề nghị mua</a></div>
                         }
                     }
                     @if (hasPendingPurchaseAllocation && canCreatePurchaseAdvice)
                     {
-                        <div class="ops-inline-actions mt-3"><a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminPurchaseAdvices" asp-action="Create" asp-route-restockRequestId="@Model.RestockRequestId" asp-route-storeId="@Model.StoreId">Tạo PA mới</a></div>
+                        <div class="ops-inline-actions mt-3"><a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminPurchaseAdvices" asp-action="Create" asp-route-restockRequestId="@Model.RestockRequestId" asp-route-storeId="@Model.StoreId">Tạo đề nghị mua mới</a></div>
                         @if (Model.DraftPurchaseAdvices.Count > 0)
                         {
                             <form method="post" asp-area="Admin" asp-controller="AdminPurchaseAdvices" asp-action="AddRestockRequestToDraft" class="ops-inline-actions mt-2">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="RestockRequestId" value="@Model.RestockRequestId" /><input type="hidden" name="RestockRowVersion" value="@Model.RowVersion" />
-                                <select name="PurchaseAdviceId" class="ops-select" required onchange="this.form.PurchaseAdviceRowVersion.value=this.selectedOptions[0].dataset.version"><option value="">Chọn PA nháp...</option>@foreach (var draft in Model.DraftPurchaseAdvices) { <option value="@draft.PurchaseAdviceId" data-version="@draft.RowVersion">@draft.AdviceNumber · cần @AdminStatusDisplay.Date(draft.NeededByDate)</option> }</select>
+                                <select name="PurchaseAdviceId" class="ops-select" required onchange="this.form.PurchaseAdviceRowVersion.value=this.selectedOptions[0].dataset.version"><option value="">Chọn đề nghị mua nháp...</option>@foreach (var draft in Model.DraftPurchaseAdvices) { <option value="@draft.PurchaseAdviceId" data-version="@draft.RowVersion">@draft.AdviceNumber · cần @AdminStatusDisplay.Date(draft.NeededByDate)</option> }</select>
                                 <input type="hidden" name="PurchaseAdviceRowVersion" value="" />
                                 <button class="ops-btn" type="submit">Thêm vào PA nháp</button>
                             </form>
@@ -308,7 +309,7 @@
                             {
                                 <li>
                                     <strong>@(transition.IsDemandAdjustment ? "Đã bổ sung nhu cầu" : AdminStatusDisplay.RestockRequest(transition.NewStatus).Label)</strong>
-                                    <div class="ops-secondary">@transition.OccurredAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · @(transition.ActorName ?? $"Nhân viên #{transition.ActorStaffId}")</div>
+                                    <div class="ops-secondary">@transition.OccurredAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · @(transition.ActorName ?? "Hệ thống")</div>
                                     @if (transition.IsDemandAdjustment && transition.QuantityBefore.HasValue && transition.QuantityAfter.HasValue)
                                     {
                                         <div><strong>+@AdminStatusDisplay.Quantity(transition.QuantityAfter.Value - transition.QuantityBefore.Value) @requestUnitName</strong> · từ @AdminStatusDisplay.Quantity(transition.QuantityBefore.Value) lên @AdminStatusDisplay.Quantity(transition.QuantityAfter.Value) @requestUnitName</div>

@@ -1263,3 +1263,18 @@
     box-shadow: 0 4px 12px rgba(47, 111, 94, 0.25) !important;
     transform: translateY(-1px) !important;
 }
+
+/* FE2 batch 11: readable schedule states and responsive interaction. */
+.shift-schedule-page .shift-page-header { position:relative; overflow:hidden; border:1px solid var(--cc-border,#E9DED4); border-radius:var(--cc-radius-lg,16px); padding:clamp(18px,2.4vw,28px); background:linear-gradient(135deg,var(--cc-surface,#FFFDFB),var(--cc-surface-muted,#FBF7F2)); }
+.shift-schedule-page .shift-page-header::before { position:absolute; inset:0 auto 0 0; width:4px; background:var(--cc-caramel-500,#A97750); content:""; }
+.shift-schedule-page .template-library-header,
+.shift-schedule-page .roster-toolbar { border-left:3px solid var(--cc-caramel-500,#A97750); }
+.shift-schedule-page .roster-container { border-top:3px solid var(--cc-brown-600,#70482F); }
+.shift-schedule-page .schedule-card { border-left:3px solid var(--cc-brown-600,#70482F); }
+.shift-schedule-page .schedule-card-time { font-variant-numeric:tabular-nums; }
+.shift-schedule-page .drop-indicator { color:var(--cc-brown-700,#3D2418); background:var(--cc-surface-active,#F4E9DF); }
+.shift-schedule-page :is(a,button,input,select,textarea):focus-visible { outline:2px solid var(--cc-brown-600,#70482F); outline-offset:2px; box-shadow:var(--cc-focus-ring)!important; }
+@media(max-width:767.98px){.shift-schedule-page .roster-container{overflow-x:auto}.shift-schedule-page .roster-toolbar{align-items:stretch}}
+@media(prefers-reduced-motion:reduce){.shift-schedule-page *{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important;}}
+/* Fix contract: unified shift actions and centered schedule data. */
+.shift-page table th,.shift-page table td{vertical-align:middle;text-align:center}.shift-page .btn-primary,.shift-page .shift-action-edit{border-color:var(--cc-brown-600,#70482F)!important;background:var(--cc-brown-600,#70482F)!important;color:#fff!important}.shift-page .shift-action-btn{width:40px;height:40px;border-radius:var(--cc-radius-control,10px)}.shift-page .shift-action-toggle-active,.shift-page .cancel-schedule{border-color:var(--cc-danger,#B42318)!important;background:var(--cc-danger-bg,#FEF3F2)!important;color:var(--cc-danger,#B42318)!important}

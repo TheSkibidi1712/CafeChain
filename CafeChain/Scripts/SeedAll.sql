@@ -121,7 +121,6 @@ BEGIN TRY
       (4,N'Nhân viên bán hàng',1,1,'2026-01-01'),
       (5,N'Kế toán/kho',1,1,'2026-01-01'),
       (6,N'Quản trị hệ thống',1,0,'2026-01-01'),
-      (7,N'Khách hàng',1,0,'2026-01-01'),
       (8,N'Ca trưởng',1,1,'2026-01-01');
 
     IF EXISTS
@@ -189,7 +188,7 @@ BEGIN TRY
         PRIMARY KEY(AccountId,RoleId)
     );
     INSERT @FoundationAccountRoles VALUES
-      (1,1),(2,2),(3,3),(4,4),(5,5),(6,6),(7,7),(15,8);
+      (1,1),(2,2),(3,3),(4,4),(5,5),(6,6),(15,8);
 
     INSERT dbo.AccountRoles(AccountId,RoleId)
     SELECT x.AccountId,x.RoleId
@@ -8259,7 +8258,6 @@ BEGIN TRY
  (N'NVBH',N'Nhân viên bán hàng'),
  (N'KTK',N'Kế toán/kho'),
  (N'QTHT',N'Quản trị hệ thống'),
- (N'KH',N'Khách hàng'),
  (N'CT',N'Ca trưởng');
 
  IF EXISTS
@@ -8294,7 +8292,15 @@ BEGIN TRY
  ELSE
   UPDATE dbo.PermissionGroups
   SET DisplayOrder=9,Active=1
-  WHERE Code=N'DASHBOARD_WIDGET';
+ WHERE Code=N'DASHBOARD_WIDGET';
+
+ IF NOT EXISTS(SELECT 1 FROM dbo.PermissionGroups WHERE Code=N'AI_IMPORT')
+  INSERT dbo.PermissionGroups(Code,Name,DisplayOrder,Active)
+  VALUES(N'AI_IMPORT',N'AI Smart Import',10,1);
+ ELSE
+  UPDATE dbo.PermissionGroups
+  SET Name=N'AI Smart Import',DisplayOrder=10,Active=1
+  WHERE Code=N'AI_IMPORT';
 
  /* New/dynamic permissions. PermissionId remains database-generated;
     Code is the stable identity, matching the current SeedAll design. */
@@ -8395,6 +8401,14 @@ BEGIN TRY
   (N'Dashboard.Widget.WorkforceShiftStatus.View',N'DASHBOARD_WIDGET',N'Xem tình trạng ca nhân sự',N'ViewWorkforceShiftStatus',N'Xem widget tình trạng ca nhân sự trong StaffScope'),
   (N'Dashboard.Widget.WorkforceHourlyDemand.View',N'DASHBOARD_WIDGET',N'Xem nhu cầu nhân sự theo giờ',N'ViewWorkforceHourlyDemand',N'Xem widget nhu cầu nhân sự theo giờ trong StaffScope'),
   (N'Dashboard.Widget.WorkforceStaffPerformance.View',N'DASHBOARD_WIDGET',N'Xem hiệu suất nhân sự',N'ViewWorkforceStaffPerformance',N'Xem widget hiệu suất nhân sự trong StaffScope');
+
+ INSERT #NewPermissionCatalog VALUES
+  (N'AIImport.View',N'AI_IMPORT',N'Xem AI Smart Import',N'View',N'Xem giao diện và preview AI Smart Import'),
+  (N'AIImport.Upload',N'AI_IMPORT',N'Tải Excel cho AI Smart Import',N'Upload',N'Tải tệp .xlsx an toàn để tạo phiên Smart Import'),
+  (N'AIImport.Analyze',N'AI_IMPORT',N'Phân tích AI Smart Import',N'Analyze',N'Phân tích, sửa mapping và revalidate preview'),
+  (N'AIImport.Confirm',N'AI_IMPORT',N'Xác nhận AI Smart Import',N'Confirm',N'Confirm nguyên tử toàn phiên; vẫn bắt buộc quyền Create của từng entity'),
+  (N'AIImport.Cancel',N'AI_IMPORT',N'Hủy phiên AI Smart Import',N'Cancel',N'Hủy phiên Smart Import thuộc tài khoản hiện tại'),
+  (N'AIImport.History',N'AI_IMPORT',N'Xem lịch sử AI Smart Import',N'History',N'Xem lịch sử phiên Smart Import thuộc tài khoản hiện tại');
 
  IF EXISTS
  (
@@ -8748,7 +8762,15 @@ BEGIN TRY
   (N'System.Cutover.View',1,0,0,0,1,1,0,0),
   (N'System.Cutover.Manage',1,0,0,0,0,1,0,0),
   (N'System.LegacyConsolidation.View',1,1,0,0,1,1,0,0),
-  (N'System.LegacyConsolidation.Manage',1,0,0,0,0,1,0,0);
+ (N'System.LegacyConsolidation.Manage',1,0,0,0,0,1,0,0);
+
+ INSERT #PermissionMatrix VALUES
+  (N'AIImport.View',1,0,0,0,1,0,0,0),
+  (N'AIImport.Upload',1,0,0,0,1,0,0,0),
+  (N'AIImport.Analyze',1,0,0,0,1,0,0,0),
+  (N'AIImport.Confirm',1,0,0,0,1,0,0,0),
+  (N'AIImport.Cancel',1,0,0,0,1,0,0,0),
+  (N'AIImport.History',1,0,0,0,1,0,0,0);
 
  INSERT #PermissionMatrix VALUES
   (N'Dashboard.AI.Use',1,1,1,0,1,0,0,0),
@@ -9014,12 +9036,11 @@ BEGIN TRY
   ExpectedCount int NOT NULL
  );
  INSERT #ExpectedRoleCounts VALUES
-  (N'CDN',181),
+  (N'CDN',187),
   (N'QLV',101),
   (N'QLCN',138),
   (N'NVBH',12),
-  (N'KTK',118),
-  (N'KH',0),
+  (N'KTK',124),
   (N'CT',37);
 
  INSERT #ExpectedRoleCounts(RoleKey,ExpectedCount)
@@ -13697,10 +13718,7 @@ BEGIN TRY
     BEGIN TRANSACTION;
 
     DECLARE @Coverage17Now datetime2(7)='2026-07-20T08:00:00';
-    DECLARE @Coverage17Customer int=(SELECT TOP(1) CustomerId FROM dbo.Customers WHERE CustomerCode=N'CUS000111' ORDER BY CustomerId);
     DECLARE @Coverage17Order int=(SELECT TOP(1) OrderId FROM dbo.Orders WHERE Source=N'DEMO_DASHBOARD_V13' ORDER BY OrderId);
-    DECLARE @Coverage17Voucher int=(SELECT VoucherId FROM dbo.Vouchers WHERE Code=N'CAFECHAIN50');
-    DECLARE @Coverage17PointType int=(SELECT PointTransactionTypeId FROM dbo.PointTransactionTypes WHERE Code=N'EARN');
     DECLARE @Coverage17Staff int=(SELECT TOP(1) StaffId FROM dbo.Staffs WHERE StoreId=1 AND Active=1 ORDER BY StaffId);
     DECLARE @Coverage17Staff2 int=(SELECT TOP(1) StaffId FROM dbo.Staffs WHERE StoreId=2 AND Active=1 ORDER BY StaffId);
     DECLARE @Coverage17Staff3 int=(SELECT TOP(1) StaffId FROM dbo.Staffs WHERE StoreId=3 AND Active=1 ORDER BY StaffId);
@@ -13718,77 +13736,10 @@ BEGIN TRY
     DECLARE @Coverage17BaseUnit int=(SELECT BaseUnitId FROM dbo.Ingredients WHERE IngredientId=14);
     DECLARE @Coverage17ProcUnit int=(SELECT ProcurementUnitId FROM dbo.PurchaseOrderLines WHERE PurchaseOrderLineId=@Coverage17Pol);
 
-    IF @Coverage17Customer IS NULL OR @Coverage17Order IS NULL OR @Coverage17Voucher IS NULL
-       OR @Coverage17PointType IS NULL OR @Coverage17Staff IS NULL OR @Coverage17Staff2 IS NULL
+    IF @Coverage17Order IS NULL OR @Coverage17Staff IS NULL OR @Coverage17Staff2 IS NULL
        OR @Coverage17Staff3 IS NULL OR @Coverage17Shift IS NULL OR @Coverage17Restock IS NULL
        OR @Coverage17Pol IS NULL OR @Coverage17Offer IS NULL
         THROW 53700,N'DEMO_COVERAGE_V17: prerequisite demo business keys are missing.',1;
-
-    /* Customer -> loyalty -> voucher -> wheel -> rating. */
-    IF EXISTS(SELECT 1 FROM dbo.Orders WHERE OrderId=@Coverage17Order AND CustomerId IS NULL)
-        UPDATE dbo.Orders SET CustomerId=@Coverage17Customer WHERE OrderId=@Coverage17Order;
-
-    IF NOT EXISTS(SELECT 1 FROM dbo.PointTransactions
-                  WHERE CustomerId=@Coverage17Customer AND OrderId=@Coverage17Order
-                    AND PointTransactionTypeId=@Coverage17PointType)
-    BEGIN
-        DECLARE @OldPoints int=(SELECT CurrentPoints FROM dbo.Customers WHERE CustomerId=@Coverage17Customer);
-        INSERT dbo.PointTransactions(CustomerId,OrderId,Points,PointTransactionTypeId,BalanceAfter,CreatedAt,ExpiredAt)
-        VALUES(@Coverage17Customer,@Coverage17Order,33,@Coverage17PointType,@OldPoints+33,@Coverage17Now,DATEADD(YEAR,1,@Coverage17Now));
-        UPDATE dbo.Customers
-           SET CurrentPoints=CurrentPoints+33,TotalOrders=TotalOrders+1,
-               TotalSpent=TotalSpent+(SELECT Total FROM dbo.Orders WHERE OrderId=@Coverage17Order),
-               LastOrderDate=(SELECT CreatedAt FROM dbo.Orders WHERE OrderId=@Coverage17Order),
-               UpdatedAt=@Coverage17Now
-        WHERE CustomerId=@Coverage17Customer;
-    END
-
-    IF NOT EXISTS(SELECT 1 FROM dbo.CustomerVouchers WHERE CustomerId=@Coverage17Customer AND VoucherId=@Coverage17Voucher)
-        INSERT dbo.CustomerVouchers(CustomerId,VoucherId,IsUsed,CollectedDate,UsedDate)
-        VALUES(@Coverage17Customer,@Coverage17Voucher,1,DATEADD(DAY,-2,@Coverage17Now),@Coverage17Now);
-    IF NOT EXISTS(SELECT 1 FROM dbo.OrderVouchers WHERE OrderId=@Coverage17Order)
-        INSERT dbo.OrderVouchers(OrderId,VoucherId,DiscountValue)
-        VALUES(@Coverage17Order,@Coverage17Voucher,10000);
-    IF NOT EXISTS(SELECT 1 FROM dbo.VoucherUsages
-                  WHERE VoucherId=@Coverage17Voucher AND CustomerId=@Coverage17Customer AND UsedAt=@Coverage17Now)
-        INSERT dbo.VoucherUsages(VoucherId,CustomerId,UsedAt)
-        VALUES(@Coverage17Voucher,@Coverage17Customer,@Coverage17Now);
-
-    DECLARE @Coverage17Wheel int;
-    IF NOT EXISTS(SELECT 1 FROM dbo.WheelConfigs WHERE Name=N'DEMO_COVERAGE_V17_WHEEL')
-        INSERT dbo.WheelConfigs(Name,SpinCost,SlotCount,Active,CreatedAt)
-        VALUES(N'DEMO_COVERAGE_V17_WHEEL',10,6,1,@Coverage17Now);
-    SELECT @Coverage17Wheel=WheelConfigId FROM dbo.WheelConfigs WHERE Name=N'DEMO_COVERAGE_V17_WHEEL';
-    INSERT dbo.WheelPrizes(WheelConfigId,SlotIndex,VoucherId,Probability,IsLose)
-    SELECT @Coverage17Wheel,v.SlotIndex,v.VoucherId,v.Probability,v.IsLose
-    FROM (VALUES
-          (0,@Coverage17Voucher,CONVERT(decimal(5,4),0.2000),CONVERT(bit,0)),
-          (1,NULL,CONVERT(decimal(5,4),0.2000),CONVERT(bit,1)),
-          (2,2,CONVERT(decimal(5,4),0.1500),CONVERT(bit,0)),
-          (3,NULL,CONVERT(decimal(5,4),0.2000),CONVERT(bit,1)),
-          (4,3,CONVERT(decimal(5,4),0.1000),CONVERT(bit,0)),
-          (5,NULL,CONVERT(decimal(5,4),0.1500),CONVERT(bit,1))) v(SlotIndex,VoucherId,Probability,IsLose)
-    WHERE NOT EXISTS(SELECT 1 FROM dbo.WheelPrizes p
-                     WHERE p.WheelConfigId=@Coverage17Wheel AND p.SlotIndex=v.SlotIndex);
-    DECLARE @Coverage17Prize int=(SELECT WheelPrizeId FROM dbo.WheelPrizes WHERE WheelConfigId=@Coverage17Wheel AND SlotIndex=0);
-    IF NOT EXISTS(SELECT 1 FROM dbo.WheelSpins
-                  WHERE CustomerId=@Coverage17Customer AND WheelConfigId=@Coverage17Wheel AND CreatedAt=@Coverage17Now)
-        INSERT dbo.WheelSpins(CustomerId,WheelConfigId,WheelPrizeId,CreatedAt)
-        VALUES(@Coverage17Customer,@Coverage17Wheel,@Coverage17Prize,@Coverage17Now);
-
-    DECLARE @Coverage17Rating int;
-    IF NOT EXISTS(SELECT 1 FROM dbo.Ratings
-                  WHERE CustomerId=@Coverage17Customer AND DrinkId=1 AND ParentRatingId IS NULL)
-        INSERT dbo.Ratings(CustomerId,DrinkId,Stars,Comment,IsDeleted,CreatedAt,ParentRatingId)
-        VALUES(@Coverage17Customer,1,5,N'DEMO_COVERAGE_V17: đồ uống ổn định, phục vụ nhanh.',0,@Coverage17Now,NULL);
-    SELECT @Coverage17Rating=RatingId FROM dbo.Ratings
-    WHERE CustomerId=@Coverage17Customer AND DrinkId=1 AND ParentRatingId IS NULL;
-    IF NOT EXISTS(SELECT 1 FROM dbo.RatingImages WHERE PublicId=N'demo_coverage_v17_rating')
-        INSERT dbo.RatingImages(RatingId,ImageUrl,PublicId,CreatedAt)
-        VALUES(@Coverage17Rating,N'https://example.invalid/demo/coverage-v17-rating.jpg',N'demo_coverage_v17_rating',@Coverage17Now);
-    IF NOT EXISTS(SELECT 1 FROM dbo.RatingReactions WHERE RatingId=@Coverage17Rating AND CustomerId=@Coverage17Customer)
-        INSERT dbo.RatingReactions(RatingId,CustomerId,Type,CreatedAt)
-        VALUES(@Coverage17Rating,@Coverage17Customer,1,@Coverage17Now);
 
     /* POS terminals and payment webhook ledger. */
     INSERT dbo.PosTerminals(TerminalId,StoreId,Name,Active,CreatedAtUtc)

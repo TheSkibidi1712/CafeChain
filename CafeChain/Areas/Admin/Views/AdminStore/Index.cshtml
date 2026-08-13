@@ -165,7 +165,7 @@
                                        {
                                        <a asp-action="Edit"
                                            asp-route-id="@item.StoreId"
-                                           class="store-admin-icon-btn"
+                                           class="store-admin-icon-btn store-admin-icon-edit"
                                            title="Chỉnh sửa cửa hàng"
                                            aria-label="Chỉnh sửa cửa hàng @item.Name">
                                             <i class="fas fa-pen"></i>
@@ -178,7 +178,7 @@
                                             @if (item.Active)
                                             {
                                                 <button type="submit"
-                                                        class="store-admin-icon-btn"
+                                                        class="store-admin-icon-btn store-admin-icon-danger"
                                                         onclick="return confirm('Bạn có chắc muốn tạm ngưng cửa hàng này?');"
                                                         title="Tạm ngưng cửa hàng"
                                                         aria-label="Tạm ngưng cửa hàng @item.Name">
@@ -188,7 +188,7 @@
                                             else
                                             {
                                                 <button type="submit"
-                                                        class="store-admin-icon-btn"
+                                                        class="store-admin-icon-btn store-admin-icon-restore"
                                                         onclick="return confirm('Bạn có chắc muốn mở hoạt động lại cửa hàng này?');"
                                                         title="Mở hoạt động cửa hàng"
                                                         aria-label="Mở hoạt động cửa hàng @item.Name">

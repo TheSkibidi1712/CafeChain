@@ -8,6 +8,7 @@ public sealed class OllamaResultDTO
     public string? Content { get; set; }
     public string? ErrorMessage { get; set; }
     public bool UsedFallback { get; set; }
+    public string? ErrorCode { get; set; }
 }
 
 public sealed class OllamaHealthDTO
@@ -26,6 +27,7 @@ public sealed class OllamaChatRequestDTO
     [JsonPropertyName("think")] public bool Think { get; set; }
     [JsonPropertyName("keep_alive")] public string KeepAlive { get; set; } = string.Empty;
     [JsonPropertyName("options")] public OllamaRequestOptionsDTO Options { get; set; } = new();
+    [JsonPropertyName("format")] public object? Format { get; set; }
 }
 
 public sealed class OllamaMessageDTO

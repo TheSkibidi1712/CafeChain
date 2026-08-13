@@ -85,14 +85,6 @@ namespace CafeChain.Data.Configurations.Customers.Accounts
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
                 },
-                new Account
-                {
-                    AccountId = 7,
-                    Email = "khachhang@gmail.com",
-                    PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
-                    Active = true,
-                    CreatedAt = new DateTime(2025, 1, 1)
-                },
                 // Fixed seed — ShiftSupervisor / Ca trưởng (Issue #94 / #130 follow-up)
                 // AccountId is intentionally 15 via SeedDemoIdentities (do not renumber without team approval).
                 new Account

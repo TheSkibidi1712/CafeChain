@@ -266,6 +266,23 @@ public sealed class SupplierTaxCodeDuplicateContractTests : IntegrationTestBase
         Assert.Contains(results, x => x.TaxCode == "0312345691");
     }
 
+    [Fact]
+    public async Task AIImport_SupplierPreview_ReusesReadOnlyDuplicatePolicyWithoutCreatingWarningToken()
+    {
+        await using var context = CreateDbContext();
+        var service = CreateService(context);
+        var existing = NewSupplier("Preview policy owner", "0911111081", "0312345692");
+        await service.CreateAsync(existing, 91);
+
+        var incoming = NewSupplier("Different supplier", "0911111082", "0312345693");
+        incoming.Address = existing.Address;
+        var matches = await service.FindDuplicateMatchesAsync(incoming);
+
+        var match = Assert.Single(matches);
+        Assert.Contains("Địa chỉ", match.MatchedSignals);
+        Assert.Empty(await context.SupplierDuplicateWarnings.ToListAsync());
+    }
+
     private static AdminSupplierService CreateService(AppDbContext context)
     {
         var physical = new PhysicalUnitConversionService(

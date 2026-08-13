@@ -25,6 +25,337 @@ namespace CafeChain.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("CafeChain.Models.AIImport.ImportAudit", b =>
+                {
+                    b.Property<int>("ImportAuditId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ImportAuditId"));
+
+                    b.Property<int>("AccountId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EntityType")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("ErrorCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("IdempotencyKeyHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("ImportSessionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ModelName")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("PreviewVersion")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PromptVersion")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ResultSummaryJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SchemaVersion")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("StaffId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StatusAfter")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("StatusBefore")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("ImportAuditId");
+
+                    b.HasIndex("ImportSessionId", "CreatedAtUtc");
+
+                    b.HasIndex("StaffId", "CreatedAtUtc");
+
+                    b.ToTable("ImportAudits", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.AIImport.ImportGroup", b =>
+                {
+                    b.Property<int>("ImportGroupId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ImportGroupId"));
+
+                    b.Property<decimal>("Confidence")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<int>("DependencyOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("HeaderRow")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ImportSessionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MappingJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RegionAddress")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("SheetName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("SourceHeadersJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("ImportGroupId");
+
+                    b.HasIndex("ImportSessionId", "SheetName");
+
+                    b.ToTable("ImportGroups", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.AIImport.ImportItem", b =>
+                {
+                    b.Property<int>("ImportItemId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ImportItemId"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<decimal>("Confidence")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<string>("DuplicateOverrideReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ErrorsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ImportGroupId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ImportedEntityId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NormalizedDataJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RawDataJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SourceRow")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SourceTraceJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<Guid?>("SupplierDuplicateWarningId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("WarningsAcknowledged")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("WarningsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("ImportItemId");
+
+                    b.HasIndex("ImportGroupId", "SourceRow");
+
+                    b.HasIndex("Status", "Action");
+
+                    b.ToTable("ImportItems", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ImportItems_Action", "[Action] IN ('CREATE','SKIP')");
+
+                            t.HasCheckConstraint("CK_ImportItems_Status", "[Status] IN ('VALID','WARNING','ERROR','REVIEW_REQUIRED','SKIPPED','IMPORTED')");
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.AIImport.ImportSession", b =>
+                {
+                    b.Property<int>("ImportSessionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ImportSessionId"));
+
+                    b.Property<int>("AnalysisVersion")
+                        .HasColumnType("int");
+
+                    b.Property<string>("AnalysisWarningsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ConfirmedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ErrorRows")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FailureCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("FailureMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("FileHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("nvarchar(260)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ModelName")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("PreviewVersion")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PromptVersion")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ResultJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ReviewRows")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("SchemaVersion")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("SkippedRows")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalGroups")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalRows")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UploadedByAccountId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UploadedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ValidRows")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WarningRows")
+                        .HasColumnType("int");
+
+                    b.HasKey("ImportSessionId");
+
+                    b.HasIndex("FileHash");
+
+                    b.HasIndex("Status", "ExpiresAtUtc");
+
+                    b.HasIndex("UploadedByAccountId", "CreatedAtUtc");
+
+                    b.ToTable("ImportSessions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ImportSessions_Status", "[Status] IN ('UPLOADED','ANALYZING','VALIDATING','READY_TO_PREVIEW','IMPORTING','COMPLETED','FAILED','CANCELLED','EXPIRED')");
+                        });
+                });
+
             modelBuilder.Entity("CafeChain.Models.Analytics.ForecastPoint", b =>
                 {
                     b.Property<long>("ForecastPointId")
@@ -562,16 +893,6 @@ namespace CafeChain.Migrations
                         },
                         new
                         {
-                            AccountId = 7,
-                            Active = true,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "khachhang@gmail.com",
-                            FailedLoginAttempts = 0,
-                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
-                            RequiresPasswordChange = true
-                        },
-                        new
-                        {
                             AccountId = 15,
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -691,26 +1012,6 @@ namespace CafeChain.Migrations
                     b.HasIndex("MemberLevelId");
 
                     b.ToTable("Customers", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            CustomerId = 1,
-                            AccountId = 7,
-                            Active = true,
-                            AvatarPublicId = "avtdf_r3cjq5",
-                            AvatarUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779801172/avtdf_r3cjq5.jpg",
-                            Category = 2,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CurrentPoints = 0,
-                            CustomerCode = "CUS000111",
-                            DateOfBirth = new DateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Khách Hàng Mới",
-                            Gender = 1,
-                            IsDeleted = false,
-                            TotalOrders = 0,
-                            TotalSpent = 0m
-                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Customers.CustomerAddress", b =>
@@ -756,16 +1057,6 @@ namespace CafeChain.Migrations
                     b.HasIndex("WardId");
 
                     b.ToTable("CustomerAddresses", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            CustomerAddressId = 1,
-                            Address = "987 Đường P",
-                            CustomerId = 1,
-                            IsDefault = false,
-                            IsDeleted = false
-                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Customers.CustomerBank", b =>
@@ -797,15 +1088,6 @@ namespace CafeChain.Migrations
                         .IsUnique();
 
                     b.ToTable("CustomerBanks", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            CustomerBankId = 1,
-                            AccountNumber = "111222333444",
-                            BankName = "Vietcombank",
-                            CustomerId = 1
-                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Customers.CustomerPhone", b =>
@@ -835,15 +1117,6 @@ namespace CafeChain.Migrations
                         .IsUnique();
 
                     b.ToTable("CustomerPhones", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            CustomerPhoneId = 1,
-                            CustomerId = 1,
-                            IsDefault = false,
-                            Phone = "0900111222"
-                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Customers.PasswordResetOtp", b =>
@@ -13621,6 +13894,39 @@ namespace CafeChain.Migrations
                     b.ToTable("WheelSpins", (string)null);
                 });
 
+            modelBuilder.Entity("CafeChain.Models.AIImport.ImportAudit", b =>
+                {
+                    b.HasOne("CafeChain.Models.AIImport.ImportSession", "Session")
+                        .WithMany("Audits")
+                        .HasForeignKey("ImportSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.AIImport.ImportGroup", b =>
+                {
+                    b.HasOne("CafeChain.Models.AIImport.ImportSession", "Session")
+                        .WithMany("Groups")
+                        .HasForeignKey("ImportSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.AIImport.ImportItem", b =>
+                {
+                    b.HasOne("CafeChain.Models.AIImport.ImportGroup", "Group")
+                        .WithMany("Items")
+                        .HasForeignKey("ImportGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Analytics.ForecastPoint", b =>
                 {
                     b.HasOne("CafeChain.Models.Analytics.ForecastRun", "ForecastRun")
@@ -17674,6 +17980,18 @@ namespace CafeChain.Migrations
                     b.Navigation("WheelConfig");
 
                     b.Navigation("WheelPrize");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.AIImport.ImportGroup", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.AIImport.ImportSession", b =>
+                {
+                    b.Navigation("Audits");
+
+                    b.Navigation("Groups");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Analytics.ForecastRun", b =>

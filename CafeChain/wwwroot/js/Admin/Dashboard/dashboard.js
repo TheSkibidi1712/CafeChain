@@ -549,11 +549,13 @@
         const useZoom = labels.length > visibleCapacity;
         const zoomEnd = useZoom ? Math.max(2, Math.min(100, visibleCapacity / labels.length * 100)) : 100;
         const categoryAxis = !dateAxis;
+        const hasLegend = series.length > 1;
+        const legendTopSpace = hasLegend ? 76 : base.grid.top;
         return {
             ...base,
             color: ["#6F4E37", "#C67A45", "#2F6F5E", "#99623B", "#991B1B", "#475569", "#C67A45"],
-            grid: { ...base.grid, bottom: useZoom ? 130 : (categoryAxis ? 110 : 82) },
-            legend: series.length > 1 ? { type: "scroll", top: 0, left: 10, right: 10 } : undefined,
+            grid: { ...base.grid, top: legendTopSpace, bottom: useZoom ? 130 : (categoryAxis ? 110 : 82) },
+            legend: hasLegend ? { type: "scroll", top: 4, left: 12, right: 12, itemGap: 16 } : undefined,
             tooltip: { ...base.tooltip, formatter: parameters => chartTooltip(parameters, widget, dateAxis, granularity) },
             dataZoom: useZoom ? [
                 { type: "inside", start: 0, end: zoomEnd, filterMode: "none", zoomOnMouseWheel: true, moveOnMouseMove: true },

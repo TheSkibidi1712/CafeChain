@@ -1,11 +1,8 @@
-using CafeChain.Application.Constants;
-using CafeChain.Application.Exceptions;
 using CafeChain.Data;
 using CafeChain.Infrastrusture.Interfaces.Accounts;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Enums.Customer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,13 +13,10 @@ namespace CafeChain.Infrastrusture.Repositories.Accounts
     public class AccountRepository : IAccountRepository
     {
         private readonly AppDbContext _context;
-        private readonly IMemoryCache _cache;
-        private const string ROLE_CACHE = "ROLE_CACHE";
 
-        public AccountRepository(AppDbContext context, IMemoryCache cache)
+        public AccountRepository(AppDbContext context)
         {
             _context = context;
-            _cache = cache;
         }
 
         public async Task<bool> EmailExistsAsync(string email)
@@ -82,16 +76,6 @@ namespace CafeChain.Infrastrusture.Repositories.Accounts
                     customer.Category = CustomerCategory.Registered;
                 }
 
-                var roleId =
-                    await GetRoleId(RoleConstants.Customer);
-
-                _context.AccountRoles.Add(
-                    new AccountRole
-                    {
-                        AccountId = account.AccountId,
-                        RoleId = roleId
-                    });
-
                 await _context.SaveChangesAsync();
 
                 await tran.CommitAsync();
@@ -122,16 +106,6 @@ namespace CafeChain.Infrastrusture.Repositories.Accounts
                         Phone = phone,
 
                         IsDefault = true
-                    });
-
-                var roleId = await GetRoleId(RoleConstants.Customer);
-
-                _context.AccountRoles.Add(
-                    new AccountRole
-                    {
-                        AccountId = account.AccountId,
-
-                        RoleId = roleId
                     });
 
                 await _context.SaveChangesAsync();
@@ -226,31 +200,6 @@ WHERE AccountId = {accountId};");
             }
 
             return (false, 0);
-        }
-
-        private async Task<int> GetRoleId(string role)
-        {
-            var map =
-                await _cache.GetOrCreateAsync(
-                    ROLE_CACHE,
-                    async x =>
-                    {
-                        x.AbsoluteExpirationRelativeToNow =
-                            TimeSpan.FromDays(1);
-
-                        return await _context.Roles
-                            .ToDictionaryAsync(
-                                x => x.Name,
-                                x => x.RoleId
-                            );
-                    });
-
-            if (map != null && map.TryGetValue(role, out int id))
-            {
-                return id;
-            }
-
-            throw new RoleNotFoundException(role);
         }
 
         public async Task ExecuteInTransactionAsync(Func<Task> action)

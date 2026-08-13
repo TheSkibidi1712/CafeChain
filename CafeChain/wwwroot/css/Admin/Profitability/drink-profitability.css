@@ -3,64 +3,19 @@
    Coffee-Brown Premium Contract Synchronization
    ========================================================================== */
 
-:root {
-    --cc-brown-900: #3d2418;
-    --cc-brown-800: #4d2f1f;
-    --cc-brown-700: #5c3b27;
-    --cc-brown-600: #70482f;
-    --cc-brown-500: #8b6247;
-    --cc-brown-400: #a77c5e;
-
-    --cc-caramel-600: #b06535;
-    --cc-caramel-500: #c67a45;
-    --cc-caramel-400: #d8905b;
-
-    --cc-canvas: #f7f4f0;
-    --cc-surface: #ffffff;
-    --cc-surface-muted: #fbf7f2;
-    --cc-surface-raised: #ffffff;
-    --cc-surface-active: #f4e9df;
-
-    --cc-border: #e9ded4;
-    --cc-border-strong: #d8c5b6;
-
-    --cc-text: #201812;
-    --cc-text-secondary: #66584f;
-    --cc-text-muted: #8c7b70;
-
-    --cc-success-bg: #edf6f2;
-    --cc-success: #2f6f5e;
-    --cc-warning-bg: #fcf4e8;
-    --cc-warning: #99623b;
-    --cc-danger-bg: #fdf0f0;
-    --cc-danger: #991b1b;
-
-    --cc-shadow-xs: 0 1px 2px rgba(32, 24, 18, 0.05);
-    --cc-shadow-sm: 0 4px 10px rgba(32, 24, 18, 0.06);
-    --cc-shadow-md: 0 8px 24px rgba(32, 24, 18, 0.09);
-    --cc-shadow-lg: 0 18px 48px rgba(32, 24, 18, 0.14);
-    --cc-focus-ring: 0 0 0 3px rgba(112, 72, 47, 0.22);
-
-    --cc-radius-xs: 4px;
-    --cc-radius-sm: 8px;
-    --cc-radius-control: 10px;
-    --cc-radius-md: 12px;
-    --cc-radius-lg: 16px;
-    --cc-radius-xl: 20px;
-    --cc-radius-modal: 18px;
-
-    /* Legacy Alias Tokens mapped to Design System */
-    --pf-accent: var(--cc-brown-500);
-    --pf-orange: var(--cc-brown-600);
-    --pf-orange-dark: var(--cc-brown-900);
-    --pf-orange-soft: var(--cc-surface-active);
-    --pf-ink: var(--cc-text);
-    --pf-muted: var(--cc-text-secondary);
-    --pf-line: var(--cc-border);
-    --pf-bg: var(--cc-canvas);
-    --pf-danger: var(--cc-danger);
-    --pf-success: var(--cc-success);
-    --pf-warning: var(--cc-warning);
+.pf-page {
+    /* Scoped Local Alias Tokens mapped to Global Design System (admin-unified-depth.css) */
+    --pf-accent: var(--cc-brown-500, #8b6247);
+    --pf-orange: var(--cc-brown-600, #70482f);
+    --pf-orange-dark: var(--cc-brown-900, #3d2418);
+    --pf-orange-soft: var(--cc-surface-active, #f4e9df);
+    --pf-ink: var(--cc-text, #201812);
+    --pf-muted: var(--cc-text-secondary, #66584f);
+    --pf-line: var(--cc-border, #e9ded4);
+    --pf-bg: var(--cc-canvas, #f7f4f0);
+    --pf-danger: var(--cc-danger, #991b1b);
+    --pf-success: var(--cc-success, #2f6f5e);
+    --pf-warning: var(--cc-warning, #99623b);
 }
 
 /* Base Workspace Layout */
@@ -296,10 +251,12 @@ textarea.pf-control {
     resize: vertical;
 }
 
+.pf-control:focus-visible,
 .pf-control:focus {
-    border-color: var(--cc-brown-600, #70482f);
-    outline: none;
-    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22));
+    border-color: var(--cc-brown-600, #70482f) !important;
+    outline: 2px solid var(--cc-brown-600, #70482f) !important;
+    outline-offset: 2px !important;
+    box-shadow: none !important;
 }
 
 .pf-primary-button {

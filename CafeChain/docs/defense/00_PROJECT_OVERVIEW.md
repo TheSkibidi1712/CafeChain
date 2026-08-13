@@ -38,7 +38,8 @@ Evidence chính: `CafeChain/Data/AppDbContext.cs`, `CafeChain/Models/Orders/Orde
 
 ## Đối tượng sử dụng
 
-`CODE_CONFIRMED` Code có tám role, trong đó bảy role nội bộ và một role khách hàng:
+`CODE_CONFIRMED` Database seed có bảy role nội bộ. Khách hàng không có Role/AccountRole được seed;
+identity khách hàng được suy ra từ quan hệ `Account.Customer` và claim `CustomerId` khi đăng nhập:
 
 | Tên code | Tên nghiệp vụ trên UI | Vai trò chính |
 |---|---|---|
@@ -49,7 +50,7 @@ Evidence chính: `CafeChain/Data/AppDbContext.cs`, `CafeChain/Models/Orders/Orde
 | `SalesStaff` | Nhân viên bán hàng | Bán hàng tại POS trong ca được phép. |
 | `AccountantWarehouse` | Kế toán/kho | Supplier, nguồn cung, PA, PO, PDF/gửi nhà cung cấp. |
 | `SystemAdmin` | Quản trị hệ thống | Tài khoản, quyền, cấu hình và công cụ hệ thống. |
-| `Customer` | Khách hàng | Đặt hàng và theo dõi phần trải nghiệm khách hàng nếu route tương ứng được dùng. |
+| `Customer` | Khách hàng | Claim nghiệp vụ được phát cho account có hồ sơ Customer; không phải role được lưu trong seed database. |
 
 Authority: `CafeChain/Application/Constants/RoleConstants.cs`, `CafeChain/Scripts/SeedAll.sql`.
 

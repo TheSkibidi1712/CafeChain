@@ -8,7 +8,7 @@
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
 
-<main class="ops-shell cc-warehouse-page">
+<main class="restock-page restock-form-page ops-shell cc-warehouse-page">
 <header class="ops-header cc-warehouse-header cc-warehouse-header--compact">
         <div>
             <div class="ops-eyebrow">Kho &amp; Cung ứng / Kế hoạch trung tâm</div>
@@ -37,7 +37,8 @@
                 </div>
             </div>
             <div class="ops-panel-body">
-                <div class="ops-form-grid">
+                <div class="ops-form-grid restock-form-grid">
+                    <div class="restock-form-section-label"><i class="fa-solid fa-box" aria-hidden="true"></i><span><strong>Nhu cầu kế hoạch</strong><small>Chọn mặt hàng, đơn vị và số lượng mục tiêu.</small></span></div>
                     <div class="ops-form-field">
                         <label class="ops-form-label" asp-for="IngredientId">Nguyên liệu <span class="ops-required">*</span></label>
                         <select class="ops-select w-100" asp-for="IngredientId" required>
@@ -59,12 +60,14 @@
                         <input class="ops-input w-100" asp-for="RequestedProcurementQuantity" type="number" min="0.001" step="0.001" required />
                         <span asp-validation-for="RequestedProcurementQuantity" class="ops-text-danger"></span>
                     </div>
+                    <div class="restock-form-section-label"><i class="fa-solid fa-calendar-day" aria-hidden="true"></i><span><strong>Thời điểm cần hàng</strong><small>Đặt hạn phù hợp với kế hoạch vận hành.</small></span></div>
                     <div class="ops-form-field">
                         <label class="ops-form-label" asp-for="NeedByDate">Cần trước ngày</label>
                         <input class="ops-input w-100" asp-for="NeedByDate" type="date" lang="vi" />
                         <div class="ops-help">Ngày/tháng/năm</div>
                         <span asp-validation-for="NeedByDate" class="ops-text-danger"></span>
                     </div>
+                    <div class="restock-form-section-label"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span><strong>Bằng chứng và bối cảnh</strong><small>Cung cấp căn cứ để người xét nguồn kiểm tra kế hoạch.</small></span></div>
                     <div class="ops-form-field ops-form-field-wide">
                         <label class="ops-form-label" asp-for="ForecastEvidence">Bằng chứng dự báo / kế hoạch <span class="ops-required">*</span></label>
                         <textarea class="ops-textarea" asp-for="ForecastEvidence" maxlength="1000" rows="3" required placeholder="Nêu số liệu dự báo, sự kiện hoặc kế hoạch vận hành làm phát sinh nhu cầu..."></textarea>
