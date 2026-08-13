@@ -343,3 +343,5 @@
         animation-iteration-count: 1 !important;
     }
 }
+/* Fix contract: unified conversion actions and table alignment. */
+.uc-page table th,.uc-page table td{vertical-align:middle;text-align:center}.uc-page .uc-btn{min-height:44px;border-radius:var(--cc-radius-control,10px)}.uc-page .uc-btn-primary{border-color:var(--cc-brown-600,#70482F)!important;background:var(--cc-brown-600,#70482F)!important;color:#fff!important}.uc-page .uc-btn.danger{border-color:var(--cc-danger,#B42318)!important;background:var(--cc-danger-bg,#FEF3F2)!important;color:var(--cc-danger,#B42318)!important}

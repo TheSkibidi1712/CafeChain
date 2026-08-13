@@ -460,3 +460,11 @@
 @media(max-width:991.98px){.store-admin-form-page .store-admin-map-card{position:static}}
 @media(max-width:767.98px){.store-admin-page .store-admin-stat{border-right:0;border-bottom:1px solid var(--cc-border,#E9DED4)}.store-admin-page .store-admin-stat:last-child{border-bottom:0}}
 @media(prefers-reduced-motion:reduce){.store-admin-page *{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important;}}
+/* Fix branch: consistent table alignment for multiline store data. */
+.store-admin-page .store-admin-table th { text-align: center; vertical-align: middle; }
+.store-admin-page .store-admin-table td { text-align: center; vertical-align: middle; line-height: 1.4; }
+.store-admin-page .store-admin-table td:nth-child(2),
+.store-admin-page .store-admin-table td:nth-child(3) { text-align: left; }
+.store-admin-page .store-admin-table td > .fw-bold,
+.store-admin-page .store-admin-table td > .text-muted { overflow-wrap: anywhere; }
+.store-admin-page .store-admin-actions { justify-content: center; }.store-admin-page .store-admin-icon-btn{width:40px;height:40px;border-radius:var(--cc-radius-control,10px)}.store-admin-page .store-admin-icon-edit,.store-admin-page .store-admin-icon-restore{border-color:var(--cc-brown-600,#70482F);background:var(--cc-brown-600,#70482F);color:#fff}.store-admin-page .store-admin-icon-danger{border-color:var(--cc-danger,#B42318);background:var(--cc-danger-bg,#FEF3F2);color:var(--cc-danger,#B42318)}.store-admin-page .store-admin-btn-primary{min-height:44px;border-color:var(--cc-brown-600,#70482F)!important;background:var(--cc-brown-600,#70482F)!important;color:#fff!important}

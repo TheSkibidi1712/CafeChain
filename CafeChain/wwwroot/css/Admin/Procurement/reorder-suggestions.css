@@ -1200,3 +1200,5 @@
     .reorder-page *,
     .reorder-bulk-modal * { transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+/* Fix contract: centered reorder data and semantic actions. */
+.reorder-page table th,.reorder-page table td{vertical-align:middle;text-align:center}.reorder-page table td:first-child{text-align:left}.reorder-page :is(.btn-primary,.cc-button-primary,.reorder-action-button--confirm){min-height:44px;border-color:var(--cc-brown-600,#70482F)!important;background:var(--cc-brown-600,#70482F)!important;color:#fff!important}.reorder-page :is(.btn-danger,.btn-outline-danger,.notification-terminal-reject-button){border-color:var(--cc-danger,#B42318)!important;background:var(--cc-danger-bg,#FEF3F2)!important;color:var(--cc-danger,#B42318)!important}

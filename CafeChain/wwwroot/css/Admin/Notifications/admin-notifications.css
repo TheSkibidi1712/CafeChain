@@ -702,3 +702,5 @@
 .notification-page :is(a,button,input,select,textarea):focus-visible { outline:2px solid var(--cc-brown-600,#70482F); outline-offset:2px; box-shadow:var(--cc-focus-ring)!important; }
 @media(max-width:767.98px){.notification-page .notification-summary-card{border-right:0;border-bottom:1px solid var(--cc-border,#E9DED4)}.notification-page .notification-summary-card:last-child{border-bottom:0}}
 @media(prefers-reduced-motion:reduce){.notification-page *{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important;}}
+/* Fix contract: centered notification actions and semantic colors. */
+.notification-page table th,.notification-page table td{vertical-align:middle;text-align:center}.notification-page :is(.cc-button-primary,.notification-mark-all,.notification-read-button){min-height:44px;border-color:var(--cc-brown-600,#70482F)!important;background:var(--cc-brown-600,#70482F)!important;color:#fff!important}.notification-page .notification-terminal-reject-button{min-height:44px;border-color:var(--cc-danger,#B42318)!important;background:var(--cc-danger-bg,#FEF3F2)!important;color:var(--cc-danger,#B42318)!important}

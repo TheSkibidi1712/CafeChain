@@ -1341,3 +1341,5 @@
         animation-iteration-count: 1 !important;
     }
 }
+/* Fix contract: unified procurement actions and centered data columns. */
+.pa-page .pa-table th,.pa-page .pa-table td{vertical-align:middle;text-align:center}.pa-page .pa-table td:first-child{text-align:left}.pa-page .pa-action{min-height:44px;border-radius:var(--cc-radius-control,10px)}.pa-page .pa-action-primary{border-color:var(--cc-brown-600,#70482F)!important;background:var(--cc-brown-600,#70482F)!important;color:#fff!important}.pa-page .pa-action-danger{border-color:var(--cc-danger,#B42318)!important;background:var(--cc-danger-bg,#FEF3F2)!important;color:var(--cc-danger,#B42318)!important}.pa-page .pa-action:not(.pa-action-primary):not(.pa-action-danger){border-color:var(--cc-border-strong,#D8C5B6);background:var(--cc-surface,#FFFDFB);color:var(--cc-brown-700,#3D2418)}

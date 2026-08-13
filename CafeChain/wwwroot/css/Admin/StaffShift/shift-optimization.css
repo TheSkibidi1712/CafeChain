@@ -430,3 +430,5 @@
 .shift-optimization-page fieldset { border-left:3px solid var(--shift-opt-accent)!important; }
 .shift-optimization-page :is(a,button,input,select,textarea):focus-visible { outline:2px solid var(--cc-brown-600,#70482F); outline-offset:2px; box-shadow:var(--cc-focus-ring)!important; }
 @media(prefers-reduced-motion:reduce){.shift-optimization-page *{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important;}}
+/* Fix contract: unified optimization controls. */
+.shift-optimization-page table th,.shift-optimization-page table td{vertical-align:middle;text-align:center}.shift-optimization-page .btn{min-height:44px;border-radius:var(--cc-radius-control,10px)}.shift-optimization-page .btn-primary{border-color:var(--cc-brown-600,#70482F)!important;background:var(--cc-brown-600,#70482F)!important;color:#fff!important}.shift-optimization-page .btn-danger,.shift-optimization-page .btn-outline-danger{border-color:var(--cc-danger,#B42318)!important;background:var(--cc-danger-bg,#FEF3F2)!important;color:var(--cc-danger,#B42318)!important}
