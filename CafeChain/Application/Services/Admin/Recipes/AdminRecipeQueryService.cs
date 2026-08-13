@@ -53,12 +53,35 @@ namespace CafeChain.Application.Services.Admin.Recipes
             _timeProvider = timeProvider ?? TimeProvider.System;
         }
 
-        public async Task<BomDataHealthPageVM> GetDataHealthPageAsync(int page = 1, int pageSize = 20)
+        public async Task<BomDataHealthPageVM> GetDataHealthPageAsync(
+            int page = 1,
+            int pageSize = 20,
+            string? search = null,
+            string? typeFilter = null)
         {
             page = Math.Max(1, page);
             pageSize = Math.Clamp(pageSize, 1, 50);
+            var normalizedSearch = string.IsNullOrWhiteSpace(search) ? "" : search.Trim();
+            var normalizedType = NormalizeDataHealthTypeFilter(typeFilter);
 
             var baseQuery = _context.Recipes.AsNoTracking();
+            baseQuery = normalizedType switch
+            {
+                "POS" => baseQuery.Where(r => r.DrinkId.HasValue),
+                "TOPPING" => baseQuery.Where(r => r.ToppingId.HasValue),
+                "SUBRECIPE" => baseQuery.Where(r => !r.DrinkId.HasValue && !r.ToppingId.HasValue),
+                _ => baseQuery
+            };
+            if (normalizedSearch.Length > 0)
+            {
+                baseQuery = baseQuery.Where(r =>
+                    r.Name.Contains(normalizedSearch)
+                    || r.RecipeCode.Contains(normalizedSearch)
+                    || (r.PreparedItem != null
+                        && (r.PreparedItem.Name.Contains(normalizedSearch)
+                            || r.PreparedItem.Code.Contains(normalizedSearch))));
+            }
+
             var totalCount = await baseQuery.CountAsync();
             var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
             page = Math.Min(page, totalPages);
@@ -83,12 +106,24 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 .Take(pageSize)
                 .ToListAsync();
 
+            var targets = recipes
+                .Select(CreateRecipeTarget)
+                .Where(target => target != null)
+                .Cast<RecipeTarget>()
+                .Distinct()
+                .ToArray();
+            var resolutions = await _currentRecipeResolver.ResolveManyAsync(
+                targets,
+                _timeProvider.GetUtcNow().UtcDateTime);
+
             var costResults = await _estimatedBomCost.CalculateRecipesEstimatedCostAsync(
                 recipes.Select(x => x.RecipeId));
             var result = new BomDataHealthPageVM
             {
                 Page = page,
                 PageSize = pageSize,
+                Search = normalizedSearch,
+                TypeFilter = normalizedType,
                 TotalCount = totalCount
             };
 
@@ -96,6 +131,10 @@ namespace CafeChain.Application.Services.Admin.Recipes
             {
                 var typeKey = ResolveRecipeTypeKey(recipe);
                 var configuration = _healthEvaluator.EvaluateConfiguration(recipe);
+                var target = CreateRecipeTarget(recipe);
+                var currentRecipe = target == null
+                    ? BuildCurrentRecipeHealth(recipe, null)
+                    : BuildCurrentRecipeHealth(recipe, resolutions[target]);
                 var costing = costResults.TryGetValue(recipe.RecipeId, out var costResult)
                     ? _healthEvaluator.EvaluateCosting(costResult)
                     : new BomHealthStatusVM
@@ -130,13 +169,17 @@ namespace CafeChain.Application.Services.Admin.Recipes
                         _ => "Khác"
                     },
                     IdentityDisplay = BuildIdentityDisplay(recipe, typeKey),
+                    CurrentRecipe = currentRecipe,
                     Configuration = configuration,
                     Costing = costing,
                     EstimatedCost = costResult?.IsComplete == true ? costResult.TotalCost : null
                 });
             }
 
-            result.CompleteCount = result.Items.Count(x => x.Configuration.IsComplete && x.Costing.IsComplete);
+            result.CompleteCount = result.Items.Count(x =>
+                !x.CurrentRecipe.IsBlocking
+                && x.Configuration.IsComplete
+                && x.Costing.IsComplete);
             result.MissingQuoteCount = result.Items.Count(x => x.Costing.Reasons.Any(r =>
                 r.GroupCode == BomCostingHealthCodes.MissingQuote));
             result.MissingConversionCount = result.Items.Count(x => x.Costing.Reasons.Any(r =>
@@ -147,6 +190,7 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 || r.Code == BomConfigurationHealthCodes.MissingOutputUnit));
             result.MappingErrorCount = result.Items.Count(x => x.Configuration.Reasons.Any(r =>
                 r.Code == BomConfigurationHealthCodes.InvalidPreparedItemMapping));
+            result.CurrentRecipeIssueCount = result.Items.Count(x => x.CurrentRecipe.IsBlocking);
 
             return result;
         }
@@ -1122,6 +1166,54 @@ namespace CafeChain.Application.Services.Admin.Recipes
             return null;
         }
 
+        private static BomCurrentRecipeHealthVM BuildCurrentRecipeHealth(
+            Models.Drinks.Recipe recipe,
+            CurrentRecipeResolution? resolution)
+        {
+            if (resolution?.Status == CurrentRecipeResolutionStatus.Found)
+            {
+                var isCurrent = resolution.Recipe?.RecipeId == recipe.RecipeId;
+                return new BomCurrentRecipeHealthVM
+                {
+                    Code = isCurrent
+                        ? BomCurrentRecipeHealthCodes.Current
+                        : BomCurrentRecipeHealthCodes.Historical,
+                    Label = isCurrent ? "Đang áp dụng" : "Phiên bản lịch sử",
+                    Message = isCurrent
+                        ? "Đây là phiên bản đang áp dụng cho đối tượng công thức."
+                        : "Một phiên bản khác đang được áp dụng cho đối tượng công thức này."
+                };
+            }
+
+            return resolution?.Status switch
+            {
+                CurrentRecipeResolutionStatus.Ambiguous => new BomCurrentRecipeHealthVM
+                {
+                    Code = BomCurrentRecipeHealthCodes.Ambiguous,
+                    ReasonCode = resolution.ReasonCode,
+                    Label = "Cần kiểm tra phiên bản áp dụng",
+                    Message = "Có nhiều phiên bản cùng được đánh dấu đang áp dụng. Hệ thống không tự chọn một phiên bản.",
+                    IsBlocking = true
+                },
+                CurrentRecipeResolutionStatus.Missing => new BomCurrentRecipeHealthVM
+                {
+                    Code = BomCurrentRecipeHealthCodes.Missing,
+                    ReasonCode = resolution.ReasonCode,
+                    Label = "Chưa có phiên bản đang áp dụng",
+                    Message = "Chưa tìm thấy phiên bản đang áp dụng cho đối tượng công thức này.",
+                    IsBlocking = true
+                },
+                _ => new BomCurrentRecipeHealthVM
+                {
+                    Code = BomCurrentRecipeHealthCodes.InvalidTarget,
+                    ReasonCode = resolution?.ReasonCode ?? BomRecipeErrorCodes.CurrentRecipeInvalidTarget,
+                    Label = "Đối tượng công thức không hợp lệ",
+                    Message = "Công thức chưa xác định đúng một đối tượng nghiệp vụ để áp dụng.",
+                    IsBlocking = true
+                }
+            };
+        }
+
         private static (string Label, string CssClass) BuildAppliedState(
             CurrentRecipeResolution? resolution,
             bool isCurrentVersion)
@@ -1345,6 +1437,17 @@ namespace CafeChain.Application.Services.Admin.Recipes
             {
                 "ACTIVE" => "ACTIVE",
                 "INACTIVE" => "INACTIVE",
+                _ => "ALL"
+            };
+        }
+
+        private static string NormalizeDataHealthTypeFilter(string? typeFilter)
+        {
+            return typeFilter?.Trim().ToUpperInvariant() switch
+            {
+                "POS" => "POS",
+                "TOPPING" => "TOPPING",
+                "SUBRECIPE" => "SUBRECIPE",
                 _ => "ALL"
             };
         }
