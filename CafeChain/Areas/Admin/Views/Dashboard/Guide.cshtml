@@ -11,7 +11,7 @@
     <header class="dashboard-guide__header">
         <div>
             <span class="analytics-eyebrow">CafeChain Learning Center</span>
-            <h1>Hướng dẫn Dashboard &amp; AI Analyst</h1>
+            <h1>Hướng dẫn tổng quan và trợ lý phân tích</h1>
             <p>Thiết lập đúng phạm vi, đọc chính xác chỉ số và khai thác AI an toàn trong một quy trình rõ ràng.</p>
         </div>
         <a class="analytics-button analytics-button--secondary"
@@ -27,7 +27,7 @@
             <span class="dashboard-guide__toc-label">Mục lục</span>
             <nav aria-label="Mục lục hướng dẫn">
                 <a href="#filters"><span>01</span>Bộ lọc</a>
-                <a href="#ai-usage"><span>02</span>Sử dụng AI Analyst</a>
+                <a href="#ai-usage"><span>02</span>Sử dụng trợ lý phân tích</a>
                 <a href="#ai-questions"><span>03</span>Câu hỏi mẫu</a>
                 <a href="#ai-result"><span>04</span>Đọc kết quả AI</a>
                 <a href="#tabs"><span>05</span>Các tab dữ liệu</a>
@@ -71,9 +71,9 @@
                 <div class="dashboard-guide__body">
                     <ul>
                         <li><strong>Từ ngày/Đến ngày:</strong> khoảng nghiệp vụ cần phân tích; hệ thống sử dụng khoảng ngày nửa mở ở backend.</li>
-                        <li><strong>Tỉnh/Thành phố, Xã/Phường/Đặc khu, Cửa hàng:</strong> lọc dần trong danh sách thuộc StaffScope.</li>
-                        <li><strong>Granularity:</strong> Hour, Day, Week hoặc Month; tuần bắt đầu vào thứ Hai.</li>
-                        <li><strong>Top:</strong> số dòng xếp hạng, từ 1 đến 100.</li>
+                        <li><strong>Tỉnh/Thành phố, Xã/Phường/Đặc khu, Cửa hàng:</strong> lọc dần trong danh sách thuộc phạm vi truy cập của nhân viên.</li>
+                        <li><strong>Mức thời gian:</strong> Giờ, Ngày, Tuần hoặc Tháng; tuần bắt đầu vào thứ Hai.</li>
+                        <li><strong>Số kết quả xếp hạng:</strong> số dòng hiển thị, từ 1 đến 100.</li>
                     </ul>
                     <div class="dashboard-guide__callout">
                         <i class="bi bi-info-circle"></i>
@@ -85,21 +85,21 @@
             <details class="dashboard-guide__card" id="ai-usage" open>
                 <summary>
                     <span class="dashboard-guide__number">02</span>
-                    <span><small>Luồng thao tác chính</small><strong>Sử dụng AI Analyst</strong></span>
+                    <span><small>Luồng thao tác chính</small><strong>Sử dụng trợ lý phân tích</strong></span>
                     <i class="bi bi-chevron-down"></i>
                 </summary>
                 <div class="dashboard-guide__body">
                     <ol>
                         <li>Chọn khoảng ngày và cửa hàng thuộc phạm vi được cấp quyền.</li>
-                        <li>Nhấn <strong>Áp dụng</strong> để Dashboard đồng bộ bộ lọc.</li>
+                        <li>Nhấn <strong>Áp dụng</strong> để trang tổng quan đồng bộ bộ lọc.</li>
                         <li>Mở tab <strong>Hỏi AI</strong>.</li>
-                        <li>Nhập câu hỏi tiếng Việt vào vùng <strong>Hỏi Dashboard bằng tiếng Việt</strong>.</li>
+                        <li>Nhập câu hỏi tiếng Việt vào vùng <strong>Hỏi dữ liệu bằng tiếng Việt</strong>.</li>
                         <li>Nhấn <strong>Phân tích</strong> và chờ hệ thống lập data plan read-only.</li>
                         <li>Đọc bối cảnh phân tích, kết luận chính, biểu đồ, evidence, giới hạn và khuyến nghị nếu có.</li>
                     </ol>
                     <div class="dashboard-guide__callout">
                         <i class="bi bi-shield-lock"></i>
-                        <span>Bộ lọc ngày và cửa hàng trên Dashboard là phạm vi chính thức của lần phân tích. AI không được truy vấn ngoài StaffScope, không tự sinh SQL và không được điền số liệu còn thiếu bằng suy đoán.</span>
+                        <span>Bộ lọc ngày và cửa hàng trên trang tổng quan là phạm vi chính thức của lần phân tích. Trợ lý không được truy vấn ngoài phạm vi truy cập của nhân viên, không tự tạo truy vấn dữ liệu và không được điền số liệu còn thiếu bằng suy đoán.</span>
                     </div>
                 </div>
             </details>
@@ -107,7 +107,7 @@
             <details class="dashboard-guide__card" id="ai-questions" open>
                 <summary>
                     <span class="dashboard-guide__number">03</span>
-                    <span><small>Prompt gợi ý</small><strong>Câu hỏi mẫu cho AI Dashboard</strong></span>
+                    <span><small>Câu hỏi gợi ý</small><strong>Câu hỏi mẫu cho trợ lý phân tích</strong></span>
                     <i class="bi bi-chevron-down"></i>
                 </summary>
                 <div class="dashboard-guide__body">
@@ -140,7 +140,7 @@
             <details class="dashboard-guide__card" id="ai-result" open>
                 <summary>
                     <span class="dashboard-guide__number">04</span>
-                    <span><small>EvidencePack</small><strong>Đọc kết quả AI theo EvidencePack</strong></span>
+                    <span><small>gói bằng chứng</small><strong>Đọc kết quả AI theo gói bằng chứng</strong></span>
                     <i class="bi bi-chevron-down"></i>
                 </summary>
                 <div class="dashboard-guide__body">
@@ -152,9 +152,9 @@
                         <dt>Inference</dt>
                         <dd>Nhận định có khả năng giải thích dữ liệu; phải tham chiếu evidence và không phải kết luận chắc chắn.</dd>
                         <dt>DataStatus</dt>
-                        <dd><code>Complete</code> là đủ dataset, <code>Partial</code> là thiếu một phần và <code>Insufficient</code> là không đủ dữ liệu để kết luận.</dd>
-                        <dt>AI Available / Fallback</dt>
-                        <dd><code>Available</code> nghĩa là Ollama đã tạo phần diễn giải; <code>Fallback</code> vẫn trả kết quả có cấu trúc từ rule và evidence khi AI offline hoặc JSON không hợp lệ.</dd>
+                        <dd><code>Complete</code> là đủ dataset, <code>Partial</code> là thiếu một phần và <code>Chưa đủ dữ liệu</code> là không đủ dữ liệu để kết luận.</dd>
+                        <dt>Trợ lý sẵn sàng / Kết quả dự phòng</dt>
+                        <dd>“Trợ lý sẵn sàng” nghĩa là hệ thống đã tạo phần diễn giải; “Kết quả dự phòng” vẫn trả kết quả có cấu trúc từ quy tắc và bằng chứng khi dịch vụ phân tích không khả dụng hoặc dữ liệu phản hồi không hợp lệ.</dd>
                         <dt>Chart / Evidence / Limitation</dt>
                         <dd>Biểu đồ và bảng evidence chứng minh kết luận; limitation nêu rõ dữ liệu thiếu hoặc chỉ có một phần.</dd>
                         <dt>Recommendation</dt>
@@ -179,9 +179,9 @@
                         <dt>POS / WorkShift</dt><dd>Chênh lệch két, doanh số ca, thanh toán theo ca, đối soát offline, đơn theo giờ và KPI ca.</dd>
                         <dt>Kho</dt><dd>Nguy cơ thiếu hàng, biến động, ngưỡng tồn, đề xuất đặt lại, hao hụt và tuổi lớp FIFO.</dd>
                         <dt>Mua hàng</dt><dd>PO pipeline, PO quá hạn, chất lượng nhà cung cấp, xu hướng giá, chi tiêu và nhóm sự cố.</dd>
-                        <dt>Sản phẩm</dt><dd>Top sản phẩm, volume-margin, lợi nhuận theo size, topping, BOM health và hiệu quả tiêu hao.</dd>
+                        <dt>Sản phẩm</dt><dd>Sản phẩm xếp hạng cao, sản lượng và biên lợi nhuận, lợi nhuận theo kích cỡ và món thêm, mức ổn định của định mức nguyên liệu và hiệu quả tiêu hao.</dd>
                         <dt>Nhân sự &amp; lịch dự kiến</dt><dd>Lịch phân ca dự kiến, nhu cầu theo giờ và hoạt động POS theo nhân viên trong phạm vi được phép. Đây không phải dữ liệu chấm công hoặc tính lương.</dd>
-                        <dt>Hỏi AI</dt><dd>Lập DataPlan read-only từ câu hỏi, tạo EvidencePack và diễn giải có kiểm chứng; chuyển tab không gọi GetSection.</dd>
+                        <dt>Hỏi AI</dt><dd>Lập kế hoạch truy vấn chỉ đọc từ câu hỏi, tạo gói bằng chứng và diễn giải có kiểm chứng; chuyển tab không gọi tải lại dữ liệu phân tích.</dd>
                     </dl>
                     <p>Di chuột hoặc dùng bàn phím để xem tooltip; bấm legend để ẩn/hiện series. Bảng rộng có thể cuộn ngang trên màn hình nhỏ.</p>
                 </div>
@@ -211,7 +211,7 @@
                 </summary>
                 <div class="dashboard-guide__body">
                     <div class="dashboard-guide__states">
-                        <div><strong>Loading</strong><span>Skeleton đang chờ Stored Procedure trả dữ liệu.</span></div>
+                        <div><strong>Đang tải</strong><span>Skeleton đang chờ hệ thống xử lý dữ liệu trả dữ liệu.</span></div>
                         <div><strong>NO_DATA</strong><span>Không có bản ghi trong filter hiện tại; thử mở rộng ngày hoặc cửa hàng.</span></div>
                         <div><strong>PARTIAL_DATA</strong><span>Một widget lỗi hoặc COGS chưa đầy đủ, các widget còn lại vẫn dùng được.</span></div>
                         <div><strong>ERROR</strong><span>Widget không tải được; dùng nút Retry thay vì tải lại toàn trang.</span></div>
@@ -227,12 +227,12 @@
                 </summary>
                 <div class="dashboard-guide__body">
                     <ul>
-                        <li><strong>403:</strong> tài khoản thiếu App.AdminDashboard, bị account override Deny hoặc cửa hàng nằm ngoài StaffScope; SystemAdmin dùng global scope.</li>
+                        <li><strong>403:</strong> tài khoản thiếu quyền xem trang tổng quan, bị cấu hình từ chối quyền hoặc cửa hàng nằm ngoài phạm vi truy cập của nhân viên; quản trị viên hệ thống dùng global scope.</li>
                         <li><strong>Không có dữ liệu:</strong> kiểm tra khoảng ngày, store và trạng thái nghiệp vụ đã hoàn tất.</li>
-                        <li><strong>AI Fallback:</strong> kiểm tra Ollama/model; phần fact và statistic vẫn lấy từ dữ liệu server.</li>
-                        <li><strong>Insufficient:</strong> mở rộng khoảng ngày hoặc chọn store có dữ liệu; AI sẽ không tự đoán.</li>
+                        <li><strong>Kết quả phân tích dự phòng:</strong> kiểm tra dịch vụ phân tích; phần dữ kiện và thống kê vẫn lấy từ dữ liệu server.</li>
+                        <li><strong>Chưa đủ dữ liệu:</strong> mở rộng khoảng ngày hoặc chọn cửa hàng có dữ liệu; AI sẽ không tự đoán.</li>
                         <li><strong>Biểu đồ chưa đổi:</strong> nhấn Áp dụng sau khi chỉnh filter; request trước đó sẽ bị hủy.</li>
-                        <li>Dashboard chưa hỗ trợ export và không tự refresh liên tục; tải lại dữ liệu khi cần số liệu mới.</li>
+                        <li>Trang tổng quan chưa hỗ trợ xuất báo cáo và không tự làm mới liên tục; tải lại dữ liệu khi cần số liệu mới.</li>
                     </ul>
                 </div>
             </details>

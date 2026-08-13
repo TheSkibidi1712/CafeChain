@@ -1578,3 +1578,17 @@
         inset 0 2px 8px rgba(71, 50, 35, .055),
         0 9px 20px rgba(71, 50, 35, .075);
 }
+
+/* FE2 batch 10: staff identity and form hierarchy. */
+.staff-index-page .staff-page-header { position:relative; overflow:hidden; border:1px solid var(--cc-border,#E9DED4); border-radius:var(--cc-radius-lg,16px); padding:clamp(18px,2.4vw,28px); background:linear-gradient(135deg,var(--cc-surface,#FFFDFB),var(--cc-surface-muted,#FBF7F2)); }
+.staff-index-page .staff-page-header::before { position:absolute; inset:0 auto 0 0; width:4px; background:var(--cc-caramel-500,#A97750); content:""; }
+.staff-index-page .staff-kpi-row { overflow:hidden; border:1px solid var(--cc-border,#E9DED4); border-radius:var(--cc-radius-md,12px); background:var(--cc-surface,#FFFDFB); }
+.staff-index-page .staff-kpi-card { border:0; border-right:1px solid var(--cc-border,#E9DED4); border-radius:0; box-shadow:none; }
+.staff-index-page .staff-kpi-card:last-child { border-right:0; }
+.staff-index-page .staff-table-shell { border-top:3px solid var(--cc-brown-600,#70482F); }
+.staff-edit-page .staff-form-actions { position:sticky; bottom:12px; z-index:4; border-color:var(--cc-border,#E9DED4); background:rgba(255,253,251,.96); box-shadow:var(--cc-shadow-md); }
+.staff-edit-page .staff-edit-section-title,
+.staff-modal .staff-modal-heading { border-left:3px solid var(--cc-caramel-500,#A97750); padding-left:12px; }
+:is(.staff-index-page,.staff-edit-page,.staff-modal) :is(a,button,input,select,textarea):focus-visible { outline:2px solid var(--cc-brown-600,#70482F); outline-offset:2px; box-shadow:var(--cc-focus-ring)!important; }
+@media(max-width:767.98px){.staff-index-page .staff-kpi-card{border-right:0;border-bottom:1px solid var(--cc-border,#E9DED4)}.staff-index-page .staff-kpi-card:last-child{border-bottom:0}.staff-edit-page .staff-form-actions{position:static}}
+@media(prefers-reduced-motion:reduce){:is(.staff-index-page,.staff-edit-page,.staff-modal) *{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important;}}
