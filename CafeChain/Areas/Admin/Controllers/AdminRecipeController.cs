@@ -26,6 +26,7 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IEstimatedBomCostService _estimatedBomCost;
         private readonly IProductionReadinessService _productionReadiness;
         private readonly IAdminStoreInventoryService _storeInventoryService;
+        private readonly IRecipeWhereUsedQueryService? _whereUsedQuery;
 
         public AdminRecipeController(
             IAdminRecipeService recipeService,
@@ -34,7 +35,8 @@ namespace CafeChain.Areas.Admin.Controllers
             IRecipeOutputNormalizer outputNormalizer,
             IEstimatedBomCostService estimatedBomCost,
             IProductionReadinessService productionReadiness,
-            IAdminStoreInventoryService storeInventoryService)
+            IAdminStoreInventoryService storeInventoryService,
+            IRecipeWhereUsedQueryService? whereUsedQuery = null)
         {
             _recipeService = recipeService;
             _queryService = queryService;
@@ -43,6 +45,7 @@ namespace CafeChain.Areas.Admin.Controllers
             _estimatedBomCost = estimatedBomCost;
             _productionReadiness = productionReadiness;
             _storeInventoryService = storeInventoryService;
+            _whereUsedQuery = whereUsedQuery;
         }
 
         [HttpGet]
@@ -101,6 +104,13 @@ namespace CafeChain.Areas.Admin.Controllers
                 StoreId = x.StoreId,
                 StoreName = x.StoreName
             }).ToList();
+            if (_whereUsedQuery != null)
+            {
+                page.WhereUsed = await _whereUsedQuery.GetCurrentAsync(
+                    recipeId,
+                    stores.Select(store => store.StoreId).ToArray(),
+                    HttpContext.RequestAborted);
+            }
 
             if (storeId.HasValue && storeId.Value > 0)
             {

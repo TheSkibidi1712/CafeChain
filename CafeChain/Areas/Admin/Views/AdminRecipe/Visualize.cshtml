@@ -227,6 +227,96 @@
                     </div>
                 </section>
 
+                <section id="recipe-where-used" class="recipe-workspace__surface recipe-workspace__where-used" aria-labelledby="where-used-title">
+                    <header class="recipe-workspace__section-heading bom-section-heading">
+                        <span class="recipe-workspace__section-icon"><i class="fas fa-share-nodes" aria-hidden="true"></i></span>
+                        <div>
+                            <h2 id="where-used-title">Được sử dụng ở đâu</h2>
+                            <p>Các công thức cha hiện hành và điểm bán đang sử dụng đúng đối tượng công thức này.</p>
+                        </div>
+                    </header>
+                    @if (Model.WhereUsed.IsEmpty)
+                    {
+                        <div class="recipe-workspace__where-used-empty">
+                            <i class="fas fa-circle-info" aria-hidden="true"></i>
+                            <span>Chưa ghi nhận nơi sử dụng hiện hành.</span>
+                        </div>
+                    }
+                    else
+                    {
+                        @if (Model.WhereUsed.CurrentParents.Count > 0)
+                        {
+                            <div class="recipe-workspace__where-used-group">
+                                <div class="recipe-workspace__where-used-group-heading">
+                                    <strong>Công thức cha hiện hành</strong>
+                                    <span>@Model.WhereUsed.CurrentParents.Count kết quả</span>
+                                </div>
+                                <div class="recipe-workspace__where-used-list">
+                                    @foreach (var usage in Model.WhereUsed.CurrentParents)
+                                    {
+                                        <a class="recipe-workspace__where-used-item"
+                                           asp-action="Visualize"
+                                           asp-route-recipeId="@usage.ParentRecipeId"
+                                           asp-route-storeId="@Model.SelectedStoreId"
+                                           asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)">
+                                            <span class="recipe-workspace__type-badge">@usage.TypeLabel</span>
+                                            <span class="recipe-workspace__where-used-identity">
+                                                <strong>@usage.BusinessName</strong>
+                                                @if (!string.IsNullOrWhiteSpace(usage.ContextLabel))
+                                                {
+                                                    <small>@usage.ContextLabel</small>
+                                                }
+                                                <small class="recipe-workspace__where-used-technical">
+                                                    @if (!string.IsNullOrWhiteSpace(usage.TechnicalCode))
+                                                    {
+                                                        <span>Mã công thức: @usage.TechnicalCode</span>
+                                                    }
+                                                    @if (!string.IsNullOrWhiteSpace(usage.PinnedVersionLabel))
+                                                    {
+                                                        <span>@usage.PinnedVersionLabel</span>
+                                                    }
+                                                </small>
+                                            </span>
+                                            <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                                        </a>
+                                    }
+                                </div>
+                                @if (Model.WhereUsed.ParentResultsTruncated)
+                                {
+                                    <p class="recipe-workspace__where-used-limit">Đang hiển thị @Model.WhereUsed.CurrentParents.Count kết quả đầu tiên.</p>
+                                }
+                            </div>
+                        }
+
+                        @if (Model.WhereUsed.PointOfSaleLocations.Count > 0)
+                        {
+                            <div class="recipe-workspace__where-used-group">
+                                <div class="recipe-workspace__where-used-group-heading">
+                                    <strong>Điểm bán hiện hành trong phạm vi được phép xem</strong>
+                                    <span>@Model.WhereUsed.PointOfSaleLocations.Count chi nhánh</span>
+                                </div>
+                                <div class="recipe-workspace__where-used-list">
+                                    @foreach (var usage in Model.WhereUsed.PointOfSaleLocations)
+                                    {
+                                        <article class="recipe-workspace__where-used-item is-location">
+                                            <span class="recipe-workspace__type-badge is-direct">@usage.TypeLabel</span>
+                                            <span class="recipe-workspace__where-used-identity">
+                                                <strong>@usage.BusinessName</strong>
+                                                <small>@usage.ContextLabel</small>
+                                            </span>
+                                            <i class="fas fa-store" aria-hidden="true"></i>
+                                        </article>
+                                    }
+                                </div>
+                                @if (Model.WhereUsed.PointOfSaleResultsTruncated)
+                                {
+                                    <p class="recipe-workspace__where-used-limit">Đang hiển thị @Model.WhereUsed.PointOfSaleLocations.Count chi nhánh đầu tiên.</p>
+                                }
+                            </div>
+                        }
+                    }
+                </section>
+
                 @if (Model.IsPreparedItemRecipe)
                 {
                     <section id="recipe-operations" class="recipe-workspace__surface recipe-workspace__operations" aria-labelledby="operations-title">

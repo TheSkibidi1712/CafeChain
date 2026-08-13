@@ -55,6 +55,7 @@ namespace CafeChain.ViewModels.Admin.Recipes
         public RecipeWorkspaceReadinessSummaryVM GlobalReadiness { get; set; } = new();
         public RecipeWorkspaceReadinessSummaryVM StoreReadiness { get; set; } =
             RecipeWorkspaceReadinessSummaryVM.StoreNotSelected();
+        public RecipeWhereUsedVM WhereUsed { get; set; } = new();
 
         public bool IsPreparedItemRecipe => RecipeTypeKey == "SUBRECIPE";
         public bool ShowBatchOutput => IsPreparedItemRecipe;

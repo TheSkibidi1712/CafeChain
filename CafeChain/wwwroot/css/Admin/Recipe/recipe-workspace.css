@@ -684,6 +684,108 @@
     font-size: 12px;
 }
 
+.recipe-workspace__where-used-group {
+    padding: 0 16px 16px;
+}
+
+.recipe-workspace__where-used-group + .recipe-workspace__where-used-group {
+    padding-top: 16px;
+    border-top: 1px solid var(--recipe-border);
+}
+
+.recipe-workspace__where-used-group-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.recipe-workspace__where-used-group-heading strong {
+    font-size: 13px;
+}
+
+.recipe-workspace__where-used-group-heading span,
+.recipe-workspace__where-used-limit {
+    color: var(--recipe-muted);
+    font-size: 11px;
+}
+
+.recipe-workspace__where-used-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    border: 1px solid var(--recipe-border);
+    border-radius: 7px;
+    background: var(--recipe-border);
+    overflow: hidden;
+}
+
+.recipe-workspace__where-used-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 14px;
+    background: #fff;
+    color: var(--recipe-ink);
+    text-decoration: none;
+}
+
+.recipe-workspace__where-used-item:hover {
+    background: #fff9f3;
+    color: var(--recipe-ink);
+}
+
+.recipe-workspace__where-used-item > i {
+    color: var(--recipe-caramel);
+}
+
+.recipe-workspace__where-used-identity {
+    display: grid;
+    min-width: 0;
+    gap: 3px;
+}
+
+.recipe-workspace__where-used-identity strong,
+.recipe-workspace__where-used-identity small {
+    overflow-wrap: anywhere;
+}
+
+.recipe-workspace__where-used-identity strong {
+    font-size: 13px;
+}
+
+.recipe-workspace__where-used-identity small {
+    color: var(--recipe-muted);
+    font-size: 11px;
+}
+
+.recipe-workspace__where-used-technical {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px 10px;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    opacity: 0.78;
+}
+
+.recipe-workspace__where-used-empty {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 16px 16px;
+    padding: 16px;
+    border: 1px dashed #d9c4b5;
+    border-radius: 7px;
+    color: var(--recipe-muted);
+    font-size: 12px;
+}
+
+.recipe-workspace__where-used-limit {
+    margin: 10px 0 0;
+}
+
 .recipe-workspace-page a:focus-visible,
 .recipe-workspace-page button:focus-visible,
 .recipe-workspace-page select:focus-visible {
@@ -808,6 +910,11 @@
         width: 100%;
         min-height: 42px;
     }
+
+    .recipe-workspace__where-used-list {
+        grid-template-columns: 1fr;
+    }
+
 }
 
 @media (max-width: 420px) {
