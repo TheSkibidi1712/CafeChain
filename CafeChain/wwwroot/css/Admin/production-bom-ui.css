@@ -212,8 +212,9 @@
 
 .production-bom-page .cc-page-hero__action:focus-visible,
 .production-bom-page .production-section-nav a:focus-visible {
-    outline: 0;
-    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22));
+    outline: 2px solid var(--cc-brown-600, #70482f) !important;
+    outline-offset: 2px !important;
+    box-shadow: none !important;
 }
 
 .production-bom-page .cc-page-hero__action.is-primary {
@@ -337,8 +338,9 @@
 .production-bom-page .production-filter-card :is(input, select, button, a):focus-visible,
 .production-bom-page .production-page-link:focus-visible,
 .production-bom-page .production-form-actions :is(button, a):focus-visible {
-    outline: 0;
-    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22));
+    outline: 2px solid var(--cc-brown-600, #70482f) !important;
+    outline-offset: 2px !important;
+    box-shadow: none !important;
 }
 
 .production-bom-page .production-section-header {
