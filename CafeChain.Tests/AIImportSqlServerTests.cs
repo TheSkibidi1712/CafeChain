@@ -209,7 +209,7 @@ public sealed class AIImportSqlServerTests : IAsyncLifetime
 
             var service = new AIImportService(
                 context,
-                Mock.Of<IAIImportExcelParser>(),
+                Mock.Of<IAIImportDocumentPipeline>(),
                 Mock.Of<IAIImportRegionAnalyzer>(),
                 new AIImportSchemaRegistry(),
                 new RequestDeduplicationService(new RequestDeduplicationRepository(context)),

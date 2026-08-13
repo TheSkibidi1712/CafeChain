@@ -47,6 +47,9 @@ public class ImportSession
     public virtual string FileName { get; set; } = string.Empty;
     public virtual string FileHash { get; set; } = string.Empty;
     public virtual long FileSize { get; set; }
+    public virtual string SourceFormat { get; set; } = "XLSX";
+    public virtual string SourceMetadataJson { get; set; } = "{}";
+    public virtual string? SourceSnapshotJson { get; set; }
     public virtual int UploadedByStaffId { get; set; }
     public virtual int UploadedByAccountId { get; set; }
     public virtual int StoreId { get; set; }
@@ -85,6 +88,9 @@ public class ImportGroup
     public virtual int ImportSessionId { get; set; }
     public virtual string SheetName { get; set; } = string.Empty;
     public virtual string RegionAddress { get; set; } = string.Empty;
+    public virtual string SourceLabel { get; set; } = string.Empty;
+    public virtual string SourceLocatorJson { get; set; } = "{}";
+    public virtual string ExtractionMode { get; set; } = "XLSX_DETERMINISTIC";
     public virtual int HeaderRow { get; set; }
     public virtual AIImportEntityType EntityType { get; set; }
     public virtual string MappingJson { get; set; } = "{}";
@@ -105,11 +111,15 @@ public class ImportItem
     public virtual string RawDataJson { get; set; } = "{}";
     public virtual string NormalizedDataJson { get; set; } = "{}";
     public virtual string SourceTraceJson { get; set; } = "{}";
+    public virtual string SourceLocatorJson { get; set; } = "{}";
+    public virtual string? EvidenceSnippet { get; set; }
     public virtual string Status { get; set; } = AIImportItemStatuses.ReviewRequired;
     public virtual string Action { get; set; } = AIImportActions.Create;
     public virtual string ErrorsJson { get; set; } = "[]";
     public virtual string WarningsJson { get; set; } = "[]";
     public virtual decimal Confidence { get; set; }
+    public virtual decimal? AiConfidence { get; set; }
+    public virtual decimal? OcrConfidence { get; set; }
     public virtual bool WarningsAcknowledged { get; set; }
     public virtual Guid? SupplierDuplicateWarningId { get; set; }
     public virtual string? DuplicateOverrideReason { get; set; }
@@ -135,6 +145,11 @@ public class ImportAudit
     public virtual string? IdempotencyKeyHash { get; set; }
     public virtual string? ResultSummaryJson { get; set; }
     public virtual string? ErrorCode { get; set; }
+    public virtual string SourceFormat { get; set; } = "XLSX";
+    public virtual string? ExtractionMode { get; set; }
+    public virtual bool OcrUsed { get; set; }
+    public virtual int OcrPageCount { get; set; }
+    public virtual int AiChunkCount { get; set; }
     public virtual DateTime CreatedAtUtc { get; set; }
     public virtual DateTime? CompletedAtUtc { get; set; }
 

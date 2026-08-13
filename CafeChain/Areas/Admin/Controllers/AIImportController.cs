@@ -3,6 +3,7 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.AIImport;
 using CafeChain.Application.Interfaces.AIImport;
 using CafeChain.Application.Interfaces.Admin.Actor;
+using CafeChain.Areas.Admin.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -28,7 +29,7 @@ public sealed class AIImportController : Controller
     [HttpPost("/api/ai-import/analyze")]
     [ValidateAntiForgeryToken]
     [RequirePermission(PermissionConstants.AIImportUpload)]
-    [RequestFormLimits(MultipartBodyLengthLimit = 10 * 1024 * 1024)]
+    [AIImportRequestSizeLimit]
     public async Task<IActionResult> Analyze([FromForm] AIImportAnalyzeRequest request, CancellationToken cancellationToken) =>
         Result(await _service.AnalyzeAsync(request.File, request.EntityHint, _actorContext.Get(User), cancellationToken));
 
