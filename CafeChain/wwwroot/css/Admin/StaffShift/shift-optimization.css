@@ -421,3 +421,12 @@
 }
 
 
+
+/* FE2 batch 11: optimization workspace hierarchy. */
+.shift-optimization-page { --shift-opt-accent:var(--cc-caramel-500,#A97750); }
+.shift-optimization-page > .d-flex { padding:18px 20px; border:1px solid var(--cc-border,#E9DED4); border-left:4px solid var(--shift-opt-accent); border-radius:var(--cc-radius-lg,16px); background:var(--cc-surface,#FFFDFB); }
+.shift-optimization-page .nav-tabs { border-bottom-color:var(--cc-border,#E9DED4); }
+.shift-optimization-page .nav-link.active { color:var(--cc-brown-700,#3D2418); background:var(--cc-surface-active,#F4E9DF); border-bottom-color:var(--cc-brown-600,#70482F); }
+.shift-optimization-page fieldset { border-left:3px solid var(--shift-opt-accent)!important; }
+.shift-optimization-page :is(a,button,input,select,textarea):focus-visible { outline:2px solid var(--cc-brown-600,#70482F); outline-offset:2px; box-shadow:var(--cc-focus-ring)!important; }
+@media(prefers-reduced-motion:reduce){.shift-optimization-page *{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important;}}
