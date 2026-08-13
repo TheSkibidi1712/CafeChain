@@ -11,25 +11,26 @@
     var high = Model.Items.Count(x => x.Priority == "HIGH");
     var stores = ViewBag.StoreOptions as IReadOnlyList<AdminStoreOptionDto>
         ?? Array.Empty<AdminStoreOptionDto>();
+    var selectedStoreName = stores.FirstOrDefault(x => x.StoreId == Model.StoreId)?.StoreName ?? "cửa hàng đang chọn";
 }
 
-<link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
+<link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
 
-<main class="ops-shell cc-warehouse-page">
+<main class="restock-page restock-index-page ops-shell cc-warehouse-page">
     <header class="ops-header cc-warehouse-header">
         <div>
             <div class="ops-eyebrow">Kho &amp; Cung ứng</div>
             <h1 class="ops-title"><i class="fa-solid fa-truck-ramp-box" aria-hidden="true"></i> Yêu cầu nhập hàng</h1>
-            <p class="ops-subtitle">Theo dõi yêu cầu bổ sung hàng cho chi nhánh #@Model.StoreId. Yêu cầu chỉ ghi nhận nhu cầu; tồn kho chỉ thay đổi từ phiếu nhận hoặc điều chuyển đã xác nhận.</p>
+            <p class="ops-subtitle">Theo dõi yêu cầu bổ sung hàng cho @selectedStoreName. Yêu cầu chỉ ghi nhận nhu cầu; tồn kho chỉ thay đổi từ phiếu nhận hoặc điều chuyển đã xác nhận.</p>
         </div>
-        <div class="ops-actions">
+        <div class="ops-actions restock-header-actions">
             @if (ViewBag.CanCreateDemand is true)
             {
-                <a class="ops-btn" asp-action="CreateManual" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-plus" aria-hidden="true"></i> Tạo thủ công</a>
+                <a class="ops-btn ops-btn-primary" asp-action="CreateManual" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-plus" aria-hidden="true"></i> Tạo thủ công</a>
                 <a class="ops-btn" asp-action="CreateCentralPlanner" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> Kế hoạch trung tâm</a>
             }
             <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Cảnh báo kho</a>
-            <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Phiếu nhận hàng</a>
+            <a class="ops-btn" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Phiếu nhận hàng</a>
         </div>
     </header>
 
