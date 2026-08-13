@@ -392,7 +392,9 @@ namespace CafeChain.Application.Services.Admin.Recipes
             };
         }
 
-        public async Task<AdminRecipeFormPageVM?> GetEditPageAsync(int recipeId)
+        public async Task<AdminRecipeFormPageVM?> GetEditPageAsync(
+            int recipeId,
+            bool includeHistoricalSource = false)
         {
             var recipe = await _context.Recipes
                 .AsNoTracking()
@@ -404,7 +406,8 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 .Include(r => r.RecipeDetails)
                     .ThenInclude(rd => rd.Unit)
                 .Include(r => r.PreparedItem)
-                .FirstOrDefaultAsync(r => r.RecipeId == recipeId && r.Status == "Active");
+                .FirstOrDefaultAsync(r => r.RecipeId == recipeId
+                    && (includeHistoricalSource || r.Status == "Active"));
 
             if (recipe == null)
                 return null;

@@ -17,7 +17,9 @@ namespace CafeChain.Application.Interfaces.Admin.Recipes
 
         Task<AdminRecipeFormPageVM> GetCreatePageAsync();
 
-        Task<AdminRecipeFormPageVM?> GetEditPageAsync(int recipeId);
+        Task<AdminRecipeFormPageVM?> GetEditPageAsync(
+            int recipeId,
+            bool includeHistoricalSource = false);
 
         Task<AdminRecipeVisualizePageVM?> GetVisualizePageAsync(int recipeId);
 

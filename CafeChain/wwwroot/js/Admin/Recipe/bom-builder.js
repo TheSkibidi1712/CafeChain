@@ -106,6 +106,81 @@
         var createBlockedByActiveRecipe = false;
         var saveInFlight = false;
         var tableBody = $('#bomTableBody');
+        var sourceLines = Array.isArray(cfg.sourceLines) ? cfg.sourceLines : [];
+
+        function selectedBusinessText(selector) {
+            var text = $(selector).find(':selected').text().trim();
+            if (!text || text.indexOf('--') === 0) return '';
+            return text.replace(/\s*\([^)]*đ\)\s*$/, '').trim();
+        }
+
+        function currentLines() {
+            var lines = [];
+            tableBody.find('tr').each(function () {
+                var code = $(this).find('.item-select').val();
+                if (!code) return;
+                lines.push({
+                    itemCode: String(code),
+                    qty: parseFloat($(this).find('.item-qty').val()) || 0,
+                    unitId: parseInt($(this).find('.item-unitid').val(), 10) || 0,
+                    unitName: $(this).find('.item-unitname').val() || ''
+                });
+            });
+            return lines;
+        }
+
+        function updatePublicationReview() {
+            if (!$('#publicationTarget').length) return;
+
+            var type = $('input[name="RecipeType"]:checked').val();
+            var target = 'Chưa chọn';
+            var output = 'Chưa xác định';
+            if (type === 'POS') {
+                var drink = selectedBusinessText('#drinkSelect');
+                var size = selectedBusinessText('#sizeSelect');
+                target = drink && size ? 'Món bán và cỡ: ' + drink + ' · ' + size : 'Chưa chọn đủ món bán và cỡ';
+                output = drink && size ? '1 phần ' + drink + ' · ' + size : 'Chưa xác định';
+            } else if (type === 'TOPPING') {
+                var topping = selectedBusinessText('#toppingSelect');
+                target = topping ? 'Topping: ' + topping : 'Chưa chọn topping';
+                output = topping ? '1 lựa chọn topping ' + topping : 'Chưa xác định';
+            } else if (type === 'SUBRECIPE') {
+                var prepared = $('#preparedItemSelect option:selected').data('name') || selectedBusinessText('#preparedItemSelect');
+                var quantity = parseFloat($('#expectedYieldInput').val()) || 0;
+                var unit = selectedBusinessText('#outputUnitSelect');
+                target = prepared ? 'Bán thành phẩm: ' + prepared : 'Chưa chọn bán thành phẩm';
+                output = prepared && quantity > 0 && unit
+                    ? 'Sản lượng chuẩn một mẻ: ' + quantity + ' ' + unit
+                    : 'Chưa xác định sản lượng chuẩn một mẻ';
+            }
+
+            var lines = currentLines();
+            $('#publicationTarget').text(target);
+            $('#publicationOutput').text(output);
+            $('#publicationBomSummary').text(lines.length
+                ? lines.length + ' dòng · Số lượng chuẩn hóa theo đơn vị hiển thị từng dòng'
+                : 'Chưa có thành phần');
+
+            if (!cfg.isNewVersion) {
+                $('#publicationChangeSummary').text('Công thức mới sẽ được áp dụng ngay sau khi lưu.');
+                return;
+            }
+
+            var before = {};
+            sourceLines.forEach(function (line) { before[String(line.itemCode || '')] = line; });
+            var after = {};
+            lines.forEach(function (line) { after[line.itemCode] = line; });
+            var added = Object.keys(after).filter(function (key) { return !before[key]; }).length;
+            var removed = Object.keys(before).filter(function (key) { return !after[key]; }).length;
+            var changed = Object.keys(after).filter(function (key) {
+                if (!before[key]) return false;
+                var oldQuantity = parseFloat(before[key].qty) || 0;
+                var oldUnitId = parseInt(before[key].unitId, 10) || 0;
+                return oldQuantity !== after[key].qty || oldUnitId !== after[key].unitId;
+            }).length;
+            $('#publicationChangeSummary').text(
+                'Dòng thêm: ' + added + ' · Dòng bỏ: ' + removed + ' · Dòng thay đổi: ' + changed);
+        }
 
         function showFormError(message, errors) {
             var items = Array.isArray(errors) ? errors.filter(Boolean) : [];
@@ -125,7 +200,7 @@
             saveInFlight = isSaving;
             var btn = $('#btnSaveRecipe');
             btn.prop('disabled', isSaving || createBlockedByActiveRecipe);
-            btn.text(isSaving ? 'Đang lưu...' : 'Lưu công thức');
+            btn.text(isSaving ? 'Đang áp dụng...' : 'Lưu và áp dụng ngay');
             btn.attr('aria-busy', isSaving ? 'true' : 'false');
         }
 
@@ -444,6 +519,7 @@
                 $('#footerTotalCost').text('—');
                 $('#hiddenTotalCost').val(0);
                 $('#footerFoodCostPct').text('—');
+                updatePublicationReview();
                 return;
             }
 
@@ -477,6 +553,7 @@
                     $('#footerFoodCostPct').text('—');
                 }
             }
+            updatePublicationReview();
         }
 
         function addRow(prefill) {
@@ -565,10 +642,17 @@
                 $('#sectionSub_Recipe, #sectionOutput').show();
                 $('#drinkSelect, #toppingSelect').val(null).trigger('change');
             }
+            updatePublicationReview();
         });
 
-        $('#preparedItemSelect').on('change', updatePreparedSummary);
-        $('#expectedYieldInput, #outputUnitSelect').on('change input', schedulePreview);
+        $('#preparedItemSelect').on('change', function () {
+            updatePreparedSummary();
+            updatePublicationReview();
+        });
+        $('#expectedYieldInput, #outputUnitSelect').on('change input', function () {
+            schedulePreview();
+            updatePublicationReview();
+        });
         $('#btnRefreshPreparedItems').on('click', refreshPreparedOptions);
         $('#btnAddRow').on('click', function () { addRow(); });
 
@@ -609,7 +693,10 @@
             });
         });
 
-        $('#sizeSelect').on('change', calculateTotal);
+        $('#sizeSelect, #toppingSelect').on('change', function () {
+            calculateTotal();
+            updatePublicationReview();
+        });
 
         if (cfg.addInitialRow !== false) {
             addRow();
@@ -632,8 +719,7 @@
                 ExpectedYield: (recipeType === 'SUBRECIPE' && $('input[name="ExpectedYield"]').val()) ? parseFloat($('input[name="ExpectedYield"]').val()) : null,
                 OutputUnitId: (recipeType === 'SUBRECIPE' && $('#outputUnitSelect').val()) ? parseInt($('#outputUnitSelect').val(), 10) : null,
                 Description: $('textarea[name="Description"]').val(),
-                Active: $('#Active').is(':checked'),
-                EffectiveDate: $('input[name="EffectiveDate"]').val(),
+                Active: true,
                 Details: []
             };
 
@@ -677,10 +763,10 @@
                 success: function (res) {
                     if (res.success) {
                         if (window.Swal) {
-                            Swal.fire({ icon: 'success', title: 'Thành công', text: res.message, confirmButtonColor: '#6f4e37', customClass: { popup: 'rb-confirm-popup' } })
-                                .then(function () { window.location.href = cfg.indexUrl; });
+                            Swal.fire({ icon: 'success', title: 'Đã áp dụng', text: res.message, confirmButtonColor: '#6f4e37', customClass: { popup: 'rb-confirm-popup' } })
+                                .then(function () { window.location.href = res.redirectUrl || cfg.indexUrl; });
                         } else {
-                            window.location.href = cfg.indexUrl;
+                            window.location.href = res.redirectUrl || cfg.indexUrl;
                         }
                     } else {
                         var msg = res.message || 'Lỗi lưu công thức';

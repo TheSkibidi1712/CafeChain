@@ -894,6 +894,46 @@ textarea.form-control,
     margin-right: 8px !important;
 }
 
+.production-publication-review {
+    margin-bottom: 16px;
+    padding: 14px;
+    border: 1px solid var(--cc-border-subtle, #eadfd5);
+    border-radius: 8px;
+    background: var(--cc-surface-muted, #fbf7f2);
+}
+
+.production-publication-review-list {
+    display: grid;
+    gap: 8px;
+    margin: 12px 0;
+}
+
+.production-publication-review-list > div {
+    min-width: 0;
+}
+
+.production-publication-review-list dt {
+    color: var(--cc-text-muted, #806f63);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.production-publication-review-list dd {
+    margin: 2px 0 0;
+    color: var(--cc-text-primary, #2b211b);
+    font-size: 13px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.production-publication-changes {
+    padding-top: 10px;
+    border-top: 1px solid var(--cc-border-subtle, #eadfd5);
+    color: var(--cc-text-secondary, #66584f);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
 /* ==========================================================================
    PURE CSS CENTER ALIGNMENT & BEAUTIFICATION FOR 3 BOM MODULES
    1. Danh mục BTP (AdminPreparedItem)

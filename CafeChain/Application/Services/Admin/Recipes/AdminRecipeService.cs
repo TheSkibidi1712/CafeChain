@@ -53,6 +53,10 @@ namespace CafeChain.Application.Services.Admin.Recipes
         // ============================================================
         public async Task<ServiceResult> CreateRecipeAsync(RecipeCreateVM model)
         {
+            // The new publication flow has one lifecycle action: save and apply now.
+            // Archived rows are historical evidence, not a creation option.
+            model.Active = true;
+
             if (model.Details == null || model.Details.Count == 0)
             {
                 return ServiceResult.Failure("Công thức phải chứa ít nhất một thành phần (Details trống).");
@@ -199,7 +203,9 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 }
 
                 await transaction.CommitAsync();
-                return ServiceResult.Success("Tạo mới công thức (BOM) thành công!");
+                return ServiceResult.Success(
+                    "Đã tạo công thức và áp dụng ngay.",
+                    recipe.RecipeId);
             }
             catch (ArgumentException ex)
             {
@@ -224,6 +230,8 @@ namespace CafeChain.Application.Services.Admin.Recipes
         // ============================================================
         public async Task<ServiceResult> UpdateRecipeAsync(int recipeId, RecipeCreateVM model)
         {
+            model.Active = true;
+
             if (model.Details == null || model.Details.Count == 0)
             {
                 return ServiceResult.Failure("Công thức phải chứa ít nhất một thành phần.");
@@ -460,7 +468,8 @@ namespace CafeChain.Application.Services.Admin.Recipes
 
                 await transaction.CommitAsync();
                 return ServiceResult.Success(
-                    $"Cập nhật công thức thành công! (Phiên bản mới #{newRecipe.RecipeId}, bản cũ #{oldRecipe.RecipeId} đã lưu trữ)");
+                    $"Đã áp dụng phiên bản mới #{newRecipe.RecipeId}; phiên bản #{oldRecipe.RecipeId} được lưu trong lịch sử.",
+                    newRecipe.RecipeId);
             }
             catch (ArgumentException ex)
             {

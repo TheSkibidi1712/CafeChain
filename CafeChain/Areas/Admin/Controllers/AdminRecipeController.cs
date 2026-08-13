@@ -210,7 +210,18 @@ namespace CafeChain.Areas.Admin.Controllers
 
             var result = await _recipeService.CreateRecipeAsync(model);
             if (result.IsSuccess)
-                return Ok(new { success = true, message = result.Message });
+            {
+                var redirectUrl = result.EntityId.HasValue
+                    ? Url.Action(nameof(Visualize), new { recipeId = result.EntityId.Value })
+                    : Url.Action(nameof(Index));
+                return Ok(new
+                {
+                    success = true,
+                    message = result.Message,
+                    recipeId = result.EntityId,
+                    redirectUrl
+                });
+            }
 
             var response = new
             {
@@ -325,7 +336,7 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             if (!ModelState.IsValid)
             {
-                var page = await _queryService.GetEditPageAsync(id) ?? new AdminRecipeFormPageVM
+                var page = await _queryService.GetEditPageAsync(id, includeHistoricalSource: true) ?? new AdminRecipeFormPageVM
                 {
                     Form = model,
                     Options = await _queryService.GetFormOptionsAsync(),
@@ -340,10 +351,12 @@ namespace CafeChain.Areas.Admin.Controllers
             if (result.IsSuccess)
             {
                 TempData["SuccessMsg"] = result.Message;
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(
+                    nameof(Visualize),
+                    new { recipeId = result.EntityId ?? id });
             }
 
-            var failPage = await _queryService.GetEditPageAsync(id) ?? new AdminRecipeFormPageVM
+            var failPage = await _queryService.GetEditPageAsync(id, includeHistoricalSource: true) ?? new AdminRecipeFormPageVM
             {
                 Form = model,
                 Options = await _queryService.GetFormOptionsAsync(),
