@@ -46,6 +46,15 @@ public sealed class AdminCategoryAiAndIconTests
     }
 
     [Fact]
+    public void IconPolicy_PrioritizesSingleSymbolRuleBeforeStorageLength()
+    {
+        var valid = CategoryIconPolicy.TryNormalize("12345678901", out _, out var error);
+
+        Assert.False(valid);
+        Assert.Equal("Chỉ được chọn một biểu tượng Unicode.", error);
+    }
+
+    [Fact]
     public async Task CategoryService_RejectsInvalidManualIconBeforeSaving()
     {
         var repository = new Mock<IAdminCategoryRepository>();

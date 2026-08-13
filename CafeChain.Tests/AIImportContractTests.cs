@@ -2,6 +2,7 @@ using System.Reflection;
 using CafeChain.Application.Authorization;
 using CafeChain.Application.Constants;
 using CafeChain.Areas.Admin.Controllers;
+using CafeChain.Areas.Admin.Filters;
 using CafeChain.Data;
 using CafeChain.Models.AIImport;
 using Microsoft.AspNetCore.Mvc;
@@ -71,6 +72,11 @@ public sealed class AIImportContractTests
         Assert.Equal("ImportItems", item.GetTableName());
         Assert.Equal("ImportAudits", audit.GetTableName());
         Assert.True(session.FindProperty(nameof(ImportSession.RowVersion))!.IsConcurrencyToken);
+        Assert.Equal(10, session.FindProperty(nameof(ImportSession.SourceFormat))!.GetMaxLength());
+        Assert.NotNull(group.FindProperty(nameof(ImportGroup.ExtractionMode)));
+        Assert.NotNull(item.FindProperty(nameof(ImportItem.SourceLocatorJson)));
+        Assert.NotNull(item.FindProperty(nameof(ImportItem.AiConfidence)));
+        Assert.NotNull(audit.FindProperty(nameof(ImportAudit.AiChunkCount)));
         Assert.Contains(session.GetIndexes(), x => x.Properties.Select(p => p.Name).SequenceEqual(new[] { "UploadedByAccountId", "CreatedAtUtc" }));
         Assert.Contains(item.GetCheckConstraints(), x => x.Name == "CK_ImportItems_Action");
         Assert.Contains(item.GetCheckConstraints(), x => x.Name == "CK_ImportItems_Status");
@@ -89,15 +95,20 @@ public sealed class AIImportContractTests
     }
 
     [Fact]
-    public void Current_migration_contains_ai_import_contracts_without_a_refactor_migration()
+    public void Document_source_migration_is_backward_compatible_and_keeps_initial_migration()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite("Data Source=:memory:").Options;
         using var context = new AppDbContext(options);
         Assert.Contains("20260812160337_InitialCreate", context.Database.GetMigrations());
+        Assert.Contains("20260813062128_AddDocumentSourcesToAIImport", context.Database.GetMigrations());
         var migration = Read("CafeChain", "Migrations", "20260812160337_InitialCreate.cs");
         Assert.Contains("name: \"ImportSessions\"", migration, StringComparison.Ordinal);
         Assert.Contains("CK_ImportSessions_Status", migration, StringComparison.Ordinal);
         Assert.Contains("name: \"ImportSessions\"", migration[migration.IndexOf("protected override void Down", StringComparison.Ordinal)..], StringComparison.Ordinal);
+        var documentMigration = Read("CafeChain", "Migrations", "20260813062128_AddDocumentSourcesToAIImport.cs");
+        Assert.Contains("name: \"SourceFormat\"", documentMigration, StringComparison.Ordinal);
+        Assert.Contains("defaultValue: \"XLSX\"", documentMigration, StringComparison.Ordinal);
+        Assert.Contains("name: \"SourceLocatorJson\"", documentMigration, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -150,6 +161,18 @@ public sealed class AIImportContractTests
         Assert.Contains("'Idempotency-Key': state.confirmKey", script, StringComparison.Ordinal);
         Assert.Contains("error.code === 'PREVIEW_ĐÃ_THAY_ĐỔI'", script, StringComparison.Ordinal);
         Assert.Contains("overrideReason", script, StringComparison.Ordinal);
+        Assert.Contains(".xlsx,.docx,.pdf", view, StringComparison.Ordinal);
+        Assert.Contains("session.sourceFormat", script, StringComparison.Ordinal);
+        Assert.Contains("group.extractionMode", script, StringComparison.Ordinal);
+        Assert.Contains("item.evidenceSnippet", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Analyze_uses_configuration_driven_request_size_filter()
+    {
+        var method = typeof(AIImportController).GetMethod(nameof(AIImportController.Analyze))!;
+        Assert.NotNull(method.GetCustomAttribute<AIImportRequestSizeLimitAttribute>());
+        Assert.Null(method.GetCustomAttribute<RequestFormLimitsAttribute>());
     }
 
     [Fact]
@@ -173,6 +196,60 @@ public sealed class AIImportContractTests
         Assert.Contains("type: 'email'", script, StringComparison.Ordinal);
         Assert.Contains("type: 'tel'", script, StringComparison.Ordinal);
         Assert.Contains("type: 'textarea'", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Ui_uses_sweetalert_for_operation_feedback_and_confirmations()
+    {
+        var view = Read("CafeChain", "Areas", "Admin", "Views", "AIImport", "Index.cshtml");
+        var script = Read("CafeChain", "wwwroot", "js", "Admin", "AIImport", "ai-import.js");
+        var styles = Read("CafeChain", "wwwroot", "css", "Admin", "AIImport", "ai-import.css");
+
+        Assert.DoesNotContain("id=\"messageBox\"", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("function message(", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("confirm(", script, StringComparison.Ordinal);
+        Assert.Contains("window.Swal.fire", script, StringComparison.Ordinal);
+        Assert.Contains("Xác nhận nhập", script, StringComparison.Ordinal);
+        Assert.Contains("Hủy phiên", script, StringComparison.Ordinal);
+        Assert.Contains("Phân tích thành công", script, StringComparison.Ordinal);
+        Assert.Contains("target: activeDialog || document.body", script, StringComparison.Ordinal);
+        Assert.Contains(".edit-dialog>.swal2-container", styles, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Ui_icon_editor_keeps_the_last_valid_single_unicode_symbol()
+    {
+        var script = Read("CafeChain", "wwwroot", "js", "Admin", "AIImport", "ai-import.js");
+
+        Assert.Contains("Chỉ nhập 1 biểu tượng Unicode.", script, StringComparison.Ordinal);
+        Assert.Contains("lastValidIcon", script, StringComparison.Ordinal);
+        Assert.Contains("input.value = lastValidIcon", script, StringComparison.Ordinal);
+        Assert.Contains("new Intl.Segmenter", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Ui_editor_keeps_server_errors_visible_and_all_actions_reachable()
+    {
+        var view = Read("CafeChain", "Areas", "Admin", "Views", "AIImport", "Index.cshtml");
+        var script = Read("CafeChain", "wwwroot", "js", "Admin", "AIImport", "ai-import.js");
+        var styles = Read("CafeChain", "wwwroot", "css", "Admin", "AIImport", "ai-import.css");
+
+        Assert.Contains("id=\"editDialogBody\"", view, StringComparison.Ordinal);
+        Assert.Contains("id=\"editWarningMessages\"", view, StringComparison.Ordinal);
+        Assert.Contains("input.dataset.serverError", script, StringComparison.Ordinal);
+        Assert.Contains("delete input.dataset.serverError", script, StringComparison.Ordinal);
+        Assert.Contains("editDialogBody.scrollTop = 0", script, StringComparison.Ordinal);
+        Assert.Contains(".edit-dialog-body", styles, StringComparison.Ordinal);
+        Assert.Contains("overflow-y:auto", styles, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Saving_a_document_item_resolves_low_confidence_manual_review()
+    {
+        var service = Read("CafeChain", "Application", "Services", "AIImport", "AIImportService.cs");
+
+        Assert.Contains("ApplyValidation(item, item.Group.EntityType, request.Values, item.Confidence, null, true)", service, StringComparison.Ordinal);
+        Assert.Contains("preserveManualReview", service, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -213,7 +290,8 @@ public sealed class AIImportContractTests
         Assert.Contains("StoreId = 0", rules, StringComparison.Ordinal);
     }
 
-    private static string Read(params string[] parts) => File.ReadAllText(Path.Combine(FindRoot(), Path.Combine(parts)));
+    private static string Read(params string[] parts) =>
+        File.ReadAllText(Path.Combine(FindRoot(), Path.Combine(parts))).ReplaceLineEndings("\n");
     private static string FindRoot()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);

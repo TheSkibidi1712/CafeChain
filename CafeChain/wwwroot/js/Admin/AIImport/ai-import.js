@@ -26,6 +26,12 @@
         COMPLETED: 'Hoàn tất', FAILED: 'Thất bại', CANCELLED: 'Đã hủy', EXPIRED: 'Đã hết hạn', UPLOADED: 'Đã tải lên'
     };
     const actionLabels = { CREATE: 'Tạo mới', SKIP: 'Bỏ qua' };
+    const formatLabels = { XLSX: 'Excel', DOCX: 'DOCX', PDF: 'PDF' };
+    const extractionModeLabels = {
+        XLSX_DETERMINISTIC: 'Excel xác định', XLSX_AI_MAPPING: 'Excel + AI mapping',
+        DOCX_TABLE_DETERMINISTIC: 'Bảng DOCX', DOCX_TEXT_DETERMINISTIC: 'Text DOCX', DOCX_AI_EXTRACTION: 'DOCX + AI',
+        PDF_TEXT_DETERMINISTIC: 'Text PDF', PDF_TEXT_AI_EXTRACTION: 'PDF + AI'
+    };
     const iconCatalog = [
         ['☕', 'Cà phê'], ['🧋', 'Trà sữa'], ['🍵', 'Trà'], ['🥤', 'Nước uống'], ['🥛', 'Sữa'], ['🧃', 'Nước ép'],
         ['🍹', 'Nước trái cây'], ['🍸', 'Mocktail'], ['🍓', 'Dâu'], ['🍊', 'Cam'], ['🍋', 'Chanh'], ['🍎', 'Táo'],
@@ -114,14 +120,62 @@
         byId('loadingPanel').hidden = !value;
         ['analyzeButton', 'confirmButton', 'cancelButton', 'reanalyzeButton'].forEach(id => { const element = byId(id); if (element) element.disabled = value; });
     }
-    function message(text, kind = '') {
-        const box = byId('messageBox');
-        box.hidden = !text;
-        box.className = `ai-import-alert ${kind}`;
-        box.textContent = text || '';
+
+    async function fireAlert(options) {
+        if (!window.Swal) {
+            console.error('SweetAlert2 chưa được tải.', options.text || options.title || '');
+            return { isConfirmed: false };
+        }
+        const editDialog = byId('editDialog');
+        const activeDialog = editDialog?.open ? editDialog : null;
+        activeDialog?.classList.add('has-swal');
+        try {
+            return await window.Swal.fire({
+                target: activeDialog || document.body,
+                confirmButtonColor: '#70482f',
+                cancelButtonColor: '#667085',
+                confirmButtonText: 'Đóng',
+                heightAuto: false,
+                returnFocus: false,
+                allowOutsideClick: false,
+                ...options
+            });
+        } finally {
+            activeDialog?.classList.remove('has-swal');
+        }
+    }
+
+    function showAlert(text, icon = 'info', title = '') {
+        const titles = { success: 'Thành công', error: 'Không thể thực hiện', warning: 'Cần chú ý', info: 'Thông báo' };
+        return fireAlert({ title: title || titles[icon] || titles.info, text, icon });
+    }
+
+    async function confirmAction(title, text, confirmButtonText, icon = 'warning') {
+        const result = await fireAlert({
+            title,
+            text,
+            icon,
+            showCancelButton: true,
+            confirmButtonText,
+            cancelButtonText: 'Không'
+        });
+        return result.isConfirmed === true;
+    }
+
+    function errorMessage(error) {
+        return `${error.code ? `${error.code}: ` : ''}${error.message}`;
     }
     function escapeHtml(value) { const div = document.createElement('div'); div.textContent = value ?? ''; return div.innerHTML; }
     function displayValue(value) { return value === null || value === undefined || value === '' ? '—' : String(value); }
+    function locatorLabel(locator, fallback = '') {
+        if (!locator) return fallback;
+        if (locator.sheet) return `${locator.sheet}${locator.row ? ` · dòng ${locator.row}` : ''}`;
+        if (locator.table) return `Bảng ${locator.table}${locator.tableRow ? ` · dòng ${locator.tableRow}` : ''}`;
+        if (locator.paragraph) return `Đoạn ${locator.paragraph}`;
+        if (locator.page) return `Trang ${locator.page}${locator.block ? ` · khối ${locator.block}` : ''}`;
+        if (Number.isInteger(locator.textStart)) return `Văn bản ${locator.textStart}–${locator.textEnd ?? locator.textStart}`;
+        return fallback;
+    }
     function closeEditDialog() {
         const dialog = byId('editDialog');
         if (dialog?.open) dialog.close();
@@ -160,8 +214,9 @@
         const session = state.session;
         if (!session) return;
         byId('workspace').hidden = false;
-        byId('sessionFile').textContent = `#${session.sessionId} · ${session.fileName}`;
-        byId('sessionMeta').textContent = `Bản xem trước v${session.previewVersion} · hết hạn ${new Date(session.expiresAtUtc).toLocaleString('vi-VN')}`;
+        byId('sessionFile').textContent = `#${session.sessionId} · [${formatLabels[session.sourceFormat] || session.sourceFormat}] ${session.fileName}`;
+        const modes = (session.extractionModes || []).map(mode => extractionModeLabels[mode] || mode).join(', ');
+        byId('sessionMeta').textContent = `Bản xem trước v${session.previewVersion} · ${modes || 'Đang xác định nguồn'} · hết hạn ${new Date(session.expiresAtUtc).toLocaleString('vi-VN')}`;
         byId('sessionStatus').textContent = statusLabels[session.status] || session.status;
         const ready = session.status === 'READY_TO_PREVIEW';
         byId('confirmButton').disabled = !ready;
@@ -175,11 +230,11 @@
         warningBox.innerHTML = analysisWarnings.map(x => `<div><strong>${escapeHtml(x.code)}</strong>: ${escapeHtml(x.message)}</div>`).join('');
         byId('groupCount').textContent = session.groups.length;
         if (!state.activeGroupId || !session.groups.some(x => x.groupId === state.activeGroupId)) state.activeGroupId = session.groups[0]?.groupId;
-        byId('groupTabs').innerHTML = session.groups.map(group => `<button type="button" class="group-tab ${group.groupId === state.activeGroupId ? 'active' : ''}" data-group-id="${group.groupId}"><strong>${escapeHtml(group.sheetName)} · ${escapeHtml(entityLabels[group.entityType] || group.entityType)}</strong><small>${escapeHtml(group.regionAddress)} · ${(group.confidence * 100).toFixed(0)}%</small></button>`).join('');
+        byId('groupTabs').innerHTML = session.groups.map(group => `<button type="button" class="group-tab ${group.groupId === state.activeGroupId ? 'active' : ''}" data-group-id="${group.groupId}"><strong>${escapeHtml(group.sourceLabel || group.sheetName)} · ${escapeHtml(entityLabels[group.entityType] || group.entityType)}</strong><small>${escapeHtml(locatorLabel(group.sourceLocator, group.regionAddress))} · ${(group.confidence * 100).toFixed(0)}%</small></button>`).join('');
         const group = session.groups.find(x => x.groupId === state.activeGroupId);
         if (!group) return;
-        byId('activeGroupTitle').textContent = `${group.sheetName} / ${group.regionAddress}`;
-        byId('activeGroupMeta').textContent = `Dòng tiêu đề ${group.headerRow} · thứ tự phụ thuộc ${group.dependencyOrder}`;
+        byId('activeGroupTitle').textContent = `${group.sourceLabel || group.sheetName} / ${locatorLabel(group.sourceLocator, group.regionAddress)}`;
+        byId('activeGroupMeta').textContent = `${extractionModeLabels[group.extractionMode] || group.extractionMode} · thứ tự phụ thuộc ${group.dependencyOrder}`;
         byId('groupEntity').value = group.entityType;
         renderMapping(group);
         renderRows(group);
@@ -219,9 +274,11 @@
                 ...errors.map(x => `<div class="issue"><strong>${escapeHtml(fieldLabel(group.entityType, x.field) || 'Lỗi')}</strong><span>${escapeHtml(x.message)}</span></div>`),
                 ...warnings.map(x => `<div class="issue warning"><strong>${escapeHtml(fieldLabel(group.entityType, x.field) || 'Cảnh báo')}</strong><span>${escapeHtml(x.message)}</span></div>`)
             ].join('') || '<span class="no-issue">Không có lỗi</span>';
-            const trace = Object.values(item.sourceTrace || {}).filter(Boolean).join(', ');
+            const trace = locatorLabel(item.sourceLocator, Object.values(item.sourceTrace || {}).filter(Boolean).join(', ') || group.sourceLabel || group.sheetName);
+            const confidence = item.aiConfidence == null ? '' : `<small class="source-confidence">AI ${(item.aiConfidence * 100).toFixed(0)}%</small>`;
+            const evidence = item.evidenceSnippet ? `<small class="source-evidence" title="${escapeHtml(item.evidenceSnippet)}">${escapeHtml(item.evidenceSnippet)}</small>` : '';
             const effectiveStatus = confirmIssues.length ? 'ERROR' : item.status;
-            return `<tr class="preview-row status-${effectiveStatus.toLowerCase()}" data-item-row="${item.itemId}"><td><strong class="source-row-number">${item.sourceRow}</strong><small class="source-trace" title="${escapeHtml(trace)}">${escapeHtml(trace || group.sheetName)}</small></td><td><span class="row-status status-${effectiveStatus.toLowerCase()}">${escapeHtml(statusLabels[effectiveStatus] || effectiveStatus)}</span><small class="action-label">${escapeHtml(actionLabels[item.action] || item.action)}</small></td><td>${renderBusinessValues(group, item)}</td><td class="issues-cell">${issues}</td><td><button type="button" class="btn-ai small edit-row" data-item-id="${item.itemId}">Sửa dòng</button></td></tr>`;
+            return `<tr class="preview-row status-${effectiveStatus.toLowerCase()}" data-item-row="${item.itemId}"><td><strong class="source-row-number">${escapeHtml(trace)}</strong>${confidence}${evidence}</td><td><span class="row-status status-${effectiveStatus.toLowerCase()}">${escapeHtml(statusLabels[effectiveStatus] || effectiveStatus)}</span><small class="action-label">${escapeHtml(actionLabels[item.action] || item.action)}</small></td><td>${renderBusinessValues(group, item)}</td><td class="issues-cell">${issues}</td><td><button type="button" class="btn-ai small edit-row" data-item-id="${item.itemId}">Sửa dòng</button></td></tr>`;
         }).join('') : '<tr><td colspan="5" class="empty-preview">Không có dòng phù hợp với bộ lọc.</td></tr>';
     }
 
@@ -240,16 +297,16 @@
         const form = new FormData();
         form.append('File', file);
         if (byId('entityHint').value) form.append('EntityHint', byId('entityHint').value);
-        busy(true); message('');
+        busy(true);
         try {
             state.session = await api('/api/ai-import/analyze', { method: 'POST', body: form });
             state.activeGroupId = state.session.groups[0]?.groupId;
             state.page = 1;
             clearMutationState();
             render();
-            message('Đã phân tích xong. Hãy kiểm tra bản xem trước trước khi xác nhận nhập.', 'success');
+            await showAlert('Đã phân tích xong. Hãy kiểm tra bản xem trước trước khi xác nhận nhập.', 'success', 'Phân tích thành công');
         } catch (error) {
-            message(`${error.code ? `${error.code}: ` : ''}${error.message}`, 'error');
+            await showAlert(errorMessage(error), 'error');
         } finally { busy(false); }
     }
 
@@ -263,7 +320,7 @@
             state.session = await api(`/api/ai-import/${state.session.sessionId}/groups/${group.groupId}`, { method: 'PATCH', body: JSON.stringify({ expectedPreviewVersion: state.session.previewVersion, entityType: byId('groupEntity').value, mapping }) });
             clearMutationState();
             render();
-            message('Đã lưu ánh xạ cột và kiểm tra lại toàn bộ vùng.', 'success');
+            await showAlert('Đã lưu ánh xạ cột và kiểm tra lại toàn bộ vùng.', 'success');
         } catch (error) { await handleMutationError(error); }
         finally { busy(false); }
     }
@@ -295,13 +352,57 @@
         else if (field.type === 'icon') control = iconPicker(value);
         else control = `<input data-edit-field="${field.name}" type="${field.type || 'text'}" value="${escapeHtml(value || '')}" ${attributes} placeholder="${escapeHtml(field.placeholder || '')}" ${field.code ? 'data-uppercase-code' : ''} />`;
         const initialError = serverErrors.find(x => x.field === field.name)?.message || '';
-        return `<label class="editor-field ${field.wide ? 'is-wide' : ''}"><span>${escapeHtml(field.label)} ${required}</span>${control}<small class="field-hint">${field.max ? `Tối đa ${field.max} ký tự.` : ''}</small><small class="field-error" data-field-error="${field.name}">${escapeHtml(initialError)}</small></label>`;
+        const hint = field.type === 'icon' ? 'Chỉ nhập 1 biểu tượng Unicode.' : (field.max ? `Tối đa ${field.max} ký tự.` : '');
+        return `<label class="editor-field ${field.wide ? 'is-wide' : ''}"><span>${escapeHtml(field.label)} ${required}</span>${control}<small class="field-hint">${hint}</small><small class="field-error" data-field-error="${field.name}">${escapeHtml(initialError)}</small></label>`;
+    }
+
+    function applyServerFieldErrors(entity, serverErrors) {
+        for (const issue of serverErrors.filter(issue => fieldDefinition(entity, issue.field))) {
+            const input = byId('editFields').querySelector(`[data-edit-field="${issue.field}"]`);
+            if (!input) continue;
+            input.dataset.serverError = issue.message || 'Giá trị chưa hợp lệ.';
+            input.classList.add('is-invalid');
+        }
+    }
+
+    function renderEditFormAlert(group, item, serverErrors) {
+        const alert = byId('editFormAlert');
+        const issues = [...serverErrors];
+        if (item.status === 'REVIEW_REQUIRED' && issues.length === 0 && !(item.warnings || []).length) {
+            issues.push({
+                code: 'REVIEW_REQUIRED',
+                message: 'Dữ liệu trích xuất có độ tin cậy thấp. Hãy kiểm tra các trường rồi bấm “Lưu và kiểm tra lại” để xác nhận.'
+            });
+        }
+        alert.hidden = issues.length === 0;
+        if (issues.length === 0) {
+            alert.replaceChildren();
+            return;
+        }
+        alert.innerHTML = `<strong>Dòng này cần được xử lý trước khi nhập.</strong><ul>${issues.map(issue => {
+            const definition = fieldDefinition(group.entityType, issue.field);
+            const label = definition?.label || issue.code || 'Lỗi';
+            const link = definition ? ` data-editor-error-field="${escapeHtml(issue.field)}" href="#"` : '';
+            return `<li><a${link}>${escapeHtml(label)}</a>: ${escapeHtml(issue.message)}</li>`;
+        }).join('')}</ul>`;
+        alert.querySelectorAll('[data-editor-error-field]').forEach(link => link.addEventListener('click', event => {
+            event.preventDefault();
+            const input = byId('editFields').querySelector(`[data-edit-field="${link.dataset.editorErrorField}"]`);
+            input?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            input?.focus({ preventScroll: true });
+        }));
+    }
+
+    function resetEditorViewport() {
+        const editDialogBody = byId('editDialogBody');
+        editDialogBody.scrollTop = 0;
+        const firstServerError = byId('editFields').querySelector('[data-server-error]');
+        firstServerError?.scrollIntoView({ block: 'nearest' });
     }
 
     function categoryIconError(value) {
         const icon = String(value || '').trim();
         if (!icon) return '';
-        if (icon.length > 10) return 'Icon tối đa 10 ký tự.';
         if (/[<>&]/u.test(icon)) return 'Icon không được chứa HTML.';
         const segments = typeof Intl.Segmenter === 'function' ? Array.from(new Intl.Segmenter('vi', { granularity: 'grapheme' }).segment(icon), x => x.segment) : Array.from(icon);
         if (segments.length !== 1) return 'Chỉ được chọn một biểu tượng Unicode.';
@@ -310,7 +411,8 @@
             if (/\p{S}/u.test(character)) hasSymbol = true;
             else if (!/[\p{M}\u200D]/u.test(character)) return 'Icon phải là biểu tượng Unicode, không phải chữ hoặc số.';
         }
-        return hasSymbol ? '' : 'Icon phải là một biểu tượng Unicode hợp lệ.';
+        if (!hasSymbol) return 'Icon phải là một biểu tượng Unicode hợp lệ.';
+        return icon.length > 10 ? 'Icon tối đa 10 ký tự.' : '';
     }
 
     function initializeIconEditor() {
@@ -319,6 +421,8 @@
         const input = root.querySelector('[data-icon-input]');
         const preview = root.querySelector('[data-icon-preview]');
         const options = root.querySelector('[data-icon-options]');
+        const errorBox = byId('editFields').querySelector('[data-field-error="Icon"]');
+        let lastValidIcon = categoryIconError(input.value) ? '' : input.value.trim();
         root.querySelector('[data-icon-toggle]').addEventListener('click', () => { options.hidden = !options.hidden; });
         root.querySelector('[data-icon-clear]').addEventListener('click', () => { input.value = ''; input.dispatchEvent(new Event('input', { bubbles: true })); });
         root.addEventListener('click', event => {
@@ -328,8 +432,21 @@
             input.dispatchEvent(new Event('input', { bubbles: true }));
             options.hidden = true;
         });
-        input.addEventListener('beforeinput', event => { if (event.data && /[\p{L}\p{N}]/u.test(event.data)) event.preventDefault(); });
-        input.addEventListener('input', () => { preview.textContent = input.value.trim() || '—'; });
+        input.addEventListener('input', () => {
+            const nextIcon = input.value.trim();
+            const error = categoryIconError(nextIcon);
+            if (error) {
+                input.value = lastValidIcon;
+                input.dataset.iconInputError = error;
+                input.setCustomValidity(error);
+                input.classList.add('is-invalid');
+                if (errorBox) errorBox.textContent = error;
+            } else {
+                lastValidIcon = nextIcon;
+                delete input.dataset.iconInputError;
+            }
+            preview.textContent = input.value.trim() || '—';
+        });
     }
 
     function renderEditor(group, item, options) {
@@ -340,25 +457,30 @@
         byId('editRowNumber').textContent = item.sourceRow;
         const serverErrors = [...(item.errors || []), ...(state.confirmErrors.get(item.itemId) || [])];
         byId('editFields').innerHTML = schema.sections.map(section => `<fieldset class="editor-section"><legend>${escapeHtml(section.title)}</legend>${section.note ? `<p>${escapeHtml(section.note)}</p>` : ''}<div class="editor-grid">${section.fields.map(field => editorFieldHtml(group.entityType, field, item.normalizedData?.[field.name], options, serverErrors)).join('')}</div></fieldset>`).join('');
+        applyServerFieldErrors(group.entityType, serverErrors);
         const mappedHeaders = new Set(Object.values(group.mapping || {}).filter(Boolean));
         const supplemental = Object.entries(item.rawData || {}).filter(([key]) => !mappedHeaders.has(key));
         byId('editSourceData').innerHTML = supplemental.length ? supplemental.map(([key, value]) => `<div><b>${escapeHtml(key)}</b><span>${escapeHtml(displayValue(value))}</span></div>`).join('') : '<p>Không có dữ liệu ngoài ánh xạ.</p>';
         const hasWarnings = (item.warnings || []).length > 0;
         const needsOverride = group.entityType === 'Supplier' && (item.warnings || []).some(x => x.code === 'NHÀ_CUNG_CẤP_GẦN_TRÙNG');
         byId('warningSection').hidden = !hasWarnings;
+        byId('editWarningMessages').innerHTML = (item.warnings || []).map(issue => `<div class="edit-warning-message"><strong>${escapeHtml(issue.code || 'Cảnh báo')}</strong><span>${escapeHtml(issue.message)}</span></div>`).join('');
         byId('acknowledgeWarnings').checked = item.warningsAcknowledged;
         byId('overrideReason').value = item.duplicateOverrideReason || '';
         byId('overrideReasonGroup').hidden = !needsOverride;
-        byId('editFormAlert').hidden = serverErrors.length === 0;
-        byId('editFormAlert').textContent = serverErrors.length ? 'Dòng này còn lỗi. Vui lòng sửa các trường được đánh dấu.' : '';
+        renderEditFormAlert(group, item, serverErrors);
         initializeIconEditor();
         byId('editFields').querySelectorAll('[data-uppercase-code]').forEach(input => input.addEventListener('input', () => {
             const cursor = input.selectionStart;
             input.value = input.value.toUpperCase();
             input.setSelectionRange(cursor, cursor);
         }));
-        byId('editItemForm').querySelectorAll('input,select,textarea').forEach(input => input.addEventListener('input', () => validateEditor(false)));
+        byId('editItemForm').querySelectorAll('input,select,textarea').forEach(input => input.addEventListener('input', () => {
+            delete input.dataset.serverError;
+            validateEditor(false);
+        }));
         validateEditor(false);
+        requestAnimationFrame(resetEditorViewport);
     }
 
     function validateEditor(showMessages) {
@@ -376,7 +498,8 @@
             else if (field.max && value.length > field.max) error = `${field.label} tối đa ${field.max} ký tự.`;
             else if (field.type === 'email' && value && !/^\S+@\S+\.\S+$/u.test(value)) error = 'Email đầu mối không đúng định dạng.';
             else if (field.pattern && value && !(new RegExp(field.pattern)).test(value)) error = 'Mã số thuế phải có 10 chữ số hoặc dạng 10-3 chữ số.';
-            else if (field.type === 'icon') error = categoryIconError(value);
+            else if (field.type === 'icon') error = input.dataset.iconInputError || categoryIconError(value);
+            if (!error && input.dataset.serverError) error = input.dataset.serverError;
             input.setCustomValidity(error);
             const errorBox = byId('editFields').querySelector(`[data-field-error="${field.name}"]`);
             if (errorBox) errorBox.textContent = error;
@@ -392,9 +515,14 @@
         valid = valid && !overrideError;
         byId('saveItemButton').disabled = !valid;
         if (showMessages && !valid) {
-            byId('editFormAlert').hidden = false;
-            byId('editFormAlert').textContent = 'Vui lòng hoàn tất các trường bắt buộc và xử lý cảnh báo.';
-            byId('editItemForm').querySelector(':invalid')?.focus();
+            const alert = byId('editFormAlert');
+            if (alert.hidden) {
+                alert.hidden = false;
+                alert.textContent = 'Vui lòng hoàn tất các trường bắt buộc và xử lý cảnh báo bên dưới.';
+            }
+            const target = byId('editItemForm').querySelector(':invalid') || (!byId('warningSection').hidden ? byId('warningSection') : null);
+            target?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            if (target?.matches('input,select,textarea')) target.focus({ preventScroll: true });
         }
         return valid;
     }
@@ -408,7 +536,8 @@
             const options = await ensureEditorOptions();
             renderEditor(group, item, options);
             byId('editDialog').showModal();
-        } catch (error) { message(error.message, 'error'); }
+            requestAnimationFrame(resetEditorViewport);
+        } catch (error) { await showAlert(error.message, 'error'); }
         finally { busy(false); }
     }
 
@@ -428,10 +557,9 @@
             if (action === 'CREATE' && updatedItem && ['ERROR', 'REVIEW_REQUIRED'].includes(updatedItem.status)) {
                 const options = await ensureEditorOptions();
                 renderEditor(group, updatedItem, options);
-                message('Dòng vẫn còn lỗi; vui lòng kiểm tra các trường được đánh dấu.', 'error');
             } else {
                 closeEditDialog();
-                message(action === 'SKIP' ? 'Đã bỏ qua dòng.' : 'Đã lưu và kiểm tra lại dòng.', 'success');
+                await showAlert(action === 'SKIP' ? 'Đã bỏ qua dòng.' : 'Đã lưu và kiểm tra lại dòng.', 'success');
             }
         } catch (error) { await handleMutationError(error); }
         finally { busy(false); }
@@ -450,7 +578,11 @@
     async function focusConfirmError(details) {
         const first = (details || []).find(x => x.itemId);
         if (!first) return;
-        const targetGroup = state.session.groups.find(x => x.sheetName === first.position?.sheet);
+        const position = first.position || {};
+        const targetGroup = state.session.groups.find(group => group.sheetName === position.sheet
+            || (position.page && group.sourceLocator?.page === position.page)
+            || (position.table && group.sourceLocator?.table === position.table)
+            || (position.paragraph && group.sourceLocator?.paragraph === position.paragraph));
         if (targetGroup) state.activeGroupId = targetGroup.groupId;
         state.page = 1;
         byId('statusFilter').value = '';
@@ -459,32 +591,32 @@
     }
 
     async function confirmSession() {
-        if (!confirm('Hệ thống sẽ tạo toàn bộ dữ liệu trong một giao dịch. Bạn muốn xác nhận nhập?')) return;
+        if (!await confirmAction('Xác nhận nhập', 'Hệ thống sẽ tạo toàn bộ dữ liệu trong một giao dịch. Bạn muốn tiếp tục?', 'Xác nhận nhập')) return;
         state.confirmKey ||= (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
         busy(true);
         try {
             const result = await api(`/api/ai-import/${state.session.sessionId}/confirm`, { method: 'POST', headers: { 'Idempotency-Key': state.confirmKey }, body: JSON.stringify({ expectedPreviewVersion: state.session.previewVersion }) });
-            message(`Hoàn tất: đã nhập ${result.imported}, bỏ qua ${result.skipped}.`, 'success');
+            await showAlert(`Hoàn tất: đã nhập ${result.imported}, bỏ qua ${result.skipped}.`, 'success', 'Nhập dữ liệu thành công');
             clearMutationState();
             closeImportWorkspace(result);
         } catch (error) {
             captureConfirmErrors(error.details);
-            message(`${error.code ? `${error.code}: ` : ''}${error.message}`, 'error');
+            await showAlert(errorMessage(error), 'error');
             if (['PREVIEW_ĐÃ_THAY_ĐỔI', 'PREVIEW_CHƯA_SẴN_SÀNG'].includes(error.code) || error.details?.length) await focusConfirmError(error.details);
         } finally { busy(false); }
     }
 
     async function handleMutationError(error) {
-        message(`${error.code ? `${error.code}: ` : ''}${error.message}`, 'error');
+        await showAlert(errorMessage(error), 'error');
         if (error.code === 'PREVIEW_ĐÃ_THAY_ĐỔI') await loadSession(state.session.sessionId);
     }
 
     async function history() {
         try {
             const data = await api('/api/ai-import/history?page=1&pageSize=30');
-            byId('historyRows').innerHTML = data.items.map(x => `<button type="button" class="history-row group-tab" data-history-id="${x.sessionId}"><strong>#${x.sessionId} · ${escapeHtml(x.fileName)}</strong><span class="row-status">${escapeHtml(statusLabels[x.status] || x.status)}</span><small>${new Date(x.createdAtUtc).toLocaleString('vi-VN')} · ${x.importedRows}/${x.totalRows} đã nhập</small></button>`).join('') || '<p>Chưa có phiên.</p>';
+            byId('historyRows').innerHTML = data.items.map(x => `<button type="button" class="history-row group-tab" data-history-id="${x.sessionId}"><strong>#${x.sessionId} · [${escapeHtml(formatLabels[x.sourceFormat] || x.sourceFormat)}] ${escapeHtml(x.fileName)}</strong><span class="row-status">${escapeHtml(statusLabels[x.status] || x.status)}</span><small>${new Date(x.createdAtUtc).toLocaleString('vi-VN')} · ${x.importedRows}/${x.totalRows} đã nhập</small></button>`).join('') || '<p>Chưa có phiên.</p>';
             byId('historyPanel').hidden = false;
-        } catch (error) { message(error.message, 'error'); }
+        } catch (error) { await showAlert(error.message, 'error'); }
     }
 
     const fileInput = byId('excelFile');
@@ -497,14 +629,15 @@
     byId('analyzeButton').addEventListener('click', analyze);
     byId('saveMappingButton').addEventListener('click', saveMapping);
     byId('confirmButton').addEventListener('click', confirmSession);
-    byId('reanalyzeButton').addEventListener('click', async () => { busy(true); try { state.session = await api(`/api/ai-import/${state.session.sessionId}/reanalyze`, { method: 'POST' }); clearMutationState(); render(); } catch (error) { message(error.message, 'error'); } finally { busy(false); } });
+    byId('reanalyzeButton').addEventListener('click', async () => { busy(true); try { state.session = await api(`/api/ai-import/${state.session.sessionId}/reanalyze`, { method: 'POST' }); clearMutationState(); render(); await showAlert('Đã phân tích lại và cập nhật bản xem trước.', 'success', 'Phân tích thành công'); } catch (error) { await showAlert(error.message, 'error'); } finally { busy(false); } });
     byId('cancelButton').addEventListener('click', async () => {
-        if (!confirm('Hủy phiên này?')) return;
+        if (!await confirmAction('Hủy phiên', 'Dữ liệu bản xem trước của phiên này sẽ không thể tiếp tục nhập.', 'Hủy phiên')) return;
         busy(true);
         try {
             state.session = await api(`/api/ai-import/${state.session.sessionId}/cancel`, { method: 'POST', body: JSON.stringify({ expectedPreviewVersion: state.session.previewVersion }) });
             closeEditDialog();
             render();
+            await showAlert('Đã hủy phiên nhập dữ liệu.', 'success');
         } catch (error) { await handleMutationError(error); }
         finally { busy(false); }
     });
