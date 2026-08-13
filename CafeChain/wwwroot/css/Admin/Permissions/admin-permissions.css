@@ -1498,3 +1498,5 @@
 .perm-page :is(input[type="checkbox"],input[type="radio"]) { min-width:20px; min-height:20px; }
 .perm-page :is(a,button,input,select,textarea):focus-visible { outline:2px solid var(--cc-brown-600,#70482F); outline-offset:2px; box-shadow:var(--cc-focus-ring)!important; }
 @media(prefers-reduced-motion:reduce){.perm-page *{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important;}}
+/* Fix contract: unified permission actions and matrix alignment. */
+.perm-page table th,.perm-page table td{vertical-align:middle;text-align:center}.perm-page .perm-primary-button{min-height:44px;border-color:var(--cc-brown-600,#70482F)!important;background:var(--cc-brown-600,#70482F)!important;color:#fff!important}.perm-page :is(.perm-outline-button,.perm-ghost-button){min-height:44px;border-color:var(--cc-border-strong,#D8C5B6);background:var(--cc-surface,#FFFDFB);color:var(--cc-brown-700,#3D2418)}.perm-page .perm-icon-button{width:40px;height:40px}

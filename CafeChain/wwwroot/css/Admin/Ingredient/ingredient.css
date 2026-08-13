@@ -331,3 +331,19 @@
         animation-iteration-count: 1 !important;
     }
 }
+/* Fix branch: align filters, table columns and modal actions. */
+.ingredient-page .ingredient-filter-grid { align-items: end; }
+.ingredient-page .ingredient-search-control,
+.ingredient-page .ingredient-filter-field select,
+.ingredient-page .ingredient-filter-actions .ingredient-btn { height: 44px; min-height: 44px; }
+.ingredient-page .ingredient-filter-actions { align-self: end; gap: 10px; }
+.ingredient-page .ingredient-table th { text-align: center; vertical-align: middle; }
+.ingredient-page .ingredient-table td { text-align: center; vertical-align: middle; }
+.ingredient-page .ingredient-table td:nth-child(2) { text-align: left; }
+.ingredient-page .ingredient-name-cell { align-items: center; min-height: 40px; }
+.ingredient-page .ingredient-name-cell > :last-child { min-width: 0; line-height: 1.4; overflow-wrap: anywhere; }
+#ingredientModal .modal-footer { display: flex; justify-content: flex-end; gap: 10px; }
+#ingredientModal .modal-footer .btn { min-height: 40px; margin: 0; border-radius: var(--cc-radius-control, 10px); font-weight: 750; }
+#ingredientModal #btnSave { border-color: var(--cc-brown-600, #70482F); background: var(--cc-brown-600, #70482F); color: var(--cc-text-inverse, #FFFFFF); box-shadow: 0 3px 8px rgba(112,72,47,.2); }
+#ingredientModal #btnSave:hover { border-color: var(--cc-brown-700, #3D2418); background: var(--cc-brown-700, #3D2418); }
+#ingredientModal #btnClose2 { border-color: var(--cc-border-strong, #D8C5B6); background: var(--cc-surface, #FFFDFB); color: var(--cc-brown-700, #3D2418); }.ingredient-page .ingredient-table-actions .ingredient-btn { min-height: 40px; height: 40px; padding-inline: 14px; border-radius: var(--cc-radius-control, 10px); }.ingredient-page .edit-btn{border-color:var(--cc-brown-600,#70482F)!important;background:var(--cc-brown-600,#70482F)!important;color:#fff!important}.ingredient-page .ingredient-btn.danger{border-color:var(--cc-danger,#B42318)!important;background:var(--cc-danger-bg,#FEF3F2)!important;color:var(--cc-danger,#B42318)!important}.ingredient-page .ingredient-btn-danger{border-color:var(--cc-danger,#B42318)!important;background:var(--cc-danger-bg,#FEF3F2)!important;color:var(--cc-danger,#B42318)!important}.ingredient-page .ingredient-btn-success{border-color:var(--cc-brown-600,#70482F)!important;background:var(--cc-brown-600,#70482F)!important;color:#fff!important}

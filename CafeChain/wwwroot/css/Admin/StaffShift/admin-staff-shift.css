@@ -1276,3 +1276,5 @@
 .shift-schedule-page :is(a,button,input,select,textarea):focus-visible { outline:2px solid var(--cc-brown-600,#70482F); outline-offset:2px; box-shadow:var(--cc-focus-ring)!important; }
 @media(max-width:767.98px){.shift-schedule-page .roster-container{overflow-x:auto}.shift-schedule-page .roster-toolbar{align-items:stretch}}
 @media(prefers-reduced-motion:reduce){.shift-schedule-page *{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important;}}
+/* Fix contract: unified shift actions and centered schedule data. */
+.shift-page table th,.shift-page table td{vertical-align:middle;text-align:center}.shift-page .btn-primary,.shift-page .shift-action-edit{border-color:var(--cc-brown-600,#70482F)!important;background:var(--cc-brown-600,#70482F)!important;color:#fff!important}.shift-page .shift-action-btn{width:40px;height:40px;border-radius:var(--cc-radius-control,10px)}.shift-page .shift-action-toggle-active,.shift-page .cancel-schedule{border-color:var(--cc-danger,#B42318)!important;background:var(--cc-danger-bg,#FEF3F2)!important;color:var(--cc-danger,#B42318)!important}
