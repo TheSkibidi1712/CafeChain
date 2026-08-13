@@ -227,6 +227,8 @@ namespace CafeChain.Extensions.Services
                 CafeChain.Application.Services.Admin.Recipes.AdminRecipeQueryService>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IRecipeWhereUsedQueryService,
                 CafeChain.Application.Services.Admin.Recipes.RecipeWhereUsedQueryService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IRecipeVersionEvidenceQueryService,
+                CafeChain.Application.Services.Admin.Recipes.RecipeVersionEvidenceQueryService>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IBomDataHealthEvaluator,
                 CafeChain.Application.Services.Admin.Recipes.BomDataHealthEvaluator>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IRecipeBomTreeQueryService,

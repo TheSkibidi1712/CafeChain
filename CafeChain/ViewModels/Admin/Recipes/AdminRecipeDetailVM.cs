@@ -34,6 +34,7 @@ namespace CafeChain.ViewModels.Admin.Recipes
         public decimal? NormalizedOutputQuantity { get; set; }
         public string? OutputBaseUnitCode { get; set; }
         public bool CanWrite { get; set; }
+        public bool CanViewProduction { get; set; }
         public string BackUrl { get; set; } = "/Admin/AdminRecipe";
         public BomHealthStatusVM ConfigurationHealth { get; set; } = new();
         public BomHealthStatusVM CostingHealth { get; set; } = new();
@@ -56,6 +57,7 @@ namespace CafeChain.ViewModels.Admin.Recipes
         public RecipeWorkspaceReadinessSummaryVM StoreReadiness { get; set; } =
             RecipeWorkspaceReadinessSummaryVM.StoreNotSelected();
         public RecipeWhereUsedVM WhereUsed { get; set; } = new();
+        public RecipeVersionHistoryVM VersionHistory { get; set; } = new();
 
         public bool IsPreparedItemRecipe => RecipeTypeKey == "SUBRECIPE";
         public bool ShowBatchOutput => IsPreparedItemRecipe;
@@ -262,12 +264,15 @@ namespace CafeChain.ViewModels.Admin.Recipes
     public sealed class BomProductionRunVM
     {
         public int ProductionRunId { get; set; }
+        public string BusinessCode => $"PR-{ProductionRunId}";
         public decimal RequestedRunCount { get; set; }
         public string Status { get; set; } = "";
         public DateTime ConfirmedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
         public string? ActorName { get; set; }
         public decimal? NormalizedOutputQuantity { get; set; }
+        public decimal? AcceptedOutputQuantity { get; set; }
+        public string? OutputUnitCode { get; set; }
         public decimal? ActualTotalInputCost { get; set; }
         public decimal? ActualOutputUnitCost { get; set; }
     }

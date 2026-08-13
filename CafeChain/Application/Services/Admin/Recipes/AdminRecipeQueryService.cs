@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Recipes;
+using CafeChain.Application.DTOs.Admin.Production;
 using CafeChain.Application.DTOs.Costing;
 using CafeChain.Application.Interfaces.Admin.PreparedItems;
 using CafeChain.Application.Interfaces.Admin.Recipes;
@@ -831,28 +832,46 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 }
             }
 
-            var runs = await (
+            var runRows = await (
                 from run in _context.ProductionRuns.AsNoTracking()
                 where run.StoreId == storeId && run.RecipeId == recipeId
                 join staff in _context.Staffs.AsNoTracking()
                     on run.CreatedByStaffId equals staff.StaffId into staffRows
                 from staff in staffRows.DefaultIfEmpty()
                 orderby run.CreatedAt descending
-                select new BomProductionRunVM
+                select new
                 {
-                    ProductionRunId = run.ProductionRunId,
-                    RequestedRunCount = run.RequestedRunCount,
-                    Status = run.Status == ProductionRunStatus.Completed
-                        ? "Đã hoàn tất"
-                        : "Đã xác nhận",
-                    ConfirmedAt = run.ConfirmedAt,
-                    CompletedAt = run.CompletedAt,
+                    run.ProductionRunId,
+                    run.RequestedRunCount,
+                    run.Status,
+                    run.ConfirmedAt,
+                    run.CompletedAt,
                     ActorName = staff != null ? staff.FullName : null,
+                    AcceptedOutputQuantity = run.ActualOutput != null
+                        ? (decimal?)run.ActualOutput.AcceptedOutputBase
+                        : null,
+                    OutputUnitCode = run.ActualOutput != null && run.ActualOutput.BaseUnit != null
+                        ? run.ActualOutput.BaseUnit.UnitCode
+                        : null,
                     ActualTotalInputCost = run.TotalInputCost,
                     ActualOutputUnitCost = run.OutputUnitCost
                 })
                 .Take(5)
                 .ToListAsync();
+
+            var runs = runRows.Select(run => new BomProductionRunVM
+            {
+                ProductionRunId = run.ProductionRunId,
+                RequestedRunCount = run.RequestedRunCount,
+                Status = ProductionRunDisplay.Status(run.Status),
+                ConfirmedAt = run.ConfirmedAt,
+                CompletedAt = run.CompletedAt,
+                ActorName = run.ActorName,
+                AcceptedOutputQuantity = run.AcceptedOutputQuantity,
+                OutputUnitCode = run.OutputUnitCode ?? recipe.BaseUnitCode,
+                ActualTotalInputCost = run.ActualTotalInputCost,
+                ActualOutputUnitCost = run.ActualOutputUnitCost
+            }).ToList();
 
             if (runs.Count > 0)
             {

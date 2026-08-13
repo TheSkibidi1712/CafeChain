@@ -27,6 +27,7 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IProductionReadinessService _productionReadiness;
         private readonly IAdminStoreInventoryService _storeInventoryService;
         private readonly IRecipeWhereUsedQueryService? _whereUsedQuery;
+        private readonly IRecipeVersionEvidenceQueryService? _versionEvidenceQuery;
 
         public AdminRecipeController(
             IAdminRecipeService recipeService,
@@ -36,7 +37,8 @@ namespace CafeChain.Areas.Admin.Controllers
             IEstimatedBomCostService estimatedBomCost,
             IProductionReadinessService productionReadiness,
             IAdminStoreInventoryService storeInventoryService,
-            IRecipeWhereUsedQueryService? whereUsedQuery = null)
+            IRecipeWhereUsedQueryService? whereUsedQuery = null,
+            IRecipeVersionEvidenceQueryService? versionEvidenceQuery = null)
         {
             _recipeService = recipeService;
             _queryService = queryService;
@@ -46,6 +48,7 @@ namespace CafeChain.Areas.Admin.Controllers
             _productionReadiness = productionReadiness;
             _storeInventoryService = storeInventoryService;
             _whereUsedQuery = whereUsedQuery;
+            _versionEvidenceQuery = versionEvidenceQuery;
         }
 
         [HttpGet]
@@ -91,6 +94,7 @@ namespace CafeChain.Areas.Admin.Controllers
             page.CanWrite = await HasEffectivePermissionAsync(PermissionConstants.RecipeCreate)
                 || await HasEffectivePermissionAsync(PermissionConstants.RecipeUpdate)
                 || await HasEffectivePermissionAsync(PermissionConstants.RecipeDelete);
+            page.CanViewProduction = await HasEffectivePermissionAsync(PermissionConstants.ProductionOrderView);
             page.BackUrl = !string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl)
                 ? returnUrl
                 : Url.Action(nameof(Index), "AdminRecipe", new { area = "Admin" }) ?? "/Admin/AdminRecipe";
@@ -109,6 +113,12 @@ namespace CafeChain.Areas.Admin.Controllers
                 page.WhereUsed = await _whereUsedQuery.GetCurrentAsync(
                     recipeId,
                     stores.Select(store => store.StoreId).ToArray(),
+                    HttpContext.RequestAborted);
+            }
+            if (_versionEvidenceQuery != null)
+            {
+                page.VersionHistory = await _versionEvidenceQuery.GetHistoryAsync(
+                    recipeId,
                     HttpContext.RequestAborted);
             }
 
@@ -153,6 +163,24 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             return View(page);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CompareVersions(
+            int fromRecipeId,
+            int toRecipeId)
+        {
+            if (_versionEvidenceQuery == null)
+                return NotFound();
+
+            var result = await _versionEvidenceQuery.CompareAsync(
+                fromRecipeId,
+                toRecipeId,
+                HttpContext.RequestAborted);
+            if (!result.IsSuccess || result.Comparison == null)
+                return BadRequest(result.Message ?? "Không thể so sánh hai phiên bản đã chọn.");
+
+            return View(result.Comparison);
         }
 
         [HttpGet]

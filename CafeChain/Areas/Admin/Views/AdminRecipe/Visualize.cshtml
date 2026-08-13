@@ -71,8 +71,9 @@
 
         <nav class="production-section-nav" aria-label="Các phần của công thức">
             <a href="#bom-components">Đầu ra và định mức</a>
+            <a href="#recipe-history">Lịch sử phiên bản</a>
             <a href="#recipe-context">Ngữ cảnh phiên bản</a>
-            @if (Model.IsPreparedItemRecipe) { <a href="#recipe-operations">Thông tin vận hành</a> }
+            @if (Model.IsPreparedItemRecipe) { <a href="#recipe-operations">Sản xuất gần đây</a> }
         </nav>
 
         <section class="recipe-workspace__summary bom-health-board" aria-label="Tóm tắt công thức">
@@ -317,14 +318,63 @@
                     }
                 </section>
 
+                <section id="recipe-history" class="recipe-workspace__surface recipe-workspace__history" aria-labelledby="recipe-history-title">
+                    <header class="recipe-workspace__section-heading bom-section-heading">
+                        <span class="recipe-workspace__section-icon"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i></span>
+                        <div>
+                            <h2 id="recipe-history-title">Lịch sử phiên bản</h2>
+                            <p>Các phiên bản của cùng đối tượng công thức; không trộn với lịch sử tồn kho hay nhật ký kỹ thuật.</p>
+                        </div>
+                    </header>
+                    @if (Model.VersionHistory.Items.Count == 0)
+                    {
+                        <div class="recipe-workspace__history-empty">Chưa ghi nhận phiên bản liên quan.</div>
+                    }
+                    else
+                    {
+                        <div class="recipe-workspace__history-list">
+                            @foreach (var version in Model.VersionHistory.Items)
+                            {
+                                <article class="@(version.IsCurrent ? "is-current" : null)">
+                                    <div>
+                                        <span class="rb-status-badge @(version.IsCurrent ? "rb-status-active" : "rb-status-inactive")">@version.StateLabel</span>
+                                        <strong>@version.VersionLabel</strong>
+                                        <small>@version.RelationshipLabel</small>
+                                        <small>Áp dụng: @(version.AppliedAt.HasValue ? BusinessDateService.ToBusinessTime(version.AppliedAt.Value).ToString("dd/MM/yyyy HH:mm") : "ngay khi phát hành")</small>
+                                    </div>
+                                    <div class="recipe-workspace__history-actions">
+                                        @if (version.RecipeId != Model.RecipeId)
+                                        {
+                                            <a asp-action="CompareVersions"
+                                               asp-route-fromRecipeId="@version.RecipeId"
+                                               asp-route-toRecipeId="@Model.RecipeId">
+                                                <i class="fas fa-code-compare" aria-hidden="true"></i>
+                                                So sánh với phiên bản đang xem
+                                            </a>
+                                        }
+                                        <a asp-action="Visualize" asp-route-recipeId="@version.RecipeId" asp-route-storeId="@Model.SelectedStoreId">
+                                            Xem phiên bản
+                                            <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                                        </a>
+                                    </div>
+                                </article>
+                            }
+                        </div>
+                        @if (Model.VersionHistory.IsTruncated)
+                        {
+                            <p class="recipe-workspace__history-limit">Hiển thị @Model.VersionHistory.Items.Count/@Model.VersionHistory.TotalCount phiên bản gần nhất.</p>
+                        }
+                    }
+                </section>
+
                 @if (Model.IsPreparedItemRecipe)
                 {
                     <section id="recipe-operations" class="recipe-workspace__surface recipe-workspace__operations" aria-labelledby="operations-title">
                         <header class="recipe-workspace__section-heading bom-section-heading">
                             <span class="recipe-workspace__section-icon"><i class="fas fa-store" aria-hidden="true"></i></span>
                             <div>
-                                <h2 id="operations-title">Thông tin vận hành hiện có</h2>
-                                <p>Chọn chi nhánh để xem tồn bán thành phẩm và các lần sản xuất đã ghi nhận.</p>
+                                <h2 id="operations-title">Sản xuất gần đây</h2>
+                                <p>Bằng chứng vận hành của đúng phiên bản công thức tại chi nhánh đã chọn.</p>
                             </div>
                         </header>
                         @if (!Model.SelectedStoreId.HasValue)
@@ -353,11 +403,47 @@
                                     }
                                 </article>
                                 <article>
-                                    <span>Sản xuất đã ghi nhận</span>
+                                    <span>Lệnh sản xuất</span>
                                     <strong>@operational.RecentRuns.Count lần gần đây</strong>
-                                    <small>@(operational.RecentRuns.Count == 0 ? "Chưa có dữ liệu cho đúng phiên bản này." : "Mở lệnh sản xuất để xem chi tiết vận hành.")</small>
+                                    <small>@(operational.RecentRuns.Count == 0 ? "Chưa có dữ liệu cho đúng phiên bản này." : "Tối đa 5 lệnh gần nhất của phiên bản đang xem.")</small>
                                 </article>
                             </div>
+                            @if (operational.RecentRuns.Count > 0)
+                            {
+                                <div class="recipe-workspace__production-list" aria-label="Danh sách sản xuất gần đây">
+                                    @foreach (var run in operational.RecentRuns)
+                                    {
+                                        <article>
+                                            <div>
+                                                <span class="recipe-workspace__eyebrow">Lệnh @run.BusinessCode</span>
+                                                <strong>@(Model.PreparedItemName ?? Model.BusinessName)</strong>
+                                                <small>@run.Status</small>
+                                            </div>
+                                            <dl>
+                                                <div>
+                                                    <dt>Đầu ra được chấp nhận</dt>
+                                                    <dd>
+                                                        @(run.AcceptedOutputQuantity.HasValue
+                                                            ? $"{run.AcceptedOutputQuantity.Value:0.####} {run.OutputUnitCode}"
+                                                            : "Chưa có bằng chứng nghiệm thu")
+                                                    </dd>
+                                                </div>
+                                                <div>
+                                                    <dt>Hoàn tất</dt>
+                                                    <dd>@(run.CompletedAt.HasValue ? BusinessDateService.ToBusinessTime(run.CompletedAt.Value).ToString("dd/MM/yyyy HH:mm") : "Chưa hoàn tất")</dd>
+                                                </div>
+                                            </dl>
+                                            @if (Model.CanViewProduction)
+                                            {
+                                                <a asp-controller="AdminProductionOrder" asp-action="Details" asp-route-id="@run.ProductionRunId">
+                                                    Xem lệnh sản xuất
+                                                    <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                                                </a>
+                                            }
+                                        </article>
+                                    }
+                                </div>
+                            }
                         }
                     </section>
                 }
