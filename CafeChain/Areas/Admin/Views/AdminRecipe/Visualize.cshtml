@@ -1,5 +1,6 @@
 @model CafeChain.ViewModels.Admin.Recipes.AdminRecipeVisualizePageVM
 @using CafeChain.ViewModels.Admin.Shared
+@inject CafeChain.Application.Interfaces.Systems.IBusinessDateService BusinessDateService
 @{
     ViewData["Title"] = "Không gian công thức - " + Model.BusinessName;
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -81,19 +82,19 @@
                 <small>Tổng số đầu vào của phiên bản này</small>
             </article>
             <article>
-                <span>Bán thành phẩm đầu vào</span>
-                <strong>@Model.PreparedInputs.Count</strong>
-                <small>Có công thức nguồn riêng</small>
+                <span>Giá vốn thiết kế</span>
+                <strong>@(Model.DesignCost.IsAvailable ? $"{Model.DesignCost.Amount:N0} đ" : "Chưa đủ dữ liệu")</strong>
+                <small>@Model.DesignCost.UnitLabel</small>
             </article>
             <article>
-                <span>Nguyên liệu trực tiếp</span>
-                <strong>@Model.DirectIngredients.Count</strong>
-                <small>Được tiêu hao trực tiếp</small>
+                <span>Giá vốn theo nhập trước - xuất trước (FIFO) tại chi nhánh</span>
+                <strong>@(Model.StoreFifoCost.IsAvailable ? $"{Model.StoreFifoCost.Amount:N0} đ" : "Chưa có dữ liệu")</strong>
+                <small>@(Model.StoreFifoCost.ContextLabel ?? "Chưa chọn chi nhánh")</small>
             </article>
             <article>
-                <span>Phiên bản công thức</span>
-                <strong>@Model.RecipeId</strong>
-                <small>@Model.AppliedStateLabel</small>
+                <span>Mức sẵn sàng</span>
+                <strong>@Model.GlobalReadiness.SummaryLabel</strong>
+                <small>@Model.GlobalReadiness.ScopeLabel</small>
             </article>
         </section>
 
@@ -152,6 +153,14 @@
                                                 {
                                                     <small>Chưa có quy đổi về đơn vị tồn kho</small>
                                                 }
+                                                <small class="recipe-workspace__line-cost">
+                                                    Giá vốn thiết kế:
+                                                    @(component.EstimatedLineCost.HasValue ? $"{component.EstimatedLineCost:N0} đ" : "chưa đủ dữ liệu")
+                                                    @if (component.CostContributionPercent.HasValue)
+                                                    {
+                                                        <span>· Tỷ trọng giá vốn: @component.CostContributionPercent.Value.ToString("0.#")%</span>
+                                                    }
+                                                </small>
                                             </div>
                                             <a class="recipe-workspace__source-link bom-source-link" asp-action="Visualize"
                                                asp-route-recipeId="@component.ChildRecipeId"
@@ -201,6 +210,14 @@
                                                 {
                                                     <small>Chưa có quy đổi về đơn vị tồn kho</small>
                                                 }
+                                                <small class="recipe-workspace__line-cost">
+                                                    Giá vốn thiết kế:
+                                                    @(component.EstimatedLineCost.HasValue ? $"{component.EstimatedLineCost:N0} đ" : "chưa đủ dữ liệu")
+                                                    @if (component.CostContributionPercent.HasValue)
+                                                    {
+                                                        <span>· Tỷ trọng giá vốn: @component.CostContributionPercent.Value.ToString("0.#")%</span>
+                                                    }
+                                                </small>
                                             </div>
                                         </article>
                                     }
@@ -220,23 +237,11 @@
                                 <p>Chọn chi nhánh để xem tồn bán thành phẩm và các lần sản xuất đã ghi nhận.</p>
                             </div>
                         </header>
-                        <form method="get" asp-action="Visualize" class="recipe-workspace__store-selector">
-                            <input type="hidden" name="recipeId" value="@Model.RecipeId" />
-                            <input type="hidden" name="returnUrl" value="@Model.BackUrl" />
-                            <div>
-                                <label for="storeId">Chi nhánh</label>
-                                <select id="storeId" name="storeId">
-                                    <option value="">Chọn chi nhánh</option>
-                                    @foreach (var store in Model.Stores)
-                                    {
-                                        <option value="@store.StoreId" selected="@(Model.SelectedStoreId == store.StoreId ? "selected" : null)">@store.StoreName</option>
-                                    }
-                                </select>
-                            </div>
-                            <button type="submit" class="btn btn-rb-save"><i class="fas fa-eye" aria-hidden="true"></i> Xem dữ liệu</button>
-                        </form>
-
-                        @if (Model.SelectedStoreId.HasValue && Model.Operational == null)
+                        @if (!Model.SelectedStoreId.HasValue)
+                        {
+                            <p class="recipe-workspace__notice">Chọn chi nhánh trong phần cơ sở tính giá vốn để xem dữ liệu vận hành.</p>
+                        }
+                        else if (Model.Operational == null)
                         {
                             <p class="recipe-workspace__notice">@(!string.IsNullOrWhiteSpace(Model.OperationalError) ? Model.OperationalError : "Chưa tải được dữ liệu của chi nhánh đã chọn.")</p>
                         }
@@ -285,6 +290,72 @@
                         <div><dt>Ngày áp dụng</dt><dd>@(Model.EffectiveDate?.ToString("dd/MM/yyyy") ?? "Áp dụng ngay")</dd></div>
                         <div><dt>Nguồn phiên bản</dt><dd>@(Model.ParentVersionId.HasValue ? $"Phiên bản {Model.ParentVersionId.Value}" : "Phiên bản gốc")</dd></div>
                     </dl>
+                </section>
+                <section>
+                    <span class="recipe-workspace__eyebrow">Cơ sở tính giá vốn</span>
+                    <div class="recipe-workspace__evidence-list">
+                        <article class="@(Model.DesignCost.IsAvailable ? "is-ready" : "is-warning")">
+                            <span>Giá vốn ước tính theo thiết kế</span>
+                            <strong>@(Model.DesignCost.IsAvailable ? $"{Model.DesignCost.Amount:N0} đ" : "Chưa đủ dữ liệu")</strong>
+                            <small>@Model.DesignCost.Message</small>
+                        </article>
+                        <article class="@(Model.StoreFifoCost.IsAvailable ? "is-ready" : "is-muted")">
+                            <span>Giá vốn theo nhập trước - xuất trước (FIFO) tại chi nhánh</span>
+                            <strong>@(Model.StoreFifoCost.IsAvailable ? $"{Model.StoreFifoCost.Amount:N0} đ" : "Chưa có dữ liệu")</strong>
+                            <small>@Model.StoreFifoCost.Message</small>
+                            @if (!string.IsNullOrWhiteSpace(Model.StoreFifoCost.ContextLabel))
+                            {
+                                <small>Chi nhánh: @Model.StoreFifoCost.ContextLabel</small>
+                            }
+                            @if (Model.StoreFifoCost.EvidenceAtUtc.HasValue)
+                            {
+                                <small>Bằng chứng cập nhật: @BusinessDateService.ToBusinessTime(Model.StoreFifoCost.EvidenceAtUtc.Value).ToString("dd/MM/yyyy HH:mm")</small>
+                            }
+                        </article>
+                    </div>
+                    <form method="get" asp-action="Visualize" class="recipe-workspace__store-selector is-rail">
+                        <input type="hidden" name="recipeId" value="@Model.RecipeId" />
+                        <input type="hidden" name="returnUrl" value="@Model.BackUrl" />
+                        <div>
+                            <label for="storeId">Chi nhánh được phép xem</label>
+                            <select id="storeId" name="storeId">
+                                <option value="">Chọn chi nhánh</option>
+                                @foreach (var store in Model.Stores)
+                                {
+                                    <option value="@store.StoreId" selected="@(Model.SelectedStoreId == store.StoreId ? "selected" : null)">@store.StoreName</option>
+                                }
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-rb-save"><i class="fas fa-eye" aria-hidden="true"></i> Xem</button>
+                    </form>
+                </section>
+                <section>
+                    <span class="recipe-workspace__eyebrow">Mức sẵn sàng</span>
+                    <h2>@Model.GlobalReadiness.SummaryLabel</h2>
+                    <small>@Model.GlobalReadiness.ScopeLabel</small>
+                    <div class="recipe-workspace__facet-list">
+                        @foreach (var facet in Model.GlobalReadiness.Facets)
+                        {
+                            <article class="@(facet.IsPassed ? "is-ready" : facet.IsApplicable ? "is-warning" : "is-muted")">
+                                <div><strong>@facet.Label</strong><span>@facet.StateLabel</span></div>
+                                <small>@facet.Message</small>
+                            </article>
+                        }
+                    </div>
+                    @if (Model.SelectedStoreId.HasValue)
+                    {
+                        <h2 class="recipe-workspace__store-readiness-title">@Model.StoreReadiness.SummaryLabel</h2>
+                        <small>@Model.StoreReadiness.ScopeLabel</small>
+                        <div class="recipe-workspace__facet-list">
+                            @foreach (var facet in Model.StoreReadiness.Facets)
+                            {
+                                <article class="@(facet.IsPassed ? "is-ready" : facet.IsApplicable ? "is-warning" : "is-muted")">
+                                    <div><strong>@facet.Label</strong><span>@facet.StateLabel</span></div>
+                                    <small>@facet.Message</small>
+                                </article>
+                            }
+                        </div>
+                    }
                 </section>
                 <section>
                     <span class="recipe-workspace__eyebrow">Định nghĩa đầu ra</span>

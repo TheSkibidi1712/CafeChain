@@ -110,6 +110,11 @@ namespace CafeChain.Areas.Admin.Controllers
 
                 page.SelectedStoreId = selectedStore.StoreId;
                 page.SelectedStoreName = selectedStore.StoreName;
+                var storeEvidence = await _queryService.GetStoreEvidenceAsync(
+                    page,
+                    selectedStore.StoreId);
+                if (storeEvidence != null)
+                    page.ApplyStoreEvidence(storeEvidence);
                 if (page.IsPreparedItemRecipe)
                 {
                     page.Operational = await _queryService.GetOperationalDetailAsync(
@@ -127,10 +132,12 @@ namespace CafeChain.Areas.Admin.Controllers
                             StoreName = selectedStore.StoreName
                         };
                         page.Operational.Readiness = readiness.Data;
+                        page.ApplyProductionReadiness(readiness.Data);
                     }
                     else
                     {
-                        page.OperationalError = readiness.Message;
+                        page.OperationalError = "Chưa thể kiểm tra điều kiện sản xuất tại chi nhánh.";
+                        page.ApplyProductionReadiness(null);
                     }
                 }
             }
