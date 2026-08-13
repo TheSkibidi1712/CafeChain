@@ -59,6 +59,13 @@ namespace CafeChain.Application.Constants
         public const string PosTerminalRequestRegistration = "POS.Terminal.RequestRegistration";
         public const string NotificationView = "Notification.View";
 
+        public const string AIImportView = "AIImport.View";
+        public const string AIImportUpload = "AIImport.Upload";
+        public const string AIImportAnalyze = "AIImport.Analyze";
+        public const string AIImportConfirm = "AIImport.Confirm";
+        public const string AIImportCancel = "AIImport.Cancel";
+        public const string AIImportHistory = "AIImport.History";
+
         public const string IngredientView = "Ingredient.View";
         public const string IngredientCreate = "Ingredient.Create";
         public const string IngredientUpdate = "Ingredient.Update";
