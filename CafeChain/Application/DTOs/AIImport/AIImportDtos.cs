@@ -36,10 +36,29 @@ public sealed class AIImportItemPatchRequest
 
 public sealed class AIImportPositionDto
 {
+    public string? SourceFormat { get; set; }
     public string? Sheet { get; set; }
     public string? Region { get; set; }
     public int? Row { get; set; }
     public string? Column { get; set; }
+    public int? Section { get; set; }
+    public int? Paragraph { get; set; }
+    public int? Table { get; set; }
+    public int? TableRow { get; set; }
+    public int? TableColumn { get; set; }
+    public int? Page { get; set; }
+    public int? Block { get; set; }
+    public int? TextStart { get; set; }
+    public int? TextEnd { get; set; }
+    public AIImportBoundingBoxDto? BoundingBox { get; set; }
+}
+
+public sealed class AIImportBoundingBoxDto
+{
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double Width { get; set; }
+    public double Height { get; set; }
 }
 
 public sealed class AIImportErrorDto
@@ -83,6 +102,9 @@ public sealed class AIImportSessionDto
 {
     public int SessionId { get; set; }
     public string FileName { get; set; } = string.Empty;
+    public string SourceFormat { get; set; } = "XLSX";
+    public Dictionary<string, object?> SourceMetadata { get; set; } = new();
+    public List<string> ExtractionModes { get; set; } = new();
     public string Status { get; set; } = string.Empty;
     public int AnalysisVersion { get; set; }
     public int PreviewVersion { get; set; }
@@ -101,6 +123,9 @@ public sealed class AIImportGroupDto
     public int GroupId { get; set; }
     public string SheetName { get; set; } = string.Empty;
     public string RegionAddress { get; set; } = string.Empty;
+    public string SourceLabel { get; set; } = string.Empty;
+    public AIImportPositionDto? SourceLocator { get; set; }
+    public string ExtractionMode { get; set; } = string.Empty;
     public int HeaderRow { get; set; }
     public AIImportEntityType EntityType { get; set; }
     public Dictionary<string, string?> Mapping { get; set; } = new();
@@ -118,6 +143,10 @@ public sealed class AIImportItemDto
     public Dictionary<string, string?> RawData { get; set; } = new();
     public Dictionary<string, string?> NormalizedData { get; set; } = new();
     public Dictionary<string, string?> SourceTrace { get; set; } = new();
+    public AIImportPositionDto? SourceLocator { get; set; }
+    public string? EvidenceSnippet { get; set; }
+    public decimal? AiConfidence { get; set; }
+    public decimal? OcrConfidence { get; set; }
     public string Status { get; set; } = string.Empty;
     public string Action { get; set; } = string.Empty;
     public List<AIImportErrorDto> Errors { get; set; } = new();
@@ -139,6 +168,8 @@ public sealed class AIImportHistoryItemDto
 {
     public int SessionId { get; set; }
     public string FileName { get; set; } = string.Empty;
+    public string SourceFormat { get; set; } = "XLSX";
+    public List<string> ExtractionModes { get; set; } = new();
     public string Status { get; set; } = string.Empty;
     public int PreviewVersion { get; set; }
     public int TotalRows { get; set; }
