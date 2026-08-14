@@ -49,11 +49,21 @@
 }
 
 .shift-page-header h1 {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
     color: #201812;
     font-size: clamp(1.6rem, 2.8vw, 2.2rem);
     font-weight: 800;
     letter-spacing: -.02em;
     margin: 0;
+}
+
+.shift-page-header h1 > i {
+    flex: 0 0 auto;
+    margin-top: 0.16em;
+    font-size: 0.76em;
+    line-height: 1;
 }
 
 .shift-subtitle {
@@ -290,6 +300,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+    min-height: 40px;
     padding: 3px 0;
     border: 0;
     background: transparent;
@@ -443,10 +454,9 @@
 }
 
 .roster-toolbar {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) minmax(520px, auto);
     align-items: flex-end;
-    justify-content: space-between;
-    flex-wrap: wrap;
     gap: 16px;
     padding: 20px;
     border-bottom: 1px solid #E9DED4;
@@ -513,9 +523,27 @@
 
 .roster-filters {
     display: flex;
-    align-items: center;
-    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
     gap: 10px;
+}
+
+.roster-filter-field {
+    display: grid;
+    gap: 6px;
+}
+
+.roster-filter-field--search {
+    width: 360px;
+    max-width: 100%;
+}
+
+.roster-filter-field .filter-label {
+    margin: 0 !important;
+    color: #201812 !important;
+    font-size: 13px !important;
+    font-weight: 750 !important;
 }
 
 .filter-control {
@@ -539,21 +567,87 @@
 .filter-control input,
 .filter-control select {
     min-width: 0;
-    border: 0;
+    min-height: 42px;
+    border: 0 !important;
+    border-radius: 0 !important;
     outline: 0;
-    background: transparent;
+    background: transparent !important;
+    box-shadow: none !important;
     color: #201812;
     font-size: 13.5px;
     font-weight: 600;
 }
 
 .filter-control input {
-    width: 220px;
+    width: 100%;
 }
 
 .filter-control select {
-    width: 160px;
+    width: 190px;
     cursor: pointer;
+}
+
+.filter-select {
+    padding: 0 12px;
+}
+
+/* Match the Staff filter contract: one search outline and one standalone select. */
+.shift-schedule-page .roster-filters .filter-search input {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 14px 0 40px;
+    border: 1px solid var(--cc-border-strong, #D8C5B6) !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+    background: var(--cc-surface, #FFFDFB) !important;
+}
+
+.shift-schedule-page .roster-filters .filter-search {
+    position: relative;
+    display: block;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.shift-schedule-page .roster-filters .filter-search > i {
+    position: absolute;
+    z-index: 1;
+    top: 50%;
+    left: 14px;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.shift-schedule-page .roster-filters .filter-search:focus-within {
+    box-shadow: none;
+}
+
+.shift-schedule-page .roster-filters .filter-search input:focus {
+    border-color: var(--cc-brown-600, #70482F) !important;
+    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, .22)) !important;
+}
+
+.shift-schedule-page .roster-filters .filter-select {
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.shift-schedule-page .roster-filters .filter-select:focus-within {
+    box-shadow: none;
+}
+
+.shift-schedule-page .roster-filters .filter-select select {
+    min-height: 44px;
+    padding: 0 36px 0 14px;
+    border: 1px solid var(--cc-border-strong, #D8C5B6) !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+    background-color: var(--cc-surface, #FFFDFB) !important;
+}
+
+.shift-schedule-page .roster-filters .filter-select select:focus {
+    border-color: var(--cc-brown-600, #70482F) !important;
+    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, .22)) !important;
 }
 
 .filter-reset {
@@ -1037,11 +1131,13 @@
     }
 
     .roster-toolbar {
+        grid-template-columns: minmax(0, 1fr);
         align-items: stretch;
     }
 
     .roster-filters {
         width: 100%;
+        justify-content: flex-start;
     }
 
     .filter-search {
@@ -1089,6 +1185,32 @@
     .roster-table .staff-col {
         width: 205px;
         min-width: 205px;
+    }
+}
+
+@media (min-width: 901px) and (max-width: 1400px) {
+    .shift-schedule-page .shift-page-header {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) minmax(360px, 0.9fr);
+        align-items: center !important;
+        min-height: 176px !important;
+    }
+
+    .shift-schedule-page .week-nav {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-self: center;
+    }
+
+    .shift-schedule-page .week-nav .week-label {
+        grid-column: 1 / -1;
+        grid-row: 1;
+        text-align: center;
+    }
+
+    .shift-schedule-page .week-nav .btn-nav {
+        min-width: 0;
+        padding-inline: 10px;
     }
 }
 
@@ -1152,9 +1274,14 @@
     }
 
     .roster-filters,
+    .roster-filter-field,
     .filter-control,
     .filter-reset {
         width: 100%;
+    }
+
+    .roster-filter-field--search {
+        max-width: none;
     }
 
     .filter-control select,
@@ -1207,7 +1334,8 @@
     align-items: center !important;
     justify-content: center !important;
     gap: 6px !important;
-    height: 32px !important;
+    min-height: 40px !important;
+    height: 40px !important;
     padding: 0 13px !important;
     border-radius: var(--cc-radius-control, 10px) !important;
     font-size: 12.5px !important;
@@ -1278,3 +1406,53 @@
 @media(prefers-reduced-motion:reduce){.shift-schedule-page *{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important;}}
 /* Fix contract: unified shift actions and centered schedule data. */
 .shift-page table th,.shift-page table td{vertical-align:middle;text-align:center}.shift-page .btn-primary,.shift-page .shift-action-edit{border-color:var(--cc-brown-600,#70482F)!important;background:var(--cc-brown-600,#70482F)!important;color:#fff!important}.shift-page .shift-action-btn{width:40px;height:40px;border-radius:var(--cc-radius-control,10px)}.shift-page .shift-action-toggle-active,.shift-page .cancel-schedule{border-color:var(--cc-danger,#B42318)!important;background:var(--cc-danger-bg,#FEF3F2)!important;color:var(--cc-danger,#B42318)!important}
+
+/* Text actions in the template table are not icon-only controls. */
+.shift-page .template-management td:last-child {
+    min-width: 190px;
+}
+
+.shift-page .template-management td:last-child > :is(button, a) {
+    margin: 0 !important;
+}
+
+.shift-page .template-management .shift-template-actions {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+    gap: 8px;
+    min-width: 0;
+}
+
+.shift-page .template-management .shift-action-btn {
+    width: auto !important;
+    min-width: 76px !important;
+    min-height: 40px !important;
+    height: 40px !important;
+    padding-inline: 14px !important;
+}
+
+.shift-page .template-management .shift-action-toggle-active {
+    border-color: var(--cc-danger, #B42318) !important;
+    background: var(--cc-danger-bg, #FEF3F2) !important;
+    color: var(--cc-danger, #B42318) !important;
+}
+
+.shift-page .template-management .shift-action-toggle-inactive {
+    border-color: var(--cc-brown-600, #70482F) !important;
+    background: var(--cc-brown-600, #70482F) !important;
+    color: #fff !important;
+}
+
+.shift-schedule-page .template-management .shift-action-edit {
+    border-color: var(--cc-brown-600, #70482F) !important;
+    background: var(--cc-brown-600, #70482F) !important;
+    color: #fff !important;
+}
+
+.shift-schedule-page .template-management .shift-action-edit:hover {
+    border-color: var(--cc-brown-700, #5C3A27) !important;
+    background: var(--cc-brown-700, #5C3A27) !important;
+    color: #fff !important;
+}

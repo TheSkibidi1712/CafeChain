@@ -1810,3 +1810,187 @@ body:has(.staffhub-page) > .swal2-container {
         border-radius: var(--sh-r-lg);
     }
 }
+
+/* v6 — Calm operations workspace shared with the refreshed Admin shell. */
+.staffhub-page {
+    --sh-bg-espresso: #f1eee9;
+    --sh-bg-lounge: #ebe5de;
+    --sh-card-bg: #fffdf9;
+    --sh-gold: #b77945;
+    --sh-gold-light: #d7a979;
+    --sh-text-primary: #211a17;
+    --sh-text-secondary: #70645d;
+    --sh-border: #ddd3ca;
+    min-height: calc(100vh - 80px);
+    padding: clamp(22px, 4vw, 48px) 16px 56px;
+    background: #f1eee9;
+}
+
+.staffhub-shell {
+    width: min(1360px, 100%);
+    margin-top: 0;
+    animation: none;
+}
+
+.staffhub-profile {
+    min-height: 220px;
+    gap: 28px;
+    padding: clamp(30px, 4vw, 50px);
+    border: 0;
+    border-radius: 24px;
+    background: #2b1b16;
+    box-shadow: 0 18px 44px rgba(43, 27, 22, .14);
+}
+
+.staffhub-profile::before {
+    right: -100px;
+    bottom: -190px;
+    width: 400px;
+    height: 400px;
+    border: 58px solid rgba(215, 169, 121, .1);
+}
+
+.staffhub-profile::after,
+.staffhub-profile-copy::before {
+    display: none;
+}
+
+.staffhub-profile h1 {
+    text-shadow: none;
+}
+
+.staffhub-avatar {
+    width: 88px;
+    height: 88px;
+    border-width: 3px;
+    box-shadow: none;
+}
+
+.staffhub-profile-actions {
+    grid-template-columns: repeat(2, minmax(190px, 1fr));
+    gap: 10px;
+    max-width: 590px;
+}
+
+.staffhub-action-button {
+    min-height: 72px;
+    padding: 12px 16px;
+    border-radius: 14px;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.staffhub-action-button.is-primary,
+.staffhub-action-button.is-primary:hover,
+.staffhub-action-button.is-primary:focus-visible {
+    border-color: #9d623b !important;
+    background: #6b422f !important;
+    color: #fff !important;
+}
+
+.staffhub-action-button.is-primary :is(strong, small, i) {
+    color: #fff !important;
+}
+
+.staffhub-action-button.is-secondary {
+    border-color: rgba(255, 255, 255, .24) !important;
+    background: rgba(255, 255, 255, .07) !important;
+    color: #fff !important;
+}
+
+.staffhub-action-button.is-secondary :is(strong, i) {
+    color: #fff !important;
+}
+
+.staffhub-action-button.is-secondary small {
+    color: #d7cbc2 !important;
+}
+
+.staffhub-action-button:hover,
+.staffhub-action-button:focus-visible {
+    border-color: rgba(255, 255, 255, .45) !important;
+    background-color: rgba(255, 255, 255, .12) !important;
+}
+
+.staffhub-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    margin: 18px 0;
+    overflow: hidden;
+    border: 1px solid var(--sh-border);
+    border-radius: 16px;
+    background: var(--sh-card-bg);
+}
+
+.staffhub-summary-card {
+    min-height: 104px;
+    border: 0 !important;
+    border-right: 1px solid var(--sh-border) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    transform: none !important;
+}
+
+.staffhub-summary-card:last-child {
+    border-right: 0 !important;
+}
+
+.staffhub-summary-card::before {
+    display: none;
+}
+
+.staffhub-schedule-panel {
+    border: 1px solid var(--sh-border);
+    border-radius: 18px;
+    background: var(--sh-card-bg);
+    box-shadow: 0 8px 24px rgba(55, 38, 30, .055);
+    transform: none !important;
+}
+
+.staffhub-schedule-header {
+    border-bottom-color: var(--sh-border);
+    background: #faf6f1;
+}
+
+.staffhub-week-nav a {
+    min-width: 44px;
+    min-height: 44px;
+    border-color: #d5c7bc;
+    border-radius: 10px;
+    background: #fffdf9;
+    box-shadow: none;
+}
+
+.staffhub-page :is(a, button, input, select, textarea):focus-visible {
+    outline: 2px solid #c57e49 !important;
+    outline-offset: 3px !important;
+}
+
+@media (max-width: 767px) {
+    .staffhub-profile {
+        align-items: stretch;
+        padding: 26px 20px;
+        border-radius: 18px;
+    }
+
+    .staffhub-profile-actions {
+        grid-template-columns: 1fr;
+        max-width: none;
+    }
+
+    .staffhub-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .staffhub-summary-card {
+        min-height: 84px;
+        border-right: 0 !important;
+        border-bottom: 1px solid var(--sh-border) !important;
+    }
+
+    .staffhub-summary-card:last-child {
+        border-bottom: 0 !important;
+    }
+}

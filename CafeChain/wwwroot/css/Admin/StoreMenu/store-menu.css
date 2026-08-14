@@ -572,6 +572,8 @@ textarea.sm-control {
    OFFCANVAS DRAWER
    ========================================================================== */
 .sm-drawer {
+    box-sizing: border-box;
+    max-width: 100vw;
     width: min(500px, 100vw) !important;
     display: flex !important;
     flex-direction: column;
@@ -780,5 +782,6 @@ textarea.sm-control {
 
     .sm-drawer {
         width: 100vw;
+        max-width: 100vw;
     }
 }

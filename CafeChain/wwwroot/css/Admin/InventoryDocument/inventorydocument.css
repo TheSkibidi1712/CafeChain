@@ -349,11 +349,11 @@
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    width: 32px !important;
-    height: 32px !important;
+    width: 40px !important;
+    height: 40px !important;
     padding: 0 !important;
     border: none !important;
-    border-radius: 8px !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
     background: transparent !important;
     color: var(--cc-brown-600, #70482f) !important;
     cursor: pointer !important;
@@ -811,7 +811,7 @@
 /* ==========================================================================
    RESPONSIVE BREAKPOINTS
    ========================================================================== */
-@media (max-width: 1180px) {
+@media (max-width: 1440px) {
     .inventory-cards {
         grid-template-columns: repeat(2, 1fr);
     }

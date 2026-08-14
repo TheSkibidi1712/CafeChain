@@ -158,6 +158,19 @@
 .supplier-metrics strong { display: block; font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; color: #201812; font-weight: 800; }
 .supplier-metrics .supplier-metric-copy > span { display: block; margin-top: 6px; overflow: hidden; color: #66584F; font-size: 11px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; }
 
+@media (min-width: 761px) and (max-width: 1400px) {
+    .supplier-metrics > div {
+        gap: 10px;
+        padding-inline: 14px;
+    }
+
+    .supplier-metrics .supplier-metric-copy > span {
+        overflow: visible;
+        line-height: 1.25;
+        white-space: normal;
+    }
+}
+
 .supplier-toolbar {
     display: block;
     padding: 0;
@@ -517,7 +530,10 @@
     color: #66584F;
 }
 .supplier-table-scroll.cc-warehouse-table-shell {
+    width: 100%;
+    max-width: 100%;
     overflow: auto;
+    contain: inline-size;
     scrollbar-gutter: auto;
     border: 0;
     border-radius: 0;
@@ -946,6 +962,8 @@
     .supplier-filter-result { justify-content: flex-start; }
     .supplier-pagination { justify-content: space-between; }
     .supplier-table { min-width: 600px; }
+    .supplier-table .supplier-btn:hover,
+    .supplier-table .supplier-btn:focus-visible { transform: none; }
     .supplier-list-heading { min-height: 72px; gap: 12px; padding: 12px 14px; }
     .supplier-list-heading-icon { width: 36px; height: 36px; flex-basis: 36px; }
     .supplier-list-total { min-width: auto; min-height: 36px; padding-inline: 10px; }

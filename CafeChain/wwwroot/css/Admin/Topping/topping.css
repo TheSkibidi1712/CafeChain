@@ -473,6 +473,34 @@
     transform: translateY(-2px);
 }
 
+.topping-image-placeholder {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 56px;
+    color: var(--cc-brown-500, #8b6247);
+    font-size: 18px;
+}
+
+.topping-image-placeholder .topping-img {
+    margin: 0 !important;
+}
+
+.topping-admin-page .table :is(.btn-warning, .btn-edit-topping, .js-toggle-topping) {
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 0 !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+}
+
+.topping-admin-page .catalog-search-box .catalog-search-button {
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+}
+
 .topping-admin-page .table .btn-edit-topping,
 .topping-admin-page .table .btn-edit-topping.is-edit {
     color: #ffffff !important;

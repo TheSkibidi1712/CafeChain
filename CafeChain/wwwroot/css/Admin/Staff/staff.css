@@ -1593,16 +1593,31 @@
 @media(max-width:767.98px){.staff-index-page .staff-kpi-card{border-right:0;border-bottom:1px solid var(--cc-border,#E9DED4)}.staff-index-page .staff-kpi-card:last-child{border-bottom:0}.staff-edit-page .staff-form-actions{position:static}}
 @media(prefers-reduced-motion:reduce){:is(.staff-index-page,.staff-edit-page,.staff-modal) *{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important;}}
 /* Fix branch: unified search/status controls and confirmation spacing. */
-.staff-filter-panel .input-group { height: 44px; flex-wrap: nowrap; }
-.staff-filter-panel .input-group-text { height: 44px; border-radius: var(--cc-radius-control, 10px) 0 0 var(--cc-radius-control, 10px); border-right: 0; }
-.staff-filter-panel .input-group > .form-control { height: 44px; border-radius: 0 var(--cc-radius-control, 10px) var(--cc-radius-control, 10px) 0; border-left: 0; }
+.staff-filter-panel .input-group { position: relative; height: 44px; flex-wrap: nowrap; overflow: visible; border: 0; border-radius: 0; background: transparent; }
+.staff-filter-panel .input-group-text { position: absolute; z-index: 2; top: 50%; left: 14px; width: auto; height: auto; min-height: 0; padding: 0; border: 0 !important; border-radius: 0 !important; background: transparent !important; transform: translateY(-50%); pointer-events: none; }
+.staff-filter-panel .input-group > .form-control { width: 100%; height: 44px; min-height: 44px; padding: 0 14px 0 40px !important; border: 1px solid var(--cc-border-strong, #D8C5B6) !important; border-radius: var(--cc-radius-control, 10px) !important; background: var(--cc-surface, #FFFDFB) !important; box-shadow: none !important; }
+.staff-filter-panel .input-group:focus-within { box-shadow: none; }
+.staff-filter-panel .input-group > .form-control:focus { border-color: var(--cc-brown-600, #70482F) !important; box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, .22)) !important; }
 .staff-filter-panel .form-select { height: 44px; }
 .staff-filter-panel .row { align-items: end; }
 .staff-filter-panel .form-label { min-height: 18px; margin-bottom: 6px; }
 .staff-swal-actions.swal2-actions { display: flex !important; justify-content: center; gap: 12px !important; }
 .staff-swal-actions .staff-swal-button { margin: 0 !important; min-width: 100px; }
 .staff-swal-actions .staff-swal-confirm { margin-left: 0 !important; }.staff-page .action-btn,
-.staff-page .page-btn { width: 40px; height: 40px; border-radius: var(--cc-radius-control, 10px); }
+.staff-page .table-custom td .action-btn,
+.staff-page .page-btn { width: 40px !important; min-width: 40px !important; height: 40px !important; min-height: 40px !important; padding: 0 !important; border-radius: var(--cc-radius-control, 10px) !important; }
+.staff-page .table-custom td .action-btn { margin: 0 !important; vertical-align: middle; }
+.staff-page .table-custom td .action-btn + .action-btn { margin-left: 8px !important; }
+.staff-page .table-custom .action-btn-edit {
+    border-color: var(--cc-brown-600, #70482F) !important;
+    background: var(--cc-brown-600, #70482F) !important;
+    color: #fff !important;
+}
+.staff-page .table-custom .action-btn-edit:hover {
+    border-color: var(--cc-brown-700, #5C3A27) !important;
+    background: var(--cc-brown-700, #5C3A27) !important;
+    color: #fff !important;
+}
 .staff-modal .dynamic-input-group .btn-remove-input { width: 40px; height: 40px; border-radius: var(--cc-radius-control, 10px); }
 /* Fix contract: all staff columns centered and semantic icon actions. */
 .staff-page .table-custom th,.staff-page .table-custom td{vertical-align:middle!important;text-align:center!important}.staff-page .staff-name-cell{justify-content:center;text-align:center}.staff-page .table-custom td{overflow-wrap:anywhere}.staff-page .action-btn{border-color:var(--cc-border-strong,#D8C5B6);background:var(--cc-surface-active,#F4E9DF);color:var(--cc-brown-600,#70482F)}.staff-page .action-btn.danger{border-color:var(--cc-danger,#B42318);background:var(--cc-danger-bg,#FEF3F2);color:var(--cc-danger,#B42318)}.staff-page .action-btn.success{border-color:var(--cc-brown-600,#70482F);background:var(--cc-brown-600,#70482F);color:#fff}.staff-page .btn-primary,.staff-edit-page .btn-primary,.staff-modal .btn-primary{border-color:var(--cc-brown-600,#70482F)!important;background:var(--cc-brown-600,#70482F)!important;color:#fff!important}

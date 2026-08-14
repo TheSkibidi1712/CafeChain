@@ -889,8 +889,8 @@ body {
 }
 
 @media (max-width: 768px) {
-    .sidebar {
-        display: none;
+    .sidebar.d-flex {
+        display: none !important;
     }
     .main-content {
         margin-left: 0;
