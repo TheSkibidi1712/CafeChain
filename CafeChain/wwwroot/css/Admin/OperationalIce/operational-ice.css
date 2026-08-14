@@ -59,9 +59,7 @@
     overflow: hidden;
     border: 1px solid var(--cc-border, #E9DED4) !important;
     border-radius: var(--cc-radius-header, 20px) !important;
-    background:
-        radial-gradient(circle at 92% 4%, rgba(201, 158, 125, .16), transparent 260px),
-        linear-gradient(135deg, var(--cc-surface-raised, #FFFFFF) 0%, var(--cc-surface, #FFFDFB) 54%, var(--cc-brown-50, #FAF6F2) 100%) !important;
+    background: var(--cc-surface-raised, #FFFFFF) !important;
     box-shadow: var(--cc-shadow-md);
     box-sizing: border-box !important;
 }
@@ -75,7 +73,7 @@
     width: 5px;
     border-top-left-radius: var(--cc-radius-header, 20px);
     border-bottom-left-radius: var(--cc-radius-header, 20px);
-    background: linear-gradient(180deg, var(--cc-brown-600, #70482F), var(--cc-caramel-500, #A97750));
+    background: var(--cc-brown-600, #70482F);
     box-shadow: 3px 0 12px rgba(112, 72, 47, .18);
     content: "";
 }
@@ -1779,7 +1777,7 @@
 /* FE2 batch 9: shift-ice workflow hierarchy, scoped to operational ice pages. */
 .ice-index-page .ice-page-header,
 .ice-detail-page .ice-page-header,
-.ice-report-page .ice-page-header { position: relative; overflow: hidden; border: 1px solid var(--cc-border, #E9DED4); border-radius: var(--cc-radius-lg, 16px); padding: clamp(18px,2.4vw,28px); background: linear-gradient(135deg,var(--cc-surface,#FFFDFB),var(--cc-surface-muted,#FBF7F2)); }
+.ice-report-page .ice-page-header { position: relative; overflow: hidden; border: 1px solid var(--cc-border, #E9DED4); border-radius: var(--cc-radius-lg, 16px); padding: clamp(18px,2.4vw,28px); background: var(--cc-surface, #FFFDFB); }
 .ice-index-page .ice-page-header::before,
 .ice-detail-page .ice-page-header::before,
 .ice-report-page .ice-page-header::before { position:absolute; inset:0 auto 0 0; width:4px; background:var(--cc-caramel-500,#A97750); content:""; }
