@@ -95,6 +95,8 @@ public class ImportGroup
     public virtual AIImportEntityType EntityType { get; set; }
     public virtual string MappingJson { get; set; } = "{}";
     public virtual string SourceHeadersJson { get; set; } = "[]";
+    public virtual string SourceColumnsJson { get; set; } = "[]";
+    public virtual string IssuesJson { get; set; } = "[]";
     public virtual int DependencyOrder { get; set; }
     public virtual decimal Confidence { get; set; }
     public virtual string Status { get; set; } = AIImportItemStatuses.ReviewRequired;
@@ -117,10 +119,15 @@ public class ImportItem
     public virtual string Action { get; set; } = AIImportActions.Create;
     public virtual string ErrorsJson { get; set; } = "[]";
     public virtual string WarningsJson { get; set; } = "[]";
+    public virtual string SourceIssuesJson { get; set; } = "[]";
     public virtual decimal Confidence { get; set; }
     public virtual decimal? AiConfidence { get; set; }
     public virtual decimal? OcrConfidence { get; set; }
     public virtual bool WarningsAcknowledged { get; set; }
+    public virtual bool ManualReviewConfirmed { get; set; }
+    public virtual DateTime? ManualReviewConfirmedAtUtc { get; set; }
+    public virtual int? ManualReviewConfirmedByAccountId { get; set; }
+    public virtual string? ManualReviewPayloadHash { get; set; }
     public virtual Guid? SupplierDuplicateWarningId { get; set; }
     public virtual string? DuplicateOverrideReason { get; set; }
     public virtual int? ImportedEntityId { get; set; }

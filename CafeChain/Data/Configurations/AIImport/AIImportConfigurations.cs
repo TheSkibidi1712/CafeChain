@@ -46,6 +46,8 @@ public sealed class ImportGroupConfiguration : IEntityTypeConfiguration<ImportGr
         entity.Property(x => x.EntityType).HasConversion<string>().HasMaxLength(30);
         entity.Property(x => x.MappingJson).IsRequired().HasColumnType("nvarchar(max)");
         entity.Property(x => x.SourceHeadersJson).IsRequired().HasColumnType("nvarchar(max)");
+        entity.Property(x => x.SourceColumnsJson).IsRequired().HasColumnType("nvarchar(max)");
+        entity.Property(x => x.IssuesJson).IsRequired().HasColumnType("nvarchar(max)");
         entity.Property(x => x.Confidence).HasPrecision(5, 4);
         entity.Property(x => x.Status).IsRequired().HasMaxLength(30);
         entity.HasIndex(x => new { x.ImportSessionId, x.SheetName });
@@ -71,12 +73,14 @@ public sealed class ImportItemConfiguration : IEntityTypeConfiguration<ImportIte
         entity.Property(x => x.EvidenceSnippet).HasMaxLength(4000);
         entity.Property(x => x.ErrorsJson).IsRequired().HasColumnType("nvarchar(max)");
         entity.Property(x => x.WarningsJson).IsRequired().HasColumnType("nvarchar(max)");
+        entity.Property(x => x.SourceIssuesJson).IsRequired().HasColumnType("nvarchar(max)");
         entity.Property(x => x.Status).IsRequired().HasMaxLength(30);
         entity.Property(x => x.Action).IsRequired().HasMaxLength(20);
         entity.Property(x => x.Confidence).HasPrecision(5, 4);
         entity.Property(x => x.AiConfidence).HasPrecision(5, 4);
         entity.Property(x => x.OcrConfidence).HasPrecision(5, 4);
         entity.Property(x => x.DuplicateOverrideReason).HasMaxLength(500);
+        entity.Property(x => x.ManualReviewPayloadHash).HasMaxLength(64);
         entity.HasIndex(x => new { x.ImportGroupId, x.SourceRow });
         entity.HasIndex(x => new { x.Status, x.Action });
         entity.HasOne(x => x.Group).WithMany(x => x.Items).HasForeignKey(x => x.ImportGroupId)

@@ -13,13 +13,23 @@ namespace CafeChain.Application.Interfaces.Admin.Recipes
             int page = 1,
             int pageSize = 15);
 
-        Task<BomDataHealthPageVM> GetDataHealthPageAsync(int page = 1, int pageSize = 20);
+        Task<BomDataHealthPageVM> GetDataHealthPageAsync(
+            int page = 1,
+            int pageSize = 20,
+            string? search = null,
+            string? typeFilter = null);
 
         Task<AdminRecipeFormPageVM> GetCreatePageAsync();
 
-        Task<AdminRecipeFormPageVM?> GetEditPageAsync(int recipeId);
+        Task<AdminRecipeFormPageVM?> GetEditPageAsync(
+            int recipeId,
+            bool includeHistoricalSource = false);
 
         Task<AdminRecipeVisualizePageVM?> GetVisualizePageAsync(int recipeId);
+
+        Task<RecipeWorkspaceStoreEvidenceVM?> GetStoreEvidenceAsync(
+            AdminRecipeVisualizePageVM page,
+            int storeId);
 
         Task<BomOperationalDetailVM?> GetOperationalDetailAsync(int recipeId, int storeId);
 

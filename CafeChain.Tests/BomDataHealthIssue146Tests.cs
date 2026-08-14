@@ -81,7 +81,7 @@ namespace CafeChain.Tests.POS
             var invalidResult = _evaluator.EvaluateConfiguration(invalid);
             Assert.Contains(invalidResult.Reasons, x =>
                 x.Code == BomConfigurationHealthCodes.InvalidPreparedItemMapping
-                && x.Message.Contains("PreparedItem", StringComparison.Ordinal));
+                && x.Message.Contains("Bán thành phẩm đầu vào", StringComparison.Ordinal));
         }
 
         [Fact]

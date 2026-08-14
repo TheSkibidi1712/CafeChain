@@ -76,6 +76,8 @@ public sealed class AIImportContractTests
         Assert.NotNull(group.FindProperty(nameof(ImportGroup.ExtractionMode)));
         Assert.NotNull(item.FindProperty(nameof(ImportItem.SourceLocatorJson)));
         Assert.NotNull(item.FindProperty(nameof(ImportItem.AiConfidence)));
+        Assert.NotNull(item.FindProperty(nameof(ImportItem.ManualReviewConfirmed)));
+        Assert.NotNull(group.FindProperty(nameof(ImportGroup.SourceColumnsJson)));
         Assert.NotNull(audit.FindProperty(nameof(ImportAudit.AiChunkCount)));
         Assert.Contains(session.GetIndexes(), x => x.Properties.Select(p => p.Name).SequenceEqual(new[] { "UploadedByAccountId", "CreatedAtUtc" }));
         Assert.Contains(item.GetCheckConstraints(), x => x.Name == "CK_ImportItems_Action");
@@ -99,16 +101,16 @@ public sealed class AIImportContractTests
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite("Data Source=:memory:").Options;
         using var context = new AppDbContext(options);
-        Assert.Contains("20260812160337_InitialCreate", context.Database.GetMigrations());
-        Assert.Contains("20260813062128_AddDocumentSourcesToAIImport", context.Database.GetMigrations());
-        var migration = Read("CafeChain", "Migrations", "20260812160337_InitialCreate.cs");
+        Assert.Contains("20260813071843_InitialCreate", context.Database.GetMigrations());
+        Assert.Contains("20260813183911_AddAIImportValidationState", context.Database.GetMigrations());
+        var migration = Read("CafeChain", "Migrations", "20260813071843_InitialCreate.cs");
         Assert.Contains("name: \"ImportSessions\"", migration, StringComparison.Ordinal);
         Assert.Contains("CK_ImportSessions_Status", migration, StringComparison.Ordinal);
         Assert.Contains("name: \"ImportSessions\"", migration[migration.IndexOf("protected override void Down", StringComparison.Ordinal)..], StringComparison.Ordinal);
-        var documentMigration = Read("CafeChain", "Migrations", "20260813062128_AddDocumentSourcesToAIImport.cs");
-        Assert.Contains("name: \"SourceFormat\"", documentMigration, StringComparison.Ordinal);
-        Assert.Contains("defaultValue: \"XLSX\"", documentMigration, StringComparison.Ordinal);
-        Assert.Contains("name: \"SourceLocatorJson\"", documentMigration, StringComparison.Ordinal);
+        var validationMigration = Read("CafeChain", "Migrations", "20260813183911_AddAIImportValidationState.cs");
+        Assert.Contains("name: \"ManualReviewConfirmed\"", validationMigration, StringComparison.Ordinal);
+        Assert.Contains("name: \"SourceColumnsJson\"", validationMigration, StringComparison.Ordinal);
+        Assert.Contains("defaultValue: \"[]\"", validationMigration, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -247,9 +249,50 @@ public sealed class AIImportContractTests
     public void Saving_a_document_item_resolves_low_confidence_manual_review()
     {
         var service = Read("CafeChain", "Application", "Services", "AIImport", "AIImportService.cs");
+        var validator = Read("CafeChain", "Application", "Services", "AIImport", "AIImportCandidateValidator.cs");
 
-        Assert.Contains("ApplyValidation(item, item.Group.EntityType, request.Values, item.Confidence, null, true)", service, StringComparison.Ordinal);
-        Assert.Contains("preserveManualReview", service, StringComparison.Ordinal);
+        Assert.Contains("request.ManualReviewConfirmed", service, StringComparison.Ordinal);
+        Assert.Contains("ManualReviewPayloadHash", service, StringComparison.Ordinal);
+        Assert.Contains("AIImportIssueResolutions.ManualReview", validator, StringComparison.Ordinal);
+        Assert.Contains("AIImportValidationContract.ResolveStatus", validator, StringComparison.Ordinal);
+        var view = Read("CafeChain", "Areas", "Admin", "Views", "AIImport", "Index.cshtml");
+        var script = Read("CafeChain", "wwwroot", "js", "Admin", "AIImport", "ai-import.js");
+        Assert.Contains("id=\"manualReviewConfirmed\"", view, StringComparison.Ordinal);
+        Assert.Contains("byId('manualReviewConfirmed').checked", script, StringComparison.Ordinal);
+        Assert.Contains("issue.metadata?.resolution === 'MANUAL_REVIEW'", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Reanalyze_and_ui_send_expected_preview_version_and_canonical_issues()
+    {
+        var controller = Read("CafeChain", "Areas", "Admin", "Controllers", "AIImportController.cs");
+        var service = Read("CafeChain", "Application", "Services", "AIImport", "AIImportService.cs");
+        var script = Read("CafeChain", "wwwroot", "js", "Admin", "AIImport", "ai-import.js");
+        Assert.Contains("AIImportReanalyzeRequest request", controller, StringComparison.Ordinal);
+        Assert.Contains("expectedPreviewVersion: state.session.previewVersion", script, StringComparison.Ordinal);
+        Assert.Contains("item.issues", script, StringComparison.Ordinal);
+        Assert.Contains("manualReviewConfirmed", script, StringComparison.Ordinal);
+        Assert.Contains("sourceColumns", script, StringComparison.Ordinal);
+        Assert.Contains("REANALYZE_CLAIMED", service, StringComparison.Ordinal);
+        Assert.Contains("catch (DbUpdateConcurrencyException)", service, StringComparison.Ordinal);
+        Assert.Contains("PHÂN_TÍCH_LẠI_THẤT_BẠI", service, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Phase9_registers_deep_modules_and_scoped_validation_without_changing_public_contract()
+    {
+        var registrations = Read("CafeChain", "Extensions", "Services", "ApplicationServiceExtensions.cs");
+        var service = Read("CafeChain", "Application", "Services", "AIImport", "AIImportService.cs");
+        foreach (var module in new[]
+                 {
+                     "AIImportEntityRegistry", "AIImportPreviewValidator", "AIImportResolutionEngine",
+                     "AIImportAnalysisCoordinator", "AIImportPreviewMutationCoordinator", "AIImportConfirmCoordinator",
+                     "AIImportSessionQuery"
+                 })
+            Assert.Contains(module, registrations + service, StringComparison.Ordinal);
+        Assert.Contains("public static AIImportValidationScope ForItem", Read("CafeChain", "Application", "Services", "AIImport", "AIImportEntityRegistry.cs"), StringComparison.Ordinal);
+        Assert.Contains("_mutationCoordinator.ItemScope", service, StringComparison.Ordinal);
+        Assert.Contains("_confirmCoordinator.BuildExecutionPlan", service, StringComparison.Ordinal);
     }
 
     [Fact]

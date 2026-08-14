@@ -93,6 +93,8 @@ public sealed class AIImportDocumentAiExtractor(
             accepted += AcceptResponse(document, chunk, response.Content);
         }
 
+        RemoveChunkOverlapDuplicates(document);
+
         if (accepted > 0)
         {
             document.Errors.RemoveAll(error => error.Code is "DOCX_CẤU_TRÚC_KHÔNG_RÕ" or "BỐ_CỤC_PDF_KHÔNG_RÕ" or "PDF_KHÔNG_CÓ_DỮ_LIỆU");
@@ -147,14 +149,22 @@ public sealed class AIImportDocumentAiExtractor(
                         || property.Value.ValueKind is not (JsonValueKind.String or JsonValueKind.Null))
                     {
                         valid = false;
-                        document.Warnings.Add(new AIImportErrorDto { Code = "NGUỒN_DỮ_LIỆU_AI_KHÔNG_HỢP_LỆ", Message = "AI trả về field, ID hoặc kiểu dữ liệu ngoài schema." });
+                        document.Errors.Add(AIImportValidationContract.Issue(
+                            "NGUỒN_DỮ_LIỆU_AI_KHÔNG_HỢP_LỆ",
+                            "AI trả về field, ID hoặc kiểu dữ liệu ngoài schema.",
+                            AIImportIssueSeverities.Error,
+                            resolution: AIImportIssueResolutions.ReuploadOrSkip));
                         break;
                     }
                     var value = property.Value.ValueKind == JsonValueKind.Null ? null : property.Value.GetString()?.Trim();
                     if (!string.IsNullOrWhiteSpace(value) && !evidence.Contains(value, StringComparison.OrdinalIgnoreCase))
                     {
                         valid = false;
-                        document.Warnings.Add(new AIImportErrorDto { Code = "AI_TRÍCH_XUẤT_KHÔNG_CÓ_BẰNG_CHỨNG", Message = "Giá trị AI trả về không xuất hiện trong evidence." });
+                        document.Errors.Add(AIImportValidationContract.Issue(
+                            "AI_TRÍCH_XUẤT_KHÔNG_CÓ_BẰNG_CHỨNG",
+                            "Giá trị AI trả về không xuất hiện trong evidence.",
+                            AIImportIssueSeverities.Error,
+                            resolution: AIImportIssueResolutions.ReuploadOrSkip));
                         break;
                     }
                     fields[property.Name] = value;
@@ -214,10 +224,50 @@ public sealed class AIImportDocumentAiExtractor(
         }
         catch (JsonException)
         {
-            document.Warnings.Add(new AIImportErrorDto { Code = "AI_JSON_KHÔNG_HỢP_LỆ", Message = "AI trả về JSON không hợp lệ." });
+            document.Errors.Add(AIImportValidationContract.Issue("AI_JSON_KHÔNG_HỢP_LỆ",
+                "AI trả về JSON không hợp lệ.", AIImportIssueSeverities.Error,
+                resolution: AIImportIssueResolutions.ReuploadOrSkip));
             return 0;
         }
     }
+
+    private static void RemoveChunkOverlapDuplicates(AIImportSourceDocument document)
+    {
+        var accepted = new List<AIImportSourceGroup>();
+        foreach (var group in document.Groups.OrderBy(group => group.SourceLocator.TextStart))
+        {
+            var candidate = group.Candidates.SingleOrDefault();
+            if (candidate == null)
+            {
+                accepted.Add(group);
+                continue;
+            }
+            var key = AIImportBusinessKeys.Create(group.EntityType, candidate.MappedData);
+            var payload = JsonSerializer.Serialize(candidate.MappedData.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase));
+            var duplicate = accepted.FirstOrDefault(existing =>
+            {
+                var other = existing.Candidates.SingleOrDefault();
+                if (other == null || existing.EntityType != group.EntityType) return false;
+                var otherKey = AIImportBusinessKeys.Create(existing.EntityType, other.MappedData);
+                var otherPayload = JsonSerializer.Serialize(other.MappedData.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase));
+                return key.Length > 0 && key == otherKey && payload == otherPayload
+                       && SpansOverlap(existing.SourceLocator, group.SourceLocator);
+            });
+            if (duplicate == null) accepted.Add(group);
+            else document.Warnings.Add(AIImportValidationContract.Issue(
+                "TRÙNG_NGUỒN_CHUNK",
+                "Candidate lặp do phần overlap giữa các AI chunk đã được loại bỏ.",
+                AIImportIssueSeverities.Warning,
+                resolution: AIImportIssueResolutions.Acknowledge,
+                metadata: new Dictionary<string, object?> { ["sourceLabel"] = group.SourceLabel }));
+        }
+        document.Groups.Clear();
+        document.Groups.AddRange(accepted);
+    }
+
+    private static bool SpansOverlap(AIImportSourceLocator left, AIImportSourceLocator right) =>
+        left.TextStart.HasValue && left.TextEnd.HasValue && right.TextStart.HasValue && right.TextEnd.HasValue
+        && left.TextStart.Value < right.TextEnd.Value && right.TextStart.Value < left.TextEnd.Value;
 
     private IEnumerable<TextChunk> Chunk(string text)
     {

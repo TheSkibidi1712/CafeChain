@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Text.RegularExpressions;
 using CafeChain.Application.DTOs.AIImport;
 using CafeChain.Application.Options;
+using CafeChain.Models.AIImport;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Extensions.Options;
@@ -20,6 +21,7 @@ public sealed class AIImportRegionData
     public int MaxColumn { get; init; }
     public string Address => $"{ColumnName(MinColumn)}{MinRow}:{ColumnName(MaxColumn)}{MaxRow}";
     public Dictionary<(int Row, int Column), string?> Cells { get; init; } = new();
+    public List<AIImportErrorDto> Issues { get; } = [];
 
     public Dictionary<string, string?> ReadRow(int row) => Enumerable.Range(MinColumn, MaxColumn - MinColumn + 1)
         .ToDictionary(ColumnName, column => Cells.GetValueOrDefault((row, column)), StringComparer.OrdinalIgnoreCase);
@@ -52,8 +54,18 @@ public interface IAIImportExcelParser
 public sealed partial class AIImportExcelParser : IAIImportExcelParser
 {
     private readonly AIImportOptions _options;
+    private readonly IAIImportSchemaRegistry _schemas;
 
-    public AIImportExcelParser(IOptions<AIImportOptions> options) => _options = options.Value;
+    public AIImportExcelParser(IOptions<AIImportOptions> options)
+        : this(options, new AIImportSchemaRegistry())
+    {
+    }
+
+    public AIImportExcelParser(IOptions<AIImportOptions> options, IAIImportSchemaRegistry schemas)
+    {
+        _options = options.Value;
+        _schemas = schemas;
+    }
 
     public async Task<AIImportWorkbookData> ParseAsync(Stream stream, CancellationToken cancellationToken)
     {
@@ -177,7 +189,30 @@ public sealed partial class AIImportExcelParser : IAIImportExcelParser
 
         if (result.Errors.Count == 0 && result.Regions.Count == 0)
             result.Errors.Add(Error("KHÔNG_TÌM_THẤY_DỮ_LIỆU", "Không tìm thấy vùng dữ liệu hợp lệ trong tệp Excel."));
+        MarkOverlappingRegions(result.Regions);
         return result;
+    }
+
+    private static void MarkOverlappingRegions(IReadOnlyList<AIImportRegionData> regions)
+    {
+        for (var leftIndex = 0; leftIndex < regions.Count; leftIndex++)
+        for (var rightIndex = leftIndex + 1; rightIndex < regions.Count; rightIndex++)
+        {
+            var left = regions[leftIndex];
+            var right = regions[rightIndex];
+            if (!string.Equals(left.SheetName, right.SheetName, StringComparison.OrdinalIgnoreCase)) continue;
+            var overlap = left.Cells.Keys.Intersect(right.Cells.Keys).Any(cell =>
+                !string.IsNullOrWhiteSpace(left.Cells.GetValueOrDefault(cell))
+                && !string.IsNullOrWhiteSpace(right.Cells.GetValueOrDefault(cell)));
+            if (!overlap) continue;
+            var issue = AIImportValidationContract.Issue("VÙNG_DỮ_LIỆU_CHỒNG_LẤN",
+                $"Vùng {left.Address} và {right.Address} dùng chung ô dữ liệu.",
+                AIImportIssueSeverities.Review,
+                locator: new AIImportPositionDto { SourceFormat = AIImportSourceFormats.Xlsx, Sheet = left.SheetName, Region = left.Address },
+                resolution: AIImportIssueResolutions.SkipConflict);
+            left.Issues.Add(issue);
+            right.Issues.Add(issue);
+        }
     }
 
     private void ValidatePackage(MemoryStream buffer, AIImportWorkbookData result)
@@ -273,7 +308,7 @@ public sealed partial class AIImportExcelParser : IAIImportExcelParser
         }
     }
 
-    private static List<AIImportRegionData> DetectRegions(string sheetName, Dictionary<(int Row, int Column), string?> cells)
+    private List<AIImportRegionData> DetectRegions(string sheetName, Dictionary<(int Row, int Column), string?> cells)
     {
         var remaining = cells.Keys.ToHashSet();
         var result = new List<AIImportRegionData>();
@@ -302,7 +337,8 @@ public sealed partial class AIImportExcelParser : IAIImportExcelParser
             var minColumn = component.Min(x => x.Column);
             var maxColumn = component.Max(x => x.Column);
             if (maxRow <= minRow || maxColumn <= minColumn) continue;
-            result.Add(new AIImportRegionData
+            var logicalRegions = SplitLogicalRegions(sheetName, cells, minRow, maxRow, minColumn, maxColumn);
+            result.AddRange(logicalRegions.Count > 0 ? logicalRegions : [new AIImportRegionData
             {
                 SheetName = sheetName,
                 MinRow = minRow,
@@ -312,9 +348,54 @@ public sealed partial class AIImportExcelParser : IAIImportExcelParser
                 Cells = cells.Where(x => x.Key.Row >= minRow && x.Key.Row <= maxRow
                                          && x.Key.Column >= minColumn && x.Key.Column <= maxColumn)
                     .ToDictionary(x => x.Key, x => x.Value)
-            });
+            }]);
         }
         return result.OrderBy(x => x.MinRow).ThenBy(x => x.MinColumn).ToList();
+    }
+
+    private List<AIImportRegionData> SplitLogicalRegions(
+        string sheetName,
+        Dictionary<(int Row, int Column), string?> cells,
+        int minRow,
+        int maxRow,
+        int minColumn,
+        int maxColumn)
+    {
+        var headerRows = Enumerable.Range(minRow, maxRow - minRow + 1)
+            .Select(row => new
+            {
+                Row = row,
+                Detection = _schemas.Detect(Enumerable.Range(minColumn, maxColumn - minColumn + 1)
+                    .Select(column => cells.GetValueOrDefault((row, column))), sheetName)
+            })
+            .Where(candidate => candidate.Detection.EntityType != AIImportEntityType.Unknown)
+            .Select(candidate => candidate.Row).Distinct().OrderBy(row => row).ToList();
+        if (headerRows.Count <= 1) return [];
+
+        var regions = new List<AIImportRegionData>();
+        for (var index = 0; index < headerRows.Count; index++)
+        {
+            var startRow = headerRows[index];
+            var endRow = index + 1 < headerRows.Count ? headerRows[index + 1] - 1 : maxRow;
+            if (endRow <= startRow) continue;
+            var used = cells.Where(cell => cell.Key.Row >= startRow && cell.Key.Row <= endRow)
+                .Select(cell => cell.Key).ToList();
+            if (used.Count == 0) continue;
+            var startColumn = used.Min(cell => cell.Column);
+            var endColumn = used.Max(cell => cell.Column);
+            regions.Add(new AIImportRegionData
+            {
+                SheetName = sheetName,
+                MinRow = startRow,
+                MaxRow = endRow,
+                MinColumn = startColumn,
+                MaxColumn = endColumn,
+                Cells = cells.Where(cell => cell.Key.Row >= startRow && cell.Key.Row <= endRow
+                                             && cell.Key.Column >= startColumn && cell.Key.Column <= endColumn)
+                    .ToDictionary(cell => cell.Key, cell => cell.Value)
+            });
+        }
+        return regions;
     }
 
     private static bool TryParseReference(string? reference, out int row, out int column)

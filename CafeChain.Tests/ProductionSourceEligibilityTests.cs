@@ -1,7 +1,9 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Permissions;
 using CafeChain.Application.DTOs.Admin.Production;
+using CafeChain.Application.DTOs.Admin.Recipes;
 using CafeChain.Application.Interfaces.Admin.Permissions;
+using CafeChain.Application.Interfaces.Admin.Recipes;
 using CafeChain.Application.Results;
 using CafeChain.Application.Services.Admin.Production;
 using CafeChain.Application.Services.Admin.Recipes;
@@ -104,6 +106,34 @@ public sealed class ProductionSourceEligibilityTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task ProductionEligibility_UsesExactCurrentRecipe()
+    {
+        using var context = CreateDbContext();
+        await SeedPreparedItemAsync(context, includeStoreCapability: true);
+        var authority = new Mock<ICurrentRecipeResolver>();
+        authority.Setup(resolver => resolver.ResolveAsync(
+                It.Is<RecipeTarget>(target => target == new RecipeTarget.PreparedItem(PreparedItemId)),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CurrentRecipeResolution(
+                CurrentRecipeResolutionStatus.Missing,
+                null,
+                BomRecipeErrorCodes.CurrentRecipeMissing));
+        var service = CreateService(
+            context,
+            CreateAllowedPermissionService(),
+            authority.Object);
+
+        var result = await service.EvaluateAsync(Request());
+
+        Assert.True(result.IsSuccess);
+        Assert.False(result.Data!.Eligible);
+        Assert.Equal(ProductionEligibilityReasonCodes.RecipeMissing, result.Data.ReasonCode);
+        Assert.Contains("chưa có công thức", result.Data.Message, StringComparison.OrdinalIgnoreCase);
+        authority.VerifyAll();
+    }
+
+    [Fact]
     public async Task ValidCapabilityWithoutPermission_IsRejectedByBackend()
     {
         using var context = CreateDbContext();
@@ -130,7 +160,8 @@ public sealed class ProductionSourceEligibilityTests : IntegrationTestBase
 
     private static ProductionSourceEligibilityService CreateService(
         CafeChain.Data.AppDbContext context,
-        IAdminPermissionService permissions)
+        IAdminPermissionService permissions,
+        ICurrentRecipeResolver? currentRecipeResolver = null)
     {
         var physical = new PhysicalUnitConversionService(
             context,
@@ -138,7 +169,8 @@ public sealed class ProductionSourceEligibilityTests : IntegrationTestBase
         return new ProductionSourceEligibilityService(
             context,
             new RecipeOutputNormalizer(context, physical),
-            permissions);
+            permissions,
+            currentRecipeResolver);
     }
 
     private static async Task SeedPreparedItemAsync(

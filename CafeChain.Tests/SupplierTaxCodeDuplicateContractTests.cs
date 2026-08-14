@@ -277,9 +277,11 @@ public sealed class SupplierTaxCodeDuplicateContractTests : IntegrationTestBase
         var incoming = NewSupplier("Different supplier", "0911111082", "0312345693");
         incoming.Address = existing.Address;
         var matches = await service.FindDuplicateMatchesAsync(incoming);
+        var batch = await service.FindDuplicateMatchesBatchAsync(new[] { incoming });
 
         var match = Assert.Single(matches);
         Assert.Contains("Địa chỉ", match.MatchedSignals);
+        Assert.Equal(matches.Select(x => x.SupplierId), Assert.Single(batch).Select(x => x.SupplierId));
         Assert.Empty(await context.SupplierDuplicateWarnings.ToListAsync());
     }
 

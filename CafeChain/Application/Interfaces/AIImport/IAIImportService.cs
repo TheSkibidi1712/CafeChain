@@ -14,6 +14,7 @@ public interface IAIImportService
 
     Task<AIImportOperationResult<AIImportSessionDto>> ReanalyzeAsync(
         int sessionId,
+        AIImportReanalyzeRequest request,
         AdminActorContext actor,
         CancellationToken cancellationToken);
 

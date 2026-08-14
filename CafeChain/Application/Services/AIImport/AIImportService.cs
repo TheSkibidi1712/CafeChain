@@ -39,14 +39,17 @@ public sealed class AIImportService : IAIImportService
     private readonly IAIImportSchemaRegistry _schemas;
     private readonly IRequestDeduplicationService _deduplication;
     private readonly IAdminPermissionService _permissions;
-    private readonly IAdminCategoryService _categories;
-    private readonly IAdminDrinkService _drinks;
-    private readonly IAdminSizeService _sizes;
-    private readonly IAdminIngredientService _ingredients;
     private readonly IAdminSupplierService _suppliers;
     private readonly AIImportOptions _options;
     private readonly string _ollamaModel;
     private readonly ILogger<AIImportService> _logger;
+    private readonly AIImportEntityCreator _entityCreator;
+    private readonly AIImportPreviewValidator _previewValidator;
+    private readonly AIImportEntityRegistry _entityRegistry;
+    private readonly AIImportAnalysisCoordinator _analysisCoordinator;
+    private readonly AIImportPreviewMutationCoordinator _mutationCoordinator;
+    private readonly AIImportConfirmCoordinator _confirmCoordinator;
+    private readonly AIImportSessionQuery _sessionQuery;
 
     public AIImportService(
         AppDbContext db,
@@ -55,14 +58,17 @@ public sealed class AIImportService : IAIImportService
         IAIImportSchemaRegistry schemas,
         IRequestDeduplicationService deduplication,
         IAdminPermissionService permissions,
-        IAdminCategoryService categories,
-        IAdminDrinkService drinks,
-        IAdminSizeService sizes,
-        IAdminIngredientService ingredients,
         IAdminSupplierService suppliers,
         IOptions<AIImportOptions> options,
         IOptions<OllamaOptions> ollamaOptions,
-        ILogger<AIImportService> logger)
+        ILogger<AIImportService> logger,
+        AIImportEntityCreator entityCreator,
+        AIImportPreviewValidator previewValidator,
+        AIImportEntityRegistry entityRegistry,
+        AIImportAnalysisCoordinator analysisCoordinator,
+        AIImportPreviewMutationCoordinator mutationCoordinator,
+        AIImportConfirmCoordinator confirmCoordinator,
+        AIImportSessionQuery sessionQuery)
     {
         _db = db;
         _pipeline = pipeline;
@@ -70,14 +76,17 @@ public sealed class AIImportService : IAIImportService
         _schemas = schemas;
         _deduplication = deduplication;
         _permissions = permissions;
-        _categories = categories;
-        _drinks = drinks;
-        _sizes = sizes;
-        _ingredients = ingredients;
         _suppliers = suppliers;
         _options = options.Value;
         _ollamaModel = ollamaOptions.Value.Model;
         _logger = logger;
+        _entityCreator = entityCreator;
+        _previewValidator = previewValidator;
+        _entityRegistry = entityRegistry;
+        _analysisCoordinator = analysisCoordinator;
+        _mutationCoordinator = mutationCoordinator;
+        _confirmCoordinator = confirmCoordinator;
+        _sessionQuery = sessionQuery;
     }
 
     public async Task<AIImportOperationResult<AIImportSessionDto>> AnalyzeAsync(
@@ -125,6 +134,7 @@ public sealed class AIImportService : IAIImportService
             buffer.Position = 0;
             var document = await _pipeline.AnalyzeAsync(
                 new AIImportSourceFile(file.FileName, buffer.ToArray(), file.ContentType), entityHint, cancellationToken);
+            NormalizeDocumentIssues(document);
             document.Metadata["aiChunkCount"] = document.AiChunkCount;
             document.Metadata["ocrUsed"] = false;
             session.SourceMetadataJson = Serialize(document.Metadata);
@@ -164,20 +174,40 @@ public sealed class AIImportService : IAIImportService
         }
     }
 
-    public async Task<AIImportOperationResult<AIImportSessionDto>> ReanalyzeAsync(int sessionId, AdminActorContext actor, CancellationToken cancellationToken)
+    public async Task<AIImportOperationResult<AIImportSessionDto>> ReanalyzeAsync(
+        int sessionId,
+        AIImportReanalyzeRequest request,
+        AdminActorContext actor,
+        CancellationToken cancellationToken)
     {
         var access = await RequireAsync(actor, PermissionConstants.AIImportAnalyze);
         if (access != null) return AIImportOperationResult<AIImportSessionDto>.Fail(403, "KHÔNG_CÓ_QUYỀN", access);
         var session = await OwnedSessionAsync(sessionId, actor, true, cancellationToken);
         if (session == null) return NotFound<AIImportSessionDto>();
-        if (session.Status is AIImportSessionStatuses.Completed or AIImportSessionStatuses.Importing or AIImportSessionStatuses.Cancelled)
+        if (session.PreviewVersion != request.ExpectedPreviewVersion)
+            return Conflict<AIImportSessionDto>("PREVIEW_ĐÃ_THAY_ĐỔI", "Preview đã thay đổi; vui lòng tải lại.");
+        if (session.Status is not AIImportSessionStatuses.ReadyToPreview and not AIImportSessionStatuses.Failed)
             return Conflict<AIImportSessionDto>("PHIÊN_ĐÃ_XỬ_LÝ", "Phiên không thể phân tích lại.");
 
+        var statusBeforeClaim = _analysisCoordinator.ClaimReanalysis(session);
+        AddAudit(session, actor, "REANALYZE_CLAIMED", statusBeforeClaim, session.Status);
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict<AIImportSessionDto>("PREVIEW_ĐÃ_THAY_ĐỔI", "Preview đã thay đổi; vui lòng tải lại.");
+        }
+
+        try
+        {
         if (session.SourceFormat is AIImportSourceFormats.Docx or AIImportSourceFormats.Pdf
             && session.Groups.Any(group => group.EntityType == AIImportEntityType.Unknown || group.Status == AIImportItemStatuses.ReviewRequired)
             && Deserialize<AIImportSourceSnapshot>(session.SourceSnapshotJson ?? string.Empty) is { } snapshot)
         {
             var reanalyzed = await _pipeline.ReanalyzeAsync(snapshot, null, cancellationToken);
+            NormalizeDocumentIssues(reanalyzed);
             session.AnalysisWarningsJson = Serialize(reanalyzed.Warnings);
             if (reanalyzed.Errors.Count == 0 && reanalyzed.Groups.Count > 0)
             {
@@ -205,7 +235,7 @@ public sealed class AIImportService : IAIImportService
                 group.EntityType = analysis.EntityType;
                 group.MappingJson = Serialize(analysis.Mapping);
                 group.Confidence = analysis.Confidence;
-                group.DependencyOrder = DependencyOrder(analysis.EntityType);
+                group.DependencyOrder = _entityRegistry.Find(analysis.EntityType)?.DependencyOrder ?? 30;
                 group.Status = analysis.EntityType == AIImportEntityType.Unknown
                     ? AIImportItemStatuses.ReviewRequired
                     : AIImportItemStatuses.Valid;
@@ -214,6 +244,7 @@ public sealed class AIImportService : IAIImportService
             }
             foreach (var item in group.Items)
             {
+                ResetManualReview(item);
                 var raw = Deserialize<Dictionary<string, string?>>(item.RawDataJson) ?? new();
                 var mapped = ApplyMapping(raw, mapping);
                 ApplyValidation(item, group.EntityType, mapped, group.Confidence, null);
@@ -226,9 +257,18 @@ public sealed class AIImportService : IAIImportService
         session.FailureCode = null;
         session.FailureMessage = null;
         RefreshCounts(session);
-        AddAudit(session, actor, "REANALYZE", null, session.Status);
+        AddAudit(session, actor, "REANALYZE", AIImportSessionStatuses.Analyzing, session.Status);
         await _db.SaveChangesAsync(cancellationToken);
         return AIImportOperationResult<AIImportSessionDto>.Ok(await BuildSessionDtoAsync(sessionId, null, null, 1, _options.DefaultPageSize, actor, cancellationToken));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "AI Smart Import reanalyze failed after claim. SessionId={SessionId}", sessionId);
+            await FailAsync(session, "PHÂN_TÍCH_LẠI_THẤT_BẠI",
+                "Không thể hoàn tất phân tích lại; phiên đã chuyển sang trạng thái lỗi.", actor, cancellationToken);
+            return AIImportOperationResult<AIImportSessionDto>.Fail(500, "PHÂN_TÍCH_LẠI_THẤT_BẠI",
+                "Không thể hoàn tất phân tích lại; phiên đã chuyển sang trạng thái lỗi.");
+        }
     }
 
     public async Task<AIImportOperationResult<AIImportSessionDto>> GetSessionAsync(
@@ -298,17 +338,31 @@ public sealed class AIImportService : IAIImportService
         if (editable != null) return editable;
         var group = session.Groups.SingleOrDefault(x => x.ImportGroupId == groupId);
         if (group == null) return NotFound<AIImportSessionDto>();
+        var previousEntityType = group.EntityType;
         group.EntityType = request.EntityType;
         group.MappingJson = Serialize(request.Mapping);
-        group.DependencyOrder = DependencyOrder(request.EntityType);
+        var sourceColumns = _schemas.ClassifyColumns(request.EntityType,
+            Deserialize<List<AIImportSourceColumn>>(group.SourceColumnsJson) ?? [], request.Mapping);
+        group.SourceColumnsJson = Serialize(sourceColumns);
+        var groupIssues = (Deserialize<List<AIImportErrorDto>>(group.IssuesJson) ?? [])
+            .Where(issue => issue.Code != "XUNG_ĐỘT_ÁNH_XẠ").ToList();
+        group.IssuesJson = Serialize(groupIssues);
+        group.DependencyOrder = _entityRegistry.Get(request.EntityType).DependencyOrder;
         group.Status = AIImportItemStatuses.Valid;
         foreach (var item in group.Items)
         {
+            ResetManualReview(item);
             var raw = Deserialize<Dictionary<string, string?>>(item.RawDataJson) ?? new();
-            ApplyValidation(item, group.EntityType, ApplyMapping(raw, request.Mapping), group.Confidence, null);
+            var parserIssues = (Deserialize<List<AIImportErrorDto>>(item.SourceIssuesJson) ?? [])
+                .Where(issue => issue.Code is not ("XUNG_ĐỘT_ÁNH_XẠ" or "CỘT_CẤM" or "CỘT_KHÔNG_XÁC_ĐỊNH"))
+                .Concat(groupIssues).Concat(BuildColumnIssues(sourceColumns, raw)).ToList();
+            item.SourceIssuesJson = Serialize(parserIssues);
+            ApplyValidation(item, group.EntityType, ApplyMapping(raw, request.Mapping), group.Confidence, null,
+                sourceIssues: parserIssues);
         }
-        await ValidateSessionAsync(session, cancellationToken);
-        session.PreviewVersion++;
+        await ValidateSessionAsync(session, cancellationToken,
+            _mutationCoordinator.GroupScope(groupId, previousEntityType));
+        _mutationCoordinator.AdvancePreview(session);
         RefreshCounts(session);
         AddAudit(session, actor, "GROUP_UPDATED", session.Status, session.Status, group.EntityType);
         try
@@ -335,6 +389,8 @@ public sealed class AIImportService : IAIImportService
         if (editable != null) return editable;
         var item = session.Groups.SelectMany(x => x.Items).SingleOrDefault(x => x.ImportItemId == itemId);
         if (item == null) return NotFound<AIImportSessionDto>();
+        var previousBusinessKey = AIImportBusinessKeys.Create(item.Group.EntityType,
+            Deserialize<Dictionary<string, string?>>(item.NormalizedDataJson) ?? new());
         AdminSupplierDuplicateWarningDTO? supplierWarning = null;
         if (request.Action == AIImportActions.Create
             && item.Group.EntityType == AIImportEntityType.Supplier
@@ -348,31 +404,49 @@ public sealed class AIImportService : IAIImportService
         item.SupplierDuplicateWarningId = null;
         if (request.Action == AIImportActions.Skip)
         {
+            ResetManualReview(item);
             item.Status = AIImportItemStatuses.Skipped;
             item.ErrorsJson = "[]";
             item.WarningsJson = "[]";
         }
         else
         {
-            ApplyValidation(item, item.Group.EntityType, request.Values, item.Confidence, null, true);
+            ApplyValidation(item, item.Group.EntityType, request.Values, item.Confidence, null,
+                request.ManualReviewConfirmed,
+                Deserialize<List<AIImportErrorDto>>(item.SourceIssuesJson) ?? []);
+            if (request.ManualReviewConfirmed)
+            {
+                item.ManualReviewConfirmed = true;
+                item.ManualReviewConfirmedAtUtc = DateTime.UtcNow;
+                item.ManualReviewConfirmedByAccountId = actor.AccountId;
+                item.ManualReviewPayloadHash = AIImportValidationContract.PayloadHash(item.NormalizedDataJson);
+            }
+            else ResetManualReview(item);
             item.WarningsAcknowledged = request.WarningsAcknowledged;
             if (supplierWarning != null)
             {
                 item.SupplierDuplicateWarningId = supplierWarning.WarningId;
                 item.WarningsAcknowledged = true;
                 var warnings = Deserialize<List<AIImportErrorDto>>(item.WarningsJson) ?? new();
-                warnings.Add(new AIImportErrorDto { Code = "NHÀ_CUNG_CẤP_GẦN_TRÙNG", Message = $"Tìm thấy {supplierWarning.Matches.Count} nhà cung cấp tương tự; lý do override đã được ghi nhận." });
+                warnings.Add(AIImportValidationContract.Issue("NHÀ_CUNG_CẤP_GẦN_TRÙNG",
+                    $"Tìm thấy {supplierWarning.Matches.Count} nhà cung cấp tương tự; lý do override đã được ghi nhận.",
+                    AIImportIssueSeverities.Warning, resolution: AIImportIssueResolutions.Acknowledge));
                 warnings.AddRange(supplierWarning.Matches.Select(match => new AIImportErrorDto
                 {
                     Code = "NHÀ_CUNG_CẤP_TƯƠNG_TỰ",
-                    Message = $"{match.Code} · {match.Name} · {string.Join(", ", match.MatchedSignals)}"
+                    Message = $"{match.Code} · {match.Name} · {string.Join(", ", match.MatchedSignals)}",
+                    Severity = AIImportIssueSeverities.Warning
                 }));
                 item.WarningsJson = Serialize(warnings);
-                item.Status = AIImportItemStatuses.Warning;
+                item.Status = AIImportValidationContract.ResolveStatus(item.Status, item.Action,
+                    AllIssues(item), item.ManualReviewConfirmed);
             }
         }
-        await ValidateSessionAsync(session, cancellationToken);
-        session.PreviewVersion++;
+        await ValidateSessionAsync(session, cancellationToken,
+            _mutationCoordinator.ItemScope(itemId, item.Group.EntityType, previousBusinessKey));
+        if (request.Action == AIImportActions.Create && request.ManualReviewConfirmed)
+            item.ManualReviewPayloadHash = AIImportValidationContract.PayloadHash(item.NormalizedDataJson);
+        _mutationCoordinator.AdvancePreview(session);
         RefreshCounts(session);
         AddAudit(session, actor, "ITEM_UPDATED", session.Status, session.Status, item.Group.EntityType);
         try
@@ -443,10 +517,7 @@ public sealed class AIImportService : IAIImportService
                     BuildBlockerDetails(session));
             }
 
-            var blockers = session.Groups.SelectMany(x => x.Items).Where(x =>
-                x.Action != AIImportActions.Skip &&
-                (x.Status is AIImportItemStatuses.Error or AIImportItemStatuses.ReviewRequired
-                 || (x.Status == AIImportItemStatuses.Warning && !x.WarningsAcknowledged))).ToList();
+            var blockers = _confirmCoordinator.FindBlockers(session);
             if (blockers.Count > 0)
             {
                 await transaction.RollbackAsync(cancellationToken);
@@ -456,7 +527,7 @@ public sealed class AIImportService : IAIImportService
             }
 
             var snapshot = ConfirmSnapshot(session);
-            var createEntities = session.Groups.SelectMany(x => x.Items.Where(i => i.Action == AIImportActions.Create)).Select(x => x.Group.EntityType).Distinct().ToArray();
+            var requiredCreatePermissions = _confirmCoordinator.RequiredCreatePermissions(session);
             DetachSessionGraph(session);
             var begin = await _deduplication.BeginScopedAsync(
                 idempotencyKey,
@@ -476,13 +547,12 @@ public sealed class AIImportService : IAIImportService
                 }
                 return AIImportOperationResult<AIImportConfirmResultDto>.Fail(409, begin.ErrorCode ?? "YÊU_CẦU_ĐANG_XỬ_LÝ", begin.ErrorMessage ?? "Yêu cầu đang được xử lý.");
             }
-            foreach (var entity in createEntities)
+            foreach (var entityPermission in requiredCreatePermissions)
             {
-                var entityPermission = CreatePermission(entity);
-                if (entityPermission == null || await RequireAsync(actor, entityPermission) != null)
+                if (await RequireAsync(actor, entityPermission) != null)
                 {
                     await transaction.RollbackAsync(cancellationToken);
-                    return AIImportOperationResult<AIImportConfirmResultDto>.Fail(403, "KHÔNG_CÓ_QUYỀN_TẠO_ENTITY", $"Tài khoản không có quyền {entityPermission ?? entity.ToString()}.");
+                    return AIImportOperationResult<AIImportConfirmResultDto>.Fail(403, "KHÔNG_CÓ_QUYỀN_TẠO_ENTITY", $"Tài khoản không có quyền {entityPermission}.");
                 }
             }
 
@@ -497,14 +567,15 @@ public sealed class AIImportService : IAIImportService
             session = await OwnedSessionAsync(sessionId, actor, true, cancellationToken)
                 ?? throw new InvalidOperationException("Không thể tải lại phiên sau khi claim.");
             var result = new AIImportConfirmResultDto { SessionId = sessionId, Status = AIImportSessionStatuses.Completed };
-            foreach (var group in session.Groups.OrderBy(x => x.DependencyOrder).ThenBy(x => x.ImportGroupId))
-            foreach (var item in group.Items.OrderBy(x => x.SourceRow))
+            foreach (var entry in _confirmCoordinator.BuildExecutionPlan(session))
             {
+                var group = entry.Group;
+                var item = entry.Item;
                 if (item.Action == AIImportActions.Skip) { result.Skipped++; continue; }
                 var values = Deserialize<Dictionary<string, string?>>(item.NormalizedDataJson) ?? new();
                 try
                 {
-                    item.ImportedEntityId = await CreateEntityAsync(group.EntityType, values, item, actor, cancellationToken);
+                    item.ImportedEntityId = await _entityCreator.CreateAsync(group.EntityType, values, item, actor, cancellationToken);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
@@ -559,7 +630,7 @@ public sealed class AIImportService : IAIImportService
     {
         var access = await RequireAsync(actor, PermissionConstants.AIImportHistory);
         if (access != null) return AIImportOperationResult<AIImportHistoryDto>.Fail(403, "KHÔNG_CÓ_QUYỀN", access);
-        (page, pageSize) = Page(page, pageSize);
+        (page, pageSize) = _sessionQuery.NormalizePage(page, pageSize, _options.DefaultPageSize, _options.MaximumPageSize);
         var query = _db.ImportSessions.AsNoTracking().Where(x => x.UploadedByAccountId == actor.AccountId).OrderByDescending(x => x.CreatedAtUtc);
         var total = await query.CountAsync(cancellationToken);
         var items = await query.Skip((page - 1) * pageSize).Take(pageSize).Select(x => new AIImportHistoryItemDto
@@ -586,7 +657,9 @@ public sealed class AIImportService : IAIImportService
             EntityType = sourceGroup.EntityType,
             MappingJson = Serialize(sourceGroup.Mapping),
             SourceHeadersJson = Serialize(sourceGroup.SourceHeaders),
-            DependencyOrder = DependencyOrder(sourceGroup.EntityType),
+            SourceColumnsJson = Serialize(sourceGroup.SourceColumns),
+            IssuesJson = Serialize(sourceGroup.Issues),
+            DependencyOrder = _entityRegistry.Find(sourceGroup.EntityType)?.DependencyOrder ?? 30,
             Confidence = sourceGroup.Confidence,
             Status = sourceGroup.EntityType == AIImportEntityType.Unknown
                 ? AIImportItemStatuses.ReviewRequired
@@ -596,7 +669,7 @@ public sealed class AIImportService : IAIImportService
         {
             group.Items.Add(BuildItem(group, candidate.SortOrder, candidate.RawData, candidate.SourceTrace,
                 candidate.MappedData, candidate.Confidence, candidate.AIErrorCode, candidate.SourceLocator,
-                candidate.EvidenceSnippet, candidate.AiConfidence));
+                candidate.EvidenceSnippet, candidate.AiConfidence, candidate.Issues));
         }
         return group;
     }
@@ -611,7 +684,8 @@ public sealed class AIImportService : IAIImportService
         string? aiError,
         AIImportSourceLocator sourceLocator,
         string evidenceSnippet,
-        decimal? aiConfidence)
+        decimal? aiConfidence,
+        IReadOnlyCollection<AIImportErrorDto>? sourceIssues)
     {
         var item = new ImportItem
         {
@@ -621,9 +695,10 @@ public sealed class AIImportService : IAIImportService
             SourceLocatorJson = Serialize(sourceLocator),
             EvidenceSnippet = Limit(evidenceSnippet, 4000),
             Confidence = confidence,
-            AiConfidence = aiConfidence
+            AiConfidence = aiConfidence,
+            SourceIssuesJson = Serialize(sourceIssues ?? [])
         };
-        ApplyValidation(item, group.EntityType, mapped, confidence, aiError);
+        ApplyValidation(item, group.EntityType, mapped, confidence, aiError, sourceIssues: sourceIssues);
         return item;
     }
 
@@ -633,92 +708,151 @@ public sealed class AIImportService : IAIImportService
         IReadOnlyDictionary<string, string?> values,
         decimal confidence,
         string? aiError,
-        bool manuallyReviewed = false)
+        bool manuallyReviewed = false,
+        IReadOnlyCollection<AIImportErrorDto>? sourceIssues = null,
+        bool resetDecision = true)
     {
-        if (entityType == AIImportEntityType.Unknown)
+        sourceIssues ??= Deserialize<List<AIImportErrorDto>>(item.SourceIssuesJson) ?? [];
+        var result = _previewValidator.ValidateCandidate(entityType, values, confidence, sourceIssues,
+            manuallyReviewed, item.Status, item.Action, aiError);
+        var itemLocator = PositionDto(Deserialize<AIImportSourceLocator>(item.SourceLocatorJson));
+        foreach (var issue in result.Issues)
         {
-            item.NormalizedDataJson = Serialize(values);
-            item.Status = AIImportItemStatuses.ReviewRequired;
-            item.ErrorsJson = Serialize(new[] { new AIImportErrorDto { Code = aiError ?? "KHÔNG_XÁC_ĐỊNH_SCHEMA", Message = "Cần chọn entity và mapping trước khi Confirm." } });
-            item.WarningsJson = "[]";
-            return;
+            issue.SourceLocator ??= itemLocator;
+            issue.Position ??= itemLocator;
         }
-        var normalized = _schemas.Normalize(entityType, values);
-        var errors = _schemas.Validate(entityType, normalized);
-        item.NormalizedDataJson = Serialize(normalized);
-        item.ErrorsJson = Serialize(errors);
-        item.WarningsJson = "[]";
-        item.Status = ResolveValidationStatus(
-            errors.Count,
-            confidence,
-            _options.ReviewConfidenceThreshold,
-            manuallyReviewed);
-        item.Action = AIImportActions.Create;
-        item.WarningsAcknowledged = false;
+        item.NormalizedDataJson = Serialize(result.NormalizedData);
+        SetIssues(item, result.Issues, manuallyReviewed);
+        item.Status = result.Status;
+        if (resetDecision)
+        {
+            item.Action = AIImportActions.Create;
+            item.WarningsAcknowledged = false;
+        }
     }
 
-    private async Task ValidateSessionAsync(ImportSession session, CancellationToken cancellationToken)
+    private async Task ValidateSessionAsync(
+        ImportSession session,
+        CancellationToken cancellationToken,
+        AIImportValidationScope? scope = null)
     {
         var all = session.Groups.SelectMany(x => x.Items.Select(i => (Group: x, Item: i))).ToList();
-        foreach (var (group, item) in all.Where(x => x.Item.Action == AIImportActions.Create))
+        var affectedIds = _previewValidator.ResolveScope(all, scope ?? AIImportValidationScope.FullSession());
+        foreach (var automaticSkip in session.Groups.SelectMany(group => group.Items)
+                     .Where(item => affectedIds.Contains(item.ImportItemId))
+                     .Where(item => item.Action == AIImportActions.Skip
+                                    && AllIssues(item).Any(issue => issue.Code is "TRÙNG_TRONG_FILE" or "ĐÃ_TỒN_TẠI")))
+        {
+            automaticSkip.Action = AIImportActions.Create;
+            automaticSkip.Status = AIImportItemStatuses.Valid;
+        }
+        foreach (var (group, item) in all.Where(x => affectedIds.Contains(x.Item.ImportItemId) && x.Item.Action == AIImportActions.Create))
         {
             var values = Deserialize<Dictionary<string, string?>>(item.NormalizedDataJson) ?? new();
-            if (group.EntityType == AIImportEntityType.Unknown)
-            {
-                item.Status = AIImportItemStatuses.ReviewRequired;
-                item.ErrorsJson = Serialize(new[] { new AIImportErrorDto { Code = "KHÔNG_XÁC_ĐỊNH_SCHEMA", Message = "Cần chọn entity và mapping trước khi Confirm." } });
-                item.WarningsJson = "[]";
-                continue;
-            }
-
-            var preserveManualReview = item.Confidence < _options.ReviewConfidenceThreshold
-                                       && item.Status is AIImportItemStatuses.Valid or AIImportItemStatuses.Warning;
-            var normalized = _schemas.Normalize(group.EntityType, values);
-            var errors = _schemas.Validate(group.EntityType, normalized);
-            item.NormalizedDataJson = Serialize(normalized);
-            item.ErrorsJson = Serialize(errors);
-            item.WarningsJson = "[]";
-            item.Status = ResolveValidationStatus(
-                errors.Count,
-                item.Confidence,
-                _options.ReviewConfidenceThreshold,
-                preserveManualReview);
+            var manualReviewValid = item.ManualReviewConfirmed
+                                    && !string.IsNullOrWhiteSpace(item.ManualReviewPayloadHash)
+                                    && string.Equals(item.ManualReviewPayloadHash,
+                                        AIImportValidationContract.PayloadHash(item.NormalizedDataJson),
+                                        StringComparison.Ordinal);
+            if (!manualReviewValid) ResetManualReview(item);
+            ApplyValidation(item, group.EntityType, values, item.Confidence, null, manualReviewValid,
+                Deserialize<List<AIImportErrorDto>>(item.SourceIssuesJson) ?? [], resetDecision: false);
         }
 
-        foreach (var groupItems in all.Where(x => x.Item.Action == AIImportActions.Create && x.Item.Status != AIImportItemStatuses.Error)
-                     .GroupBy(x => (x.Group.EntityType, Key: BusinessKey(x.Group.EntityType, Deserialize<Dictionary<string, string?>>(x.Item.NormalizedDataJson) ?? new()))))
+        foreach (var groupItems in all.Where(x => affectedIds.Contains(x.Item.ImportItemId) && x.Item.Action == AIImportActions.Create && x.Item.Status != AIImportItemStatuses.Error)
+                     .GroupBy(x => (x.Group.EntityType, Key: AIImportBusinessKeys.Create(x.Group.EntityType, Deserialize<Dictionary<string, string?>>(x.Item.NormalizedDataJson) ?? new()))))
         {
             if (string.IsNullOrWhiteSpace(groupItems.Key.Key) || groupItems.Count() <= 1) continue;
-            var firstPayload = groupItems.First().Item.NormalizedDataJson;
-            foreach (var duplicate in groupItems.Skip(1))
+            var payloadGroups = groupItems.GroupBy(item => CanonicalPayload(item.Item.NormalizedDataJson), StringComparer.Ordinal).ToList();
+            if (payloadGroups.Count == 1)
             {
-                if (string.Equals(firstPayload, duplicate.Item.NormalizedDataJson, StringComparison.Ordinal))
+                foreach (var duplicate in groupItems.Skip(1))
                 {
                     duplicate.Item.Action = AIImportActions.Skip;
                     duplicate.Item.Status = AIImportItemStatuses.Skipped;
-                    duplicate.Item.WarningsJson = Serialize(new[] { new AIImportErrorDto { Code = "TRÙNG_TRONG_FILE", Message = "Bản ghi trùng payload trong tài liệu, mặc định SKIP." } });
+                    SetIssues(duplicate.Item, AllIssues(duplicate.Item).Concat(new[]
+                    {
+                        AIImportValidationContract.Issue("TRÙNG_TRONG_FILE",
+                            "Bản ghi trùng business key và payload trong tài liệu, mặc định SKIP.",
+                            AIImportIssueSeverities.Warning,
+                            resolution: AIImportIssueResolutions.Acknowledge)
+                    }), duplicate.Item.ManualReviewConfirmed);
                 }
-                else
-                {
-                    duplicate.Item.Status = AIImportItemStatuses.ReviewRequired;
-                    duplicate.Item.ErrorsJson = Serialize(new[] { new AIImportErrorDto { Code = "XUNG_ĐỘT_DỮ_LIỆU_TRONG_TÀI_LIỆU", Message = "Cùng khóa nghiệp vụ nhưng dữ liệu nguồn khác nhau; cần chọn bản ghi đúng." } });
-                }
+                continue;
             }
+
+            foreach (var conflict in groupItems)
+                AddIssue(conflict.Item, AIImportValidationContract.Issue(
+                    "XUNG_ĐỘT_DỮ_LIỆU_TRONG_TÀI_LIỆU",
+                    "Cùng business key nhưng payload khác nhau; hãy SKIP các bản ghi sai và chỉ giữ lại một bản ghi.",
+                    AIImportIssueSeverities.Review,
+                    resolution: AIImportIssueResolutions.SkipConflict,
+                    metadata: new Dictionary<string, object?> { ["businessKey"] = groupItems.Key.Key }));
         }
 
-        var categoryKeys = await _db.DrinkCategories.AsNoTracking().Select(x => new { x.CategoryCode, x.Name }).ToListAsync(cancellationToken);
-        var activeCategoryKeys = await _db.DrinkCategories.AsNoTracking().Where(x => x.Active).Select(x => new { x.CategoryCode, x.Name }).ToListAsync(cancellationToken);
-        var drinkKeys = await _db.Drinks.AsNoTracking().Select(x => new { x.DrinkCode, x.Name }).ToListAsync(cancellationToken);
-        var sizeKeys = await _db.Sizes.AsNoTracking().Select(x => new { x.SizeCode, x.Name }).ToListAsync(cancellationToken);
-        var ingredientKeys = await _db.Ingredients.AsNoTracking().Select(x => new { x.Code, x.Name }).ToListAsync(cancellationToken);
-        var supplierKeys = await _db.Suppliers.AsNoTracking().Select(x => x.TaxCode).ToListAsync(cancellationToken);
-        var units = await _db.Units.AsNoTracking().Where(x => x.Active).Select(x => new { x.UnitCode, x.Name }).ToListAsync(cancellationToken);
-        var productTypes = await _db.ProductTypes.AsNoTracking().Where(x => x.Active).Select(x => new { x.Code, x.Name }).ToListAsync(cancellationToken);
+        var affectedValues = all.Where(entry => affectedIds.Contains(entry.Item.ImportItemId))
+            .Select(entry => (entry.Group.EntityType,
+                Values: Deserialize<Dictionary<string, string?>>(entry.Item.NormalizedDataJson) ?? new()))
+            .ToList();
+        HashSet<string> Inputs(AIImportEntityType entity, params string[] fields) => affectedValues
+            .Where(entry => entry.EntityType == entity)
+            .SelectMany(entry => fields.Select(field => entry.Values.GetValueOrDefault(field)))
+            .Where(value => !string.IsNullOrWhiteSpace(value)).Select(value => value!.Trim())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var categoryInputs = Inputs(AIImportEntityType.Category, "CategoryCode", "Name");
+        categoryInputs.UnionWith(Inputs(AIImportEntityType.Drink, "Category"));
+        var drinkInputs = Inputs(AIImportEntityType.Drink, "DrinkCode", "Name");
+        var sizeInputs = Inputs(AIImportEntityType.Size, "SizeCode", "Name");
+        var ingredientInputs = Inputs(AIImportEntityType.Ingredient, "Code", "Name");
+        var supplierInputs = Inputs(AIImportEntityType.Supplier, "TaxCode");
+        var unitInputs = Inputs(AIImportEntityType.Ingredient, "BaseUnit");
+        var productTypeInputs = Inputs(AIImportEntityType.Drink, "ProductType");
+
+        var categoryKeys = await _db.DrinkCategories.AsNoTracking()
+            .Where(x => categoryInputs.Contains(x.CategoryCode) || categoryInputs.Contains(x.Name))
+            .Select(x => new { x.CategoryCode, x.Name }).ToListAsync(cancellationToken);
+        var activeCategoryKeys = await _db.DrinkCategories.AsNoTracking().Where(x => x.Active
+                && (categoryInputs.Contains(x.CategoryCode) || categoryInputs.Contains(x.Name)))
+            .Select(x => new { x.CategoryCode, x.Name }).ToListAsync(cancellationToken);
+        var drinkKeys = await _db.Drinks.AsNoTracking()
+            .Where(x => drinkInputs.Contains(x.DrinkCode) || drinkInputs.Contains(x.Name))
+            .Select(x => new { x.DrinkCode, x.Name }).ToListAsync(cancellationToken);
+        var sizeKeys = await _db.Sizes.AsNoTracking()
+            .Where(x => sizeInputs.Contains(x.SizeCode) || sizeInputs.Contains(x.Name))
+            .Select(x => new { x.SizeCode, x.Name }).ToListAsync(cancellationToken);
+        var ingredientKeys = await _db.Ingredients.AsNoTracking()
+            .Where(x => ingredientInputs.Contains(x.Code) || ingredientInputs.Contains(x.Name))
+            .Select(x => new { x.Code, x.Name }).ToListAsync(cancellationToken);
+        var supplierKeys = await _db.Suppliers.AsNoTracking()
+            .Where(x => x.TaxCode != null && supplierInputs.Contains(x.TaxCode))
+            .Select(x => x.TaxCode).ToListAsync(cancellationToken);
+        var allUnits = await _db.Units.AsNoTracking()
+            .Where(x => unitInputs.Contains(x.UnitCode) || unitInputs.Contains(x.Name))
+            .Select(x => new { x.UnitCode, x.Name, x.Active }).ToListAsync(cancellationToken);
+        var allProductTypes = await _db.ProductTypes.AsNoTracking()
+            .Where(x => productTypeInputs.Contains(x.Code) || productTypeInputs.Contains(x.Name))
+            .Select(x => new { x.Code, x.Name, x.Active }).ToListAsync(cancellationToken);
         var activeCategories = activeCategoryKeys.Concat(session.Groups.Where(g => g.EntityType == AIImportEntityType.Category).SelectMany(g => g.Items)
             .Where(i => i.Action == AIImportActions.Create && i.Status is AIImportItemStatuses.Valid or AIImportItemStatuses.Warning)
             .Select(i => { var v = Deserialize<Dictionary<string, string?>>(i.NormalizedDataJson) ?? new(); return new { CategoryCode = v.GetValueOrDefault("CategoryCode") ?? "", Name = v.GetValueOrDefault("Name") ?? "" }; })).ToList();
 
-        foreach (var (group, item) in all.Where(x => x.Item.Action == AIImportActions.Create && x.Item.Status is not AIImportItemStatuses.Error and not AIImportItemStatuses.ReviewRequired))
+        var supplierItems = all.Where(x => affectedIds.Contains(x.Item.ImportItemId)
+                                           && x.Group.EntityType == AIImportEntityType.Supplier
+                                           && x.Item.Action == AIImportActions.Create
+                                           && x.Item.Status is not AIImportItemStatuses.Error and not AIImportItemStatuses.ReviewRequired)
+            .ToList();
+        var supplierMatches = new Dictionary<int, List<AdminSupplierDuplicateMatchDTO>>();
+        if (supplierItems.Count > 0)
+        {
+            var batch = await _suppliers.FindDuplicateMatchesBatchAsync(supplierItems
+                .Select(entry => SupplierDto(Deserialize<Dictionary<string, string?>>(entry.Item.NormalizedDataJson) ?? new()))
+                .ToList());
+            supplierMatches = supplierItems.Select((entry, index) => new { entry.Item.ImportItemId, Matches = batch[index] })
+                .ToDictionary(entry => entry.ImportItemId, entry => entry.Matches);
+        }
+
+        foreach (var (group, item) in all.Where(x => affectedIds.Contains(x.Item.ImportItemId) && x.Item.Action == AIImportActions.Create && x.Item.Status is not AIImportItemStatuses.Error and not AIImportItemStatuses.ReviewRequired))
         {
             var values = Deserialize<Dictionary<string, string?>>(item.NormalizedDataJson) ?? new();
             var duplicate = group.EntityType switch
@@ -734,97 +868,80 @@ public sealed class AIImportService : IAIImportService
             {
                 item.Action = AIImportActions.Skip;
                 item.Status = AIImportItemStatuses.Skipped;
-                item.WarningsJson = Serialize(new[] { new AIImportErrorDto { Code = "ĐÃ_TỒN_TẠI", Message = "Bản ghi đã tồn tại, mặc định SKIP." } });
+                SetIssues(item, AllIssues(item).Concat(new[]
+                {
+                    AIImportValidationContract.Issue("ĐÃ_TỒN_TẠI", "Bản ghi đã tồn tại, mặc định SKIP.",
+                        AIImportIssueSeverities.Warning, resolution: AIImportIssueResolutions.Acknowledge)
+                }), item.ManualReviewConfirmed);
                 continue;
             }
             string? referenceError = null;
             if (group.EntityType == AIImportEntityType.Drink)
             {
-                var category = activeCategories.FirstOrDefault(x => Same(x.CategoryCode, values.GetValueOrDefault("Category")) || Same(x.Name, values.GetValueOrDefault("Category")));
-                var productType = productTypes.FirstOrDefault(x => Same(x.Code, values.GetValueOrDefault("ProductType")) || Same(x.Name, values.GetValueOrDefault("ProductType")));
-                if (category == null) referenceError = "Danh mục không tồn tại/không hoạt động và không được tạo trong phiên.";
-                else values["Category"] = category.CategoryCode;
-                if (productType == null) referenceError ??= "Loại sản phẩm không tồn tại hoặc đã ngừng hoạt động.";
-                else values["ProductType"] = productType.Code;
+                var category = AIImportReferenceResolver.Resolve(values.GetValueOrDefault("Category"),
+                    activeCategories, categoryKeys.Where(existing => !activeCategoryKeys.Any(active => active.CategoryCode == existing.CategoryCode)),
+                    value => value.CategoryCode, value => value.Name,
+                    value => session.Groups.Where(pendingGroup => pendingGroup.EntityType == AIImportEntityType.Category)
+                        .SelectMany(pendingGroup => pendingGroup.Items)
+                        .Any(pendingItem => pendingItem.Action == AIImportActions.Create
+                            && Same((Deserialize<Dictionary<string, string?>>(pendingItem.NormalizedDataJson) ?? new()).GetValueOrDefault("CategoryCode"), value.CategoryCode)));
+                var productType = AIImportReferenceResolver.Resolve(values.GetValueOrDefault("ProductType"),
+                    allProductTypes.Where(value => value.Active), allProductTypes.Where(value => !value.Active),
+                    value => value.Code, value => value.Name);
+                referenceError = ReferenceMessage("Danh mục", category.Status,
+                    "Danh mục không tồn tại hoặc không được tạo trong phiên.");
+                if (category.IsResolved) values["Category"] = category.Value!.CategoryCode;
+                referenceError ??= ReferenceMessage("Loại sản phẩm", productType.Status,
+                    "Loại sản phẩm không tồn tại.");
+                if (productType.IsResolved) values["ProductType"] = productType.Value!.Code;
             }
             else if (group.EntityType == AIImportEntityType.Ingredient)
             {
-                var unit = units.FirstOrDefault(x => Same(x.UnitCode, values.GetValueOrDefault("BaseUnit")) || Same(x.Name, values.GetValueOrDefault("BaseUnit")));
-                if (unit == null) referenceError = "Đơn vị cơ sở không tồn tại hoặc đã ngừng hoạt động.";
-                else values["BaseUnit"] = unit.UnitCode;
+                var unit = AIImportReferenceResolver.Resolve(values.GetValueOrDefault("BaseUnit"),
+                    allUnits.Where(value => value.Active), allUnits.Where(value => !value.Active),
+                    value => value.UnitCode, value => value.Name);
+                referenceError = ReferenceMessage("Đơn vị cơ sở", unit.Status, "Đơn vị cơ sở không tồn tại.");
+                if (unit.IsResolved) values["BaseUnit"] = unit.Value!.UnitCode;
             }
             item.NormalizedDataJson = Serialize(values);
             if (referenceError != null)
             {
-                item.Status = AIImportItemStatuses.Error;
-                item.ErrorsJson = Serialize(new[] { new AIImportErrorDto { Code = "REFERENCE_KHÔNG_HỢP_LỆ", Message = referenceError } });
+                var ambiguous = referenceError.Contains("khớp nhiều", StringComparison.OrdinalIgnoreCase);
+                AddIssue(item, AIImportValidationContract.Issue(
+                    ambiguous ? "REFERENCE_KHÔNG_DUY_NHẤT" : "REFERENCE_KHÔNG_HỢP_LỆ",
+                    referenceError,
+                    ambiguous ? AIImportIssueSeverities.Review : AIImportIssueSeverities.Error,
+                    resolution: AIImportIssueResolutions.EditField));
             }
             if (group.EntityType == AIImportEntityType.Supplier)
             {
-                var matches = await _suppliers.FindDuplicateMatchesAsync(SupplierDto(values));
+                var matches = supplierMatches.GetValueOrDefault(item.ImportItemId) ?? [];
                 if (matches.Count > 0)
                 {
-                    item.Status = item.SupplierDuplicateWarningId.HasValue && !string.IsNullOrWhiteSpace(item.DuplicateOverrideReason)
-                        ? AIImportItemStatuses.Warning
-                        : AIImportItemStatuses.ReviewRequired;
                     var warnings = new List<AIImportErrorDto>
                     {
-                        new() { Code = "NHÀ_CUNG_CẤP_GẦN_TRÙNG", Message = $"Có {matches.Count} nhà cung cấp tương tự. Nhập lý do nếu vẫn tạo." }
+                        AIImportValidationContract.Issue("NHÀ_CUNG_CẤP_GẦN_TRÙNG",
+                            $"Có {matches.Count} nhà cung cấp tương tự. Nhập lý do nếu vẫn tạo.",
+                            item.SupplierDuplicateWarningId.HasValue && !string.IsNullOrWhiteSpace(item.DuplicateOverrideReason)
+                                ? AIImportIssueSeverities.Warning : AIImportIssueSeverities.Review,
+                            resolution: item.SupplierDuplicateWarningId.HasValue && !string.IsNullOrWhiteSpace(item.DuplicateOverrideReason)
+                                ? AIImportIssueResolutions.Acknowledge : AIImportIssueResolutions.EditField)
                     };
                     warnings.AddRange(matches.Select(match => new AIImportErrorDto
                     {
                         Code = "NHÀ_CUNG_CẤP_TƯƠNG_TỰ",
-                        Message = $"{match.Code} · {match.Name} · {string.Join(", ", match.MatchedSignals)}"
+                        Message = $"{match.Code} · {match.Name} · {string.Join(", ", match.MatchedSignals)}",
+                        Severity = AIImportIssueSeverities.Warning
                     }));
-                    item.WarningsJson = Serialize(warnings);
+                    SetIssues(item, AllIssues(item).Concat(warnings), item.ManualReviewConfirmed);
                 }
             }
         }
         RefreshCounts(session);
     }
 
-    private async Task<int> CreateEntityAsync(AIImportEntityType entity, Dictionary<string, string?> v, ImportItem item, AdminActorContext actor, CancellationToken cancellationToken)
-    {
-        switch (entity)
-        {
-            case AIImportEntityType.Category:
-                return (await _categories.CreateCategoryAsync(new AdminCreateCategoryDto { CategoryCode = v.GetValueOrDefault("CategoryCode"), Name = v.GetValueOrDefault("Name")!, Icon = v.GetValueOrDefault("Icon"), Active = !bool.TryParse(v.GetValueOrDefault("Active"), out var active) || active })).CategoryId;
-            case AIImportEntityType.Drink:
-            {
-                var category = await _db.DrinkCategories.FirstAsync(x => x.Active && (x.CategoryCode == v.GetValueOrDefault("Category") || x.Name == v.GetValueOrDefault("Category")), cancellationToken);
-                var type = await _db.ProductTypes.AsNoTracking().FirstAsync(x => x.Active && (x.Code == v.GetValueOrDefault("ProductType") || x.Name == v.GetValueOrDefault("ProductType")), cancellationToken);
-                return await _drinks.CreateDrinkAsync(new AdminDrinkCreateDTO { DrinkCode = v.GetValueOrDefault("DrinkCode")!, Name = v.GetValueOrDefault("Name")!, Description = v.GetValueOrDefault("Description") ?? "", CategoryId = category.CategoryId, ProductTypeId = type.ProductTypeId, ImageFiles = [] });
-            }
-            case AIImportEntityType.Size:
-            {
-                var dto = new SizeDto { SizeCode = v.GetValueOrDefault("SizeCode")!, Name = v.GetValueOrDefault("Name")!, Description = v.GetValueOrDefault("Description") ?? "", SizeType = Enum.Parse<SizeTypeEnum>(v.GetValueOrDefault("SizeType")!, true) };
-                var created = await _sizes.CreateSizeAsync(dto);
-                if (!created.Success) throw new InvalidOperationException(created.Error);
-                return await _db.Sizes.Where(x => x.SizeCode == dto.SizeCode).Select(x => x.SizeId).SingleAsync(cancellationToken);
-            }
-            case AIImportEntityType.Ingredient:
-            {
-                var unitValue = v.GetValueOrDefault("BaseUnit");
-                var unit = await _db.Units.AsNoTracking().FirstAsync(x => x.Active && (x.UnitCode == unitValue || x.Name == unitValue), cancellationToken);
-                return await _ingredients.CreateAsync(new AdminIngredientCreateDTO { Code = v.GetValueOrDefault("Code")!, Name = v.GetValueOrDefault("Name")!, BaseUnitId = unit.UnitId });
-            }
-            case AIImportEntityType.Supplier:
-            {
-                var dto = SupplierDto(v);
-                dto.DuplicateWarningId = item.SupplierDuplicateWarningId;
-                dto.DuplicateOverrideReason = item.DuplicateOverrideReason;
-                return await _suppliers.CreateAsync(dto, actor.StaffId);
-            }
-            default: throw new InvalidOperationException("Entity ngoài phạm vi AI Smart Import MVP.");
-        }
-    }
-
-    private static AdminSupplierCreateDTO SupplierDto(IReadOnlyDictionary<string, string?> v) => new()
-    {
-        Name = v.GetValueOrDefault("Name") ?? "", TaxCode = v.GetValueOrDefault("TaxCode"), Address = v.GetValueOrDefault("Address"), Note = v.GetValueOrDefault("Note"),
-        PrimaryPhone = v.GetValueOrDefault("PrimaryPhone") ?? "", PrimaryContactName = v.GetValueOrDefault("PrimaryContactName") ?? "",
-        PrimaryContactPhone = v.GetValueOrDefault("PrimaryContactPhone"), PrimaryContactEmail = v.GetValueOrDefault("PrimaryContactEmail"), PrimaryContactPosition = v.GetValueOrDefault("PrimaryContactPosition")
-    };
+    private static AdminSupplierCreateDTO SupplierDto(IReadOnlyDictionary<string, string?> values) =>
+        AIImportEntityCreator.SupplierDto(values);
 
     private async Task<ImportSession?> OwnedSessionAsync(int id, AdminActorContext actor, bool tracked, CancellationToken cancellationToken)
     {
@@ -843,7 +960,7 @@ public sealed class AIImportService : IAIImportService
         if (groupId.HasValue) itemQuery = itemQuery.Where(x => x.ImportGroupId == groupId.Value);
         if (!string.IsNullOrWhiteSpace(status)) itemQuery = itemQuery.Where(x => x.Status == status);
         var total = await itemQuery.CountAsync(cancellationToken);
-        var items = await OrderPreviewItems(itemQuery)
+        var items = await _sessionQuery.OrderPreviewItems(itemQuery)
             .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
         var itemMap = items.GroupBy(x => x.ImportGroupId).ToDictionary(x => x.Key, x => x.Select(ItemDto).ToList());
         return new AIImportSessionDto
@@ -863,6 +980,8 @@ public sealed class AIImportService : IAIImportService
                 ExtractionMode = x.ExtractionMode, HeaderRow = x.HeaderRow,
                 EntityType = x.EntityType, Mapping = Deserialize<Dictionary<string, string?>>(x.MappingJson) ?? new(),
                 SourceHeaders = Deserialize<List<string>>(x.SourceHeadersJson) ?? new(), DependencyOrder = x.DependencyOrder,
+                SourceColumns = (Deserialize<List<AIImportSourceColumn>>(x.SourceColumnsJson) ?? []).Select(ColumnDto).ToList(),
+                Issues = Deserialize<List<AIImportErrorDto>>(x.IssuesJson) ?? [],
                 Confidence = x.Confidence, Status = x.Status, Items = itemMap.GetValueOrDefault(x.ImportGroupId) ?? new()
             }).ToList()
         };
@@ -877,17 +996,6 @@ public sealed class AIImportService : IAIImportService
             : x.Status == AIImportItemStatuses.Skipped ? 4 : 5)
         .ThenBy(x => x.SourceRow)
         .ThenBy(x => x.ImportItemId);
-
-    internal static string ResolveValidationStatus(
-        int errorCount,
-        decimal confidence,
-        decimal reviewThreshold,
-        bool manuallyReviewed) =>
-        errorCount > 0
-            ? AIImportItemStatuses.Error
-            : manuallyReviewed || confidence >= reviewThreshold
-                ? AIImportItemStatuses.Valid
-                : AIImportItemStatuses.ReviewRequired;
 
     private async Task<string?> RequireAsync(AdminActorContext actor, params string[] permissionCodes)
     {
@@ -971,10 +1079,90 @@ public sealed class AIImportService : IAIImportService
             Cells = cells
         };
     }
-    private static int DependencyOrder(AIImportEntityType entity) => entity == AIImportEntityType.Category ? 10 : entity == AIImportEntityType.Drink ? 20 : 30;
-    private static string? CreatePermission(AIImportEntityType entity) => entity switch { AIImportEntityType.Category => PermissionConstants.CategoryCreate, AIImportEntityType.Drink => PermissionConstants.DrinkCreate, AIImportEntityType.Size => PermissionConstants.SizeCreate, AIImportEntityType.Ingredient => PermissionConstants.IngredientCreate, AIImportEntityType.Supplier => PermissionConstants.SupplierCreate, _ => null };
-    private static string BusinessKey(AIImportEntityType entity, IReadOnlyDictionary<string, string?> v) => AIImportSchemaRegistry.Key(entity switch { AIImportEntityType.Category => v.GetValueOrDefault("CategoryCode") ?? v.GetValueOrDefault("Name"), AIImportEntityType.Drink => v.GetValueOrDefault("DrinkCode") ?? v.GetValueOrDefault("Name"), AIImportEntityType.Size => v.GetValueOrDefault("SizeCode") ?? v.GetValueOrDefault("Name"), AIImportEntityType.Ingredient => v.GetValueOrDefault("Code") ?? v.GetValueOrDefault("Name"), AIImportEntityType.Supplier => v.GetValueOrDefault("TaxCode"), _ => null });
     private static bool Same(string? left, string? right) => AIImportSchemaRegistry.Key(left) == AIImportSchemaRegistry.Key(right) && !string.IsNullOrWhiteSpace(left) && !string.IsNullOrWhiteSpace(right);
+    private static string? ReferenceMessage(string label, string status, string notFoundMessage) => status switch
+    {
+        AIImportReferenceStatuses.Found or AIImportReferenceStatuses.PendingInSession => null,
+        AIImportReferenceStatuses.Ambiguous => $"{label} khớp nhiều bản ghi; hãy nhập code duy nhất.",
+        AIImportReferenceStatuses.Inactive => $"{label} đã ngừng hoạt động.",
+        AIImportReferenceStatuses.Forbidden => $"{label} chứa định danh không được phép.",
+        _ => notFoundMessage
+    };
+    private static string CanonicalPayload(string json)
+    {
+        var values = Deserialize<Dictionary<string, string?>>(json) ?? new();
+        return Serialize(values.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase));
+    }
+    private static List<AIImportErrorDto> AllIssues(ImportItem item) =>
+        (Deserialize<List<AIImportErrorDto>>(item.ErrorsJson) ?? [])
+        .Concat(Deserialize<List<AIImportErrorDto>>(item.WarningsJson) ?? []).ToList();
+    private static void SetIssues(ImportItem item, IEnumerable<AIImportErrorDto> issues, bool manualReviewConfirmed)
+    {
+        var normalized = issues.GroupBy(issue => new { issue.Code, issue.Field, issue.Severity })
+            .Select(group => group.First()).ToList();
+        foreach (var issue in normalized)
+        {
+            issue.SourceLocator ??= issue.Position;
+            issue.Position ??= issue.SourceLocator;
+            issue.Metadata ??= new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        }
+        item.ErrorsJson = Serialize(normalized.Where(issue => issue.Severity is AIImportIssueSeverities.Error or AIImportIssueSeverities.Review));
+        item.WarningsJson = Serialize(normalized.Where(issue => issue.Severity == AIImportIssueSeverities.Warning));
+        item.Status = AIImportValidationContract.ResolveStatus(item.Status, item.Action, normalized, manualReviewConfirmed);
+    }
+    private static void AddIssue(ImportItem item, AIImportErrorDto issue)
+    {
+        var issues = AllIssues(item).Where(existing => !(existing.Code == issue.Code && existing.Field == issue.Field)).ToList();
+        issues.Add(issue);
+        SetIssues(item, issues, item.ManualReviewConfirmed);
+    }
+    private static void ResetManualReview(ImportItem item)
+    {
+        item.ManualReviewConfirmed = false;
+        item.ManualReviewConfirmedAtUtc = null;
+        item.ManualReviewConfirmedByAccountId = null;
+        item.ManualReviewPayloadHash = null;
+    }
+    private static AIImportSourceColumnDto ColumnDto(AIImportSourceColumn column) => new()
+    {
+        Key = column.Key,
+        Label = column.Label,
+        Classification = column.Classification,
+        TargetField = column.TargetField,
+        SourceLocator = PositionDto(column.SourceLocator),
+        Reason = column.Reason
+    };
+    private static void NormalizeDocumentIssues(AIImportSourceDocument document)
+    {
+        foreach (var warning in document.Warnings)
+        {
+            warning.Severity = AIImportIssueSeverities.Warning;
+            warning.SourceLocator ??= warning.Position;
+        }
+        foreach (var error in document.Errors)
+        {
+            error.Severity = AIImportIssueSeverities.Error;
+            error.SourceLocator ??= error.Position;
+        }
+    }
+    private static IEnumerable<AIImportErrorDto> BuildColumnIssues(
+        IEnumerable<AIImportSourceColumn> columns,
+        IReadOnlyDictionary<string, string?> raw)
+    {
+        foreach (var column in columns.Where(column => !string.IsNullOrWhiteSpace(raw.GetValueOrDefault(column.Key))))
+        {
+            if (column.Classification == AIImportColumnClassifications.Forbidden)
+                yield return AIImportValidationContract.Issue("CỘT_CẤM",
+                    $"Cột '{column.Label}' không được phép dùng trong AI Smart Import.", AIImportIssueSeverities.Error,
+                    resolution: AIImportIssueResolutions.ReuploadOrSkip,
+                    metadata: new Dictionary<string, object?> { ["sourceColumn"] = column.Key });
+            else if (column.Classification == AIImportColumnClassifications.Unknown)
+                yield return AIImportValidationContract.Issue("CỘT_KHÔNG_XÁC_ĐỊNH",
+                    $"Cột '{column.Label}' không thuộc ImportSchema và sẽ bị bỏ qua.", AIImportIssueSeverities.Warning,
+                    resolution: AIImportIssueResolutions.Acknowledge,
+                    metadata: new Dictionary<string, object?> { ["sourceColumn"] = column.Key });
+        }
+    }
     private static string Serialize<T>(T value) => JsonSerializer.Serialize(value, JsonOptions);
     private static T? Deserialize<T>(string value) { try { return JsonSerializer.Deserialize<T>(value, JsonOptions); } catch (JsonException) { return default; } }
     private static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
@@ -982,7 +1170,25 @@ public sealed class AIImportService : IAIImportService
     private static (int Page, int PageSize) Page(int page, int pageSize) => (Math.Max(1, page), Math.Clamp(pageSize <= 0 ? 50 : pageSize, 1, 200));
     private static AIImportPageDto PageDto(int page, int size, int total) => new() { Page = page, PageSize = size, TotalItems = total, TotalPages = Math.Max(1, (int)Math.Ceiling(total / (double)size)) };
     private static AIImportSummaryDto Summary(ImportSession x) => new() { TotalGroups = x.TotalGroups, TotalRows = x.TotalRows, Valid = x.ValidRows, Warnings = x.WarningRows, Errors = x.ErrorRows, ReviewRequired = x.ReviewRows, Skipped = x.SkippedRows };
-    private static AIImportItemDto ItemDto(ImportItem x) => new() { ItemId = x.ImportItemId, SourceRow = x.SourceRow, RawData = Deserialize<Dictionary<string, string?>>(x.RawDataJson) ?? new(), NormalizedData = Deserialize<Dictionary<string, string?>>(x.NormalizedDataJson) ?? new(), SourceTrace = Deserialize<Dictionary<string, string?>>(x.SourceTraceJson) ?? new(), SourceLocator = PositionDto(Deserialize<AIImportSourceLocator>(x.SourceLocatorJson)), EvidenceSnippet = x.EvidenceSnippet, AiConfidence = x.AiConfidence, OcrConfidence = x.OcrConfidence, Status = x.Status, Action = x.Action, Errors = Deserialize<List<AIImportErrorDto>>(x.ErrorsJson) ?? new(), Warnings = Deserialize<List<AIImportErrorDto>>(x.WarningsJson) ?? new(), WarningsAcknowledged = x.WarningsAcknowledged, DuplicateOverrideReason = x.DuplicateOverrideReason, ImportedEntityId = x.ImportedEntityId };
+    private static AIImportItemDto ItemDto(ImportItem x)
+    {
+        var errors = Deserialize<List<AIImportErrorDto>>(x.ErrorsJson) ?? [];
+        var warnings = Deserialize<List<AIImportErrorDto>>(x.WarningsJson) ?? [];
+        return new AIImportItemDto
+        {
+            ItemId = x.ImportItemId, SourceRow = x.SourceRow,
+            RawData = Deserialize<Dictionary<string, string?>>(x.RawDataJson) ?? new(),
+            NormalizedData = Deserialize<Dictionary<string, string?>>(x.NormalizedDataJson) ?? new(),
+            SourceTrace = Deserialize<Dictionary<string, string?>>(x.SourceTraceJson) ?? new(),
+            SourceLocator = PositionDto(Deserialize<AIImportSourceLocator>(x.SourceLocatorJson)),
+            EvidenceSnippet = x.EvidenceSnippet, AiConfidence = x.AiConfidence, OcrConfidence = x.OcrConfidence,
+            Status = x.Status, Action = x.Action, Errors = errors, Warnings = warnings,
+            Issues = errors.Concat(warnings).ToList(), WarningsAcknowledged = x.WarningsAcknowledged,
+            ManualReviewConfirmed = x.ManualReviewConfirmed,
+            ManualReviewConfirmedAtUtc = x.ManualReviewConfirmedAtUtc,
+            DuplicateOverrideReason = x.DuplicateOverrideReason, ImportedEntityId = x.ImportedEntityId
+        };
+    }
     private static bool IsFooterRow(IReadOnlyDictionary<string, string?> raw)
     {
         var values = raw.Values.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => AIImportSchemaRegistry.Key(x)).ToList();
@@ -996,11 +1202,14 @@ public sealed class AIImportService : IAIImportService
     private static void RefreshCounts(ImportSession x) { var items = x.Groups.SelectMany(g => g.Items).ToList(); x.TotalGroups = x.Groups.Count; x.TotalRows = items.Count; x.ValidRows = items.Count(i => i.Status == AIImportItemStatuses.Valid); x.WarningRows = items.Count(i => i.Status == AIImportItemStatuses.Warning); x.ErrorRows = items.Count(i => i.Status == AIImportItemStatuses.Error); x.ReviewRows = items.Count(i => i.Status == AIImportItemStatuses.ReviewRequired); x.SkippedRows = items.Count(i => i.Action == AIImportActions.Skip); }
     private static ConfirmSnapshotItem[] ConfirmSnapshot(ImportSession session) => session.Groups
         .OrderBy(x => x.ImportGroupId).SelectMany(x => x.Items.OrderBy(i => i.ImportItemId))
-        .Select(x => new ConfirmSnapshotItem(x.ImportItemId, x.Action, x.NormalizedDataJson, x.WarningsAcknowledged, x.DuplicateOverrideReason))
+        .Select(x => new ConfirmSnapshotItem(x.ImportItemId, x.Action, x.NormalizedDataJson, x.WarningsAcknowledged,
+            x.ManualReviewConfirmed, x.ManualReviewPayloadHash, x.SupplierDuplicateWarningId, x.DuplicateOverrideReason))
         .ToArray();
     private static string ValidationFingerprint(ImportSession session) => Serialize(session.Groups
         .OrderBy(x => x.ImportGroupId).SelectMany(x => x.Items.OrderBy(i => i.ImportItemId))
-        .Select(x => new { x.ImportItemId, x.Action, x.Status, x.NormalizedDataJson, x.ErrorsJson, x.WarningsJson, x.WarningsAcknowledged, x.DuplicateOverrideReason, x.SupplierDuplicateWarningId })
+        .Select(x => new { x.ImportItemId, x.Action, x.Status, x.NormalizedDataJson, x.ErrorsJson, x.WarningsJson,
+            x.WarningsAcknowledged, x.ManualReviewConfirmed, x.ManualReviewPayloadHash,
+            x.DuplicateOverrideReason, x.SupplierDuplicateWarningId })
         .ToArray());
     private static List<AIImportErrorDto> BuildBlockerDetails(ImportSession session) => session.Groups
         .SelectMany(group => group.Items
@@ -1019,7 +1228,10 @@ public sealed class AIImportService : IAIImportService
                     Code = issue.Code,
                     Message = issue.Message,
                     Field = issue.Field,
-                    Position = ItemPosition(group, item, issue.Position?.Column)
+                    Severity = issue.Severity,
+                    Metadata = issue.Metadata,
+                    Position = ItemPosition(group, item, issue.Position?.Column),
+                    SourceLocator = ItemPosition(group, item, issue.Position?.Column)
                 });
             }))
         .OrderBy(x => x.Position?.Sheet).ThenBy(x => x.Position?.Row).ToList();
@@ -1098,7 +1310,15 @@ public sealed class AIImportService : IAIImportService
     private static string BusinessErrorCode(Exception ex) => ex is SupplierDomainException supplier ? supplier.Code : FindSql(ex) is { Number: 2601 or 2627 } ? "DỮ_LIỆU_ĐÃ_TỒN_TẠI" : ex is DuplicateDataException ? "DỮ_LIỆU_ĐÃ_TỒN_TẠI" : "IMPORT_THẤT_BẠI";
     private static string BusinessMessage(Exception ex) => FindSql(ex) is { Number: 2601 or 2627 } ? "Dữ liệu nghiệp vụ đã tồn tại; toàn bộ phiên đã được rollback." : ex is SupplierDomainException or DuplicateDataException or InvalidOperationException or ArgumentException ? ex.Message : "Không thể tạo dữ liệu; toàn bộ phiên đã được rollback.";
     private static SqlException? FindSql(Exception ex) { for (var current = ex; current != null; current = current.InnerException!) if (current is SqlException sql) return sql; return null; }
-    private sealed record ConfirmSnapshotItem(int ImportItemId, string Action, string NormalizedDataJson, bool WarningsAcknowledged, string? DuplicateOverrideReason);
+    private sealed record ConfirmSnapshotItem(
+        int ImportItemId,
+        string Action,
+        string NormalizedDataJson,
+        bool WarningsAcknowledged,
+        bool ManualReviewConfirmed,
+        string? ManualReviewPayloadHash,
+        Guid? SupplierDuplicateWarningId,
+        string? DuplicateOverrideReason);
     private sealed class AIImportRowException : Exception
     {
         public AIImportRowException(ImportGroup group, ImportItem item, Exception innerException)

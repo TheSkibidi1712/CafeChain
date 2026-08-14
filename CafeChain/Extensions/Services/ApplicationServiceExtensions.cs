@@ -166,6 +166,15 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IAIImportSourceParser, AIImportPdfSourceParser>();
             services.AddScoped<IAIImportDocumentAiExtractor, AIImportDocumentAiExtractor>();
             services.AddScoped<IAIImportDocumentPipeline, AIImportDocumentPipeline>();
+            services.AddScoped<AIImportCandidateValidator>();
+            services.AddSingleton<AIImportResolutionEngine>();
+            services.AddScoped<AIImportPreviewValidator>();
+            services.AddSingleton<AIImportAnalysisCoordinator>();
+            services.AddSingleton<AIImportPreviewMutationCoordinator>();
+            services.AddSingleton<AIImportConfirmCoordinator>();
+            services.AddSingleton<AIImportSessionQuery>();
+            services.AddScoped<AIImportEntityCreator>();
+            services.AddSingleton<AIImportEntityRegistry>();
             services.AddScoped<IAIImportService, AIImportService>();
 
             // File
@@ -240,9 +249,14 @@ namespace CafeChain.Extensions.Services
 
             // Admin - Recipes (+ #112 BTP output normalizer)
             services.AddScoped<IRecipeOutputNormalizer, RecipeOutputNormalizer>();
+            services.AddScoped<ICurrentRecipeResolver, CurrentRecipeResolver>();
             services.AddScoped<IAdminRecipeService, AdminRecipeService>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IAdminRecipeQueryService,
                 CafeChain.Application.Services.Admin.Recipes.AdminRecipeQueryService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IRecipeWhereUsedQueryService,
+                CafeChain.Application.Services.Admin.Recipes.RecipeWhereUsedQueryService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IRecipeVersionEvidenceQueryService,
+                CafeChain.Application.Services.Admin.Recipes.RecipeVersionEvidenceQueryService>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IBomDataHealthEvaluator,
                 CafeChain.Application.Services.Admin.Recipes.BomDataHealthEvaluator>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IRecipeBomTreeQueryService,
