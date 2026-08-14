@@ -682,3 +682,142 @@ body {
         gap: 6px !important;
     }
 }
+
+/* ================================================================
+   CAFECHAIN COFFEE OPERATIONS CONTRACT
+   Keeps AppLauncher visually aligned with Admin and StaffHub.
+   ================================================================ */
+:root {
+    --al-bg-page: #f7f4f0;
+    --al-bg-decor: #f0e2d6;
+    --al-card-bg: #fffdfb;
+    --al-card-hover: #fbf7f2;
+    --al-dark-espresso: #3d2418;
+    --al-dark-mocha: #4d3021;
+    --al-gold: #a97750;
+    --al-gold-light: #dfc5b1;
+    --al-gold-dark: #70482f;
+    --al-text-primary: #201812;
+    --al-text-secondary: #66584f;
+    --al-text-muted: #7a6c62;
+    --al-border: #e9ded4;
+    --al-shadow-sm: 0 2px 8px rgba(61, 36, 24, 0.05);
+    --al-shadow-md: 0 8px 22px rgba(61, 36, 24, 0.08);
+    --al-shadow-xl: 0 16px 38px rgba(61, 36, 24, 0.11);
+    --al-shadow-gold: none;
+    --al-r-sm: 8px;
+    --al-r-md: 10px;
+    --al-r-lg: 16px;
+    --al-r-xl: 16px;
+}
+
+.launcher-bg-decor {
+    display: none;
+}
+
+.launcher-shell {
+    width: min(1180px, calc(100% - 40px));
+    padding: clamp(32px, 5vw, 64px) 0;
+}
+
+.launcher-header {
+    gap: 24px;
+    padding: clamp(28px, 4vw, 40px);
+    border-color: #5c3f2b;
+    border-radius: var(--al-r-lg);
+    background: var(--al-dark-espresso);
+    box-shadow: var(--al-shadow-md);
+}
+
+.launcher-header h1 {
+    font-size: clamp(1.75rem, 4vw, 2.4rem);
+    font-weight: 750;
+    text-shadow: none;
+}
+
+.launcher-header p {
+    color: #f0e2d6 !important;
+    text-shadow: none;
+}
+
+.launcher-brand-box {
+    border-radius: var(--al-r-md);
+    background: #dfc5b1;
+    box-shadow: none;
+}
+
+.launcher-logout {
+    min-height: 44px;
+    border-radius: var(--al-r-md);
+    box-shadow: none;
+}
+
+.launcher-grid {
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.launcher-card {
+    min-height: 208px;
+    padding: 28px 26px 24px;
+    border-radius: var(--al-r-lg);
+    box-shadow: var(--al-shadow-sm);
+}
+
+.launcher-card::before {
+    height: 3px;
+    background: #a97750;
+}
+
+.launcher-card::after,
+.launcher-card-body strong::after {
+    content: none;
+}
+
+.launcher-card:hover,
+.launcher-card:focus-visible {
+    transform: translateY(-2px);
+    border-color: #c99e7d;
+    box-shadow: var(--al-shadow-md);
+}
+
+.launcher-card:focus-visible,
+.launcher-logout:focus-visible {
+    outline: 2px solid #70482f;
+    outline-offset: 3px;
+}
+
+.launcher-icon,
+.launcher-card:hover .launcher-icon,
+.launcher-card:focus-visible .launcher-icon {
+    width: 56px;
+    height: 56px;
+    border: 1px solid #dfc5b1;
+    border-radius: var(--al-r-md);
+    color: #70482f;
+    background: #f4e9df;
+    box-shadow: none;
+    transform: none;
+}
+
+.launcher-card-body strong {
+    color: var(--al-text-primary);
+    font-weight: 750;
+}
+
+.launcher-card-action {
+    color: #70482f !important;
+    letter-spacing: 0.04em;
+}
+
+.launcher-empty-card,
+.launcher-status {
+    border-radius: var(--al-r-lg);
+    box-shadow: var(--al-shadow-sm);
+}
+
+@media (max-width: 480px) {
+    .launcher-shell {
+        width: calc(100% - 24px);
+    }
+}

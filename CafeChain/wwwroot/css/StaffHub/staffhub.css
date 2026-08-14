@@ -76,7 +76,7 @@ body:has(.staffhub-page) > footer {
     overflow-x: hidden;
     background:
         radial-gradient(ellipse 55% 40% at 80% 0%, rgba(223, 202, 155, 0.15), transparent),
-        radial-gradient(ellipse 45% 55% at 10% 100%, rgba(139, 107, 85, 0.08), transparent),
+        radial-gradient(ellipse 45% 55% at 10% 100%, rgba(139, 107, 85, 0.08), transparent);
     padding: clamp(32px, 6vw, 64px) 16px 56px;
     color: var(--sh-text-primary);
     min-height: calc(100vh - 120px);
@@ -1618,5 +1618,195 @@ body:has(.staffhub-page) > .swal2-container {
     .staffhub-action-button:hover > i.bi-arrow-up-right,
     .staffhub-action-button:hover > i.bi-arrow-right {
         transform: none !important;
+    }
+}
+
+/* ================================================================
+   CAFECHAIN COFFEE OPERATIONS CONTRACT
+   Scoped to StaffHub; does not alter workflow hooks or modal state.
+   ================================================================ */
+.staffhub-page {
+    --sh-bg-espresso: #f7f4f0;
+    --sh-bg-lounge: #f0e2d6;
+    --sh-card-bg: #fffdfb;
+    --sh-card-hover: #fbf7f2;
+    --sh-gold: #a97750;
+    --sh-gold-light: #dfc5b1;
+    --sh-gold-dark: #70482f;
+    --sh-gold-glow: rgba(112, 72, 47, 0.22);
+    --sh-gold-border: #dfc5b1;
+    --sh-text-primary: #201812;
+    --sh-text-secondary: #66584f;
+    --sh-text-muted: #7a6c62;
+    --sh-border: #e9ded4;
+    --sh-coffee: #70482f;
+    --sh-brew: #5c3f2b;
+    --sh-roast: #3d2418;
+    --sh-white: #fffdfb;
+    --sh-shadow-sm: 0 2px 8px rgba(61, 36, 24, 0.05);
+    --sh-shadow-md: 0 8px 22px rgba(61, 36, 24, 0.08);
+    --sh-shadow-lg: 0 16px 38px rgba(61, 36, 24, 0.11);
+    --sh-shadow-xl: 0 16px 38px rgba(61, 36, 24, 0.11);
+    --sh-shadow-gold: none;
+    --sh-r-sm: 8px;
+    --sh-r-md: 10px;
+    --sh-r-lg: 16px;
+    --sh-r-xl: 16px;
+    background: var(--sh-bg-espresso);
+}
+
+.staffhub-shell {
+    width: min(1180px, 100%);
+}
+
+.staffhub-profile {
+    min-height: 168px;
+    padding: clamp(28px, 4vw, 40px);
+    border-color: #5c3f2b;
+    border-radius: var(--sh-r-xl);
+    background: #3d2418;
+    box-shadow: var(--sh-shadow-md);
+}
+
+.staffhub-profile::before,
+.staffhub-profile::after,
+.staffhub-profile-copy::before {
+    content: none;
+    backdrop-filter: none;
+}
+
+.staffhub-avatar {
+    width: 88px;
+    height: 88px;
+    border-width: 3px;
+    box-shadow: none;
+}
+
+.staffhub-online-dot {
+    border-color: #3d2418;
+    background: #2f6f5e;
+    box-shadow: none;
+}
+
+.staffhub-action-button,
+.staffhub-dialog-button,
+.staffhub-week-nav a {
+    min-height: 44px;
+    border-radius: 10px;
+    box-shadow: none;
+}
+
+.staffhub-action-button.is-primary,
+.staffhub-dialog-button.is-primary,
+.staffhub-dialog-button.is-primary:hover {
+    border-color: #5c3f2b;
+    color: #ffffff;
+    background: #5c3f2b;
+    box-shadow: none;
+}
+
+.staffhub-action-button.is-primary:hover {
+    border-color: #3d2418;
+    background: #3d2418;
+}
+
+.staffhub-action-button.is-secondary,
+.staffhub-dialog-button.is-secondary {
+    border-color: #d8c5b6;
+    color: #3d2418;
+    background: #fffdfb;
+}
+
+/* Explicit contrast contract for quick actions. */
+.staffhub-action-button.is-secondary strong,
+.staffhub-action-button.is-secondary small,
+.staffhub-action-button.is-secondary > i {
+    color: #201812 !important;
+}
+
+.staffhub-action-button.is-secondary small {
+    color: #66584f !important;
+}
+
+.staffhub-action-button.is-primary,
+.staffhub-action-button.is-primary:hover,
+.staffhub-action-button.is-primary:focus-visible,
+.staffhub-action-button.is-primary strong,
+.staffhub-action-button.is-primary small,
+.staffhub-action-button.is-primary > i,
+.staffhub-action-button.is-primary:hover strong,
+.staffhub-action-button.is-primary:hover small,
+.staffhub-action-button.is-primary:hover > i {
+    color: #ffffff !important;
+}
+
+.staffhub-action-button.is-primary:hover,
+.staffhub-action-button.is-primary:focus-visible {
+    border-color: #3d2418;
+    background: #3d2418;
+}
+
+.staffhub-terminal-action-badge.is-unlinked {
+    border-color: #d8c5b6;
+    color: #3d2418;
+    background: #f4e9df;
+    box-shadow: none;
+}
+
+.staffhub-summary {
+    gap: 16px;
+}
+
+.staffhub-summary-card,
+.staffhub-schedule-panel,
+.schedule-day,
+.staffhub-note,
+.staffhub-pos-dialog .modal-content {
+    border-color: var(--sh-border);
+    border-radius: var(--sh-r-lg);
+    background: var(--sh-card-bg);
+    box-shadow: var(--sh-shadow-sm);
+}
+
+.staffhub-summary-card::before {
+    content: none;
+}
+
+.staffhub-summary-card:hover,
+.staffhub-schedule-panel:hover,
+.schedule-day:hover,
+.schedule-item:hover {
+    transform: none;
+    border-color: #c99e7d;
+    box-shadow: var(--sh-shadow-md);
+}
+
+.staffhub-section-icon,
+.staffhub-summary-icon,
+.staffhub-note-icon,
+.staffhub-pos-dialog-icon {
+    border-radius: 10px;
+    color: #70482f;
+    background: #f4e9df;
+    box-shadow: none;
+}
+
+.schedule-day.today {
+    border-color: #a97750;
+    box-shadow: inset 3px 0 #a97750;
+}
+
+.staffhub-action-button:focus-visible,
+.staffhub-dialog-button:focus-visible,
+.staffhub-week-nav a:focus-visible,
+.staffhub-pos-dialog select:focus-visible,
+.staffhub-pos-dialog textarea:focus-visible {
+    outline: 2px solid #70482f;
+    outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+    .staffhub-profile {
+        border-radius: var(--sh-r-lg);
     }
 }

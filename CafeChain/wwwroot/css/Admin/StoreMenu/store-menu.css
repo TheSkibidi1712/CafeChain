@@ -523,7 +523,7 @@ textarea.sm-control {
     line-height: 1.5;
 }
 
-/* Row Action Buttons (34px) */
+/* Row Action Buttons — shared compact target contract (40px). */
 .sm-row-actions {
     display: flex;
     flex-wrap: nowrap;
@@ -537,12 +537,12 @@ textarea.sm-control {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
-    min-width: 34px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
     padding: 0;
     border: 1px solid var(--cc-border-strong, #d8c5b6);
-    border-radius: var(--cc-radius-sm, 8px);
+    border-radius: var(--cc-radius-control, 10px);
     background: var(--cc-surface-raised, #ffffff);
     color: var(--cc-brown-900, #3d2418);
     transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease;

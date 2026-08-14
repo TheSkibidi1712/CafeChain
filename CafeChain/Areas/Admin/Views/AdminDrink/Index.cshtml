@@ -244,7 +244,7 @@
                                     @if (canUpdateImage)
                                     {
                                     <button type="button"
-                                            class="btn drink-action-btn btn-manage-images"
+                                            class="btn drink-action-btn is-secondary btn-manage-images"
                                             data-id="@item.DrinkId"
                                             data-name="@item.Name"
                                             title="Quản lý ảnh">
@@ -256,7 +256,7 @@
                                     {
                                     <a asp-action="Edit"
                                        asp-route-id="@item.DrinkId"
-                                       class="btn drink-action-btn"
+                                       class="btn drink-action-btn is-edit"
                                        title="Sửa đồ uống">
                                         <i class="fas fa-pen"></i>
                                     </a>
@@ -265,7 +265,7 @@
                                     @if (canToggle)
                                     {
                                     <button type="button"
-                                            class="btn drink-action-btn js-toggle-drink"
+                                            class="btn drink-action-btn js-toggle-drink @(item.Active ? "is-lock" : "is-unlock")"
                                             data-id="@item.DrinkId"
                                             title="@(item.Active ? "Ngừng bán" : "Mở bán lại")">
                                         <i class="fas @(item.Active ? "fa-pause" : "fa-play")"></i>

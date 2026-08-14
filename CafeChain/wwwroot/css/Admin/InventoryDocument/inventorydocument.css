@@ -11,6 +11,32 @@
     --cc-primary-hover: var(--cc-brown-900, #3d2418);
 }
 
+/* Keyboard and motion safety for the inventory document workspace. */
+.inventory-page :is(a, button, input, select, textarea, [tabindex]):focus-visible,
+#inventoryDetailModal :is(a, button, input, select, textarea, [tabindex]):focus-visible,
+#inventoryCreateModal :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--cc-brown-600, #70482f);
+    outline-offset: 3px;
+    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22));
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .inventory-page *,
+    .inventory-page *::before,
+    .inventory-page *::after,
+    #inventoryDetailModal *,
+    #inventoryDetailModal *::before,
+    #inventoryDetailModal *::after,
+    #inventoryCreateModal *,
+    #inventoryCreateModal *::before,
+    #inventoryCreateModal *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
 /* ==========================================================================
    PAGE CANVAS & LAYOUT
    ========================================================================== */
@@ -566,8 +592,9 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
     border: 1px solid var(--cc-border-strong, #d8c5b6);
     border-radius: var(--cc-radius-control, 10px);
     background: var(--cc-surface-muted, #fbf7f2);

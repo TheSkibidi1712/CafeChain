@@ -287,7 +287,7 @@
                                     @if (canUpdate)
                                     {
                                     <button type="button"
-                                            class="btn btn-sm btn-light btn-edit-topping"
+                                            class="btn btn-sm btn-light btn-edit-topping is-edit"
                                             title="Chỉnh sửa"
                                             data-bs-toggle="modal"
                                             data-bs-target="#editModal"
@@ -304,7 +304,7 @@
                                     @if (canToggle)
                                     {
                                     <button type="button"
-                                            class="btn btn-sm js-toggle-topping"
+                                            class="btn btn-sm js-toggle-topping @(item.Active ? "is-lock" : "is-unlock")"
                                             title="@(item.Active ? "Khóa" : "Mở khóa")"
                                             onclick="toggleTopping(@item.ToppingId, '@Url.Action("ToggleStatus", "AdminTopping", new { area = "Admin", id = item.ToppingId })')"
                                             data-id="@item.ToppingId"
