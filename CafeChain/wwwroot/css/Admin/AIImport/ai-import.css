@@ -34,6 +34,7 @@ select,input,textarea{border:1px solid #d8deea;border-radius:9px;padding:.55rem 
 .supplemental-data,.edit-source-details{margin-top:.55rem;border:1px dashed #cfd6e2;border-radius:9px;background:#fafbfc}.supplemental-data summary,.edit-source-details summary{cursor:pointer;padding:.5rem .65rem;color:#596579;font-size:.75rem;font-weight:700}
 .supplemental-data>div,.edit-source-details>div>div{display:grid;grid-template-columns:minmax(100px,.35fr) minmax(0,1fr);gap:.65rem;padding:.4rem .65rem;border-top:1px solid #edf0f5}.supplemental-data span,.edit-source-details span{overflow-wrap:anywhere;word-break:break-word}
 .issues-cell{overflow-wrap:anywhere}.issue{padding:.5rem .6rem;border-radius:9px;background:#fee2e2;color:#991b1b;margin-bottom:.4rem}.issue.warning{background:#fef3c7;color:#92400e}.issue strong,.issue span{display:block}.issue strong{font-size:.7rem;margin-bottom:.15rem}.no-issue{color:#667085}.empty-preview{text-align:center;padding:2rem;color:var(--muted)}
+.issue small{display:block;margin-top:.2rem;opacity:.78}.issue-field-link{display:block;border:0;padding:0;margin:0 0 .15rem;background:transparent;color:inherit;font:inherit;font-size:.7rem;font-weight:700;text-align:left;text-decoration:underline;cursor:pointer}.manual-review-row{margin:.75rem 0;padding:.75rem;border:1px solid #c7d2fe;border-radius:10px;background:#eef2ff;color:#3730a3}
 
 /* Modal sửa dòng dùng cùng ngôn ngữ thị giác với các form Create nghiệp vụ. */
 .edit-dialog{width:min(900px,calc(100vw - 2rem));max-height:min(88vh,900px);padding:0;overflow:hidden}

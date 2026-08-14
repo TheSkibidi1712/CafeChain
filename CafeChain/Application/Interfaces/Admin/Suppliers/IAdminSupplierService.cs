@@ -27,6 +27,8 @@ namespace CafeChain.Application.Interfaces.Admin.Suppliers
         Task<int> CreateAsync(AdminSupplierCreateDTO dto, int actorStaffId = 0);
         Task<List<AdminSupplierDuplicateMatchDTO>> FindDuplicateMatchesAsync(
             AdminSupplierCreateDTO dto);
+        Task<IReadOnlyList<List<AdminSupplierDuplicateMatchDTO>>> FindDuplicateMatchesBatchAsync(
+            IReadOnlyList<AdminSupplierCreateDTO> requests);
         Task<AdminSupplierDuplicateWarningDTO?> PrepareDuplicateWarningAsync(
             AdminSupplierCreateDTO dto,
             int actorStaffId = 0);

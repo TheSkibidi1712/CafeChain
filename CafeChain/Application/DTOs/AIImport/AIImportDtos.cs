@@ -1,4 +1,5 @@
 using CafeChain.Models.AIImport;
+using CafeChain.Application.Services.AIImport;
 
 namespace CafeChain.Application.DTOs.AIImport;
 
@@ -9,6 +10,11 @@ public sealed class AIImportAnalyzeRequest
 }
 
 public sealed class AIImportConfirmRequest
+{
+    public int ExpectedPreviewVersion { get; set; }
+}
+
+public sealed class AIImportReanalyzeRequest
 {
     public int ExpectedPreviewVersion { get; set; }
 }
@@ -31,6 +37,7 @@ public sealed class AIImportItemPatchRequest
     public string Action { get; set; } = AIImportActions.Create;
     public Dictionary<string, string?> Values { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public bool WarningsAcknowledged { get; set; }
+    public bool ManualReviewConfirmed { get; set; }
     public string? DuplicateOverrideReason { get; set; }
 }
 
@@ -67,7 +74,20 @@ public sealed class AIImportErrorDto
     public string Code { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
     public AIImportPositionDto? Position { get; set; }
+    public AIImportPositionDto? SourceLocator { get; set; }
     public string? Field { get; set; }
+    public string Severity { get; set; } = AIImportIssueSeverities.Error;
+    public Dictionary<string, object?> Metadata { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+}
+
+public sealed class AIImportSourceColumnDto
+{
+    public string Key { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+    public string Classification { get; set; } = AIImportColumnClassifications.Unknown;
+    public string? TargetField { get; set; }
+    public AIImportPositionDto? SourceLocator { get; set; }
+    public string? Reason { get; set; }
 }
 
 public sealed class AIImportEditorOptionDto
@@ -130,6 +150,8 @@ public sealed class AIImportGroupDto
     public AIImportEntityType EntityType { get; set; }
     public Dictionary<string, string?> Mapping { get; set; } = new();
     public List<string> SourceHeaders { get; set; } = new();
+    public List<AIImportSourceColumnDto> SourceColumns { get; set; } = new();
+    public List<AIImportErrorDto> Issues { get; set; } = new();
     public int DependencyOrder { get; set; }
     public decimal Confidence { get; set; }
     public string Status { get; set; } = string.Empty;
@@ -151,7 +173,10 @@ public sealed class AIImportItemDto
     public string Action { get; set; } = string.Empty;
     public List<AIImportErrorDto> Errors { get; set; } = new();
     public List<AIImportErrorDto> Warnings { get; set; } = new();
+    public List<AIImportErrorDto> Issues { get; set; } = new();
     public bool WarningsAcknowledged { get; set; }
+    public bool ManualReviewConfirmed { get; set; }
+    public DateTime? ManualReviewConfirmedAtUtc { get; set; }
     public string? DuplicateOverrideReason { get; set; }
     public int? ImportedEntityId { get; set; }
 }

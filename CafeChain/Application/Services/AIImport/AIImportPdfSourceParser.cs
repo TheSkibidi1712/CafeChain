@@ -69,6 +69,16 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
                 var words = NearestNeighbourWordExtractor.Instance.GetWords(page.Letters).ToList();
                 if (words.Count == 0) pagesWithoutText.Add(page.Number);
                 var lines = BuildLines(page.Number, words);
+                if (HasAmbiguousReadingOrder(lines, entityHint))
+                {
+                    result.Errors.Add(AIImportValidationContract.Issue(
+                        "THỨ_TỰ_ĐỌC_PDF_KHÔNG_RÕ",
+                        $"Không xác định được thứ tự đọc an toàn trên trang {page.Number}.",
+                        AIImportIssueSeverities.Error,
+                        locator: new AIImportPositionDto { SourceFormat = SourceFormat, Page = page.Number },
+                        resolution: AIImportIssueResolutions.ReuploadOrSkip));
+                    return Task.FromResult(result);
+                }
                 blockCount += lines.Count;
                 extractedCharacters += lines.Sum(line => line.Text.Length);
                 if (blockCount > _options.PdfMaxTextBlocks || extractedCharacters > _options.DocumentMaxExtractedCharacters)
@@ -174,7 +184,19 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
             {
                 var match = KeyValuePattern().Match(line.Text);
                 if (!match.Success) continue;
-                raw[match.Groups[1].Value.Trim()] = match.Groups[2].Value.Trim();
+                var key = match.Groups[1].Value.Trim();
+                if (raw.ContainsKey(key))
+                {
+                    result.Errors.Add(AIImportValidationContract.Issue(
+                        "KHÔNG_XÁC_ĐỊNH_RANH_GIỚI_BẢN_GHI",
+                        $"Nhãn '{key}' lặp lại trên trang {page.Key}; không thể ghép bản ghi an toàn.",
+                        AIImportIssueSeverities.Error,
+                        locator: new AIImportPositionDto { SourceFormat = SourceFormat, Page = page.Key, Block = line.Block },
+                        resolution: AIImportIssueResolutions.ReuploadOrSkip));
+                    raw.Clear();
+                    break;
+                }
+                raw[key] = match.Groups[2].Value.Trim();
                 evidence.Add(line);
             }
             if (raw.Count < 2) continue;
@@ -236,6 +258,8 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
                         detected.Mapping.TryGetValue(field, out var source) && !string.IsNullOrWhiteSpace(source)))
                     continue;
 
+                var headerColumns = AIImportSourceColumnBuilder.Build(headers);
+                var mapping = AIImportSourceColumnBuilder.RebindMapping(detected.Mapping, headerColumns);
                 var group = new AIImportSourceGroup
                 {
                     SourceLabel = $"Trang {pageLines.Key} · bảng {headerIndex + 1}",
@@ -251,8 +275,20 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
                     ExtractionMode = AIImportExtractionModes.PdfTextDeterministic,
                     HeaderOrdinal = headerLine.Block,
                     EntityType = detected.EntityType,
-                    Mapping = detected.Mapping,
-                    SourceHeaders = headers,
+                    Mapping = mapping,
+                    SourceHeaders = headerColumns.Select(column => column.Key).ToList(),
+                    SourceColumns = _schemas.ClassifyColumns(detected.EntityType,
+                        headerColumns.Select(column => new AIImportSourceColumn
+                        {
+                            Key = column.Key,
+                            Label = column.Label,
+                            SourceLocator = new AIImportSourceLocator
+                            {
+                                SourceFormat = SourceFormat, Page = pageLines.Key, Block = headerLine.Block,
+                                TextStart = headerLine.TextStart, TextEnd = headerLine.TextEnd,
+                                BoundingBox = headerLine.Box
+                            }
+                        }), mapping),
                     Confidence = detected.Confidence
                 };
 
@@ -260,8 +296,8 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
                 {
                     var row = ordered[rowIndex];
                     if (row.Cells.Count != headers.Count) break;
-                    var raw = headers.Select((header, index) => new { header, value = row.Cells[index].Text })
-                        .ToDictionary(pair => pair.header, pair => (string?)pair.value, StringComparer.OrdinalIgnoreCase);
+                    var raw = headerColumns.ToDictionary(column => column.Key,
+                        column => (string?)row.Cells[column.Index].Text, StringComparer.OrdinalIgnoreCase);
                     var locator = new AIImportSourceLocator
                     {
                         SourceFormat = SourceFormat,
@@ -275,7 +311,7 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
                     {
                         SortOrder = row.Block,
                         RawData = raw,
-                        MappedData = detected.Mapping.ToDictionary(pair => pair.Key,
+                        MappedData = mapping.ToDictionary(pair => pair.Key,
                             pair => string.IsNullOrWhiteSpace(pair.Value) ? null : raw.GetValueOrDefault(pair.Value), StringComparer.OrdinalIgnoreCase),
                         SourceTrace = raw.Keys.ToDictionary(key => key, _ => JsonSerializer.Serialize(locator), StringComparer.OrdinalIgnoreCase),
                         SourceLocator = locator,
@@ -316,6 +352,18 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
                     BuildCells(ordered));
             })
             .Where(line => !string.IsNullOrWhiteSpace(line.Text)).ToList();
+    }
+
+    private bool HasAmbiguousReadingOrder(IReadOnlyList<PdfLine> lines, AIImportEntityType? entityHint)
+    {
+        var splitLines = lines.Where(line => line.Cells.Count >= 2).ToList();
+        if (splitLines.Count < 3) return false;
+        var hasRecognizedHeader = splitLines.Any(line =>
+            _schemas.Detect(line.Cells.Select(cell => cell.Text), $"Trang {line.Page}", entityHint).EntityType
+            != AIImportEntityType.Unknown);
+        if (hasRecognizedHeader) return false;
+        var tracks = splitLines.Select(line => line.Cells.Count).Distinct().Count();
+        return tracks > 1 || splitLines.Count >= Math.Max(3, lines.Count / 2);
     }
 
     private static List<PdfCell> BuildCells(IReadOnlyList<Word> words)

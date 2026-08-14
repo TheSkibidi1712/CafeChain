@@ -119,6 +119,28 @@ public sealed class AIImportExcelParserTests
         Assert.Equal(2, result.Regions.Select(x => x.SheetName).Distinct().Count());
     }
 
+    [Fact]
+    public async Task Parse_splits_two_vertical_tables_even_when_a_title_connects_their_cells()
+    {
+        await using var stream = Workbook((_, worksheetPart) =>
+        {
+            worksheetPart.Worksheet = new Worksheet(new SheetData(
+                Row(1, InlineCell("A1", "CategoryCode"), InlineCell("B1", "Name")),
+                Row(2, InlineCell("A2", "CAT01"), InlineCell("B2", "Cà phê")),
+                Row(3, InlineCell("A3", "Danh sách đồ uống")),
+                Row(4, InlineCell("A4", "DrinkCode"), InlineCell("B4", "Name"),
+                    InlineCell("C4", "Category"), InlineCell("D4", "ProductType")),
+                Row(5, InlineCell("A5", "DR01"), InlineCell("B5", "Đen đá"),
+                    InlineCell("C5", "CAT01"), InlineCell("D5", "DRINK"))));
+        });
+
+        var result = await Parser().ParseAsync(stream, default);
+
+        Assert.Empty(result.Errors);
+        Assert.Equal(2, result.Regions.Count);
+        Assert.Equal(new[] { 1, 4 }, result.Regions.Select(region => region.MinRow));
+    }
+
     private static AIImportExcelParser Parser(decimal maxCompressionRatio = 100) => new(Options.Create(new AIImportOptions
     {
         MaxCompressionRatio = maxCompressionRatio

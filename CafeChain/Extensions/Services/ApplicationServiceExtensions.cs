@@ -166,6 +166,15 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IAIImportSourceParser, AIImportPdfSourceParser>();
             services.AddScoped<IAIImportDocumentAiExtractor, AIImportDocumentAiExtractor>();
             services.AddScoped<IAIImportDocumentPipeline, AIImportDocumentPipeline>();
+            services.AddScoped<AIImportCandidateValidator>();
+            services.AddSingleton<AIImportResolutionEngine>();
+            services.AddScoped<AIImportPreviewValidator>();
+            services.AddSingleton<AIImportAnalysisCoordinator>();
+            services.AddSingleton<AIImportPreviewMutationCoordinator>();
+            services.AddSingleton<AIImportConfirmCoordinator>();
+            services.AddSingleton<AIImportSessionQuery>();
+            services.AddScoped<AIImportEntityCreator>();
+            services.AddSingleton<AIImportEntityRegistry>();
             services.AddScoped<IAIImportService, AIImportService>();
 
             // File

@@ -239,6 +239,19 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             return matches.Select(ToMatchDto).ToList();
         }
 
+        public async Task<IReadOnlyList<List<AdminSupplierDuplicateMatchDTO>>> FindDuplicateMatchesBatchAsync(
+            IReadOnlyList<AdminSupplierCreateDTO> requests)
+        {
+            if (requests.Count == 0) return [];
+            var candidates = await LoadSoftDuplicateCandidatesAsync();
+            return requests.Select(dto =>
+            {
+                dto.Name = Normalize(dto.Name);
+                dto.TaxCode = SupplierTaxCodeNormalizer.Normalize(dto.TaxCode);
+                return FindSoftDuplicateMatches(dto, candidates).Select(ToMatchDto).ToList();
+            }).ToList();
+        }
+
         // ===== UPDATE =====
         public async Task UpdateAsync(AdminSupplierUpdateDTO dto, int actorStaffId = 0)
         {
@@ -511,13 +524,22 @@ namespace CafeChain.Application.Services.Admin.Suppliers
 
         private async Task<List<SoftDuplicateMatch>> FindSoftDuplicateMatchesAsync(AdminSupplierCreateDTO dto)
         {
-            var candidates = await _context.Suppliers
+            var candidates = await LoadSoftDuplicateCandidatesAsync();
+            return FindSoftDuplicateMatches(dto, candidates);
+        }
+
+        private async Task<List<Supplier>> LoadSoftDuplicateCandidatesAsync() =>
+            await _context.Suppliers
                 .AsNoTracking()
                 .Include(x => x.Phones)
                 .Include(x => x.Contacts)
                 .OrderBy(x => x.SupplierId)
                 .ToListAsync();
 
+        private static List<SoftDuplicateMatch> FindSoftDuplicateMatches(
+            AdminSupplierCreateDTO dto,
+            IReadOnlyList<Supplier> candidates)
+        {
             var incomingName = NormalizeIdentityText(dto.Name);
             var incomingAddress = NormalizeIdentityText(dto.Address);
             var incomingHotlines = dto.AdditionalPhones
