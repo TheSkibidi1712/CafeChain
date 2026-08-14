@@ -55,3 +55,19 @@ _Avoid_: Dedup key, request token
 **ClientOrderId**:
 UUID v4 sinh tại iPad ngay lúc nhấn "Thanh toán", lưu vĩnh viễn trên model `Order` với Unique Constraint. Dùng để chống trùng đơn khi Sync Offline Order.
 _Avoid_: LocalId, offlineId, requestKey
+
+**AI Import Candidate**:
+Bản ghi master data được trích xuất từ tài liệu nguồn và đang chờ backend chuẩn hóa, kiểm tra cùng người dùng xác nhận; Candidate chưa phải bản ghi nghiệp vụ trong database.
+_Avoid_: Imported row, AI-created record
+
+**Validation Issue**:
+Kết quả kiểm tra có mã, thông điệp, severity, vị trí nguồn và metadata xử lý. Severity là Error, Review hoặc Warning; field rỗng biểu thị lỗi cấp dòng.
+_Avoid_: Error message, parser warning
+
+**Manual Review Confirmation**:
+Xác nhận có lưu vết rằng người dùng đã đối chiếu một AI Import Candidate với nguồn. Chỉ giải quyết Review Reason cho phép xác nhận thủ công và mất hiệu lực khi normalized payload thay đổi.
+_Avoid_: Warning acknowledgement, save row
+
+**Business Key**:
+Định danh nghiệp vụ chuẩn hóa dùng để phát hiện trùng trước Confirm. Supplier chỉ dùng TaxCode làm hard Business Key; tín hiệu tên, điện thoại, email và địa chỉ là soft duplicate.
+_Avoid_: Database ID, primary key

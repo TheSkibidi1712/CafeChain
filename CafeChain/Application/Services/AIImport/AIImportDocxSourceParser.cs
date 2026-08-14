@@ -203,6 +203,8 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
             var headers = rows[0].Elements<TableCell>().Select(CellText).ToList();
             if (headers.All(string.IsNullOrWhiteSpace)) continue;
             var detected = _schemas.Detect(headers, $"Bảng {tableIndex + 1}", entityHint);
+            var headerColumns = AIImportSourceColumnBuilder.Build(headers);
+            var mapping = AIImportSourceColumnBuilder.RebindMapping(detected.Mapping, headerColumns);
             var confidence = hasMergedCells || hasTrackedChanges
                 ? Math.Min(detected.Confidence, Math.Max(0m, _options.ReviewConfidenceThreshold - 0.01m))
                 : detected.Confidence;
@@ -222,34 +224,53 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
                 ExtractionMode = AIImportExtractionModes.DocxTableDeterministic,
                 HeaderOrdinal = 1,
                 EntityType = detected.EntityType,
-                Mapping = detected.Mapping,
-                SourceHeaders = headers,
+                Mapping = mapping,
+                SourceHeaders = headerColumns.Select(column => column.Key).ToList(),
+                SourceColumns = _schemas.ClassifyColumns(detected.EntityType,
+                    headerColumns.Select(column => new AIImportSourceColumn
+                    {
+                        Key = column.Key,
+                        Label = column.Label,
+                        SourceLocator = new AIImportSourceLocator
+                        {
+                            SourceFormat = SourceFormat, Section = sectionNumber, Table = tableIndex + 1,
+                            TableRow = 1, TableColumn = column.Index + 1
+                        }
+                    }), mapping),
                 Confidence = confidence
             };
+            if (hasMergedCells)
+                group.Issues.Add(ReviewIssue("DOCX_Ô_GỘP_CẦN_XEM_LẠI",
+                    "Bảng DOCX có ô gộp; cần đối chiếu từng trường với nguồn.", group.SourceLocator));
+            if (hasTrackedChanges)
+                group.Issues.Add(ReviewIssue("DOCX_TRACK_CHANGE_CẦN_XEM_LẠI",
+                    "DOCX có Track Changes chưa được chấp nhận; cần đối chiếu từng trường với nguồn.", group.SourceLocator));
             for (var rowIndex = 1; rowIndex < rows.Count; rowIndex++)
             {
                 var values = rows[rowIndex].Elements<TableCell>().Select(CellText).ToList();
-                var raw = headers.Select((header, index) => new { header, value = values.ElementAtOrDefault(index) })
-                    .Where(pair => !string.IsNullOrWhiteSpace(pair.header))
-                    .ToDictionary(pair => pair.header.Trim(), pair => pair.value, StringComparer.OrdinalIgnoreCase);
+                var raw = headerColumns.ToDictionary(column => column.Key,
+                    column => values.ElementAtOrDefault(column.Index), StringComparer.OrdinalIgnoreCase);
                 if (raw.Values.All(string.IsNullOrWhiteSpace)) continue;
                 var locator = new AIImportSourceLocator { SourceFormat = SourceFormat, Section = sectionNumber, Table = tableIndex + 1, TableRow = rowIndex + 1 };
-                var trace = headers.Select((header, columnIndex) => new
+                var trace = headerColumns.Select(column => new
                     {
-                        Header = header.Trim(),
+                        Header = column.Key,
                         Locator = new AIImportSourceLocator
                         {
                             SourceFormat = SourceFormat,
                             Section = sectionNumber,
                             Table = tableIndex + 1,
                             TableRow = rowIndex + 1,
-                            TableColumn = columnIndex + 1
+                            TableColumn = column.Index + 1
                         }
                     })
                     .Where(value => value.Header.Length > 0)
                     .ToDictionary(value => value.Header, value => (string?)JsonSerializer.Serialize(value.Locator), StringComparer.OrdinalIgnoreCase);
-                group.Candidates.Add(Candidate(rowIndex + 1, raw, detected.Mapping, locator,
-                    AIImportExtractionModes.DocxTableDeterministic, confidence, sourceTrace: trace));
+                var candidate = Candidate(rowIndex + 1, raw, mapping, locator,
+                    AIImportExtractionModes.DocxTableDeterministic, confidence, sourceTrace: trace);
+                candidate.Issues.AddRange(group.Issues);
+                AddColumnIssues(candidate, group.SourceColumns, raw);
+                group.Candidates.Add(candidate);
             }
             if (group.Candidates.Count > 0) result.Groups.Add(group);
         }
@@ -289,9 +310,14 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
                 SourceHeaders = record.Keys.ToList(),
                 Confidence = confidence
             };
-            group.Candidates.Add(Candidate(++ordinal, new Dictionary<string, string?>(record, StringComparer.OrdinalIgnoreCase), detected.Mapping, locator,
+            if (hasTrackedChanges)
+                group.Issues.Add(ReviewIssue("DOCX_TRACK_CHANGE_CẦN_XEM_LẠI",
+                    "DOCX có Track Changes chưa được chấp nhận; cần đối chiếu từng trường với nguồn.", locator));
+            var candidate = Candidate(++ordinal, new Dictionary<string, string?>(record, StringComparer.OrdinalIgnoreCase), detected.Mapping, locator,
                 AIImportExtractionModes.DocxTextDeterministic, confidence, string.Join(Environment.NewLine, evidence),
-                new Dictionary<string, string?>(sourceTrace, StringComparer.OrdinalIgnoreCase)));
+                new Dictionary<string, string?>(sourceTrace, StringComparer.OrdinalIgnoreCase));
+            candidate.Issues.AddRange(group.Issues);
+            group.Candidates.Add(candidate);
             result.Groups.Add(group);
             record.Clear(); evidence.Clear(); sourceTrace.Clear(); firstParagraph = 0; firstSection = 0;
         }
@@ -309,17 +335,22 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
             var match = KeyValuePattern().Match(text);
             if (!match.Success)
             {
+                if (record.Count == 1)
+                    result.Errors.Add(Error("KHÔNG_XÁC_ĐỊNH_RANH_GIỚI_BẢN_GHI",
+                        $"Không xác định được ranh giới bản ghi gần paragraph {paragraphIndex}."));
                 Flush();
                 sourceLabel = text.Length <= 150 ? text : "Nội dung DOCX";
                 continue;
             }
+            var key = match.Groups[1].Value.Trim();
+            if (record.ContainsKey(key)) Flush();
             if (firstParagraph == 0)
             {
                 firstParagraph = paragraphIndex;
                 firstSection = sectionNumber;
             }
-            record[match.Groups[1].Value.Trim()] = match.Groups[2].Value.Trim();
-            sourceTrace[match.Groups[1].Value.Trim()] = JsonSerializer.Serialize(new AIImportSourceLocator
+            record[key] = match.Groups[2].Value.Trim();
+            sourceTrace[key] = JsonSerializer.Serialize(new AIImportSourceLocator
             {
                 SourceFormat = SourceFormat,
                 Section = sectionNumber,
@@ -352,6 +383,32 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
             EvidenceSnippet = evidence ?? string.Join(" | ", raw.Select(pair => $"{pair.Key}: {pair.Value}")),
             Confidence = confidence
         };
+    }
+
+    private static AIImportErrorDto ReviewIssue(string code, string message, AIImportSourceLocator locator) =>
+        AIImportValidationContract.Issue(code, message, AIImportIssueSeverities.Review,
+            locator: new AIImportPositionDto
+            {
+                SourceFormat = locator.SourceFormat, Section = locator.Section, Paragraph = locator.Paragraph,
+                Table = locator.Table, TableRow = locator.TableRow, TableColumn = locator.TableColumn
+            }, resolution: AIImportIssueResolutions.ManualReview);
+
+    private static void AddColumnIssues(
+        AIImportSourceCandidate candidate,
+        IEnumerable<AIImportSourceColumn> columns,
+        IReadOnlyDictionary<string, string?> raw)
+    {
+        foreach (var column in columns.Where(column => !string.IsNullOrWhiteSpace(raw.GetValueOrDefault(column.Key))))
+        {
+            if (column.Classification == AIImportColumnClassifications.Forbidden)
+                candidate.Issues.Add(AIImportValidationContract.Issue("CỘT_CẤM",
+                    $"Cột '{column.Label}' không được phép dùng trong AI Smart Import.", AIImportIssueSeverities.Error,
+                    resolution: AIImportIssueResolutions.ReuploadOrSkip));
+            else if (column.Classification == AIImportColumnClassifications.Unknown)
+                candidate.Issues.Add(AIImportValidationContract.Issue("CỘT_KHÔNG_XÁC_ĐỊNH",
+                    $"Cột '{column.Label}' không thuộc ImportSchema và sẽ bị bỏ qua.", AIImportIssueSeverities.Warning,
+                    resolution: AIImportIssueResolutions.Acknowledge));
+        }
     }
 
     private static string CellText(TableCell cell) => string.Join(" ", cell.Descendants<Text>().Select(text => text.Text)).Trim();

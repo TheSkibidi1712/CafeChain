@@ -223,11 +223,40 @@ Không có endpoint riêng cho DOCX/PDF.
 
 Mutation dùng cookie Admin và anti-forgery header `RequestVerificationToken`. Confirm bắt buộc có `Idempotency-Key` và `expectedPreviewVersion`.
 
+Reanalyze cũng là mutation có optimistic concurrency: body bắt buộc `{ "expectedPreviewVersion": n }`. Group PATCH, Item PATCH, Reanalyze, Confirm và Cancel stale đều trả `409 PREVIEW_ĐÃ_THAY_ĐỔI`.
+
 Response session/group/item bổ sung backward-compatible:
 
 - `sourceFormat`, `sourceMetadata`, `extractionModes`;
 - `sourceLabel`, `extractionMode`, `sourceLocator`;
 - `evidenceSnippet`, `aiConfidence`, `ocrConfidence`.
+- `issues[]` với `code`, `message`, `field`, `severity`, `sourceLocator`, `metadata`; `errors[]`, `warnings[]` và `position` cũ vẫn được giữ;
+- `sourceColumns[]` với source key, label, classification và target field;
+- `manualReviewConfirmed`, `manualReviewConfirmedAtUtc`.
+
+Item PATCH có thêm `manualReviewConfirmed`. Với reason cho phép review, modal hiển thị checkbox đối chiếu bằng chứng riêng; client chỉ gửi `true` khi người dùng chủ động chọn checkbox rồi bấm **Lưu và kiểm tra lại**. Backend lưu account/thời điểm/hash payload và tự vô hiệu hóa khi payload đổi. Checkbox warning và Supplier server token vẫn độc lập với xác nhận này.
+
+Reanalyze nhận `expectedPreviewVersion` bắt buộc và claim trạng thái `ANALYZING` bằng optimistic concurrency trước khi thay preview. Hai request cùng version chỉ có một request thắng; request còn lại nhận `409 PREVIEW_ĐÃ_THAY_ĐỔI` và không ghi đè kết quả mới.
+
+### Kiến trúc validation-first
+
+- `AIImportCandidateValidator` là module chung cho normalization, schema issue và status của ba format.
+- `AIImportReferenceResolver` trả `FOUND`, `NOT_FOUND`, `AMBIGUOUS`, `INACTIVE`, `PENDING_IN_SESSION` hoặc `FORBIDDEN`; không chọn record đầu tiên.
+- `AIImportBusinessKeys` tập trung hard business key và giữ Supplier soft match bên `AdminSupplierService`.
+- Preview validator batch-preload reference/hard duplicate key; Supplier soft duplicate dùng `FindDuplicateMatchesBatchAsync` để nạp tập Supplier/phone/contact một lần cho cả batch nhưng vẫn dùng đúng normalization và signal policy của `AdminSupplierService`.
+
+### Phase 9: module và scoped revalidation
+
+- `AIImportEntityRegistry` là nguồn tập trung cho business key, quyền Create và thứ tự dependency của năm entity.
+- `AIImportPreviewValidator` cùng `AIImportResolutionEngine` xác định candidate issue và dependency closure.
+- Group/Item PATCH chỉ revalidate group/item bị sửa, cohort business key cũ/mới và Drink phụ thuộc Category; Analyze, Reanalyze và Confirm vẫn full validation.
+- `AIImportAnalysisCoordinator`, `AIImportPreviewMutationCoordinator`, `AIImportConfirmCoordinator` và `AIImportSessionQuery` gom state transition, preview mutation, execution plan và query ordering ra khỏi nhánh nghiệp vụ tương ứng.
+- Reference và hard duplicate query chỉ lấy các code/name xuất hiện trong validation scope. Supplier vẫn batch một lần và warning token không đổi.
+- Reanalyze lỗi sau conditional claim chuyển session sang `FAILED` với `PHÂN_TÍCH_LẠI_THẤT_BẠI`, không để phiên mắc ở `ANALYZING`.
+- `AIImportEntityCreator` build DTO rồi gọi năm CRUD service; coordinator không tự `DbContext.Add` entity nghiệp vụ.
+- Parser adapter chỉ tạo source document/group/candidate và issue nguồn; database-sensitive validation chạy ở preview và chạy lại khi Confirm.
+
+Migration áp dụng theo thứ tự `20260813071843_InitialCreate` rồi `20260813183911_AddAIImportValidationState`. Migration mới thêm `SourceColumnsJson`, `IssuesJson`, `SourceIssuesJson` và các cột manual-review; không chỉnh baseline đã squash.
 
 Locator có field tùy format: sheet/region/row/column; section/paragraph/table/tableRow/tableColumn; page/block/boundingBox/textStart/textEnd.
 
@@ -242,6 +271,12 @@ Locator có field tùy format: sheet/region/row/column; section/paragraph/table/
 | `NỘI_DUNG_CHỦ_ĐỘNG_KHÔNG_ĐƯỢC_HỖ_TRỢ` | Loại macro, OLE, attachment, external action/link |
 | `DOCX_VƯỢT_GIỚI_HẠN` / `PDF_VƯỢT_GIỚI_HẠN` | Chia tài liệu hoặc giảm resource |
 | `DOCX_CẤU_TRÚC_KHÔNG_RÕ` / `BỐ_CỤC_PDF_KHÔNG_RÕ` | Dùng table/key-value rõ hơn hoặc bật Ollama để reanalyze |
+| `THỨ_TỰ_ĐỌC_PDF_KHÔNG_RÕ` | Xuất lại PDF một cột/bảng rõ hoặc dùng nguồn XLSX/DOCX |
+| `KHÔNG_XÁC_ĐỊNH_RANH_GIỚI_BẢN_GHI` | Tách record bằng heading/paragraph trống hoặc một hàng cho mỗi record |
+| `CỘT_CẤM` | Xóa StoreId/BranchId/DB ID/audit/SQL/command khỏi file hoặc SKIP dòng |
+| `CỘT_KHÔNG_XÁC_ĐỊNH` | Kiểm tra cột bị bỏ qua và acknowledge warning nếu đúng |
+| `XUNG_ĐỘT_ÁNH_XẠ` | Chọn source key cụ thể khi header/alias trùng |
+| `REFERENCE_KHÔNG_DUY_NHẤT` | Dùng code duy nhất thay vì tên mơ hồ |
 | `PDF_CẦN_OCR` | Chuyển sang PDF searchable text; OCR chưa được hỗ trợ |
 | `DOCX_Ô_GỘP_CẦN_XEM_LẠI` / `DOCX_TRACK_CHANGE_CẦN_XEM_LẠI` | Kiểm tra thủ công hoặc bỏ merge/Accept Changes rồi upload lại |
 | `AI_CONFIDENCE_THẤP` | Candidate vẫn được giữ nhưng phải sửa/xác nhận ở trạng thái review |
@@ -270,10 +305,12 @@ dotnet test CafeChain.Tests/CafeChain.Tests.csproj --no-build --filter FullyQual
 
 Kết quả xác minh tại thời điểm cập nhật tài liệu:
 
-- build: 0 error;
-- 7/7 regression test tập trung cho modal, xác nhận thủ công confidence thấp và Supplier parser trên cả PDF/DOCX đều pass;
-- nhóm test AI Import liên quan đạt 74/75. Test duy nhất còn fail là contract migration cũ vẫn kỳ vọng `20260812160337_InitialCreate`, trong khi filesystem/EF model hiện chỉ có `20260813071843_InitialCreate`; lỗi này không thuộc parser hoặc modal nhưng cần đồng bộ test migration trước khi coi toàn nhóm xanh;
-- không ghi nhận lại kết quả full suite trong lần cập nhật này; không tái sử dụng số liệu full-suite cũ như một kết quả hiện tại.
+- build ứng dụng: thành công, `0 error`; lượt incremental ban đầu báo `0 warning`, còn lượt biên dịch lại toàn bộ source hiển thị các warning nullable/obsolete tồn tại ở nhiều module ngoài phạm vi AI Import, vì vậy không coi repository là clean-warning;
+- nhóm AI Import không phụ thuộc SQL Server: `72/72` test đạt, bao gồm entity registry, scoped dependency closure, Confirm execution plan và contract module Phase 9;
+- nhóm Supplier duplicate contract sau khi thêm batch matcher: `31/31` test đạt;
+- 6 test `AIImportSqlServerTests` chưa chạy tới nghiệp vụ: `localhost\SQLEXPRESS02` trả `Failed to generate SSPI context`; thử LocalDB disposable cũng thất bại ở bước tạo automatic instance. Đây là giới hạn xác thực/instance của môi trường và không được ghi là test đạt;
+- full suite không-SQL: `2099/2132` test đạt. Có 33 test lỗi ở các contract/UI/seed ngoài AI Smart Import; 32 lỗi thuộc baseline đã ghi nhận, lỗi còn lại là contract `AdminAiSupplierRefactorTests` yêu cầu nhãn “Thông tin kỹ thuật” trong view anomaly không thuộc phạm vi và không bị refactor này chỉnh sửa;
+- full suite có SQL không thể hoàn tất trong giới hạn thời gian vì các nhóm SQL integration cùng không kết nối được test instance. Không dùng database production để thay thế.
 
 Với SQL integration, cấu hình `CAFECHAIN_TEST_SQLSERVER_CONNECTION_STRING` theo convention `{Database}` của test. Không trỏ test disposable database vào production.
 

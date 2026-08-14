@@ -76,6 +76,7 @@ public sealed class AIImportSourceCandidate
     public decimal Confidence { get; init; }
     public decimal? AiConfidence { get; init; }
     public string? AIErrorCode { get; init; }
+    public List<AIImportErrorDto> Issues { get; init; } = [];
 }
 
 public sealed class AIImportSourceGroup
@@ -87,6 +88,8 @@ public sealed class AIImportSourceGroup
     public AIImportEntityType EntityType { get; init; }
     public Dictionary<string, string?> Mapping { get; init; } = new(StringComparer.OrdinalIgnoreCase);
     public List<string> SourceHeaders { get; init; } = [];
+    public List<AIImportSourceColumn> SourceColumns { get; init; } = [];
+    public List<AIImportErrorDto> Issues { get; init; } = [];
     public decimal Confidence { get; init; }
     public List<AIImportSourceCandidate> Candidates { get; init; } = [];
 }

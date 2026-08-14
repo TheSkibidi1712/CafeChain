@@ -64,7 +64,8 @@ public sealed class AIImportSqlServerTests : IAsyncLifetime
             .ToListAsync();
         Assert.Equal(4, tables.Count);
         var applied = await context.Database.GetAppliedMigrationsAsync();
-        Assert.Contains("20260812160337_InitialCreate", applied);
+        Assert.Contains("20260813071843_InitialCreate", applied);
+        Assert.Contains("20260813183911_AddAIImportValidationState", applied);
     }
 
     [Fact]
@@ -207,21 +208,35 @@ public sealed class AIImportSqlServerTests : IAsyncLifetime
                         AccountId = accountId, PermissionCode = permissionCode, TargetStoreId = storeId, Allowed = true
                     }));
 
+            var schemas = new AIImportSchemaRegistry();
+            var drinkService = Mock.Of<IAdminDrinkService>();
+            var sizeService = Mock.Of<IAdminSizeService>();
+            var ingredientService = Mock.Of<IAdminIngredientService>();
+            var supplierService = Mock.Of<IAdminSupplierService>();
+            var options = Options.Create(new AIImportOptions());
+            var entityRegistry = new AIImportEntityRegistry();
+            var entityCreator = new AIImportEntityCreator(context, categoryService.Object, drinkService,
+                sizeService, ingredientService, supplierService);
             var service = new AIImportService(
                 context,
                 Mock.Of<IAIImportDocumentPipeline>(),
                 Mock.Of<IAIImportRegionAnalyzer>(),
-                new AIImportSchemaRegistry(),
+                schemas,
                 new RequestDeduplicationService(new RequestDeduplicationRepository(context)),
                 permissions.Object,
-                categoryService.Object,
-                Mock.Of<IAdminDrinkService>(),
-                Mock.Of<IAdminSizeService>(),
-                Mock.Of<IAdminIngredientService>(),
-                Mock.Of<IAdminSupplierService>(),
-                Options.Create(new AIImportOptions()),
+                supplierService,
+                options,
                 Options.Create(new OllamaOptions { Model = "test" }),
-                NullLogger<AIImportService>.Instance);
+                NullLogger<AIImportService>.Instance,
+                entityCreator,
+                new AIImportPreviewValidator(
+                    new AIImportCandidateValidator(schemas, options),
+                    new AIImportResolutionEngine()),
+                entityRegistry,
+                new AIImportAnalysisCoordinator(),
+                new AIImportPreviewMutationCoordinator(),
+                new AIImportConfirmCoordinator(entityRegistry),
+                new AIImportSessionQuery());
 
             var result = await service.ConfirmAsync(
                 sessionId,

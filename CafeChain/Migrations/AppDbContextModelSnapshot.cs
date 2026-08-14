@@ -151,6 +151,10 @@ namespace CafeChain.Migrations
                     b.Property<int>("ImportSessionId")
                         .HasColumnType("int");
 
+                    b.Property<string>("IssuesJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("MappingJson")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -164,6 +168,10 @@ namespace CafeChain.Migrations
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("SourceColumnsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SourceHeadersJson")
                         .IsRequired()
@@ -229,6 +237,19 @@ namespace CafeChain.Migrations
                     b.Property<int?>("ImportedEntityId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("ManualReviewConfirmed")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ManualReviewConfirmedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ManualReviewConfirmedByAccountId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ManualReviewPayloadHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<string>("NormalizedDataJson")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -238,6 +259,10 @@ namespace CafeChain.Migrations
                         .HasColumnType("decimal(5,4)");
 
                     b.Property<string>("RawDataJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SourceIssuesJson")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 

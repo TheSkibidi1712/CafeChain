@@ -32,6 +32,10 @@ public interface IAIImportSchemaRegistry
     Dictionary<string, string?> Normalize(AIImportEntityType entityType, IReadOnlyDictionary<string, string?> values);
     List<AIImportErrorDto> Validate(AIImportEntityType entityType, IReadOnlyDictionary<string, string?> values);
     bool IsAllowedMapping(AIImportEntityType entityType, IReadOnlyDictionary<string, string?> mapping);
+    List<AIImportSourceColumn> ClassifyColumns(
+        AIImportEntityType entityType,
+        IEnumerable<AIImportSourceColumn> columns,
+        IReadOnlyDictionary<string, string?> mapping);
 }
 
 public sealed partial class AIImportSchemaRegistry : IAIImportSchemaRegistry
@@ -49,7 +53,7 @@ public sealed partial class AIImportSchemaRegistry : IAIImportSchemaRegistry
         string sheetName,
         AIImportEntityType? hint = null)
     {
-        var source = headers.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var source = headers.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim()).ToList();
         var candidates = Schemas.Values.Select(schema =>
         {
             var mapping = Map(schema, source);
@@ -134,13 +138,49 @@ public sealed partial class AIImportSchemaRegistry : IAIImportSchemaRegistry
                == mapping.Values.Count(x => !string.IsNullOrWhiteSpace(x));
     }
 
+    public List<AIImportSourceColumn> ClassifyColumns(
+        AIImportEntityType entityType,
+        IEnumerable<AIImportSourceColumn> columns,
+        IReadOnlyDictionary<string, string?> mapping)
+    {
+        var mapped = mapping.Where(pair => !string.IsNullOrWhiteSpace(pair.Value))
+            .ToDictionary(pair => pair.Value!, pair => pair.Key, StringComparer.OrdinalIgnoreCase);
+        return columns.Select(column =>
+        {
+            if (mapped.TryGetValue(column.Key, out var target))
+            {
+                column.Classification = AIImportColumnClassifications.Mapped;
+                column.TargetField = target;
+                column.Reason = null;
+            }
+            else if (IsForbiddenHeader(column.Label))
+            {
+                column.Classification = AIImportColumnClassifications.Forbidden;
+                column.Reason = "Cột định danh, phạm vi, quyền hoặc lệnh không được phép nhập.";
+            }
+            else if (IsKnownIgnoredHeader(column.Label))
+            {
+                column.Classification = AIImportColumnClassifications.Ignored;
+                column.Reason = "Cột metadata kiểm thử/nguồn được biết rõ và không thuộc ImportSchema.";
+            }
+            else
+            {
+                column.Classification = AIImportColumnClassifications.Unknown;
+                column.Reason = "Hệ thống chưa xác định ý nghĩa nghiệp vụ của cột.";
+            }
+            return column;
+        }).ToList();
+    }
+
     private static Dictionary<string, string?> Map(AIImportSchemaDefinition schema, IReadOnlyCollection<string> headers)
     {
         var result = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
         foreach (var field in schema.Fields)
         {
-            var source = headers.FirstOrDefault(header => field.Aliases.Contains(Key(header)) || Key(header) == Key(field.Name));
-            result[field.Name] = source;
+            var matches = headers.Where(header => field.Aliases.Contains(Key(RemoveColumnSuffix(header)))
+                                                  || Key(RemoveColumnSuffix(header)) == Key(field.Name))
+                .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            result[field.Name] = matches.Count == 1 ? matches[0] : null;
         }
         return result;
     }
@@ -184,8 +224,27 @@ public sealed partial class AIImportSchemaRegistry : IAIImportSchemaRegistry
         return builder.ToString();
     }
 
+    internal static bool IsForbiddenHeader(string? value)
+    {
+        var key = Key(RemoveColumnSuffix(value));
+        return key is "storeid" or "branchid" or "categoryid" or "drinkid" or "sizeid" or "ingredientid"
+            or "supplierid" or "producttypeid" or "unitid" or "createdby" or "updatedby" or "accountid"
+            or "staffid" or "roleid" or "sql" or "command" or "query";
+    }
+
+    internal static bool IsKnownIgnoredHeader(string? value)
+    {
+        var key = Key(RemoveColumnSuffix(value));
+        return key is "tcid" or "expectedpreview" or "expectedcode" or "testpurpose" or "seeddependency";
+    }
+
+    internal static string RemoveColumnSuffix(string? value) =>
+        Regex.Replace(value ?? string.Empty, @"\s+\[[A-Z]+\]$", string.Empty, RegexOptions.CultureInvariant).Trim();
+
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-    private static AIImportErrorDto NewError(string code, string message, string field) => new() { Code = code, Message = message, Field = field };
+    private static AIImportErrorDto NewError(string code, string message, string field) =>
+        AIImportValidationContract.Issue(code, message, AIImportIssueSeverities.Error, field,
+            resolution: AIImportIssueResolutions.EditField);
     [GeneratedRegex("^[0-9]{10}(-[0-9]{3})?$", RegexOptions.CultureInvariant)]
     private static partial Regex TaxCodeRegex();
 }

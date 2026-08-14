@@ -36,8 +36,8 @@ public sealed class AIImportController : Controller
     [HttpPost("/api/ai-import/{id:int}/reanalyze")]
     [ValidateAntiForgeryToken]
     [RequirePermission(PermissionConstants.AIImportAnalyze)]
-    public async Task<IActionResult> Reanalyze(int id, CancellationToken cancellationToken) =>
-        Result(await _service.ReanalyzeAsync(id, _actorContext.Get(User), cancellationToken));
+    public async Task<IActionResult> Reanalyze(int id, [FromBody] AIImportReanalyzeRequest request, CancellationToken cancellationToken) =>
+        Result(await _service.ReanalyzeAsync(id, request, _actorContext.Get(User), cancellationToken));
 
     [HttpGet("/api/ai-import/{id:int}")]
     [RequirePermission(PermissionConstants.AIImportView)]

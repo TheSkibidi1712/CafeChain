@@ -180,6 +180,17 @@ Controller không hard-code 10 MB. Resource filter lấy giới hạn request t�
 
 ## 9. Preview, duplicate và state
 
+Validation dùng một hợp đồng chung cho cả Excel, DOCX và PDF: `Code`, `Message`, `Field?`, `Severity`, `SourceLocator?`, `Metadata?`. `Field` rỗng là lỗi cấp dòng; `Metadata.resolution` cho UI biết phải sửa field, remap group, xác nhận warning, review thủ công hay SKIP conflict. Status được giải quyết theo thứ tự `ERROR > REVIEW_REQUIRED > WARNING > VALID`; `SKIPPED` chỉ do action SKIP và `IMPORTED` chỉ xuất hiện sau Confirm.
+
+Cột nguồn được phân loại:
+
+- `MAPPED`: đang ánh xạ vào ImportSchema;
+- `IGNORED`: metadata hoặc projection entity khác đã biết rõ, được hiển thị nhưng không tạo blocker;
+- `UNKNOWN`: có dữ liệu thì tạo warning, không âm thầm bỏ;
+- `FORBIDDEN`: scope, database ID, actor/quyền, SQL hoặc command có dữ liệu tạo `CỘT_CẤM` và chặn dòng.
+
+Header trùng giữ source key theo cột như `Tên [B]`, `Tên [D]`; backend không tự chọn cột đầu tiên. Hai cột cùng khớp một target tạo `XUNG_ĐỘT_ÁNH_XẠ` cho đến khi người dùng remap rõ ràng. Excel có thể tách Category và Drink từ cùng region khi cả hai projection đủ required field; Category được deduplicate và lập dependency trước Drink. Vùng nguồn dùng chung cell tạo `VÙNG_DỮ_LIỆU_CHỒNG_LẤN` thay vì nhập một cell hai lần.
+
 - `VALID`: hợp lệ.
 - `WARNING`: phải xác nhận cảnh báo.
 - `ERROR`: không Confirm được.
@@ -187,7 +198,9 @@ Controller không hard-code 10 MB. Resource filter lấy giới hạn request t�
 - `SKIPPED`: không tạo.
 - `IMPORTED`: đã tạo thành công.
 
-Mọi PATCH group/item kiểm tra `expectedPreviewVersion`, revalidate và tăng `PreviewVersion`. Client stale nhận HTTP 409 `PREVIEW_ĐÃ_THAY_ĐỔI`.
+Mọi PATCH group/item và Reanalyze kiểm tra `expectedPreviewVersion`, revalidate và tăng `PreviewVersion`. Client stale nhận HTTP 409 `PREVIEW_ĐÃ_THAY_ĐỔI`.
+
+Xác nhận thủ công được lưu riêng cùng account, thời điểm và hash normalized payload. Nó chỉ giải quyết `AI_CONFIDENCE_THẤP`, Track Changes hoặc ô gộp được đánh dấu `MANUAL_REVIEW`; không giải quyết reference ambiguity, conflict, overlap, record-boundary hoặc lỗi schema. Khi payload thay đổi, xác nhận cũ tự mất hiệu lực.
 
 Quy tắc modal sửa dòng:
 
@@ -226,11 +239,15 @@ Confirm còn kiểm tra quyền `Category.Create`, `Drink.Create`, `Size.Create`
 
 - Session lưu `SourceFormat`, metadata và snapshot text đã trích xuất; không lưu binary upload.
 - Group lưu source label, locator và extraction mode.
-- Item lưu raw/normalized data, source trace, locator, evidence, AI/OCR confidence.
+- Group còn lưu metadata phân loại cột và issue cấp vùng; Item lưu raw/normalized data, source trace, locator, evidence, AI/OCR confidence, source issue và trạng thái manual review.
+- Xác nhận manual review phải là thao tác riêng trong modal, chỉ áp dụng cho reason có resolution `MANUAL_REVIEW`. Warning acknowledgement và Supplier warning token không thay thế xác nhận này. Reanalyze phải claim theo `expectedPreviewVersion`; request thua concurrency trả `409 PREVIEW_ĐÃ_THAY_ĐỔI` và không được ghi đè preview.
+- Reference và hard duplicate được preload theo batch. Supplier soft duplicate cũng preload Supplier/phone/contact một lần cho các candidate trong lượt validation, nhưng normalization, matched signals và warning token vẫn do `AdminSupplierService` làm nguồn sự thật.
+- Item PATCH revalidate item, cohort cùng business key cũ/mới và Drink tham chiếu Category liên quan. Group PATCH revalidate group, cohort thuộc entity cũ/mới và Drink phụ thuộc; không quét lại entity không liên quan. Analyze, Reanalyze và Confirm vẫn kiểm tra toàn phiên.
+- Quyền Create, dependency order và business-key policy của năm entity phải lấy từ `AIImportEntityRegistry`; Confirm execution plan luôn Category trước Drink, không phụ thuộc thứ tự nguồn.
 - Audit lưu format, extraction mode, `OcrUsed`, `OcrPageCount` và `AiChunkCount` cùng actor/state/result hiện hữu.
 - Snapshot text chỉ tồn tại khi session còn cần reanalyze; bị xóa khi `COMPLETED`, `CANCELLED` hoặc `EXPIRED`.
 - Raw data/evidence không được ghi vào application log hoặc history response.
 
-Workspace hiện tại đã được tạo lại thành một baseline duy nhất `20260813071843_InitialCreate`; migration này đã chứa trực tiếp toàn bộ cột nguồn tài liệu ở trên. Hai migration được mô tả trong kế hoạch cũ — `20260812160337_InitialCreate` và `20260813062128_AddDocumentSourcesToAIImport` — không còn tồn tại trên filesystem hiện tại.
+Baseline thật là `20260813071843_InitialCreate`. Refactor validation bổ sung migration tiến tiếp `20260813183911_AddAIImportValidationState`; migration này chỉ thêm metadata cột/issue và trạng thái manual review, không sửa hoặc giả lập migration baseline.
 
 Vì baseline đã được squash, database development/test cũ phải được tạo lại hoặc có migration chuyển tiếp riêng trước khi deploy. Không được giả định `database update` có thể nâng trực tiếp một database đã ghi migration ID cũ lên baseline mới, và không được tự động xóa database production.
