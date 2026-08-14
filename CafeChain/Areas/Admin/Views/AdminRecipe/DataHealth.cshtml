@@ -1,5 +1,6 @@
 @model CafeChain.ViewModels.Admin.Recipes.BomDataHealthPageVM
 @using CafeChain.ViewModels.Admin.Shared
+@using CafeChain.ViewModels.Admin.Recipes
 @{
     ViewData["Title"] = "Tình trạng dữ liệu BOM";
     var hero = new AdminPageHeroVM
@@ -31,30 +32,66 @@
             <span class="bom-health-intro__icon"><i class="fas fa-circle-info" aria-hidden="true"></i></span>
             <div>
                 <h2 id="health-intro-title">Ưu tiên xử lý dữ liệu chưa hoàn chỉnh</h2>
-                <p>Mỗi dòng cho biết nguyên nhân và dẫn thẳng tới màn hình cần cập nhật. Các số liệu dưới đây áp dụng cho @Model.Items.Count công thức trên trang @Model.Page.</p>
+                <p>Mỗi dòng cho biết nguyên nhân và dẫn thẳng tới màn hình cần cập nhật. Tổng kết quả và số dòng trên trang được tách riêng để tránh hiểu nhầm.</p>
             </div>
-            <strong>@Model.TotalCount công thức</strong>
+            <strong>Tổng kết quả lọc: @Model.TotalCount</strong>
         </section>
+
+        <form method="get" class="rb-list-filters production-filter-card mb-3" role="search">
+            <label class="visually-hidden" for="healthSearch">Tìm công thức cần kiểm tra</label>
+            <input id="healthSearch"
+                   class="form-control"
+                   type="search"
+                   name="search"
+                   value="@Model.Search"
+                   placeholder="Tìm tên, mã công thức hoặc mã bán thành phẩm..." />
+            <label class="visually-hidden" for="healthType">Loại đối tượng công thức</label>
+            <select id="healthType" class="form-select" name="typeFilter">
+                <option value="ALL" selected="@(Model.TypeFilter == "ALL" ? "selected" : null)">Tất cả loại</option>
+                <option value="POS" selected="@(Model.TypeFilter == "POS" ? "selected" : null)">Món bán</option>
+                <option value="TOPPING" selected="@(Model.TypeFilter == "TOPPING" ? "selected" : null)">Topping</option>
+                <option value="SUBRECIPE" selected="@(Model.TypeFilter == "SUBRECIPE" ? "selected" : null)">Bán thành phẩm</option>
+            </select>
+            <label class="visually-hidden" for="healthPageSize">Số dòng trên mỗi trang</label>
+            <select id="healthPageSize" class="form-select" name="pageSize">
+                <option value="10" selected="@(Model.PageSize == 10 ? "selected" : null)">10 dòng</option>
+                <option value="20" selected="@(Model.PageSize == 20 ? "selected" : null)">20 dòng</option>
+                <option value="50" selected="@(Model.PageSize == 50 ? "selected" : null)">50 dòng</option>
+            </select>
+            <button class="btn btn-rb-save" type="submit">
+                <i class="fas fa-search me-2" aria-hidden="true"></i>Lọc
+            </button>
+            <a class="btn btn-rb-ghost production-filter-reset"
+               asp-action="DataHealth"
+               aria-label="Đặt lại bộ lọc"
+               title="Đặt lại bộ lọc">
+                <i class="fas fa-rotate-left" aria-hidden="true"></i>
+            </a>
+        </form>
 
         <section class="rb-health-summary bom-health-summary mb-3" aria-label="Tổng hợp tình trạng dữ liệu công thức trên trang hiện tại">
             <div class="rb-health-metric rb-health-ok">
-                <span>Đủ dữ liệu</span>
+                <span>Đủ dữ liệu · Trên trang này</span>
                 <strong>@Model.CompleteCount</strong>
             </div>
             <div class="rb-health-metric">
-                <span>Thiếu dữ liệu giá</span>
+                <span>Thiếu dữ liệu giá · Trên trang này</span>
                 <strong>@Model.MissingQuoteCount</strong>
             </div>
             <div class="rb-health-metric">
-                <span>Thiếu quy đổi</span>
+                <span>Thiếu quy đổi · Trên trang này</span>
                 <strong>@Model.MissingConversionCount</strong>
             </div>
             <div class="rb-health-metric">
-                <span>Thiếu đầu ra</span>
+                <span>Thiếu đầu ra · Trên trang này</span>
                 <strong>@Model.MissingOutputCount</strong>
             </div>
             <div class="rb-health-metric">
-                <span>Lỗi liên kết</span>
+                <span>Phiên bản cần kiểm tra · Trên trang này</span>
+                <strong>@Model.CurrentRecipeIssueCount</strong>
+            </div>
+            <div class="rb-health-metric">
+                <span>Lỗi liên kết · Trên trang này</span>
                 <strong>@Model.MappingErrorCount</strong>
             </div>
         </section>
@@ -65,13 +102,14 @@
                     <span class="bom-section-heading__icon"><i class="fas fa-list-check" aria-hidden="true"></i></span>
                     <div><h2>Chi tiết cần xử lý</h2><p>Trạng thái cấu hình và giá vốn của từng công thức trên trang hiện tại.</p></div>
                 </div>
-                <span class="bom-list-count">@Model.Items.Count / @Model.TotalCount</span>
+                <span class="bom-list-count">Trên trang này: @Model.CurrentPageCount · Tổng kết quả lọc: @Model.TotalCount</span>
             </header>
             <div class="table-responsive">
                 <table class="table rb-table rb-health-table production-data-table mb-0" aria-label="Chi tiết tình trạng dữ liệu BOM">
                     <thead>
                         <tr>
                             <th>Công thức</th>
+                            <th>Phiên bản áp dụng</th>
                             <th>Cấu hình</th>
                             <th>Dữ liệu giá vốn</th>
                             <th>Lý do và xử lý</th>
@@ -82,7 +120,7 @@
                     @if (!Model.Items.Any())
                     {
                         <tr>
-                            <td colspan="5" class="text-center py-5">
+                            <td colspan="6" class="text-center py-5">
                                 Chưa có công thức để đánh giá.
                             </td>
                         </tr>
@@ -94,8 +132,14 @@
                             var configClass = row.Configuration.IsComplete
                                 ? "rb-status-complete"
                                 : row.Configuration.Code == "INACTIVE" ? "rb-status-inactive" : "rb-status-incomplete";
+                            var currentClass = row.CurrentRecipe.IsBlocking
+                                ? "rb-status-incomplete"
+                                : row.CurrentRecipe.Code == BomCurrentRecipeHealthCodes.Current
+                                    ? "rb-status-complete"
+                                    : "rb-status-inactive";
                             var costClass = row.Costing.IsComplete ? "rb-status-complete" : "rb-status-error";
                             var reasons = row.Configuration.Reasons.Concat(row.Costing.Reasons).ToList();
+                            var hasIssues = row.CurrentRecipe.IsBlocking || reasons.Count > 0;
                             <tr>
                                 <td class="rb-health-identity">
                                     <span class="bom-row-kicker">@row.TypeLabel</span>
@@ -104,6 +148,10 @@
                                     {
                                         <div class="small text-muted font-monospace text-break">@row.RecipeCode</div>
                                     }
+                                </td>
+                                <td>
+                                    <span class="rb-status-badge @currentClass">@row.CurrentRecipe.Label</span>
+                                    <div class="small text-muted mt-1">@row.CurrentRecipe.Message</div>
                                 </td>
                                 <td>
                                     <span class="rb-status-badge @configClass">@row.Configuration.Label</span>
@@ -116,13 +164,17 @@
                                     }
                                 </td>
                                 <td class="rb-health-reasons">
-                                    @if (reasons.Count == 0)
+                                    @if (!hasIssues)
                                     {
                                         <span class="bom-health-clear"><i class="fas fa-check" aria-hidden="true"></i> Không có dữ liệu cần xử lý</span>
                                     }
                                     else
                                     {
                                         <ul class="bom-health-reason-list">
+                                            @if (row.CurrentRecipe.IsBlocking)
+                                            {
+                                                <li>@row.CurrentRecipe.Message</li>
+                                            }
                                             @foreach (var reason in reasons)
                                             {
                                                 <li>@reason.Message</li>
@@ -180,11 +232,19 @@
                 <div class="production-pagination__links">
                     @if (Model.Page > 1)
                     {
-                        <a class="production-page-link is-nav" asp-action="DataHealth" asp-route-page="@(Model.Page - 1)"><i class="fas fa-arrow-left" aria-hidden="true"></i> Trang trước</a>
+                        <a class="production-page-link is-nav" asp-action="DataHealth"
+                           asp-route-page="@(Model.Page - 1)"
+                           asp-route-pageSize="@Model.PageSize"
+                           asp-route-search="@Model.Search"
+                           asp-route-typeFilter="@Model.TypeFilter"><i class="fas fa-arrow-left" aria-hidden="true"></i> Trang trước</a>
                     }
                     @if (Model.Page < Model.TotalPages)
                     {
-                        <a class="production-page-link is-nav" asp-action="DataHealth" asp-route-page="@(Model.Page + 1)">Trang sau <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                        <a class="production-page-link is-nav" asp-action="DataHealth"
+                           asp-route-page="@(Model.Page + 1)"
+                           asp-route-pageSize="@Model.PageSize"
+                           asp-route-search="@Model.Search"
+                           asp-route-typeFilter="@Model.TypeFilter">Trang sau <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
                     }
                 </div>
             </nav>

@@ -10,9 +10,9 @@ namespace CafeChain.Application.Results
         public int? EntityId { get; set; }
         public List<string> Errors { get; set; } = new List<string>();
 
-        public static ServiceResult Success(string message = null)
+        public static ServiceResult Success(string message = null, int? entityId = null)
         {
-            return new ServiceResult { IsSuccess = true, Message = message };
+            return new ServiceResult { IsSuccess = true, Message = message, EntityId = entityId };
         }
 
         public static ServiceResult Failure(string message, List<string> errors = null, string errorCode = null)

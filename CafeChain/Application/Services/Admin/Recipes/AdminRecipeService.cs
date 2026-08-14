@@ -1,7 +1,10 @@
 using CafeChain.Application.Interfaces.Admin.Recipes;
+using CafeChain.Application.Interfaces.Systems;
 using CafeChain.Application.Results;
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin.Recipes;
 using CafeChain.Application.Services.Inventories;
+using CafeChain.Application.Services.Systems;
 using CafeChain.ViewModels.Admin.Recipes;
 using CafeChain.Data;
 using CafeChain.Models.Drinks;
@@ -9,6 +12,7 @@ using CafeChain.Models.Enums.Unit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,6 +25,9 @@ namespace CafeChain.Application.Services.Admin.Recipes
         private readonly AppDbContext _context;
         private readonly IRecipeOutputNormalizer _outputNormalizer;
         private readonly ILogger<AdminRecipeService> _logger;
+        private readonly TimeProvider _timeProvider;
+        private readonly IBusinessDateService _businessDateService;
+        private readonly ICurrentRecipeResolver _currentRecipeResolver;
 
         // Giới hạn tối đa 5 tầng BOM để tránh StackOverflow
         private const int MAX_BOM_DEPTH = 5;
@@ -28,11 +35,17 @@ namespace CafeChain.Application.Services.Admin.Recipes
         public AdminRecipeService(
             AppDbContext context,
             IRecipeOutputNormalizer outputNormalizer,
-            ILogger<AdminRecipeService>? logger = null)
+            ILogger<AdminRecipeService>? logger = null,
+            TimeProvider? timeProvider = null,
+            IBusinessDateService? businessDateService = null,
+            ICurrentRecipeResolver? currentRecipeResolver = null)
         {
             _context = context;
             _outputNormalizer = outputNormalizer;
             _logger = logger ?? NullLogger<AdminRecipeService>.Instance;
+            _timeProvider = timeProvider ?? TimeProvider.System;
+            _businessDateService = businessDateService ?? new BusinessDateService(_timeProvider);
+            _currentRecipeResolver = currentRecipeResolver ?? new CurrentRecipeResolver(context);
         }
 
         // ============================================================
@@ -40,6 +53,10 @@ namespace CafeChain.Application.Services.Admin.Recipes
         // ============================================================
         public async Task<ServiceResult> CreateRecipeAsync(RecipeCreateVM model)
         {
+            // The new publication flow has one lifecycle action: save and apply now.
+            // Archived rows are historical evidence, not a creation option.
+            model.Active = true;
+
             if (model.Details == null || model.Details.Count == 0)
             {
                 return ServiceResult.Failure("Công thức phải chứa ít nhất một thành phần (Details trống).");
@@ -49,12 +66,17 @@ namespace CafeChain.Application.Services.Admin.Recipes
             if (!targetValidation.IsSuccess)
                 return targetValidation;
 
+            var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
+            var publicationTimeValidation = ValidatePublicationTime(model.EffectiveDate, nowUtc);
+            if (!publicationTimeValidation.IsSuccess)
+                return publicationTimeValidation;
+
             // === VALIDATION LAYER (Zero-Trust) ===
             var validationResult = ValidateDetails(model.Details);
             if (!validationResult.IsSuccess)
                 return validationResult;
 
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             try
             {
                 // Validate tồn tại trong DB
@@ -125,7 +147,7 @@ namespace CafeChain.Application.Services.Admin.Recipes
                     YieldPercentage = 100,
                     Active = model.Active,
                     Status = model.Active ? "Active" : "Archived",
-                    EffectiveDate = model.EffectiveDate,
+                    EffectiveDate = model.Active ? nowUtc : null,
                     RecipeDetails = new List<RecipeDetail>()
                 };
 
@@ -181,7 +203,9 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 }
 
                 await transaction.CommitAsync();
-                return ServiceResult.Success("Tạo mới công thức (BOM) thành công!");
+                return ServiceResult.Success(
+                    "Đã tạo công thức và áp dụng ngay.",
+                    recipe.RecipeId);
             }
             catch (ArgumentException ex)
             {
@@ -206,23 +230,31 @@ namespace CafeChain.Application.Services.Admin.Recipes
         // ============================================================
         public async Task<ServiceResult> UpdateRecipeAsync(int recipeId, RecipeCreateVM model)
         {
+            model.Active = true;
+
             if (model.Details == null || model.Details.Count == 0)
             {
                 return ServiceResult.Failure("Công thức phải chứa ít nhất một thành phần.");
             }
 
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
+            var publicationTimeValidation = ValidatePublicationTime(model.EffectiveDate, nowUtc);
+            if (!publicationTimeValidation.IsSuccess)
+                return publicationTimeValidation;
+
+            using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             try
             {
-                // 1. Load current Active Recipe
+                // Re-read the source under the publication transaction. A stale editor must
+                // never archive or supersede a newer current version.
                 var oldRecipe = await _context.Recipes
                     .Include(r => r.RecipeDetails)
-                    .FirstOrDefaultAsync(r => r.RecipeId == recipeId && r.Status == "Active");
+                    .FirstOrDefaultAsync(r => r.RecipeId == recipeId);
 
-                if (oldRecipe == null)
+                if (oldRecipe == null || !oldRecipe.Active || oldRecipe.Status != "Active")
                 {
                     await transaction.RollbackAsync();
-                    return ServiceResult.Failure("Không tìm thấy công thức hoặc công thức đã bị lưu trữ (Archived).");
+                    return PublishConflict();
                 }
 
                 // Legacy SUBRECIPE without PreparedItem: block new Active version until explicit mapping
@@ -261,6 +293,39 @@ namespace CafeChain.Application.Services.Admin.Recipes
                     }
 
                     model.PreparedItemId = oldRecipe.PreparedItemId;
+                }
+
+                var sourceTarget = CreateTarget(oldRecipe);
+                var requestedTarget = CreateTarget(model);
+                if (sourceTarget != null && sourceTarget != requestedTarget)
+                {
+                    await transaction.RollbackAsync();
+                    return ServiceResult.Failure(
+                        "Không được đổi đối tượng áp dụng trong cùng chuỗi phiên bản công thức.",
+                        errorCode: BomRecipeErrorCodes.CurrentRecipeInvalidTarget);
+                }
+
+                var publicationTarget = sourceTarget ?? requestedTarget;
+                if (publicationTarget == null)
+                {
+                    await transaction.RollbackAsync();
+                    return ServiceResult.Failure(
+                        "Không xác định được đối tượng áp dụng của công thức.",
+                        errorCode: BomRecipeErrorCodes.CurrentRecipeInvalidTarget);
+                }
+
+                // Legacy unmapped SUBRECIPE has no exact target until this explicit mapping.
+                // Its source row was re-read as current above; target uniqueness is still
+                // validated below in the same serializable transaction.
+                if (!isLegacyUnmapped)
+                {
+                    var current = await _currentRecipeResolver.ResolveAsync(publicationTarget, nowUtc);
+                    if (current.Status != CurrentRecipeResolutionStatus.Found
+                        || current.Recipe?.RecipeId != oldRecipe.RecipeId)
+                    {
+                        await transaction.RollbackAsync();
+                        return PublishConflict();
+                    }
                 }
 
                 // 2. Validate category and output
@@ -364,7 +429,7 @@ namespace CafeChain.Application.Services.Admin.Recipes
                     YieldPercentage = 100,
                     Active = true,
                     Status = "Active",
-                    EffectiveDate = model.EffectiveDate,
+                    EffectiveDate = nowUtc,
                     ParentVersionId = oldRecipe.RecipeId,
                     DrinkId = model.RecipeType == "POS" ? model.DrinkId : null,
                     SizeId = model.RecipeType == "POS" ? model.SizeId : null,
@@ -395,26 +460,46 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 {
                     await _context.SaveChangesAsync();
                 }
-                catch (DbUpdateException ex) when (IsActivePreparedItemUniqueViolation(ex))
+                catch (DbUpdateException ex) when (IsPublicationConflictException(ex))
                 {
-                    await transaction.RollbackAsync();
-                    return ServiceResult.Failure(
-                        "Đã có công thức đang hoạt động cho bán thành phẩm này. Mỗi BTP chỉ được một phiên bản Active.");
+                    _logger.LogWarning(ex, "Concurrent BOM publication conflict for RecipeId={RecipeId}", recipeId);
+                    return PublishConflict();
                 }
 
                 await transaction.CommitAsync();
                 return ServiceResult.Success(
-                    $"Cập nhật công thức thành công! (Phiên bản mới #{newRecipe.RecipeId}, bản cũ #{oldRecipe.RecipeId} đã lưu trữ)");
+                    $"Đã áp dụng phiên bản mới #{newRecipe.RecipeId}; phiên bản #{oldRecipe.RecipeId} được lưu trong lịch sử.",
+                    newRecipe.RecipeId);
             }
             catch (ArgumentException ex)
             {
                 await transaction.RollbackAsync();
-                return ServiceResult.Failure(ex.Message);
+                return ServiceResult.Failure(
+                    ex.Message,
+                    errorCode: BomRecipeErrorCodes.InvalidPayload);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Stale BOM publication for RecipeId={RecipeId}", recipeId);
+                return PublishConflict();
+            }
+            catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Number == 1205)
+            {
+                _logger.LogWarning(ex, "Deadlocked BOM publication for RecipeId={RecipeId}", recipeId);
+                return PublishConflict();
+            }
+            catch (Exception ex) when (FindSqlException(ex)?.Number == 1205)
+            {
+                _logger.LogWarning(ex, "Wrapped deadlock during BOM publication for RecipeId={RecipeId}", recipeId);
+                return PublishConflict();
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                return ServiceResult.Failure($"Lỗi hệ thống khi cập nhật: {ex.Message}");
+                _logger.LogError(ex, "Unexpected BOM publication failure for RecipeId={RecipeId}", recipeId);
+                return ServiceResult.Failure(
+                    "Không thể áp dụng phiên bản công thức lúc này. Vui lòng thử lại.",
+                    errorCode: BomRecipeErrorCodes.TechnicalError);
             }
         }
 
@@ -491,6 +576,76 @@ namespace CafeChain.Application.Services.Admin.Recipes
         // ============================================================
         private static bool IsBtpType(string? recipeType)
             => string.Equals(recipeType, "SUBRECIPE", StringComparison.OrdinalIgnoreCase);
+
+        private ServiceResult ValidatePublicationTime(DateTime requestedEffectiveDate, DateTime nowUtc)
+        {
+            var requestedUtc = requestedEffectiveDate.Kind == DateTimeKind.Utc
+                ? requestedEffectiveDate
+                : TimeZoneInfo.ConvertTimeToUtc(
+                    DateTime.SpecifyKind(requestedEffectiveDate, DateTimeKind.Unspecified),
+                    _businessDateService.TimeZone);
+
+            if (requestedUtc > nowUtc)
+            {
+                return ServiceResult.Failure(
+                    "Luồng tạo phiên bản mới không hỗ trợ ngày áp dụng trong tương lai. Phiên bản mới sẽ được áp dụng ngay khi lưu.",
+                    errorCode: BomRecipeErrorCodes.FutureEffectiveDateNotSupported);
+            }
+
+            return ServiceResult.Success();
+        }
+
+        private static RecipeTarget? CreateTarget(Recipe recipe)
+        {
+            if (recipe.DrinkId.HasValue && recipe.SizeId.HasValue
+                && !recipe.ToppingId.HasValue && !recipe.PreparedItemId.HasValue)
+            {
+                return new RecipeTarget.MenuItemSize(recipe.DrinkId.Value, recipe.SizeId.Value);
+            }
+
+            if (recipe.ToppingId.HasValue && !recipe.DrinkId.HasValue
+                && !recipe.SizeId.HasValue && !recipe.PreparedItemId.HasValue)
+            {
+                return new RecipeTarget.Topping(recipe.ToppingId.Value);
+            }
+
+            if (recipe.PreparedItemId.HasValue && !recipe.DrinkId.HasValue
+                && !recipe.SizeId.HasValue && !recipe.ToppingId.HasValue)
+            {
+                return new RecipeTarget.PreparedItem(recipe.PreparedItemId.Value);
+            }
+
+            return null;
+        }
+
+        private static RecipeTarget? CreateTarget(RecipeCreateVM model)
+        {
+            if (string.Equals(model.RecipeType, "POS", StringComparison.OrdinalIgnoreCase)
+                && model.DrinkId.HasValue && model.SizeId.HasValue)
+            {
+                return new RecipeTarget.MenuItemSize(model.DrinkId.Value, model.SizeId.Value);
+            }
+
+            if (string.Equals(model.RecipeType, "TOPPING", StringComparison.OrdinalIgnoreCase)
+                && model.ToppingId.HasValue)
+            {
+                return new RecipeTarget.Topping(model.ToppingId.Value);
+            }
+
+            if (IsBtpType(model.RecipeType) && model.PreparedItemId.HasValue)
+            {
+                return new RecipeTarget.PreparedItem(model.PreparedItemId.Value);
+            }
+
+            return null;
+        }
+
+        private static ServiceResult PublishConflict()
+        {
+            return ServiceResult.Failure(
+                "Phiên bản công thức hiện tại đã thay đổi. Vui lòng tải lại trang trước khi áp dụng phiên bản mới.",
+                errorCode: BomRecipeErrorCodes.PublishConflict);
+        }
 
         private async Task<ServiceResult> ValidateRecipeTargetAsync(
             RecipeCreateVM model,
@@ -669,12 +824,12 @@ namespace CafeChain.Application.Services.Admin.Recipes
             if (!string.IsNullOrWhiteSpace(model.SubRecipeName))
                 return model.SubRecipeName.Trim();
 
-            return $"Recipe_{DateTime.Now:yyyyMMdd_HHmmss}";
+            return $"Recipe_{_timeProvider.GetUtcNow():yyyyMMdd_HHmmss}";
         }
 
         private string GenerateRecipeCode(RecipeCreateVM model)
         {
-            var stamp = DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
+            var stamp = _timeProvider.GetUtcNow().UtcDateTime.ToString("yyyyMMddHHmmssfff");
             return model.RecipeType switch
             {
                 "POS" => $"RCP_D{model.DrinkId}_S{model.SizeId}_{stamp}",
@@ -698,6 +853,32 @@ namespace CafeChain.Application.Services.Admin.Recipes
         {
             var msg = ex.InnerException?.Message ?? ex.Message;
             return msg.Contains("UX_Recipes_OneActive_Drink_Size", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsPublicationUniqueViolation(DbUpdateException ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            return IsActivePreparedItemUniqueViolation(ex)
+                || IsActiveDrinkSizeUniqueViolation(ex)
+                || (msg.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase)
+                    && msg.Contains("Topping", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool IsPublicationConflictException(DbUpdateException ex)
+        {
+            return IsPublicationUniqueViolation(ex)
+                || FindSqlException(ex)?.Number == 1205;
+        }
+
+        private static Microsoft.Data.SqlClient.SqlException? FindSqlException(Exception exception)
+        {
+            for (Exception? current = exception; current != null; current = current.InnerException)
+            {
+                if (current is Microsoft.Data.SqlClient.SqlException sqlException)
+                    return sqlException;
+            }
+
+            return null;
         }
 
         // ============================================================

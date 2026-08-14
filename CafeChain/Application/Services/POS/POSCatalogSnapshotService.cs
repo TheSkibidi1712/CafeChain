@@ -4,8 +4,11 @@ using System.Text.Json;
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.DTOs.Admin.StoreMenu;
+using CafeChain.Application.DTOs.Admin.Recipes;
+using CafeChain.Application.Interfaces.Admin.Recipes;
 using CafeChain.Application.Interfaces.Admin.StoreMenu;
 using CafeChain.Application.Interfaces.POS;
+using CafeChain.Application.Services.Admin.Recipes;
 using CafeChain.Data;
 using CafeChain.Models.Drinks;
 using Microsoft.EntityFrameworkCore;
@@ -17,15 +20,18 @@ namespace CafeChain.Application.Services.POS
         private readonly AppDbContext _context;
         private readonly IStoreMenuAvailabilityEvaluator _availability;
         private readonly IPOSIceCustomizationService? _iceCustomization;
+        private readonly ICurrentRecipeResolver _currentRecipeResolver;
 
         public POSCatalogSnapshotService(
             AppDbContext context,
             IStoreMenuAvailabilityEvaluator availability,
-            IPOSIceCustomizationService? iceCustomization = null)
+            IPOSIceCustomizationService? iceCustomization = null,
+            ICurrentRecipeResolver? currentRecipeResolver = null)
         {
             _context = context;
             _availability = availability;
             _iceCustomization = iceCustomization;
+            _currentRecipeResolver = currentRecipeResolver ?? new CurrentRecipeResolver(context);
         }
 
         public async Task<POSCatalogSnapshotDto> BuildAsync(
@@ -82,19 +88,6 @@ namespace CafeChain.Application.Services.POS
                 .ThenBy(x => x.DrinkSizeId)
                 .ToListAsync(cancellationToken);
 
-            var menuDrinkIds = menuRows.Select(x => x.DrinkSize.DrinkId).Distinct().ToArray();
-            var drinkRecipes = await _context.Recipes.AsNoTracking()
-                .Where(x => x.DrinkId.HasValue
-                    && menuDrinkIds.Contains(x.DrinkId.Value)
-                    && x.ToppingId == null
-                    && x.Active
-                    && x.Status == "Active"
-                    && (!x.EffectiveDate.HasValue || x.EffectiveDate.Value <= asOfUtc))
-                .OrderByDescending(x => x.EffectiveDate ?? DateTime.MinValue)
-                .ThenByDescending(x => x.RecipeId)
-                .Select(x => new { x.RecipeId, x.DrinkId, x.SizeId })
-                .ToListAsync(cancellationToken);
-
             var availability = new Dictionary<int, StoreMenuAvailabilityDto>();
             var iceEligibility = new Dictionary<int, POSIceEligibilityDto>();
             foreach (var row in menuRows)
@@ -139,20 +132,21 @@ namespace CafeChain.Application.Services.POS
                 .ToDictionary(x => x.Key, x => x.Select(y => y.Topping).ToList());
 
             var catalogToppingIds = storeToppings.Select(x => x.Topping.Id).Distinct().ToArray();
-            var toppingRecipeIds = await _context.Recipes.AsNoTracking()
-                .Where(x => x.ToppingId.HasValue
-                    && catalogToppingIds.Contains(x.ToppingId.Value)
-                    && x.DrinkId == null
-                    && x.Active
-                    && x.Status == "Active"
-                    && (!x.EffectiveDate.HasValue || x.EffectiveDate.Value <= asOfUtc))
-                .OrderByDescending(x => x.EffectiveDate ?? DateTime.MinValue)
-                .ThenByDescending(x => x.RecipeId)
-                .Select(x => new { ToppingId = x.ToppingId!.Value, x.RecipeId })
-                .ToListAsync(cancellationToken);
-            var toppingRecipeById = toppingRecipeIds
-                .GroupBy(x => x.ToppingId)
-                .ToDictionary(x => x.Key, x => x.First().RecipeId);
+            var menuTargets = menuRows
+                .Select(row => (RecipeTarget)new RecipeTarget.MenuItemSize(
+                    row.DrinkSize.DrinkId,
+                    row.DrinkSize.SizeId));
+            var toppingTargets = catalogToppingIds
+                .Select(toppingId => (RecipeTarget)new RecipeTarget.Topping(toppingId));
+            var currentRecipes = await _currentRecipeResolver.ResolveManyAsync(
+                menuTargets.Concat(toppingTargets).Distinct().ToArray(),
+                asOfUtc,
+                cancellationToken);
+            var toppingRecipeById = catalogToppingIds.ToDictionary(
+                toppingId => toppingId,
+                toppingId => ResolvedRecipeId(
+                    currentRecipes,
+                    new RecipeTarget.Topping(toppingId)));
             foreach (var topping in storeToppings.Select(x => x.Topping))
                 topping.RecipeId = toppingRecipeById.GetValueOrDefault(topping.Id);
 
@@ -190,13 +184,11 @@ namespace CafeChain.Application.Services.POS
                     {
                         var state = availability[row.DrinkSizeId];
                         iceEligibility.TryGetValue(row.DrinkSizeId, out var ice);
-                        var recipeId = drinkRecipes.FirstOrDefault(x =>
-                                x.DrinkId == row.DrinkSize.DrinkId
-                                && x.SizeId == row.DrinkSize.SizeId)?.RecipeId
-                            ?? drinkRecipes.FirstOrDefault(x =>
-                                x.DrinkId == row.DrinkSize.DrinkId
-                                && x.SizeId == null)?.RecipeId
-                            ?? 0;
+                        var recipeId = ResolvedRecipeId(
+                            currentRecipes,
+                            new RecipeTarget.MenuItemSize(
+                                row.DrinkSize.DrinkId,
+                                row.DrinkSize.SizeId));
                         return new POSMenuItemSizeDto
                         {
                             StoreMenuItemId = row.StoreMenuItemId,
@@ -265,6 +257,16 @@ namespace CafeChain.Application.Services.POS
                 .Where(x => x.StoreId == storeId)
                 .Select(x => (long?)x.Version)
                 .SingleOrDefaultAsync(cancellationToken) ?? 0L;
+
+        private static int ResolvedRecipeId(
+            IReadOnlyDictionary<RecipeTarget, CurrentRecipeResolution> resolutions,
+            RecipeTarget target)
+        {
+            return resolutions.TryGetValue(target, out var resolution)
+                && resolution.Status == CurrentRecipeResolutionStatus.Found
+                ? resolution.Recipe?.RecipeId ?? 0
+                : 0;
+        }
 
         private async Task<long> ApplyPayloadHashAsync(
             int storeId,

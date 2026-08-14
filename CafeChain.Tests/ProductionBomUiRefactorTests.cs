@@ -450,7 +450,8 @@ public sealed class ProductionBomUiRefactorTests
         var service = Read("CafeChain/Application/Services/Admin/Recipes/AdminRecipeQueryService.cs");
 
         Assert.DoesNotContain("asp-action=\"DataHealth\" class=\"@Html.IsActive", layout, StringComparison.Ordinal);
-        Assert.Contains("DataHealth(int page = 1)", controller, StringComparison.Ordinal);
+        Assert.Contains("public async Task<IActionResult> DataHealth(", controller, StringComparison.Ordinal);
+        Assert.Contains("GetDataHealthPageAsync(", controller, StringComparison.Ordinal);
         Assert.Contains(".Skip((page - 1) * pageSize)", service, StringComparison.Ordinal);
         Assert.Contains(".Take(pageSize)", service, StringComparison.Ordinal);
     }

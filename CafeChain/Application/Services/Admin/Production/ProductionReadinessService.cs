@@ -1,9 +1,11 @@
 using CafeChain.Application.DTOs.Admin.Production;
+using CafeChain.Application.DTOs.Admin.Recipes;
 using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.Interfaces.Admin.Production;
 using CafeChain.Application.Interfaces.Admin.Recipes;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Results;
+using CafeChain.Application.Services.Admin.Recipes;
 using CafeChain.Data;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Stores;
@@ -23,6 +25,8 @@ namespace CafeChain.Application.Services.Admin.Production
         private readonly IInventoryWriterModeService _writerModeService;
         private readonly IEstimatedBomCostService _estimatedBomCost;
         private readonly IEnumerable<IInventoryWriterCapabilityProvider> _capabilityProviders;
+        private readonly ICurrentRecipeResolver _currentRecipeResolver;
+        private readonly TimeProvider _timeProvider;
 
         public ProductionReadinessService(
             AppDbContext context,
@@ -31,7 +35,9 @@ namespace CafeChain.Application.Services.Admin.Production
             IPhysicalUnitConversionService physicalConversion,
             IInventoryWriterModeService writerModeService,
             IEstimatedBomCostService estimatedBomCost,
-            IEnumerable<IInventoryWriterCapabilityProvider> capabilityProviders)
+            IEnumerable<IInventoryWriterCapabilityProvider> capabilityProviders,
+            ICurrentRecipeResolver? currentRecipeResolver = null,
+            TimeProvider? timeProvider = null)
         {
             _context = context;
             _outputNormalizer = outputNormalizer;
@@ -40,21 +46,35 @@ namespace CafeChain.Application.Services.Admin.Production
             _writerModeService = writerModeService;
             _estimatedBomCost = estimatedBomCost;
             _capabilityProviders = capabilityProviders;
+            _currentRecipeResolver = currentRecipeResolver ?? new CurrentRecipeResolver(context);
+            _timeProvider = timeProvider ?? TimeProvider.System;
         }
 
         public async Task<IReadOnlyList<ProductionRecipeOptionDto>> GetRecipeOptionsAsync()
         {
+            var preparedItemIds = await _context.PreparedItems
+                .AsNoTracking()
+                .Where(item => item.Active)
+                .Select(item => item.PreparedItemId)
+                .ToListAsync();
+            var targets = preparedItemIds
+                .Select(id => (RecipeTarget)new RecipeTarget.PreparedItem(id))
+                .ToArray();
+            var resolutions = await _currentRecipeResolver.ResolveManyAsync(
+                targets,
+                _timeProvider.GetUtcNow().UtcDateTime);
+            var currentRecipeIds = resolutions.Values
+                .Where(result => result.Status == CurrentRecipeResolutionStatus.Found)
+                .Select(result => result.Recipe!.RecipeId)
+                .ToArray();
+
             var recipes = await _context.Recipes
                 .AsNoTracking()
                 .Include(r => r.PreparedItem)
                     .ThenInclude(p => p!.BaseUnit)
                 .Include(r => r.OutputUnit)
-                .Where(r => r.Active
-                    && r.Status == "Active"
-                    && !r.DrinkId.HasValue
-                    && !r.ToppingId.HasValue)
+                .Where(r => currentRecipeIds.Contains(r.RecipeId))
                 .OrderBy(r => r.PreparedItem != null ? r.PreparedItem.Name : r.Name)
-                .ThenByDescending(r => r.EffectiveDate)
                 .ThenByDescending(r => r.RecipeId)
                 .ToListAsync();
 
@@ -140,8 +160,6 @@ namespace CafeChain.Application.Services.Admin.Production
                 .FirstOrDefaultAsync(r => r.RecipeId == recipeId);
 
             if (recipe == null
-                || !recipe.Active
-                || recipe.Status != "Active"
                 || recipe.DrinkId.HasValue
                 || recipe.ToppingId.HasValue
                 || !recipe.PreparedItemId.HasValue
@@ -150,6 +168,19 @@ namespace CafeChain.Application.Services.Admin.Production
             {
                 return ServiceResult<ProductionReadinessPreviewDto>.Failure(
                     "Chỉ công thức BTP đang hoạt động, có bán thành phẩm và cấu hình đầu ra hợp lệ mới có thể xem trước.",
+                    errorCode: ProductionReadinessCodes.InvalidRecipe);
+            }
+
+            var current = await _currentRecipeResolver.ResolveAsync(
+                new RecipeTarget.PreparedItem(recipe.PreparedItemId.Value),
+                _timeProvider.GetUtcNow().UtcDateTime);
+            if (current.Status != CurrentRecipeResolutionStatus.Found
+                || current.Recipe?.RecipeId != recipe.RecipeId)
+            {
+                return ServiceResult<ProductionReadinessPreviewDto>.Failure(
+                    current.Status == CurrentRecipeResolutionStatus.Ambiguous
+                        ? "Bán thành phẩm có nhiều công thức đang áp dụng; cần xử lý trước khi sản xuất."
+                        : "Phiên bản công thức đã chọn không còn là phiên bản đang áp dụng.",
                     errorCode: ProductionReadinessCodes.InvalidRecipe);
             }
 
