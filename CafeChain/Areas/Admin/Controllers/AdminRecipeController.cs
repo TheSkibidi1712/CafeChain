@@ -26,6 +26,8 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IEstimatedBomCostService _estimatedBomCost;
         private readonly IProductionReadinessService _productionReadiness;
         private readonly IAdminStoreInventoryService _storeInventoryService;
+        private readonly IRecipeWhereUsedQueryService? _whereUsedQuery;
+        private readonly IRecipeVersionEvidenceQueryService? _versionEvidenceQuery;
 
         public AdminRecipeController(
             IAdminRecipeService recipeService,
@@ -34,7 +36,9 @@ namespace CafeChain.Areas.Admin.Controllers
             IRecipeOutputNormalizer outputNormalizer,
             IEstimatedBomCostService estimatedBomCost,
             IProductionReadinessService productionReadiness,
-            IAdminStoreInventoryService storeInventoryService)
+            IAdminStoreInventoryService storeInventoryService,
+            IRecipeWhereUsedQueryService? whereUsedQuery = null,
+            IRecipeVersionEvidenceQueryService? versionEvidenceQuery = null)
         {
             _recipeService = recipeService;
             _queryService = queryService;
@@ -43,6 +47,8 @@ namespace CafeChain.Areas.Admin.Controllers
             _estimatedBomCost = estimatedBomCost;
             _productionReadiness = productionReadiness;
             _storeInventoryService = storeInventoryService;
+            _whereUsedQuery = whereUsedQuery;
+            _versionEvidenceQuery = versionEvidenceQuery;
         }
 
         [HttpGet]
@@ -60,9 +66,17 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> DataHealth(int page = 1)
+        public async Task<IActionResult> DataHealth(
+            int page = 1,
+            int pageSize = 20,
+            string? search = null,
+            string? typeFilter = null)
         {
-            return View(await _queryService.GetDataHealthPageAsync(page));
+            return View(await _queryService.GetDataHealthPageAsync(
+                page,
+                pageSize,
+                search,
+                typeFilter));
         }
 
         [HttpGet]
@@ -88,6 +102,7 @@ namespace CafeChain.Areas.Admin.Controllers
             page.CanWrite = await HasEffectivePermissionAsync(PermissionConstants.RecipeCreate)
                 || await HasEffectivePermissionAsync(PermissionConstants.RecipeUpdate)
                 || await HasEffectivePermissionAsync(PermissionConstants.RecipeDelete);
+            page.CanViewProduction = await HasEffectivePermissionAsync(PermissionConstants.ProductionOrderView);
             page.BackUrl = !string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl)
                 ? returnUrl
                 : Url.Action(nameof(Index), "AdminRecipe", new { area = "Admin" }) ?? "/Admin/AdminRecipe";
@@ -101,6 +116,19 @@ namespace CafeChain.Areas.Admin.Controllers
                 StoreId = x.StoreId,
                 StoreName = x.StoreName
             }).ToList();
+            if (_whereUsedQuery != null)
+            {
+                page.WhereUsed = await _whereUsedQuery.GetCurrentAsync(
+                    recipeId,
+                    stores.Select(store => store.StoreId).ToArray(),
+                    HttpContext.RequestAborted);
+            }
+            if (_versionEvidenceQuery != null)
+            {
+                page.VersionHistory = await _versionEvidenceQuery.GetHistoryAsync(
+                    recipeId,
+                    HttpContext.RequestAborted);
+            }
 
             if (storeId.HasValue && storeId.Value > 0)
             {
@@ -110,6 +138,11 @@ namespace CafeChain.Areas.Admin.Controllers
 
                 page.SelectedStoreId = selectedStore.StoreId;
                 page.SelectedStoreName = selectedStore.StoreName;
+                var storeEvidence = await _queryService.GetStoreEvidenceAsync(
+                    page,
+                    selectedStore.StoreId);
+                if (storeEvidence != null)
+                    page.ApplyStoreEvidence(storeEvidence);
                 if (page.IsPreparedItemRecipe)
                 {
                     page.Operational = await _queryService.GetOperationalDetailAsync(
@@ -127,15 +160,35 @@ namespace CafeChain.Areas.Admin.Controllers
                             StoreName = selectedStore.StoreName
                         };
                         page.Operational.Readiness = readiness.Data;
+                        page.ApplyProductionReadiness(readiness.Data);
                     }
                     else
                     {
-                        page.OperationalError = readiness.Message;
+                        page.OperationalError = "Chưa thể kiểm tra điều kiện sản xuất tại chi nhánh.";
+                        page.ApplyProductionReadiness(null);
                     }
                 }
             }
 
             return View(page);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CompareVersions(
+            int fromRecipeId,
+            int toRecipeId)
+        {
+            if (_versionEvidenceQuery == null)
+                return NotFound();
+
+            var result = await _versionEvidenceQuery.CompareAsync(
+                fromRecipeId,
+                toRecipeId,
+                HttpContext.RequestAborted);
+            if (!result.IsSuccess || result.Comparison == null)
+                return BadRequest(result.Message ?? "Không thể so sánh hai phiên bản đã chọn.");
+
+            return View(result.Comparison);
         }
 
         [HttpGet]
@@ -165,7 +218,18 @@ namespace CafeChain.Areas.Admin.Controllers
 
             var result = await _recipeService.CreateRecipeAsync(model);
             if (result.IsSuccess)
-                return Ok(new { success = true, message = result.Message });
+            {
+                var redirectUrl = result.EntityId.HasValue
+                    ? Url.Action(nameof(Visualize), new { recipeId = result.EntityId.Value })
+                    : Url.Action(nameof(Index));
+                return Ok(new
+                {
+                    success = true,
+                    message = result.Message,
+                    recipeId = result.EntityId,
+                    redirectUrl
+                });
+            }
 
             var response = new
             {
@@ -280,7 +344,7 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             if (!ModelState.IsValid)
             {
-                var page = await _queryService.GetEditPageAsync(id) ?? new AdminRecipeFormPageVM
+                var page = await _queryService.GetEditPageAsync(id, includeHistoricalSource: true) ?? new AdminRecipeFormPageVM
                 {
                     Form = model,
                     Options = await _queryService.GetFormOptionsAsync(),
@@ -295,10 +359,12 @@ namespace CafeChain.Areas.Admin.Controllers
             if (result.IsSuccess)
             {
                 TempData["SuccessMsg"] = result.Message;
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(
+                    nameof(Visualize),
+                    new { recipeId = result.EntityId ?? id });
             }
 
-            var failPage = await _queryService.GetEditPageAsync(id) ?? new AdminRecipeFormPageVM
+            var failPage = await _queryService.GetEditPageAsync(id, includeHistoricalSource: true) ?? new AdminRecipeFormPageVM
             {
                 Form = model,
                 Options = await _queryService.GetFormOptionsAsync(),

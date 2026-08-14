@@ -1,9 +1,12 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Profitability;
+using CafeChain.Application.DTOs.Admin.Recipes;
 using CafeChain.Application.Interfaces.Admin.Profitability;
+using CafeChain.Application.Interfaces.Admin.Recipes;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
+using CafeChain.Application.Services.Admin.Recipes;
 using CafeChain.Data;
 using CafeChain.Models.Drinks;
 using Microsoft.EntityFrameworkCore;
@@ -18,10 +21,12 @@ namespace CafeChain.Application.Services.Admin.Profitability
         private readonly IPhysicalUnitConversionService _physicalConversion;
         private readonly IEstimatedBomCostService _estimatedBomCost;
         private readonly IScopeAuthorizationService _scopeAuthorization;
+        private readonly ICurrentRecipeResolver _currentRecipeResolver;
 
         public DrinkSizeProfitabilityQueryService(AppDbContext context, IDrinkSizeRecipeResolver resolver,
             IUnitConversionService unitConversion, IPhysicalUnitConversionService physicalConversion,
-            IEstimatedBomCostService estimatedBomCost, IScopeAuthorizationService scopeAuthorization)
+            IEstimatedBomCostService estimatedBomCost, IScopeAuthorizationService scopeAuthorization,
+            ICurrentRecipeResolver? currentRecipeResolver = null)
         {
             _context = context;
             _resolver = resolver;
@@ -29,6 +34,7 @@ namespace CafeChain.Application.Services.Admin.Profitability
             _physicalConversion = physicalConversion;
             _estimatedBomCost = estimatedBomCost;
             _scopeAuthorization = scopeAuthorization;
+            _currentRecipeResolver = currentRecipeResolver ?? new CurrentRecipeResolver(context);
         }
 
         public async Task<ServiceResult<DrinkProfitabilityPreviewDto>> PreviewAsync(int storeId, int drinkId, DateTime asOfUtc, int actorStaffId, CancellationToken cancellationToken = default)
@@ -207,12 +213,27 @@ namespace CafeChain.Application.Services.Admin.Profitability
             };
         }
 
-        private async Task<Recipe?> ResolveToppingRecipeAsync(int toppingId, DateTime asOfUtc, CancellationToken ct) => await _context.Recipes.AsNoTracking()
-            .Include(x => x.RecipeDetails)
-            .Where(x => x.ToppingId == toppingId && x.DrinkId == null && x.Active && x.Status == "Active"
-                && (!x.EffectiveDate.HasValue || x.EffectiveDate.Value <= asOfUtc))
-            .OrderByDescending(x => x.EffectiveDate ?? DateTime.MinValue).ThenByDescending(x => x.RecipeId)
-            .FirstOrDefaultAsync(ct);
+        private async Task<Recipe?> ResolveToppingRecipeAsync(
+            int toppingId,
+            DateTime asOfUtc,
+            CancellationToken ct)
+        {
+            var resolution = await _currentRecipeResolver.ResolveAsync(
+                new RecipeTarget.Topping(toppingId),
+                asOfUtc,
+                ct);
+            if (resolution.Status != CurrentRecipeResolutionStatus.Found
+                || resolution.Recipe == null)
+            {
+                return null;
+            }
+
+            return await _context.Recipes.AsNoTracking()
+                .Include(recipe => recipe.RecipeDetails)
+                .SingleOrDefaultAsync(
+                    recipe => recipe.RecipeId == resolution.Recipe.RecipeId,
+                    ct);
+        }
 
         private async Task<bool> CanViewAsync(int staffId, int storeId, CancellationToken ct)
         {

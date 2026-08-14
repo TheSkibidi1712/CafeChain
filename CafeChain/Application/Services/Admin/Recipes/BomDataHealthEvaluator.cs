@@ -93,7 +93,7 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 {
                     reasons.Add(Reason(
                         BomConfigurationHealthCodes.InvalidPreparedItemMapping,
-                        $"Công thức BTP con ở dòng #{detail.RecipeDetailId} chưa liên kết PreparedItem hợp lệ.",
+                        $"Bán thành phẩm đầu vào ở dòng #{detail.RecipeDetailId} chưa có liên kết tồn kho hợp lệ.",
                         recipe.RecipeId));
                 }
             }
@@ -105,7 +105,7 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 {
                     reasons.Add(Reason(
                         BomConfigurationHealthCodes.MissingOutputIdentity,
-                        "Công thức BTP chưa chọn PreparedItem đầu ra.",
+                        "Công thức bán thành phẩm chưa chọn bán thành phẩm đầu ra.",
                         recipe.RecipeId,
                         "Chọn BTP đầu ra"));
                 }
@@ -113,7 +113,7 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 {
                     reasons.Add(Reason(
                         BomConfigurationHealthCodes.InvalidPreparedItemMapping,
-                        "PreparedItem đầu ra không tồn tại hoặc đã ngừng hoạt động.",
+                        "Bán thành phẩm đầu ra không tồn tại hoặc đã ngừng hoạt động.",
                         recipe.RecipeId,
                         "Sửa liên kết BTP"));
                 }
@@ -259,7 +259,7 @@ namespace CafeChain.Application.Services.Admin.Recipes
         private static string ConfigurationLabel(string code) => code switch
         {
             BomConfigurationHealthCodes.MissingComponents => "Thiếu thành phần",
-            BomConfigurationHealthCodes.MissingOutputIdentity => "Thiếu output identity",
+            BomConfigurationHealthCodes.MissingOutputIdentity => "Thiếu bán thành phẩm đầu ra",
             BomConfigurationHealthCodes.MissingOutputQuantity => "Thiếu sản lượng",
             BomConfigurationHealthCodes.MissingOutputUnit => "Thiếu đơn vị",
             BomConfigurationHealthCodes.InvalidPreparedItemMapping => "Liên kết BTP không hợp lệ",

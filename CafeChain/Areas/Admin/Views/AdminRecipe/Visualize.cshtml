@@ -1,18 +1,14 @@
 @model CafeChain.ViewModels.Admin.Recipes.AdminRecipeVisualizePageVM
 @using CafeChain.ViewModels.Admin.Shared
+@inject CafeChain.Application.Interfaces.Systems.IBusinessDateService BusinessDateService
 @{
-    ViewData["Title"] = "Chi tiết BOM - " + Model.Name;
+    ViewData["Title"] = "Không gian công thức - " + Model.BusinessName;
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
-    var statusBadge = AdminStatusDescriptor.Of(
-        Model.Active && Model.Status == "Active" ? "ACTIVE" : "INACTIVE",
-        Model.Active && Model.Status == "Active" ? "Đang hoạt động" : "Ngừng hoạt động",
-        Model.Active && Model.Status == "Active" ? "rb-status-active" : "rb-status-inactive");
-    var configClass = Model.ConfigurationHealth.IsComplete ? "rb-status-complete" : "rb-status-error";
-    var costClass = Model.CostingHealth.IsComplete ? "rb-status-complete" : "rb-status-incomplete";
+
     var heroActions = new List<AdminPageHeroActionVM>
     {
         new() { Label = "Quay lại danh sách", Url = Model.BackUrl, IconClass = "fas fa-arrow-left" },
-        new() { Label = "Tình trạng dữ liệu", Url = Url.Action("DataHealth") ?? "#", IconClass = "fas fa-clipboard-check" }
+        new() { Label = "Kiểm tra dữ liệu", Url = Url.Action("DataHealth") ?? "#", IconClass = "fas fa-clipboard-check" }
     };
     if (Model.CanWrite)
     {
@@ -24,389 +20,541 @@
             IsPrimary = true
         });
     }
+
     var hero = new AdminPageHeroVM
     {
         Eyebrow = "Sản xuất / BOM",
-        Title = Model.Name,
-        Description = $"{Model.TypeLabel} · {Model.IdentityDisplay}. Theo dõi cấu hình, định mức, sản lượng và các liên kết vận hành.",
+        Title = Model.BusinessName,
+        Description = $"{Model.TargetLabel}. Xem đầu ra, định mức đầu vào và bằng chứng phiên bản trong một bố cục thống nhất.",
         IconClass = "fas fa-diagram-project",
-        StatusLabel = statusBadge.Label,
-        StatusCssClass = statusBadge.CssClass,
+        StatusLabel = Model.AppliedStateLabel,
+        StatusCssClass = Model.AppliedStateCssClass,
         Breadcrumbs =
         [
-            new() { Label = "Công thức", Url = Model.BackUrl },
-            new() { Label = Model.Name }
+            new() { Label = "Công thức và định mức", Url = Model.BackUrl },
+            new() { Label = Model.BusinessName }
         ],
         Actions = heroActions
     };
 }
 
-<link rel="stylesheet" href="~/css/recipe-builder.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/Admin/Recipe/recipe-workspace.css" asp-append-version="true" />
 
-<main class="rb-page rb-detail-page production-bom-page production-bom-shell bom-detail-page">
+<main class="production-bom-page production-bom-shell bom-detail-page recipe-workspace-page">
     <div class="container-fluid px-0">
         <partial name="_PageHero" model="hero" />
-        <nav class="production-section-nav" aria-label="Các phần của công thức">
-            <a href="#recipe-overview">Tổng quan</a>
-            <a href="#recipe-health">Tình trạng dữ liệu</a>
-            @if (Model.ShowBatchOutput) { <a href="#recipe-output">Đầu ra</a> }
-            <a href="#bom-components">Định mức nguyên liệu</a>
-            <a href="#recipe-history">Liên kết vận hành</a>
-        </nav>
 
-        <section id="recipe-overview" class="rb-card bom-section mb-3" aria-labelledby="overview-title">
-            <header class="bom-section-heading">
-                <div>
-                    <span class="bom-section-heading__icon"><i class="fas fa-file-lines" aria-hidden="true"></i></span>
-                    <div><h2 id="overview-title">Tổng quan công thức</h2><p>Thông tin nhận diện và phiên bản đang được sử dụng.</p></div>
-                </div>
-            </header>
-            <div class="rb-detail-overview bom-overview-grid">
-                <div><span>Loại</span><strong>@Model.TypeLabel</strong></div>
-                <div><span>Định danh</span><strong>@Model.IdentityDisplay</strong></div>
-                <div><span>Mã công thức</span><strong>@Model.RecipeCode</strong></div>
-                <div><span>Nguồn phiên bản</span><strong>@(Model.ParentVersionId.HasValue ? "Kế thừa phiên bản trước" : "Phiên bản gốc")</strong></div>
-                <div><span>Ngày hiệu lực</span><strong>@(Model.EffectiveDate?.ToString("dd/MM/yyyy") ?? "Chưa đặt")</strong></div>
-                <div><span>Trạng thái</span><partial name="_StatusBadge" model="statusBadge" /></div>
+        <section class="recipe-workspace__identity bom-overview-grid" aria-labelledby="recipe-identity-title">
+            <div class="recipe-workspace__identity-main">
+                <span class="recipe-workspace__eyebrow">@Model.TargetLabel</span>
+                <h2 id="recipe-identity-title">@Model.BusinessName</h2>
+                <p class="recipe-workspace__technical-code">
+                    Mã công thức: @Model.RecipeCode
+                    @if (!string.IsNullOrWhiteSpace(Model.BusinessCode))
+                    {
+                        <span>· Mã đối tượng: @Model.BusinessCode</span>
+                    }
+                </p>
+            </div>
+            <div class="recipe-workspace__version">
+                <span class="rb-status-badge @Model.AppliedStateCssClass">@Model.AppliedStateLabel</span>
+                <strong>@Model.VersionLabel</strong>
+                <small>@(Model.ParentVersionId.HasValue ? "Kế thừa phiên bản trước" : "Phiên bản gốc")</small>
+            </div>
+            <div class="recipe-workspace__output-summary">
+                <span><i class="fas fa-box-open" aria-hidden="true"></i> @Model.OutputHeading</span>
+                <strong>@Model.OutputDisplay</strong>
+                <small>@Model.OutputContext</small>
             </div>
         </section>
 
-        <section id="recipe-health" class="rb-card bom-section mb-3" aria-labelledby="health-title">
-            <header class="bom-section-heading">
-                <div>
-                    <span class="bom-section-heading__icon"><i class="fas fa-clipboard-check" aria-hidden="true"></i></span>
-                    <div><h2 id="health-title">Khả năng đưa vào vận hành</h2><p>Kiểm tra nhanh cấu hình và dữ liệu giá trước khi sử dụng công thức.</p></div>
-                </div>
-                <a asp-action="DataHealth" class="bom-section-heading__action">Xem toàn bộ tình trạng BOM <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
-            </header>
-            <div class="bom-health-board">
-                <article class="bom-health-item @(Model.ConfigurationHealth.IsComplete ? "is-complete" : "is-attention")" aria-labelledby="config-health-title">
-                    <div class="bom-health-item__top">
+        <nav class="production-section-nav" aria-label="Các phần của công thức">
+            <a href="#bom-components">Đầu ra và định mức</a>
+            <a href="#recipe-where-used">Được sử dụng ở đâu</a>
+            <a href="#recipe-history">Lịch sử phiên bản</a>
+            <a href="#recipe-context">Ngữ cảnh phiên bản</a>
+            @if (Model.IsPreparedItemRecipe) { <a href="#recipe-operations">Sản xuất gần đây</a> }
+        </nav>
+
+        <section class="recipe-workspace__summary bom-health-board" aria-label="Tóm tắt công thức">
+            <article>
+                <span>Dòng định mức</span>
+                <strong>@Model.Components.Count</strong>
+                <small>Tổng số đầu vào của phiên bản này</small>
+            </article>
+            <article>
+                <span>Giá vốn thiết kế</span>
+                <strong>@(Model.DesignCost.IsAvailable ? $"{Model.DesignCost.Amount:N0} đ" : "Chưa đủ dữ liệu")</strong>
+                <small>@Model.DesignCost.UnitLabel</small>
+            </article>
+            <article>
+                <span>Giá vốn theo nhập trước - xuất trước (FIFO) tại chi nhánh</span>
+                <strong>@(Model.StoreFifoCost.IsAvailable ? $"{Model.StoreFifoCost.Amount:N0} đ" : "Chưa có dữ liệu")</strong>
+                <small>@(Model.StoreFifoCost.ContextLabel ?? "Chưa chọn chi nhánh")</small>
+            </article>
+            <article>
+                <span>Mức sẵn sàng</span>
+                <strong>@Model.GlobalReadiness.SummaryLabel</strong>
+                <small>@Model.GlobalReadiness.ScopeLabel</small>
+            </article>
+        </section>
+
+        <div class="recipe-workspace__layout">
+            <div class="recipe-workspace__main">
+                <section id="bom-components" class="recipe-workspace__surface recipe-workspace__flow" aria-labelledby="recipe-flow-title">
+                    <header class="recipe-workspace__section-heading bom-section-heading">
+                        <span class="recipe-workspace__section-icon"><i class="fas fa-route" aria-hidden="true"></i></span>
                         <div>
-                            <span class="bom-health-item__kicker">Cấu hình</span>
-                            <h3 id="config-health-title">Thông tin công thức</h3>
+                            <h2 id="recipe-flow-title">Đầu ra và định mức đầu vào</h2>
+                            <p>Đọc từ kết quả cần tạo xuống từng thành phần được sử dụng.</p>
                         </div>
-                        <span class="rb-status-badge @configClass">@Model.ConfigurationHealth.Label</span>
+                    </header>
+
+                    <div class="recipe-workspace__output-node">
+                        <span>@Model.OutputHeading</span>
+                        <strong>@Model.OutputDisplay</strong>
+                        <small>@Model.OutputContext</small>
                     </div>
-                    @if (Model.ConfigurationHealth.Reasons.Count == 0)
+                    <div class="recipe-workspace__flow-arrow" aria-hidden="true">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+
+                    <div class="recipe-workspace__input-groups">
+                        <section class="recipe-workspace__input-group is-prepared" aria-labelledby="prepared-inputs-title">
+                            <header>
+                                <span class="recipe-workspace__type-badge is-prepared">Bán thành phẩm</span>
+                                <div>
+                                    <h3 id="prepared-inputs-title">Bán thành phẩm đầu vào</h3>
+                                    <p>Được tạo từ một phiên bản công thức nguồn đã chọn.</p>
+                                </div>
+                            </header>
+                            @if (Model.PreparedInputs.Count == 0)
+                            {
+                                <div class="recipe-workspace__empty">Phiên bản này không sử dụng bán thành phẩm đầu vào.</div>
+                            }
+                            else
+                            {
+                                <div class="recipe-workspace__input-list">
+                                    @foreach (var component in Model.PreparedInputs)
+                                    {
+                                        <article>
+                                            <div class="recipe-workspace__input-identity">
+                                                <span>@component.InputTypeLabel</span>
+                                                <strong>@component.ItemName</strong>
+                                                <small>Mã: @component.ItemCode</small>
+                                            </div>
+                                            <div class="recipe-workspace__measure">
+                                                <span>Định lượng</span>
+                                                <strong>@component.Quantity.ToString("0.####") @component.UnitCode</strong>
+                                                @if (component.NormalizedQuantity.HasValue)
+                                                {
+                                                    <small>Chuẩn hóa: @component.NormalizedQuantity.Value.ToString("0.####") @component.BaseUnitCode</small>
+                                                }
+                                                else
+                                                {
+                                                    <small>Chưa có quy đổi về đơn vị tồn kho</small>
+                                                }
+                                                <small class="recipe-workspace__line-cost">
+                                                    Giá vốn thiết kế:
+                                                    @(component.EstimatedLineCost.HasValue ? $"{component.EstimatedLineCost:N0} đ" : "chưa đủ dữ liệu")
+                                                    @if (component.CostContributionPercent.HasValue)
+                                                    {
+                                                        <span>· Tỷ trọng giá vốn: @component.CostContributionPercent.Value.ToString("0.#")%</span>
+                                                    }
+                                                </small>
+                                            </div>
+                                            <a class="recipe-workspace__source-link bom-source-link" asp-action="Visualize"
+                                               asp-route-recipeId="@component.ChildRecipeId"
+                                               asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)">
+                                                <span>Công thức nguồn</span>
+                                                <strong>@component.SourceVersionLabel</strong>
+                                                <small>@component.ChildRecipeCode</small>
+                                                <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                                            </a>
+                                        </article>
+                                    }
+                                </div>
+                            }
+                        </section>
+
+                        <section class="recipe-workspace__input-group is-direct" aria-labelledby="direct-inputs-title">
+                            <header>
+                                <span class="recipe-workspace__type-badge is-direct">Nguyên liệu</span>
+                                <div>
+                                    <h3 id="direct-inputs-title">Nguyên liệu trực tiếp</h3>
+                                    <p>Được lấy trực tiếp từ tồn kho khi thực hiện công thức.</p>
+                                </div>
+                            </header>
+                            @if (Model.DirectIngredients.Count == 0)
+                            {
+                                <div class="recipe-workspace__empty">Phiên bản này không có nguyên liệu trực tiếp.</div>
+                            }
+                            else
+                            {
+                                <div class="recipe-workspace__input-list">
+                                    @foreach (var component in Model.DirectIngredients)
+                                    {
+                                        <article>
+                                            <div class="recipe-workspace__input-identity">
+                                                <span>@component.InputTypeLabel</span>
+                                                <strong>@component.ItemName</strong>
+                                                <small>Mã: @component.ItemCode</small>
+                                            </div>
+                                            <div class="recipe-workspace__measure">
+                                                <span>Định lượng</span>
+                                                <strong>@component.Quantity.ToString("0.####") @component.UnitCode</strong>
+                                                @if (component.NormalizedQuantity.HasValue)
+                                                {
+                                                    <small>Chuẩn hóa: @component.NormalizedQuantity.Value.ToString("0.####") @component.BaseUnitCode</small>
+                                                }
+                                                else
+                                                {
+                                                    <small>Chưa có quy đổi về đơn vị tồn kho</small>
+                                                }
+                                                <small class="recipe-workspace__line-cost">
+                                                    Giá vốn thiết kế:
+                                                    @(component.EstimatedLineCost.HasValue ? $"{component.EstimatedLineCost:N0} đ" : "chưa đủ dữ liệu")
+                                                    @if (component.CostContributionPercent.HasValue)
+                                                    {
+                                                        <span>· Tỷ trọng giá vốn: @component.CostContributionPercent.Value.ToString("0.#")%</span>
+                                                    }
+                                                </small>
+                                            </div>
+                                        </article>
+                                    }
+                                </div>
+                            }
+                        </section>
+                    </div>
+                </section>
+
+                <section id="recipe-where-used" class="recipe-workspace__surface recipe-workspace__where-used" aria-labelledby="where-used-title">
+                    <header class="recipe-workspace__section-heading bom-section-heading">
+                        <span class="recipe-workspace__section-icon"><i class="fas fa-share-nodes" aria-hidden="true"></i></span>
+                        <div>
+                            <h2 id="where-used-title">Được sử dụng ở đâu</h2>
+                            <p>Các công thức cha hiện hành và điểm bán đang sử dụng đúng đối tượng công thức này.</p>
+                        </div>
+                    </header>
+                    @if (Model.WhereUsed.IsEmpty)
                     {
-                        <p class="bom-health-item__message">Thông tin định danh và định nghĩa BOM đã đầy đủ.</p>
+                        <div class="recipe-workspace__where-used-empty">
+                            <i class="fas fa-circle-info" aria-hidden="true"></i>
+                            <span>Chưa ghi nhận nơi sử dụng hiện hành.</span>
+                        </div>
                     }
                     else
                     {
-                        <div class="rb-detail-reasons">
-                            @foreach (var reason in Model.ConfigurationHealth.Reasons)
-                            {
-                                <div class="rb-detail-reason">
-                                    <div><span>@reason.Message</span></div>
-                                    <a asp-area="Admin" asp-controller="@reason.CtaController" asp-action="@reason.CtaAction"
-                                       asp-route-id="@reason.CtaId" class="btn btn-sm btn-outline-secondary">@reason.CtaLabel</a>
-                                </div>
-                            }
-                        </div>
-                    }
-                </article>
-
-                <article class="bom-health-item @(Model.CostingHealth.IsComplete ? "is-complete" : "is-attention")" aria-labelledby="cost-health-title">
-                    <div class="bom-health-item__top">
-                        <div>
-                            <span class="bom-health-item__kicker">Giá vốn thiết kế</span>
-                            <h3 id="cost-health-title">Dữ liệu tính giá</h3>
-                        </div>
-                        <span class="rb-status-badge @costClass">@Model.CostingHealth.Label</span>
-                    </div>
-                    <p class="bom-health-item__message">Giá BOM là số ước tính theo thiết kế, không thay thế giá FIFO thực tế tại cửa hàng.</p>
-                    @if (Model.CostingHealth.Reasons.Count > 0)
-                    {
-                        <div class="rb-detail-reasons">
-                            @foreach (var reason in Model.CostingHealth.Reasons)
-                            {
-                                <div class="rb-detail-reason">
-                                    <div><span>@reason.Message</span></div>
-                                    <a asp-area="Admin" asp-controller="@reason.CtaController" asp-action="@reason.CtaAction"
-                                       asp-route-id="@reason.CtaId" class="btn btn-sm btn-outline-secondary">@reason.CtaLabel</a>
-                                </div>
-                            }
-                        </div>
-                    }
-                </article>
-            </div>
-        </section>
-
-        @if (Model.ShowBatchOutput)
-        {
-            <section id="recipe-output" class="rb-card bom-section mb-3" aria-labelledby="output-title">
-                <header class="bom-section-heading">
-                    <div>
-                        <span class="bom-section-heading__icon"><i class="fas fa-box-open" aria-hidden="true"></i></span>
-                        <div><h2 id="output-title">Đầu ra bán thành phẩm</h2><p>Quy cách sản lượng dùng để lập kế hoạch và ghi nhận tồn kho.</p></div>
-                    </div>
-                </header>
-                <div class="rb-output-contract">
-                    <div>
-                        <span>Bán thành phẩm ổn định</span>
-                        <strong>[@Model.PreparedItemCode] @Model.PreparedItemName</strong>
-                        @if (Model.PreparedItemId.HasValue)
+                        @if (Model.WhereUsed.CurrentParents.Count > 0)
                         {
-                            <a class="bom-inline-link" asp-controller="AdminPreparedItem" asp-action="Index" asp-route-search="@Model.PreparedItemCode">
-                                <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>Mở bán thành phẩm
-                            </a>
-                        }
-                    </div>
-                    <div><span>Sản lượng khai báo/mẻ</span><strong>@(Model.OutputQuantity?.ToString("0.####") ?? "—") @(Model.OutputUnitCode ?? Model.OutputUnitName)</strong></div>
-                    <div><span>Sản lượng chuẩn hóa/mẻ</span><strong>@(Model.NormalizedOutputQuantity?.ToString("0.####") ?? "Chưa quy đổi được") @Model.OutputBaseUnitCode</strong></div>
-                    <div><span>Đơn vị tồn kho BTP</span><strong>@(Model.OutputBaseUnitCode ?? "Chưa cấu hình")</strong></div>
-                </div>
-            </section>
-        }
-
-        @if (Model.ToppingConsumptionSource != null)
-        {
-            var source = Model.ToppingConsumptionSource;
-            <section class="rb-card bom-section mb-3" aria-labelledby="topping-source-title">
-                <header class="bom-section-heading">
-                    <div>
-                        <span class="bom-section-heading__icon"><i class="fas fa-layer-group" aria-hidden="true"></i></span>
-                        <div><h2 id="topping-source-title">Nguồn tiêu hao topping</h2><p>Nguồn định mức được dùng khi ghi nhận tiêu hao.</p></div>
-                    </div>
-                </header>
-                <div class="card-body p-3">
-                    <span class="rb-source-badge @(source.MappingValid ? "is-valid" : "is-warning")">@source.SourceLabel</span>
-                    <p class="small text-muted mt-2 mb-0">@source.Reason</p>
-                </div>
-            </section>
-        }
-
-        <section class="rb-card bom-section mb-3" id="bom-components" aria-labelledby="components-title">
-            <header class="bom-section-heading">
-                <div>
-                    <span class="bom-section-heading__icon"><i class="fas fa-list-check" aria-hidden="true"></i></span>
-                    <div><h2 id="components-title">Định mức nguyên liệu</h2><p>@Model.Components.Count thành phần · Số lượng được chuẩn hóa về đơn vị tồn kho.</p></div>
-                </div>
-            </header>
-            @if (Model.Components.Count == 0)
-            {
-                <div class="rb-detail-empty">Công thức chưa có thành phần BOM.</div>
-            }
-            else
-            {
-                <div class="table-responsive">
-                    <table class="table rb-table rb-detail-table production-data-table mb-0">
-                        <thead>
-                            <tr>
-                                <th>Thành phần</th>
-                                <th>Định lượng</th>
-                                <th>Chuẩn hóa</th>
-                                <th>Công thức nguồn</th>
-                                <th>Giá vốn ước tính</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        @foreach (var component in Model.Components)
-                        {
-                            <tr>
-                                <td>
-                                    <span class="@(component.IngredientId.HasValue ? "rb-badge-raw" : "rb-badge-sub")">@component.ComponentType</span>
-                                    <strong class="d-block mt-2">@component.ItemName</strong>
-                                    <code>@component.ItemCode</code>
-                                </td>
-                                <td class="rb-qty-unit">@component.Quantity.ToString("0.####") @component.UnitCode</td>
-                                <td>
-                                    @if (component.NormalizedQuantity.HasValue)
+                            <div class="recipe-workspace__where-used-group">
+                                <div class="recipe-workspace__where-used-group-heading">
+                                    <strong>Công thức cha hiện hành</strong>
+                                    <span>@Model.WhereUsed.CurrentParents.Count kết quả</span>
+                                </div>
+                                <div class="recipe-workspace__where-used-list">
+                                    @foreach (var usage in Model.WhereUsed.CurrentParents)
                                     {
-                                        <strong>@component.NormalizedQuantity.Value.ToString("0.####") @component.BaseUnitCode</strong>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-warning">Chưa quy đổi được</span>
-                                    }
-                                </td>
-                                <td>
-                                    @if (component.ChildRecipeId.HasValue)
-                                    {
-                                        <a class="bom-source-link" asp-action="Visualize" asp-route-recipeId="@component.ChildRecipeId" asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)">
-                                            <i class="fas fa-diagram-project" aria-hidden="true"></i>
-                                            <span class="bom-source-link__content">
-                                                <strong>Xem công thức @component.ItemName</strong>
-                                                <small>@(string.IsNullOrWhiteSpace(component.ChildRecipeCode) ? component.PreparedItemCode : component.ChildRecipeCode)</small>
+                                        <a class="recipe-workspace__where-used-item"
+                                           asp-action="Visualize"
+                                           asp-route-recipeId="@usage.ParentRecipeId"
+                                           asp-route-storeId="@Model.SelectedStoreId"
+                                           asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)">
+                                            <span class="recipe-workspace__type-badge">@usage.TypeLabel</span>
+                                            <span class="recipe-workspace__where-used-identity">
+                                                <strong>@usage.BusinessName</strong>
+                                                @if (!string.IsNullOrWhiteSpace(usage.ContextLabel))
+                                                {
+                                                    <small>@usage.ContextLabel</small>
+                                                }
+                                                <small class="recipe-workspace__where-used-technical">
+                                                    @if (!string.IsNullOrWhiteSpace(usage.TechnicalCode))
+                                                    {
+                                                        <span>Mã công thức: @usage.TechnicalCode</span>
+                                                    }
+                                                    @if (!string.IsNullOrWhiteSpace(usage.PinnedVersionLabel))
+                                                    {
+                                                        <span>@usage.PinnedVersionLabel</span>
+                                                    }
+                                                </small>
                                             </span>
-                                            <i class="fas fa-chevron-right bom-source-link__arrow" aria-hidden="true"></i>
+                                            <i class="fas fa-arrow-right" aria-hidden="true"></i>
                                         </a>
-                                        <div class="small text-muted">Dùng đúng phiên bản công thức thành phần đã chọn</div>
                                     }
-                                    else
-                                    {
-                                        <span class="text-muted">Không áp dụng</span>
-                                    }
-                                </td>
-                                <td>
-                                    @if (component.EstimatedLineCost.HasValue)
-                                    {
-                                        <strong>@component.EstimatedLineCost.Value.ToString("N0") đ</strong>
-                                        <div class="small text-muted">Ước tính theo thiết kế BOM</div>
-                                    }
-                                    else
-                                    {
-                                        <span class="rb-status-badge rb-status-incomplete">@component.CostStatus</span>
-                                    }
-                                </td>
-                            </tr>
+                                </div>
+                                @if (Model.WhereUsed.ParentResultsTruncated)
+                                {
+                                    <p class="recipe-workspace__where-used-limit">
+                                        Đang hiển thị @Model.WhereUsed.CurrentParents.Count kết quả đầu tiên; còn nơi sử dụng khác chưa hiển thị.
+                                    </p>
+                                }
+                            </div>
                         }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </section>
 
-        <section class="rb-card bom-section mb-3" aria-labelledby="estimated-cost-title">
-            <header class="bom-section-heading">
-                <div>
-                    <span class="bom-section-heading__icon"><i class="fas fa-coins" aria-hidden="true"></i></span>
-                    <div><h2 id="estimated-cost-title">Giá vốn BOM ước tính</h2><p>Đối chiếu chi phí thiết kế trước khi xem giá FIFO thực tế theo cửa hàng.</p></div>
-                </div>
-            </header>
-            <div class="rb-cost-metrics">
+                        @if (Model.WhereUsed.PointOfSaleLocations.Count > 0)
+                        {
+                            <div class="recipe-workspace__where-used-group">
+                                <div class="recipe-workspace__where-used-group-heading">
+                                    <strong>Điểm bán hiện hành trong phạm vi được phép xem</strong>
+                                    <span>@Model.WhereUsed.PointOfSaleLocations.Count chi nhánh</span>
+                                </div>
+                                <div class="recipe-workspace__where-used-list">
+                                    @foreach (var usage in Model.WhereUsed.PointOfSaleLocations)
+                                    {
+                                        <article class="recipe-workspace__where-used-item is-location">
+                                            <span class="recipe-workspace__type-badge is-direct">@usage.TypeLabel</span>
+                                            <span class="recipe-workspace__where-used-identity">
+                                                <strong>@usage.BusinessName</strong>
+                                                <small>@usage.ContextLabel</small>
+                                            </span>
+                                            <i class="fas fa-store" aria-hidden="true"></i>
+                                        </article>
+                                    }
+                                </div>
+                                @if (Model.WhereUsed.PointOfSaleResultsTruncated)
+                                {
+                                    <p class="recipe-workspace__where-used-limit">
+                                        Đang hiển thị @Model.WhereUsed.PointOfSaleLocations.Count chi nhánh đầu tiên; còn chi nhánh khác chưa hiển thị.
+                                    </p>
+                                }
+                            </div>
+                        }
+                    }
+                </section>
+
+                <section id="recipe-history" class="recipe-workspace__surface recipe-workspace__history" aria-labelledby="recipe-history-title">
+                    <header class="recipe-workspace__section-heading bom-section-heading">
+                        <span class="recipe-workspace__section-icon"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i></span>
+                        <div>
+                            <h2 id="recipe-history-title">Lịch sử phiên bản</h2>
+                            <p>Các phiên bản của cùng đối tượng công thức; không trộn với lịch sử tồn kho hay nhật ký kỹ thuật.</p>
+                        </div>
+                    </header>
+                    @if (Model.VersionHistory.Items.Count == 0)
+                    {
+                        <div class="recipe-workspace__history-empty">Chưa ghi nhận phiên bản liên quan.</div>
+                    }
+                    else
+                    {
+                        <div class="recipe-workspace__history-list">
+                            @foreach (var version in Model.VersionHistory.Items)
+                            {
+                                <article class="@(version.IsCurrent ? "is-current" : null)">
+                                    <div>
+                                        <span class="rb-status-badge @(version.IsCurrent ? "rb-status-active" : "rb-status-inactive")">@version.StateLabel</span>
+                                        <strong>@version.VersionLabel</strong>
+                                        <small>@version.RelationshipLabel</small>
+                                        <small>Áp dụng: @(version.AppliedAt.HasValue ? BusinessDateService.ToBusinessTime(version.AppliedAt.Value).ToString("dd/MM/yyyy HH:mm") : "ngay khi phát hành")</small>
+                                    </div>
+                                    <div class="recipe-workspace__history-actions">
+                                        @if (version.RecipeId != Model.RecipeId)
+                                        {
+                                            <a asp-action="CompareVersions"
+                                               asp-route-fromRecipeId="@version.RecipeId"
+                                               asp-route-toRecipeId="@Model.RecipeId">
+                                                <i class="fas fa-code-compare" aria-hidden="true"></i>
+                                                So sánh với phiên bản đang xem
+                                            </a>
+                                        }
+                                        <a asp-action="Visualize" asp-route-recipeId="@version.RecipeId" asp-route-storeId="@Model.SelectedStoreId">
+                                            Xem phiên bản
+                                            <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                                        </a>
+                                    </div>
+                                </article>
+                            }
+                        </div>
+                        @if (Model.VersionHistory.IsTruncated)
+                        {
+                            <p class="recipe-workspace__history-limit">Hiển thị @Model.VersionHistory.Items.Count/@Model.VersionHistory.TotalCount phiên bản gần nhất.</p>
+                        }
+                    }
+                </section>
+
                 @if (Model.IsPreparedItemRecipe)
                 {
-                    <div><span>Ước tính/mẻ</span><strong>@(Model.EstimatedBatchCost?.ToString("N0") ?? "Chưa đủ dữ liệu") @(Model.EstimatedBatchCost.HasValue ? "đ" : "")</strong></div>
-                    <div><span>Ước tính/đơn vị BTP</span><strong>@(Model.EstimatedUnitCost?.ToString("N2") ?? "Chưa đủ dữ liệu") @(Model.EstimatedUnitCost.HasValue ? $"đ/{Model.OutputBaseUnitCode}" : "")</strong></div>
-                }
-                else
-                {
-                    <div><span>Ước tính/phần bán</span><strong>@(Model.EstimatedPortionCost?.ToString("N0") ?? "Chưa đủ dữ liệu") @(Model.EstimatedPortionCost.HasValue ? "đ" : "")</strong></div>
-                }
-                <p>Giá vốn thực tế được ghi nhận theo FIFO tại thời điểm vận hành và không thay thế con số ước tính này.</p>
-            </div>
-        </section>
-
-        <section id="recipe-history" class="rb-card bom-section" aria-labelledby="operations-title">
-            <header class="bom-section-heading">
-                <div>
-                    <span class="bom-section-heading__icon"><i class="fas fa-store" aria-hidden="true"></i></span>
-                    <div><h2 id="operations-title">Vận hành theo cửa hàng</h2><p>Xem khả năng đáp ứng nguyên liệu, tồn bán thành phẩm và các lần sản xuất gần đây.</p></div>
-                </div>
-            </header>
-            <div class="card-body p-3">
-                <form method="get" asp-action="Visualize" class="rb-store-selector mb-3">
-                    <input type="hidden" name="recipeId" value="@Model.RecipeId" />
-                    <input type="hidden" name="returnUrl" value="@Model.BackUrl" />
-                    <div>
-                        <label class="form-label" for="storeId">Cửa hàng</label>
-                        <select class="form-select" id="storeId" name="storeId">
-                            <option value="">-- Chọn cửa hàng để xem mức độ sẵn sàng --</option>
-                            @foreach (var store in Model.Stores)
-                            {
-                                <option value="@store.StoreId" selected="@(Model.SelectedStoreId == store.StoreId ? "selected" : null)">@store.StoreName</option>
-                            }
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-rb-save">Xem vận hành</button>
-                </form>
-
-                @if (!Model.IsPreparedItemRecipe)
-                {
-                    <div class="rb-detail-empty">Mức độ sẵn sàng sản xuất và tồn BTP chỉ áp dụng cho công thức bán thành phẩm.</div>
-                }
-                else if (!Model.SelectedStoreId.HasValue)
-                {
-                    <div class="rb-detail-empty">Chọn cửa hàng để tải chế độ ghi kho, mức độ sẵn sàng, tồn BTP và lệnh sơ chế gần đây.</div>
-                }
-                else if (Model.Operational == null)
-                {
-                    <div class="alert alert-warning mb-0">@(!string.IsNullOrWhiteSpace(Model.OperationalError) ? Model.OperationalError : "Không tải được dữ liệu vận hành cho cửa hàng đã chọn.")</div>
-                }
-                else
-                {
-                    var operational = Model.Operational;
-                    var readiness = operational.Readiness;
-                    <div class="rb-operational-actions mb-3">
-                        <a asp-controller="AdminProductionOrder" asp-action="Create"
-                           asp-route-storeId="@operational.StoreId" asp-route-recipeId="@Model.RecipeId"
-                           class="btn btn-rb-ghost">Sơ chế độc lập</a>
-                        <a asp-controller="AdminStoreInventory" asp-action="Index"
-                           asp-route-storeId="@operational.StoreId" asp-route-inventoryType="prepared-items"
-                           asp-route-search="@Model.PreparedItemCode" class="btn btn-rb-ghost">Xem tồn kho BTP</a>
-                        <a asp-action="DataHealth" class="btn btn-rb-ghost">Đi tới tình trạng dữ liệu</a>
-                    </div>
-
-                    @if (readiness != null)
-                    {
-                        <div class="rb-readiness-strip @(readiness.IsReady ? "is-ready" : "is-blocked")">
-                            <div><span>Mức độ sẵn sàng</span><strong>@(readiness.IsReady ? "Sẵn sàng" : "Chưa sẵn sàng")</strong></div>
-                            <div><span>Cách ghi nhận tồn kho</span><strong>@(readiness.WriterMode == "PreparedItem" ? "Theo bán thành phẩm" : readiness.WriterMode == "LegacyRecipe" ? "Theo công thức cũ" : "Chưa xác định")</strong></div>
-                            <div><span>Hệ số tối đa</span><strong>@readiness.MaxSupportedRunCount.ToString("0.####")</strong></div>
-                        </div>
-                        @if (readiness.Reasons.Count > 0)
+                    <section id="recipe-operations" class="recipe-workspace__surface recipe-workspace__operations" aria-labelledby="operations-title">
+                        <header class="recipe-workspace__section-heading bom-section-heading">
+                            <span class="recipe-workspace__section-icon"><i class="fas fa-store" aria-hidden="true"></i></span>
+                            <div>
+                                <h2 id="operations-title">Sản xuất gần đây</h2>
+                                <p>Bằng chứng vận hành của đúng phiên bản công thức tại chi nhánh đã chọn.</p>
+                            </div>
+                        </header>
+                        @if (!Model.SelectedStoreId.HasValue)
                         {
-                            <ul class="rb-operational-reasons">
-                                @foreach (var reason in readiness.Reasons)
-                                {
-                                    <li>@reason.Message</li>
-                                }
-                            </ul>
+                            <p class="recipe-workspace__notice">Chọn chi nhánh trong phần cơ sở tính giá vốn để xem dữ liệu vận hành.</p>
                         }
-                    }
-
-                    <div class="rb-detail-grid mt-3">
-                        <div class="rb-subpanel">
-                            <h2>Tồn BTP hiện tại</h2>
-                            @if (operational.OutputStock == null)
-                            {
-                                <p class="text-warning mb-0">Chưa có đúng một dòng tồn chuẩn hoặc còn xung đột dữ liệu cũ.</p>
-                            }
-                            else
-                            {
-                                var stock = operational.OutputStock;
-                                <dl class="rb-stock-grid">
-                                    <div><dt>Hiện có</dt><dd>@stock.CurrentQuantity.ToString("0.###") @stock.BaseUnitCode</dd></div>
-                                    <div><dt>Đã giữ</dt><dd>@stock.ReservedQuantity.ToString("0.###") @stock.BaseUnitCode</dd></div>
-                                    <div><dt>Khả dụng</dt><dd>@stock.UsableQuantity.ToString("0.###") @stock.BaseUnitCode</dd></div>
-                                </dl>
-                                <div class="rb-actual-cost-box">
-                                    <span>Lớp giá FIFO đầu ra thực tế gần nhất</span>
-                                    @if (stock.ActualUnitCost.HasValue)
+                        else if (Model.Operational == null)
+                        {
+                            <p class="recipe-workspace__notice">@(!string.IsNullOrWhiteSpace(Model.OperationalError) ? Model.OperationalError : "Chưa tải được dữ liệu của chi nhánh đã chọn.")</p>
+                        }
+                        else if (Model.Operational != null)
+                        {
+                            var operational = Model.Operational;
+                            <div class="recipe-workspace__operations-grid">
+                                <article>
+                                    <span>Tồn bán thành phẩm</span>
+                                    @if (operational.OutputStock == null)
                                     {
-                                        <strong>@stock.ActualUnitCost.Value.ToString("N2") đ/@stock.BaseUnitCode</strong>
-                                        <small>Lô giá FIFO gần nhất · Lệnh PR-@stock.SourceProductionRunId · @stock.ActualLayerCreatedAt?.ToString("dd/MM/yyyy HH:mm")</small>
+                                        <strong>Chưa có dữ liệu tồn chuẩn</strong>
+                                        <small>Cần kiểm tra liên kết tồn kho của bán thành phẩm.</small>
                                     }
                                     else
                                     {
-                                        <strong>Chưa có lớp giá thực tế</strong>
+                                        <strong>@operational.OutputStock.UsableQuantity.ToString("0.###") @operational.OutputStock.BaseUnitCode khả dụng</strong>
+                                        <small>Hiện có @operational.OutputStock.CurrentQuantity.ToString("0.###") · Đã giữ @operational.OutputStock.ReservedQuantity.ToString("0.###")</small>
                                     }
-                                </div>
-                            }
-                        </div>
-
-                        <div class="rb-subpanel">
-                            <h2>Lệnh sơ chế gần đây</h2>
-                            @if (operational.RecentRuns.Count == 0)
+                                </article>
+                                <article>
+                                    <span>Lệnh sản xuất</span>
+                                    <strong>@operational.RecentRuns.Count lần gần đây</strong>
+                                    <small>@(operational.RecentRuns.Count == 0 ? "Chưa có dữ liệu cho đúng phiên bản này." : "Tối đa 5 lệnh gần nhất của phiên bản đang xem.")</small>
+                                </article>
+                            </div>
+                            @if (operational.RecentRuns.Count > 0)
                             {
-                                <p class="text-muted mb-0">Chưa có lệnh sơ chế cho đúng phiên bản công thức tại cửa hàng này.</p>
-                            }
-                            else
-                            {
-                                <div class="rb-run-list">
+                                <div class="recipe-workspace__production-list" aria-label="Danh sách sản xuất gần đây">
                                     @foreach (var run in operational.RecentRuns)
                                     {
                                         <article>
                                             <div>
-                                                <strong>Lệnh PR-@run.ProductionRunId</strong>
-                                                <span>@(run.Status == "Completed" ? "Đã hoàn tất" : run.Status == "Confirmed" ? "Đã xác nhận" : "Không xác định")</span>
+                                                <span class="recipe-workspace__eyebrow">Lệnh @run.BusinessCode</span>
+                                                <strong>@(Model.PreparedItemName ?? Model.BusinessName)</strong>
+                                                <small>@run.Status</small>
                                             </div>
-                                            <p>Hệ số @run.RequestedRunCount.ToString("0.####") · @run.ConfirmedAt.ToString("dd/MM/yyyy HH:mm") · @(run.ActorName ?? "Không rõ người tạo")</p>
-                                            @if (run.ActualOutputUnitCost.HasValue)
+                                            <dl>
+                                                <div>
+                                                    <dt>Đầu ra được chấp nhận</dt>
+                                                    <dd>
+                                                        @(run.AcceptedOutputQuantity.HasValue
+                                                            ? $"{run.AcceptedOutputQuantity.Value:0.####} {run.OutputUnitCode}"
+                                                            : "Chưa có bằng chứng nghiệm thu")
+                                                    </dd>
+                                                </div>
+                                                <div>
+                                                    <dt>Hoàn tất</dt>
+                                                    <dd>@(run.CompletedAt.HasValue ? BusinessDateService.ToBusinessTime(run.CompletedAt.Value).ToString("dd/MM/yyyy HH:mm") : "Chưa hoàn tất")</dd>
+                                                </div>
+                                            </dl>
+                                            @if (Model.CanViewProduction)
                                             {
-                                                <small>FIFO thực tế: @run.ActualTotalInputCost?.ToString("N0") đ tổng · @run.ActualOutputUnitCost.Value.ToString("N2") đ/@Model.OutputBaseUnitCode</small>
+                                                <a asp-controller="AdminProductionOrder" asp-action="Details" asp-route-id="@run.ProductionRunId">
+                                                    Xem lệnh sản xuất
+                                                    <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                                                </a>
                                             }
                                         </article>
                                     }
                                 </div>
                             }
-                        </div>
-                    </div>
+                        }
+                    </section>
                 }
             </div>
-        </section>
+
+            <aside id="recipe-context" class="recipe-workspace__rail" aria-label="Ngữ cảnh công thức">
+                <header>
+                    <i class="fas fa-table-columns" aria-hidden="true"></i>
+                    <div>
+                        <strong>Ngữ cảnh công thức</strong>
+                        <small>Phiên bản, trạng thái và đối tượng đang xem.</small>
+                    </div>
+                </header>
+                <section>
+                    <span class="recipe-workspace__eyebrow">Phiên bản công thức</span>
+                    <h2>@Model.VersionLabel</h2>
+                    <span class="rb-status-badge @Model.AppliedStateCssClass">@Model.AppliedStateLabel</span>
+                    <dl>
+                        <div><dt>Đối tượng</dt><dd>@Model.TargetLabel</dd></div>
+                        <div><dt>Ngày áp dụng</dt><dd>@(Model.EffectiveDate?.ToString("dd/MM/yyyy") ?? "Áp dụng ngay")</dd></div>
+                        <div><dt>Nguồn phiên bản</dt><dd>@(Model.ParentVersionId.HasValue ? $"Phiên bản {Model.ParentVersionId.Value}" : "Phiên bản gốc")</dd></div>
+                    </dl>
+                </section>
+                <section>
+                    <span class="recipe-workspace__eyebrow">Cơ sở tính giá vốn</span>
+                    <div class="recipe-workspace__evidence-list">
+                        <article class="@(Model.DesignCost.IsAvailable ? "is-ready" : "is-warning")">
+                            <span>Giá vốn ước tính theo thiết kế</span>
+                            <strong>@(Model.DesignCost.IsAvailable ? $"{Model.DesignCost.Amount:N0} đ" : "Chưa đủ dữ liệu")</strong>
+                            <small>@Model.DesignCost.Message</small>
+                        </article>
+                        <article class="@(Model.StoreFifoCost.IsAvailable ? "is-ready" : "is-muted")">
+                            <span>Giá vốn theo nhập trước - xuất trước (FIFO) tại chi nhánh</span>
+                            <strong>@(Model.StoreFifoCost.IsAvailable ? $"{Model.StoreFifoCost.Amount:N0} đ" : "Chưa có dữ liệu")</strong>
+                            <small>@Model.StoreFifoCost.Message</small>
+                            @if (!string.IsNullOrWhiteSpace(Model.StoreFifoCost.ContextLabel))
+                            {
+                                <small>Chi nhánh: @Model.StoreFifoCost.ContextLabel</small>
+                            }
+                            @if (Model.StoreFifoCost.EvidenceAtUtc.HasValue)
+                            {
+                                <small>Bằng chứng cập nhật: @BusinessDateService.ToBusinessTime(Model.StoreFifoCost.EvidenceAtUtc.Value).ToString("dd/MM/yyyy HH:mm")</small>
+                            }
+                        </article>
+                    </div>
+                    <form method="get" asp-action="Visualize" class="recipe-workspace__store-selector is-rail">
+                        <input type="hidden" name="recipeId" value="@Model.RecipeId" />
+                        <input type="hidden" name="returnUrl" value="@Model.BackUrl" />
+                        <div>
+                            <label for="storeId">Chi nhánh được phép xem</label>
+                            <select id="storeId" name="storeId">
+                                <option value="">Chọn chi nhánh</option>
+                                @foreach (var store in Model.Stores)
+                                {
+                                    <option value="@store.StoreId" selected="@(Model.SelectedStoreId == store.StoreId ? "selected" : null)">@store.StoreName</option>
+                                }
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-rb-save"><i class="fas fa-eye" aria-hidden="true"></i> Xem</button>
+                    </form>
+                </section>
+                <section>
+                    <span class="recipe-workspace__eyebrow">Mức sẵn sàng</span>
+                    <h2>@Model.GlobalReadiness.SummaryLabel</h2>
+                    <small>@Model.GlobalReadiness.ScopeLabel</small>
+                    <div class="recipe-workspace__facet-list">
+                        @foreach (var facet in Model.GlobalReadiness.Facets)
+                        {
+                            <article class="@(facet.IsPassed ? "is-ready" : facet.IsApplicable ? "is-warning" : "is-muted")">
+                                <div><strong>@facet.Label</strong><span>@facet.StateLabel</span></div>
+                                <small>@facet.Message</small>
+                            </article>
+                        }
+                    </div>
+                    @if (Model.SelectedStoreId.HasValue)
+                    {
+                        <h2 class="recipe-workspace__store-readiness-title">@Model.StoreReadiness.SummaryLabel</h2>
+                        <small>@Model.StoreReadiness.ScopeLabel</small>
+                        <div class="recipe-workspace__facet-list">
+                            @foreach (var facet in Model.StoreReadiness.Facets)
+                            {
+                                <article class="@(facet.IsPassed ? "is-ready" : facet.IsApplicable ? "is-warning" : "is-muted")">
+                                    <div><strong>@facet.Label</strong><span>@facet.StateLabel</span></div>
+                                    <small>@facet.Message</small>
+                                </article>
+                            }
+                        </div>
+                    }
+                </section>
+                <section>
+                    <span class="recipe-workspace__eyebrow">Định nghĩa đầu ra</span>
+                    <h2>@Model.OutputHeading</h2>
+                    <p>@Model.OutputDisplay</p>
+                    <small>@Model.OutputContext</small>
+                </section>
+                <section>
+                    <span class="recipe-workspace__eyebrow">Dấu vết kỹ thuật</span>
+                    <dl>
+                        <div><dt>Mã công thức</dt><dd>@Model.RecipeCode</dd></div>
+                        @if (!string.IsNullOrWhiteSpace(Model.BusinessCode))
+                        {
+                            <div><dt>Mã đối tượng</dt><dd>@Model.BusinessCode</dd></div>
+                        }
+                    </dl>
+                </section>
+            </aside>
+        </div>
     </div>
 </main>

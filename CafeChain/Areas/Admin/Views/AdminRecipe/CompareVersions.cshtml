@@ -1,0 +1,117 @@
+@model CafeChain.ViewModels.Admin.Recipes.RecipeVersionCompareVM
+@{
+    ViewData["Title"] = "So sánh phiên bản công thức - " + Model.BusinessName;
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/Admin/Recipe/recipe-workspace.css" asp-append-version="true" />
+
+<main class="production-bom-page production-bom-shell recipe-workspace-page recipe-compare-page">
+    <div class="container-fluid px-0">
+        <header class="recipe-compare__header">
+            <div>
+                <span class="recipe-workspace__eyebrow">@Model.TargetLabel</span>
+                <h1>So sánh phiên bản · @Model.BusinessName</h1>
+                <p>Đối chiếu hai phiên bản của cùng một đối tượng công thức. Đây là bằng chứng chỉ đọc.</p>
+            </div>
+            <a asp-action="Visualize" asp-route-recipeId="@Model.To.RecipeId" class="btn btn-rb-outline">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                Quay lại không gian công thức
+            </a>
+        </header>
+
+        <section class="recipe-compare__versions" aria-label="Hai phiên bản được so sánh">
+            <article>
+                <span>Phiên bản trước</span>
+                <strong>@Model.From.VersionLabel</strong>
+                <small>@Model.From.StateLabel</small>
+                <dl>
+                    <div><dt>Đầu ra</dt><dd>@Model.From.OutputDisplay</dd></div>
+                    <div><dt>Giá vốn thiết kế</dt><dd>@(Model.From.DesignCost.HasValue ? $"{Model.From.DesignCost:N0} đ" : "Chưa đủ dữ liệu")</dd></div>
+                    <div><dt>Dữ liệu giá</dt><dd>@Model.From.CostCompletenessLabel</dd></div>
+                </dl>
+            </article>
+            <div class="recipe-compare__direction" aria-hidden="true"><i class="fas fa-arrow-right"></i></div>
+            <article>
+                <span>Phiên bản sau</span>
+                <strong>@Model.To.VersionLabel</strong>
+                <small>@Model.To.StateLabel</small>
+                <dl>
+                    <div><dt>Đầu ra</dt><dd>@Model.To.OutputDisplay</dd></div>
+                    <div><dt>Giá vốn thiết kế</dt><dd>@(Model.To.DesignCost.HasValue ? $"{Model.To.DesignCost:N0} đ" : "Chưa đủ dữ liệu")</dd></div>
+                    <div><dt>Dữ liệu giá</dt><dd>@Model.To.CostCompletenessLabel</dd></div>
+                </dl>
+            </article>
+        </section>
+
+        <section class="recipe-workspace__surface recipe-compare__summary" aria-labelledby="compare-summary-title">
+            <header class="recipe-workspace__section-heading bom-section-heading">
+                <span class="recipe-workspace__section-icon"><i class="fas fa-scale-balanced" aria-hidden="true"></i></span>
+                <div>
+                    <h2 id="compare-summary-title">Tóm tắt thay đổi</h2>
+                    <p>Đầu ra, mức đầy đủ dữ liệu giá và chênh lệch giá vốn thiết kế.</p>
+                </div>
+            </header>
+            <div class="recipe-compare__summary-grid">
+                <article><span>Đầu ra</span><strong>@Model.OutputChangeLabel</strong></article>
+                <article><span>Dữ liệu giá</span><strong>@Model.CostCompletenessChangeLabel</strong></article>
+                <article>
+                    <span>Chênh lệch giá vốn thiết kế</span>
+                    <strong>@(Model.DesignCostDelta.HasValue ? $"{Model.DesignCostDelta.Value:+#,##0;-#,##0;0} đ" : "Chưa thể xác định")</strong>
+                </article>
+            </div>
+        </section>
+
+        <section class="recipe-workspace__surface recipe-compare__lines" aria-labelledby="compare-lines-title">
+            <header class="recipe-workspace__section-heading bom-section-heading">
+                <span class="recipe-workspace__section-icon"><i class="fas fa-list-check" aria-hidden="true"></i></span>
+                <div>
+                    <h2 id="compare-lines-title">Thay đổi định mức</h2>
+                    <p>Phân biệt dòng thêm, dòng bỏ và dòng thay đổi theo thành phần nghiệp vụ.</p>
+                </div>
+            </header>
+            @if (!Model.HasLineChanges)
+            {
+                <div class="recipe-workspace__history-empty">Không có thay đổi định mức giữa hai phiên bản.</div>
+            }
+            else
+            {
+                var groups = new[]
+                {
+                    (Title: "Dòng đã thêm", Css: "is-added", Items: Model.AddedLines),
+                    (Title: "Dòng đã bỏ", Css: "is-removed", Items: Model.RemovedLines),
+                    (Title: "Dòng đã thay đổi", Css: "is-changed", Items: Model.ChangedLines)
+                };
+                <div class="recipe-compare__change-groups">
+                    @foreach (var group in groups.Where(x => x.Items.Count > 0))
+                    {
+                        <section class="recipe-compare__change-group @group.Css">
+                            <h3>@group.Title <span>@group.Items.Count</span></h3>
+                            @foreach (var line in group.Items)
+                            {
+                                <article>
+                                    <div>
+                                        <span>@line.InputTypeLabel</span>
+                                        <strong>@line.BusinessName</strong>
+                                        @if (!string.IsNullOrWhiteSpace(line.TechnicalCode))
+                                        {
+                                            <small>Mã: @line.TechnicalCode</small>
+                                        }
+                                    </div>
+                                    <dl>
+                                        <div><dt>Trước</dt><dd>@(line.BeforeQuantity ?? "Không có")</dd></div>
+                                        <div><dt>Sau</dt><dd>@(line.AfterQuantity ?? "Không có")</dd></div>
+                                        <div><dt>Chuẩn hóa trước</dt><dd>@(line.BeforeNormalizedQuantity ?? "Chưa có dữ liệu")</dd></div>
+                                        <div><dt>Chuẩn hóa sau</dt><dd>@(line.AfterNormalizedQuantity ?? "Chưa có dữ liệu")</dd></div>
+                                    </dl>
+                                    <p>@line.ChangeSummary</p>
+                                </article>
+                            }
+                        </section>
+                    }
+                </div>
+            }
+        </section>
+    </div>
+</main>

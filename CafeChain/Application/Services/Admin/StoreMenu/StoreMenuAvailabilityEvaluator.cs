@@ -1,8 +1,11 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin.Recipes;
 using CafeChain.Application.DTOs.Admin.StoreMenu;
 using CafeChain.Application.Interfaces.Admin.Profitability;
+using CafeChain.Application.Interfaces.Admin.Recipes;
 using CafeChain.Application.Interfaces.Admin.StoreMenu;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Services.Admin.Recipes;
 using CafeChain.Data;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Enums.Inventory;
@@ -17,17 +20,20 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
         private readonly IDrinkSizeRecipeResolver _recipeResolver;
         private readonly IUnitConversionService _unitConversion;
         private readonly IPhysicalUnitConversionService _physicalConversion;
+        private readonly ICurrentRecipeResolver _currentRecipeResolver;
 
         public StoreMenuAvailabilityEvaluator(
             AppDbContext context,
             IDrinkSizeRecipeResolver recipeResolver,
             IUnitConversionService unitConversion,
-            IPhysicalUnitConversionService physicalConversion)
+            IPhysicalUnitConversionService physicalConversion,
+            ICurrentRecipeResolver? currentRecipeResolver = null)
         {
             _context = context;
             _recipeResolver = recipeResolver;
             _unitConversion = unitConversion;
             _physicalConversion = physicalConversion;
+            _currentRecipeResolver = currentRecipeResolver ?? new CurrentRecipeResolver(context);
         }
 
         public async Task<StoreMenuAvailabilityDto> EvaluateAsync(
@@ -96,7 +102,7 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
                 var toppingRecipe = await ResolveToppingRecipeAsync(policy.ToppingId, asOfUtc, cancellationToken);
                 if (toppingRecipe == null)
                     return Result(item, configuredStatus, StoreMenuAvailabilityStatuses.ToppingUnavailable,
-                        $"Topping bắt buộc '{policy.Topping.Name}' chưa có BOM active hợp lệ.");
+                        $"Topping bắt buộc '{policy.Topping.Name}' chưa có công thức đang áp dụng hợp lệ.");
 
                 if (writerMode == InventoryWriterMode.Blocked
                     && toppingRecipe.RecipeDetails.Any(x => x.ChildRecipeId.HasValue))
@@ -242,7 +248,7 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
                 var preparedItem = child?.PreparedItem;
                 if (preparedItem == null || !preparedItem.Active)
                     return RequirementBuildResult.Fail(StoreMenuAvailabilityStatuses.StoreNotReady,
-                        "ChildRecipe chưa map PreparedItem hoạt động.");
+                        "Công thức đầu vào chưa liên kết với bán thành phẩm đang hoạt động.");
 
                 var convertedPrepared = await _physicalConversion.ConvertAsync(
                     rawRequired,
@@ -260,10 +266,10 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
                     .ToListAsync(cancellationToken);
                 if (preparedRows.Count == 0)
                     return RequirementBuildResult.Fail(StoreMenuAvailabilityStatuses.OutOfStock,
-                        "Chưa có tồn kho PreparedItem tại cửa hàng.");
+                        "Chưa có tồn kho bán thành phẩm tại cửa hàng.");
                 if (preparedRows.Count > 1)
                     return RequirementBuildResult.Fail(StoreMenuAvailabilityStatuses.StoreNotReady,
-                        "PreparedItem còn collision identity chưa xử lý.");
+                        "Bán thành phẩm có nhiều bản ghi tồn kho chưa được xử lý.");
 
                 requirements.Add(new StockRequirement(preparedRows[0], convertedPrepared.Data, isRequiredTopping));
             }
@@ -276,18 +282,23 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
             DateTime asOfUtc,
             CancellationToken cancellationToken)
         {
-            var recipes = await _context.Recipes.AsNoTracking()
+            var resolution = await _currentRecipeResolver.ResolveAsync(
+                new RecipeTarget.Topping(toppingId),
+                asOfUtc,
+                cancellationToken);
+            if (resolution.Status != CurrentRecipeResolutionStatus.Found
+                || resolution.Recipe == null)
+            {
+                return null;
+            }
+
+            var recipe = await _context.Recipes.AsNoTracking()
                 .AsSplitQuery()
                 .Include(x => x.RecipeDetails).ThenInclude(x => x.ChildRecipe).ThenInclude(x => x!.PreparedItem)
-                .Where(x => x.ToppingId == toppingId
-                    && x.DrinkId == null
-                    && x.Active
-                    && x.Status == "Active"
-                    && (!x.EffectiveDate.HasValue || x.EffectiveDate.Value <= asOfUtc))
-                .OrderByDescending(x => x.EffectiveDate ?? DateTime.MinValue)
-                .ThenByDescending(x => x.RecipeId)
-                .ToListAsync(cancellationToken);
-            return recipes.Count == 1 && recipes[0].RecipeDetails.Count > 0 ? recipes[0] : null;
+                .SingleOrDefaultAsync(
+                    x => x.RecipeId == resolution.Recipe.RecipeId,
+                    cancellationToken);
+            return recipe?.RecipeDetails.Count > 0 ? recipe : null;
         }
 
         private static StoreMenuAvailabilityDto Missing(int storeId, int drinkSizeId) => new()

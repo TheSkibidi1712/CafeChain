@@ -1,6 +1,9 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Profitability;
+using CafeChain.Application.DTOs.Admin.Recipes;
+using CafeChain.Application.Interfaces.Admin.Recipes;
 using CafeChain.Application.Services.Admin.Profitability;
+using CafeChain.Application.Services.Admin.Recipes;
 using CafeChain.Application.Services.Admin.StoreMenu;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
@@ -11,6 +14,7 @@ using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace CafeChain.Tests;
 
@@ -87,6 +91,59 @@ public sealed class StoreMenuAvailabilityIssue161Tests : IntegrationTestBase
         var recovered = await evaluator.EvaluateAsync(StoreId, MediumDrinkSizeId, DateTime.UtcNow);
         Assert.Equal(StoreMenuAvailabilityStatuses.Available, recovered.OperationalStatus);
         Assert.True(recovered.IsSellable);
+    }
+
+    [Fact]
+    public async Task StoreMenuAndProfitability_UseSameCurrentRecipe()
+    {
+        await SeedAsync();
+        await using var context = CreateDbContext();
+        var recipe = await context.Recipes.SingleAsync(candidate => candidate.RecipeId == MediumRecipeId);
+        var target = new RecipeTarget.MenuItemSize(DrinkId, MediumSizeId);
+        var authority = new Mock<ICurrentRecipeResolver>(MockBehavior.Strict);
+        authority.Setup(resolver => resolver.ResolveAsync(
+                target,
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CurrentRecipeResolution(
+                CurrentRecipeResolutionStatus.Found,
+                recipe,
+                string.Empty));
+        var physical = new PhysicalUnitConversionService(
+            context,
+            NullLogger<PhysicalUnitConversionService>.Instance);
+        var conversion = new UnitConversionService(
+            context,
+            NullLogger<UnitConversionService>.Instance,
+            physical);
+        var profitabilityResolver = new DrinkSizeRecipeResolver(
+            context,
+            conversion,
+            physical,
+            authority.Object);
+        var storeMenu = new StoreMenuAvailabilityEvaluator(
+            context,
+            profitabilityResolver,
+            conversion,
+            physical,
+            authority.Object);
+
+        var profitability = await profitabilityResolver.ResolveExactAsync(
+            DrinkId,
+            MediumSizeId,
+            DateTime.UtcNow);
+        var availability = await storeMenu.EvaluateAsync(
+            StoreId,
+            MediumDrinkSizeId,
+            DateTime.UtcNow);
+
+        Assert.Equal(MediumRecipeId, profitability.Recipe?.RecipeId);
+        Assert.Equal(StoreMenuAvailabilityStatuses.Available, availability.OperationalStatus);
+        authority.Verify(resolver => resolver.ResolveAsync(
+            target,
+            It.IsAny<DateTime>(),
+            It.IsAny<CancellationToken>()), Times.Exactly(2));
+        authority.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -207,11 +264,18 @@ public sealed class StoreMenuAvailabilityIssue161Tests : IntegrationTestBase
         EffectiveDate = DateTime.UtcNow.AddDays(-1)
     };
 
-    private static StoreMenuAvailabilityEvaluator CreateEvaluator(AppDbContext context)
+    private static StoreMenuAvailabilityEvaluator CreateEvaluator(
+        AppDbContext context,
+        ICurrentRecipeResolver? currentRecipeResolver = null)
     {
         var physical = new PhysicalUnitConversionService(context, NullLogger<PhysicalUnitConversionService>.Instance);
         var conversion = new UnitConversionService(context, NullLogger<UnitConversionService>.Instance, physical);
-        var resolver = new DrinkSizeRecipeResolver(context, conversion, physical);
-        return new StoreMenuAvailabilityEvaluator(context, resolver, conversion, physical);
+        var resolver = new DrinkSizeRecipeResolver(context, conversion, physical, currentRecipeResolver);
+        return new StoreMenuAvailabilityEvaluator(
+            context,
+            resolver,
+            conversion,
+            physical,
+            currentRecipeResolver);
     }
 }

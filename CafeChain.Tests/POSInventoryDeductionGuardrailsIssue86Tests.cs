@@ -1,4 +1,6 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin.Recipes;
+using CafeChain.Application.Interfaces.Admin.Recipes;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Models.Drinks;
@@ -73,6 +75,47 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
+        public async Task InventoryFallback_UsesResolverOnlyWhenSnapshotMissing()
+        {
+            using var context = CreateDbContext();
+            SeedInventoryCatalog(context);
+            SeedCompletedPaidOrder(context, orderId: 9010);
+            await context.SaveChangesAsync();
+            var menuRecipe = await context.Recipes.SingleAsync(recipe => recipe.RecipeId == BaseRecipeId);
+            var toppingRecipe = await context.Recipes.SingleAsync(recipe => recipe.RecipeId == ToppingRecipeId);
+            var authority = new Mock<ICurrentRecipeResolver>(MockBehavior.Strict);
+            authority.Setup(resolver => resolver.ResolveAsync(
+                    It.IsAny<RecipeTarget>(),
+                    It.IsAny<DateTime>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync((RecipeTarget target, DateTime _, CancellationToken _) => target switch
+                {
+                    RecipeTarget.MenuItemSize menu
+                        when menu.DrinkId == DrinkId && menu.SizeId == SizeMId => Found(menuRecipe),
+                    RecipeTarget.Topping topping
+                        when topping.ToppingId == ToppingId => Found(toppingRecipe),
+                    _ => throw new InvalidOperationException("Unexpected Recipe target.")
+                });
+            var service = CreateService(context, currentRecipeResolver: authority.Object);
+
+            var result = await service.DeductStockForCommittedOrderAsync(
+                CreateSoldItems(),
+                StoreId,
+                referenceOrderId: 9010);
+
+            Assert.True(result.IsSuccess, result.Message);
+            authority.Verify(resolver => resolver.ResolveAsync(
+                new RecipeTarget.MenuItemSize(DrinkId, SizeMId),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()), Times.Once);
+            authority.Verify(resolver => resolver.ResolveAsync(
+                new RecipeTarget.Topping(ToppingId),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()), Times.Once);
+            authority.VerifyNoOtherCalls();
+        }
+
+        [Fact]
         public async Task IncludedCostTreatment_DoesNotDoubleCountToppingRecipe()
         {
             using var context = CreateDbContext();
@@ -109,7 +152,7 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task CommittedOrder_UsesSaleTimeRecipeSnapshotsAfterRecipesChange()
+        public async Task HistoricalPinnedRecipe_DoesNotResolveLiveVersion()
         {
             using var context = CreateDbContext();
             SeedInventoryCatalog(context);
@@ -154,12 +197,17 @@ namespace CafeChain.Tests.POS
                 });
             await context.SaveChangesAsync();
 
-            var result = await CreateService(context).DeductStockForCommittedOrderAsync(
+            var currentRecipeResolver = new Mock<ICurrentRecipeResolver>(MockBehavior.Strict);
+            var result = await CreateService(
+                    context,
+                    currentRecipeResolver: currentRecipeResolver.Object)
+                .DeductStockForCommittedOrderAsync(
                 CreateSoldItems(), StoreId, referenceOrderId: 9006);
 
             Assert.True(result.IsSuccess, result.Message);
             Assert.Equal(95m, await GetIngredientQtyAsync(context, MilkIngredientId));
             Assert.Equal(47m, await GetIngredientQtyAsync(context, TapiocaIngredientId));
+            currentRecipeResolver.VerifyNoOtherCalls();
         }
 
         [Theory]
@@ -424,7 +472,8 @@ namespace CafeChain.Tests.POS
 
         private static InventoryDeductionService CreateService(
             CafeChain.Data.AppDbContext context,
-            CafeChain.Application.Interfaces.Inventories.IOperationalIceReservationConsumptionService? reservationService = null)
+            CafeChain.Application.Interfaces.Inventories.IOperationalIceReservationConsumptionService? reservationService = null,
+            ICurrentRecipeResolver? currentRecipeResolver = null)
         {
             var physical = new PhysicalUnitConversionService(
                 context,
@@ -446,7 +495,8 @@ namespace CafeChain.Tests.POS
                 unitConversion,
                 estimated,
                 physical,
-                iceReservationConsumption: reservationService);
+                iceReservationConsumption: reservationService,
+                currentRecipeResolver: currentRecipeResolver);
         }
 
         private static List<POSSoldItemDto> CreateSoldItems(int quantity = 1)
@@ -465,6 +515,11 @@ namespace CafeChain.Tests.POS
                 }
             };
         }
+
+        private static CurrentRecipeResolution Found(Recipe recipe) => new(
+            CurrentRecipeResolutionStatus.Found,
+            recipe,
+            string.Empty);
 
         private static void SeedInventoryCatalog(
             CafeChain.Data.AppDbContext context,

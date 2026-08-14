@@ -240,9 +240,14 @@ namespace CafeChain.Extensions.Services
 
             // Admin - Recipes (+ #112 BTP output normalizer)
             services.AddScoped<IRecipeOutputNormalizer, RecipeOutputNormalizer>();
+            services.AddScoped<ICurrentRecipeResolver, CurrentRecipeResolver>();
             services.AddScoped<IAdminRecipeService, AdminRecipeService>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IAdminRecipeQueryService,
                 CafeChain.Application.Services.Admin.Recipes.AdminRecipeQueryService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IRecipeWhereUsedQueryService,
+                CafeChain.Application.Services.Admin.Recipes.RecipeWhereUsedQueryService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IRecipeVersionEvidenceQueryService,
+                CafeChain.Application.Services.Admin.Recipes.RecipeVersionEvidenceQueryService>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IBomDataHealthEvaluator,
                 CafeChain.Application.Services.Admin.Recipes.BomDataHealthEvaluator>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IRecipeBomTreeQueryService,

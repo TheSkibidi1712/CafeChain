@@ -1,8 +1,10 @@
 using CafeChain.Application.DTOs.Admin.Production;
+using CafeChain.Application.DTOs.Admin.Recipes;
 using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Admin.Production;
 using CafeChain.Application.Interfaces.Admin.Recipes;
 using CafeChain.Application.Results;
+using CafeChain.Application.Services.Admin.Recipes;
 using CafeChain.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,15 +19,21 @@ public sealed class ProductionSourceEligibilityService : IProductionSourceEligib
     private readonly AppDbContext _context;
     private readonly IRecipeOutputNormalizer _outputNormalizer;
     private readonly IAdminPermissionService _permissions;
+    private readonly ICurrentRecipeResolver _currentRecipeResolver;
+    private readonly TimeProvider _timeProvider;
 
     public ProductionSourceEligibilityService(
         AppDbContext context,
         IRecipeOutputNormalizer outputNormalizer,
-        IAdminPermissionService permissions)
+        IAdminPermissionService permissions,
+        ICurrentRecipeResolver? currentRecipeResolver = null,
+        TimeProvider? timeProvider = null)
     {
         _context = context;
         _outputNormalizer = outputNormalizer;
         _permissions = permissions;
+        _currentRecipeResolver = currentRecipeResolver ?? new CurrentRecipeResolver(context);
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     public async Task<ServiceResult<ProductionSourceEligibilityDto>> EvaluateAsync(
@@ -44,7 +52,7 @@ public sealed class ProductionSourceEligibilityService : IProductionSourceEligib
                 "Thông tin kiểm tra nguồn sản xuất chưa hợp lệ.");
         }
 
-        var atUtc = request.AtUtc ?? DateTime.UtcNow;
+        var atUtc = request.AtUtc ?? _timeProvider.GetUtcNow().UtcDateTime;
         var storeExists = await _context.Stores
             .AsNoTracking()
             .AnyAsync(x => x.StoreId == request.StoreId && x.Active);
@@ -108,16 +116,29 @@ public sealed class ProductionSourceEligibilityService : IProductionSourceEligib
                 "Bạn không có quyền chọn nguồn sản xuất tại cửa hàng này.");
         }
 
+        if (!request.PreparedItemId.HasValue)
+        {
+            return EligibleResult(result, false,
+                ProductionEligibilityReasonCodes.RecipeMissing,
+                "Mặt hàng chưa có bán thành phẩm đầu ra để xác định công thức sản xuất.");
+        }
+
+        var resolution = await _currentRecipeResolver.ResolveAsync(
+            new RecipeTarget.PreparedItem(request.PreparedItemId.Value),
+            atUtc);
+        if (resolution.Status != CurrentRecipeResolutionStatus.Found
+            || resolution.Recipe == null)
+        {
+            return EligibleResult(result, false,
+                ProductionEligibilityReasonCodes.RecipeMissing,
+                resolution.Status == CurrentRecipeResolutionStatus.Ambiguous
+                    ? "Bán thành phẩm có nhiều công thức đang áp dụng; cần xử lý trước khi sản xuất."
+                    : "Bán thành phẩm chưa có công thức sản xuất đang áp dụng.");
+        }
+
         var recipe = await _context.Recipes
             .AsNoTracking()
-            .Where(x => x.Active
-                && x.Status == "Active"
-                && !x.DrinkId.HasValue
-                && !x.ToppingId.HasValue
-                && x.PreparedItemId == request.PreparedItemId
-                && (!x.EffectiveDate.HasValue || x.EffectiveDate <= atUtc))
-            .OrderByDescending(x => x.EffectiveDate)
-            .ThenByDescending(x => x.RecipeId)
+            .Where(x => x.RecipeId == resolution.Recipe.RecipeId)
             .Select(x => new
             {
                 x.RecipeId,
@@ -125,7 +146,7 @@ public sealed class ProductionSourceEligibilityService : IProductionSourceEligib
                 x.OutputQuantity,
                 x.OutputUnitId
             })
-            .FirstOrDefaultAsync();
+            .SingleOrDefaultAsync();
         if (recipe == null)
         {
             return EligibleResult(result, false,
