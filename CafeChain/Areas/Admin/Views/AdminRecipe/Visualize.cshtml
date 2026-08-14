@@ -48,7 +48,7 @@
         <section class="recipe-workspace__identity bom-overview-grid" aria-labelledby="recipe-identity-title">
             <div class="recipe-workspace__identity-main">
                 <span class="recipe-workspace__eyebrow">@Model.TargetLabel</span>
-                <h1 id="recipe-identity-title">@Model.BusinessName</h1>
+                <h2 id="recipe-identity-title">@Model.BusinessName</h2>
                 <p class="recipe-workspace__technical-code">
                     Mã công thức: @Model.RecipeCode
                     @if (!string.IsNullOrWhiteSpace(Model.BusinessCode))
@@ -71,6 +71,7 @@
 
         <nav class="production-section-nav" aria-label="Các phần của công thức">
             <a href="#bom-components">Đầu ra và định mức</a>
+            <a href="#recipe-where-used">Được sử dụng ở đâu</a>
             <a href="#recipe-history">Lịch sử phiên bản</a>
             <a href="#recipe-context">Ngữ cảnh phiên bản</a>
             @if (Model.IsPreparedItemRecipe) { <a href="#recipe-operations">Sản xuất gần đây</a> }
@@ -284,7 +285,9 @@
                                 </div>
                                 @if (Model.WhereUsed.ParentResultsTruncated)
                                 {
-                                    <p class="recipe-workspace__where-used-limit">Đang hiển thị @Model.WhereUsed.CurrentParents.Count kết quả đầu tiên.</p>
+                                    <p class="recipe-workspace__where-used-limit">
+                                        Đang hiển thị @Model.WhereUsed.CurrentParents.Count kết quả đầu tiên; còn nơi sử dụng khác chưa hiển thị.
+                                    </p>
                                 }
                             </div>
                         }
@@ -311,7 +314,9 @@
                                 </div>
                                 @if (Model.WhereUsed.PointOfSaleResultsTruncated)
                                 {
-                                    <p class="recipe-workspace__where-used-limit">Đang hiển thị @Model.WhereUsed.PointOfSaleLocations.Count chi nhánh đầu tiên.</p>
+                                    <p class="recipe-workspace__where-used-limit">
+                                        Đang hiển thị @Model.WhereUsed.PointOfSaleLocations.Count chi nhánh đầu tiên; còn chi nhánh khác chưa hiển thị.
+                                    </p>
                                 }
                             </div>
                         }

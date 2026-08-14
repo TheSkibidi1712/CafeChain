@@ -229,6 +229,13 @@
     color: var(--cc-text-inverse, #fff);
 }
 
+.production-bom-page .cc-page-hero__action.is-primary:focus-visible {
+    outline: 0;
+    box-shadow:
+        var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22)),
+        0 8px 18px rgba(92, 63, 43, 0.16);
+}
+
 .production-bom-page .rb-toggle .btn:hover,
 .production-bom-page .rb-toggle .btn:focus-visible,
 .production-bom-page .rb-toggle .btn-check:checked + .btn {

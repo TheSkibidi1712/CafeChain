@@ -40,7 +40,7 @@
     padding: 20px 22px;
 }
 
-.recipe-workspace__identity-main h1 {
+.recipe-workspace__identity-main h2 {
     margin: 4px 0 7px;
     font-size: 28px;
     font-weight: 800;
@@ -1071,7 +1071,8 @@
 
 .recipe-workspace-page a:focus-visible,
 .recipe-workspace-page button:focus-visible,
-.recipe-workspace-page select:focus-visible {
+.recipe-workspace-page select:focus-visible,
+.recipe-workspace-page input:focus-visible {
     outline: 3px solid color-mix(in srgb, var(--recipe-focus) 28%, transparent);
     outline-offset: 2px;
 }
@@ -1149,7 +1150,7 @@
         padding: 16px;
     }
 
-    .recipe-workspace__identity-main h1 {
+    .recipe-workspace__identity-main h2 {
         font-size: 24px;
     }
 
