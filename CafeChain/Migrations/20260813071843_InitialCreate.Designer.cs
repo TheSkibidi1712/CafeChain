@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260812160337_InitialCreate")]
+    [Migration("20260813071843_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -44,6 +44,9 @@ namespace CafeChain.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int>("AiChunkCount")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("CompletedAtUtc")
                         .HasColumnType("datetime2");
 
@@ -58,6 +61,10 @@ namespace CafeChain.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("ExtractionMode")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<string>("IdempotencyKeyHash")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
@@ -68,6 +75,12 @@ namespace CafeChain.Migrations
                     b.Property<string>("ModelName")
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("OcrPageCount")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("OcrUsed")
+                        .HasColumnType("bit");
 
                     b.Property<int>("PreviewVersion")
                         .HasColumnType("int");
@@ -84,6 +97,11 @@ namespace CafeChain.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("SourceFormat")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
 
                     b.Property<int>("StaffId")
                         .HasColumnType("int");
@@ -125,6 +143,11 @@ namespace CafeChain.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<string>("ExtractionMode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<int>("HeaderRow")
                         .HasColumnType("int");
 
@@ -146,6 +169,15 @@ namespace CafeChain.Migrations
                         .HasColumnType("nvarchar(150)");
 
                     b.Property<string>("SourceHeadersJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SourceLabel")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("SourceLocatorJson")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -174,6 +206,10 @@ namespace CafeChain.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<decimal?>("AiConfidence")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("decimal(5,4)");
+
                     b.Property<decimal>("Confidence")
                         .HasPrecision(5, 4)
                         .HasColumnType("decimal(5,4)");
@@ -186,6 +222,10 @@ namespace CafeChain.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("EvidenceSnippet")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
                     b.Property<int>("ImportGroupId")
                         .HasColumnType("int");
 
@@ -196,7 +236,15 @@ namespace CafeChain.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<decimal?>("OcrConfidence")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("decimal(5,4)");
+
                     b.Property<string>("RawDataJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SourceLocatorJson")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -318,6 +366,18 @@ namespace CafeChain.Migrations
 
                     b.Property<int>("SkippedRows")
                         .HasColumnType("int");
+
+                    b.Property<string>("SourceFormat")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("SourceMetadataJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SourceSnapshotJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Status")
                         .IsRequired()

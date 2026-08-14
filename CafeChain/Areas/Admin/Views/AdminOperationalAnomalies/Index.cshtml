@@ -14,7 +14,7 @@
 }
 
 @Html.AntiForgeryToken()
-<main class="cc-page ops-shell cc-warehouse-page">
+<main class="anomalies-page cc-page ops-shell cc-warehouse-page">
     <header class="anomalies-header ops-header cc-warehouse-header">
         <div>
             <div class="anomalies-eyebrow">Nhân sự & vận hành</div>
@@ -22,8 +22,8 @@
             <p class="anomalies-subtitle">Các thay đổi đáng chú ý cần đối chiếu thêm; đây không phải kết luận sai phạm.</p>
         </div>
         <div class="anomalies-header-actions">
-            <form method="get" class="d-flex align-items-center">
-                <select class="form-select" name="targetStoreId" onchange="this.form.submit()" style="min-width: 240px; border-radius: 8px;">
+            <form method="get" class="anomalies-store-filter">
+                <select class="form-select" name="targetStoreId" onchange="this.form.submit()" aria-label="Chọn cửa hàng">
                     @foreach (var store in (IReadOnlyList<CafeChain.Application.DTOs.Admin.StoreScope.AdminStoreOptionDto>)ViewBag.Stores)
                     {
                         <option value="@store.StoreId" selected="@(store.StoreId == (int?)ViewBag.SelectedStoreId)">@store.StoreName</option>
@@ -59,8 +59,8 @@
                             <div class="anomaly-title">@item.MetricDisplayName</div>
                             <div class="anomaly-meta">Ngày @item.BusinessDate.ToString("dd/MM/yyyy")</div>
                             <details class="anomaly-details">
-                                <summary>Thông tin kỹ thuật</summary>
-                                <div class="mt-2">Mã: @item.MetricCode &bull; phiên bản @item.DetectionVersion &bull; điểm chuẩn hóa @item.RobustScore.ToString("N2")</div>
+                                <summary>Cơ sở phát hiện</summary>
+                                <div class="mt-2">Ngày nghiệp vụ: @item.BusinessDate.ToString("dd/MM/yyyy") &bull; mức chênh lệch chuẩn hóa: @item.RobustScore.ToString("N2")</div>
                                 <div>@item.ConfidenceDisplay</div>
                             </details>
                         </td>
@@ -91,9 +91,9 @@
             <table class="cc-anomaly-table">
                 <thead>
                     <tr>
-                        <th>Metric</th>
+                        <th>Chỉ số cần kiểm tra</th>
                         <th>Hiện tại</th>
-                        <th>Baseline</th>
+                        <th>Mức thông thường</th>
                         <th>Độ lệch</th>
                         <th>Mức độ</th>
                         <th>Trạng thái</th>
@@ -105,20 +105,20 @@
                     @foreach(var x in Model){
                     <tr id="anomaly-@x.Id">
                         <td>
-                            <div class="anomaly-title">@x.MetricCode</div>
-                            <div class="anomaly-meta">@x.PeriodKey &bull; score @x.RobustScore.ToString("N2")</div>
+                            <div class="anomaly-title">@x.MetricDisplayName</div>
+                            <div class="anomaly-meta">Ngày @x.BusinessDate.ToString("dd/MM/yyyy") &bull; mức chuẩn hóa @x.RobustScore.ToString("N2")</div>
                         </td>
-                        <td>@x.CurrentValue.ToString("N0")</td>
-                        <td>@x.BaselineValue.ToString("N0")</td>
-                        <td>@x.PercentageDeviation.ToString("P1")</td>
+                        <td>@x.CurrentValueDisplay</td>
+                        <td>@x.BaselineValueDisplay</td>
+                        <td>@x.DeviationDisplay</td>
                         <td>
                             <span class="@(x.Severity == "CRITICAL" ? "anomaly-badge-critical" : "anomaly-badge-warning")">
-                                @x.Severity
+                                @x.SeverityDisplay
                             </span>
                         </td>
-                        <td>@x.Status</td>
+                        <td>@x.StatusDisplay</td>
                         <td class="text-center">
-                            <button class="cc-btn-outline" data-explain="@x.Id">Giải thích AI</button> 
+                            <button class="cc-btn-outline" data-explain="@x.Id">Giải thích</button>
                             <button class="cc-btn-outline cc-btn-outline-primary" data-ack="@x.Id" data-version="@x.RowVersion">Đã xem</button>
                         </td>
                     </tr>

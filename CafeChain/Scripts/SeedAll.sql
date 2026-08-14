@@ -3,7 +3,7 @@
    allow demo/default seed data to be written to a SQL Server system database. */
 use CafeChain
 go
-
+ 
 SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
