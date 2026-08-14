@@ -154,7 +154,7 @@ namespace CafeChain.Areas.Admin.Controllers
                     ActorAccountId = ctx.AccountId,
                     IngredientId = result.Data.IngredientId,
                     PreparedItemId = result.Data.PreparedItemId,
-                    RequiredPermissionCode = PermissionConstants.RestockSelectProductionSource
+                    RequiredPermissionCode = PermissionConstants.ProductionOrderPlan
                 })).Data;
             ViewBag.PurchaseEligibility = _purchaseEligibility == null
                 ? null

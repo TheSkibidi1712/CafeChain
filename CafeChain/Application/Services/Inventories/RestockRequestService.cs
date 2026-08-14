@@ -821,7 +821,7 @@ namespace CafeChain.Application.Services.Inventories
                 ActorAccountId = actorAccountId,
                 IngredientId = demand.IngredientId,
                 PreparedItemId = demand.PreparedItemId,
-                RequiredPermissionCode = PermissionConstants.RestockSelectProductionSource
+                RequiredPermissionCode = PermissionConstants.ProductionOrderPlan
             });
         }
 
