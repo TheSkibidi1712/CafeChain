@@ -83,7 +83,11 @@
     text-decoration: none;
     cursor: pointer;
     box-shadow: var(--cc-shadow-xs);
-    transition: all .18s ease;
+    transition: border-color .18s ease,
+        background-color .18s ease,
+        color .18s ease,
+        box-shadow .18s ease,
+        transform .18s ease;
 }
 
 .pa-action i,
