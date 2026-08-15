@@ -1,12 +1,14 @@
 # AI Smart Import CafeChain — hướng dẫn triển khai và sử dụng
 
+> Cập nhật 15/08/2026: migration history forward-only là `20260815105817_InitialCreate` → `20260815141744_AddAIImportOcrRuntimeAndMultiFile`. OCR dùng Tesseract local, có System Setting, health check và switch theo phiên; không dùng cloud hoặc khóa API.
+
 ## 1. Capability hiện tại
 
 AI Smart Import hỗ trợ:
 
 - Excel `.xlsx`;
 - Word `.docx` OpenXML;
-- PDF có lớp text;
+- PDF text, PDF scan/image và PDF mixed text/OCR khi OCR được cấu hình;
 - deterministic extraction cho Excel, DOCX table/key-value và PDF table/key-value;
 - Ollama structured fallback có chunk, whitelist và evidence validation;
 - Preview/PATCH/reanalyze/history trên cùng `/api/ai-import`;
@@ -14,9 +16,24 @@ AI Smart Import hỗ trợ:
 - xác nhận thủ công candidate confidence thấp bằng **Lưu và kiểm tra lại** mà không bỏ qua schema validation;
 - Confirm nguyên tử cho Category, Drink, Size, Ingredient và Supplier.
 
-Không hỗ trợ `.doc`, `.docm`, PDF scan/image-only, OCR/Vision, file có mật khẩu, active content, `UPDATE`, `UPSERT` hoặc `DELETE`.
+Không hỗ trợ `.doc`, `.docm`, file có mật khẩu, active content, OCR cloud, `UPDATE`, `UPSERT` hoặc `DELETE`.
 
 ## 2. Kiến trúc module
+
+### Inventory khóa tại Phase 0
+
+| Module | Trách nhiệm hiện tại | Trạng thái | Khoảng trống được phép sửa |
+|---|---|---|---|
+| Document pipeline và Excel parser | Chọn adapter nguồn, deterministic-first, region/mapping Excel | Khóa regression | Region khó, sparse row và multi-entity |
+| DOCX parser | Body-only, logical merged grid, revision-aware text, nested-table isolation và boundary | Đã triển khai/test | Layout quá mơ hồ vẫn bắt review |
+| PDF parser | Security preflight, rotation/top-left, Unicode, table/key-value, page classifier và OCR merge | Đã triển khai/test | Layout quá mơ hồ vẫn bắt review |
+| Document AI extractor | Semantic block chunk, whitelist/evidence, tối đa hai attempt, typed failure và cross-chunk conflict | Đã triển khai/test | Không nới schema/evidence khi retry |
+| Preview/validation/resolution | Schema, reference, duplicate, dependency, confidence tách lớp và manual review | Khóa invariant + OCR | Không có final confidence tổng hợp |
+| Confirm/entity creator | Idempotency, conditional claim, Serializable và CRUD service | Khóa invariant | Chỉ tách orchestration; không đổi thứ tự hoặc nguồn tạo |
+| Preview UI | Group/item edit, badge TEXT/OCR/MIXED, confidence và field provenance | Đã triển khai | Không lưu image overlay |
+| Persistence/audit/retention | OCR snapshot tối thiểu, version/provider/usage audit, purge terminal state | Đã triển khai | Không lưu binary/rendered image |
+
+Hai migration baseline không được sửa sau Phase 0. Mọi schema OCR phải đi bằng migration thứ ba tiến tiếp.
 
 Interface chính `IAIImportDocumentPipeline` che toàn bộ việc chọn format, parser và AI fallback khỏi `AIImportService`.
 
@@ -29,13 +46,14 @@ Các adapter nguồn:
 
 Mô hình trung gian gồm `AIImportSourceDocument`, `AIImportSourceGroup`, `AIImportSourceCandidate` và `AIImportSourceLocator`. `AIImportService` chỉ quản lý session/state, persistence, validation, duplicate/reference/dependency, CRUD Confirm và DTO.
 
-Dependency PDF được pin `PdfPig 0.1.15`. DOCX tiếp tục dùng `DocumentFormat.OpenXml 3.5.1`.
+Dependency PDF text được pin `PdfPig 0.1.15`; trang scan được rasterize bằng `PDFtoImage 5.2.1`/PDFium. DOCX tiếp tục dùng `DocumentFormat.OpenXml 3.5.1`.
 
 ## 3. Database và migration
 
-Filesystem hiện tại chỉ có một migration baseline:
+Filesystem có đúng hai migration theo thứ tự:
 
-`20260813071843_InitialCreate`
+1. `20260815105817_InitialCreate` — baseline đã squash, gồm validation state và OCR traceability hiện hữu.
+2. `20260815141744_AddAIImportOcrRuntimeAndMultiFile` — OCR runtime snapshot, `ImportSourceDocuments` và liên kết Group → SourceDocument.
 
 Baseline này tạo toàn bộ schema AI Import, bao gồm:
 
@@ -50,10 +68,13 @@ Chạy local:
 
 ```powershell
 dotnet restore CafeChain/CafeChain.csproj
+dotnet tool restore
 dotnet ef database update --project CafeChain/CafeChain.csproj
 ```
 
-Lưu ý chuyển đổi: kế hoạch trước đây dự kiến giữ `20260812160337_InitialCreate` và thêm `20260813062128_AddDocumentSourcesToAIImport`, nhưng hai file đó không còn trong workspace hiện tại. Nếu database development/test đã ghi migration ID cũ, hãy tạo lại database disposable hoặc viết migration chuyển tiếp có kiểm soát. Không xóa/tạo lại production và không tự động migrate production ngoài quy trình release.
+Repository pin `dotnet-ef` 8.0.0 trong `dotnet-tools.json`; máy mới hoặc clone mới phải chạy `dotnet tool restore` từ repository root. Hai migration trên đã tồn tại, vì vậy không chạy lại `dotnet ef migrations add InitialCreate`.
+
+Database chưa deploy lâu dài có thể tạo lại từ hai migration trên. Không đổi tên/sửa migration đã phát hành và không tự động migrate production ngoài quy trình release.
 
 ## 4. Cấu hình
 
@@ -78,12 +99,34 @@ Section `AIImport` trong `appsettings.json` là nguồn duy nhất cho giới h�
     "MaxAIChunks": 100,
     "AIChunkMaxCharacters": 12000,
     "AIChunkOverlapCharacters": 500,
-    "OcrEnabled": false
+    "OcrProvider": "TesseractLocal",
+    "OcrExecutablePath": "tesseract",
+    "OcrTessdataPath": "Resources/OCR/tessdata",
+    "OcrLanguages": "vie+eng",
+    "OcrMaxPages": 50,
+    "OcrRenderDpi": 200,
+    "OcrMaxRenderedPixelsPerPage": 20000000,
+    "OcrMaxTotalRenderedPixels": 200000000,
+    "OcrMaxConcurrentPages": 1,
+    "OcrPageTimeoutSeconds": 45,
+    "OcrTotalTimeoutSeconds": 180,
+    "OcrReviewConfidenceThreshold": 0.85
   }
 }
 ```
 
 `AIImportRequestSizeLimitAttribute` áp dụng limit multipart theo cấu hình trước model binding. Service kiểm tra lại kích thước file, vì request limit không thay thế business validation.
+
+OCR chạy local nên không có endpoint hoặc khóa API. User Secrets chỉ dùng cho các dịch vụ khác; mọi secret OCR cũ không còn được bind hay sử dụng. Production adapter chỉ rasterize trang IMAGE/MIXED, chạy `tesseract <image> stdout --tessdata-dir ... -l vie+eng --oem 1 --psm 3 tsv`, rồi đưa word evidence trở lại pipeline deterministic/validation/Preview/Confirm hiện hữu.
+
+### Cài Tesseract local trên Windows
+
+1. Cài Tesseract và Visual C++ Runtime, sau đó bảo đảm lệnh `tesseract --version` chạy được. Lệnh cài gợi ý: `winget install --id UB-Mannheim.TesseractOCR --exact`.
+2. Từ repository root chạy `powershell -ExecutionPolicy Bypass -File scripts/setup-tesseract-ocr.ps1`.
+3. Script tải bản pin `tessdata_fast 4.1.0` cho `vie` và `eng`, kiểm tra SHA-256 rồi chạy smoke check. File `.traineddata` bị gitignore và không được commit.
+4. Mở **Cài đặt hệ thống → OCR & nhận dạng tài liệu**, lưu tham số rồi bấm **Kiểm tra OCR**. Khi trạng thái là `READY`, switch OCR theo từng lần import tự được mở khóa; không có switch OCR toàn hệ thống.
+
+Health check chỉ trả trạng thái, phiên bản engine và khả năng executable/model; không trả command line hay đường dẫn máy chủ. Nếu đổi provider path, tessdata path hoặc languages, fingerprint thay đổi và health cũ trở thành `STALE`. Runtime setting cũ `vi` được đọc tương thích thành `vie+eng`.
 
 ### Ollama
 
@@ -132,9 +175,10 @@ Credential trên không dùng production. Production phải đổi mật khẩu,
 
 ### PDF
 
-- PDF phải chọn/copy được text.
+- PDF có text dùng text pipeline và không gọi OCR; PDF image/mixed chỉ gọi OCR cho trang cần thiết khi request chọn `UseOcr` và health đang `READY`.
 - Table nên có cột thẳng hàng và header rõ; parser dựng cell theo khoảng cách tọa độ.
-- PDF scan, ảnh chụp, trang ảnh không có text hoặc vùng ảnh đáng kể không thể chứng minh đã trích xuất đủ sẽ trả `PDF_CẦN_OCR`. Ngưỡng mặc định là 15% diện tích trang qua `PdfOcrImageAreaRatioThreshold`.
+- Khi OCR tắt, PDF scan/mixed vẫn trả `PDF_CẦN_OCR` và provider không được resolve/call. Khi bật nhưng provider/config lỗi, hệ thống trả typed error và không tạo pipeline import thứ hai.
+- Critical field có OCR confidence dưới `0,85` bắt buộc manual review dù AI confidence cao. UI hiển thị page, raw evidence, normalized value, bbox/polygon và OCR/AI confidence riêng.
 - Không nhúng attachment, JavaScript, Launch hoặc URI action.
 
 Header/nhãn khuyến nghị:
@@ -256,7 +300,7 @@ Reanalyze nhận `expectedPreviewVersion` bắt buộc và claim trạng thái `
 - `AIImportEntityCreator` build DTO rồi gọi năm CRUD service; coordinator không tự `DbContext.Add` entity nghiệp vụ.
 - Parser adapter chỉ tạo source document/group/candidate và issue nguồn; database-sensitive validation chạy ở preview và chạy lại khi Confirm.
 
-Migration áp dụng theo thứ tự `20260813071843_InitialCreate` rồi `20260813183911_AddAIImportValidationState`. Migration mới thêm `SourceColumnsJson`, `IssuesJson`, `SourceIssuesJson` và các cột manual-review; không chỉnh baseline đã squash.
+Migration áp dụng theo thứ tự `20260815105817_InitialCreate`, rồi `20260815141744_AddAIImportOcrRuntimeAndMultiFile`; không chỉnh sửa baseline.
 
 Locator có field tùy format: sheet/region/row/column; section/paragraph/table/tableRow/tableColumn; page/block/boundingBox/textStart/textEnd.
 
@@ -277,7 +321,12 @@ Locator có field tùy format: sheet/region/row/column; section/paragraph/table/
 | `CỘT_KHÔNG_XÁC_ĐỊNH` | Kiểm tra cột bị bỏ qua và acknowledge warning nếu đúng |
 | `XUNG_ĐỘT_ÁNH_XẠ` | Chọn source key cụ thể khi header/alias trùng |
 | `REFERENCE_KHÔNG_DUY_NHẤT` | Dùng code duy nhất thay vì tên mơ hồ |
-| `PDF_CẦN_OCR` | Chuyển sang PDF searchable text; OCR chưa được hỗ trợ |
+| `PDF_CẦN_OCR` | Lần import chưa chọn OCR; chọn OCR cho PDF scan hoặc chuyển sang PDF searchable text |
+| `PDF_OCR_KHÔNG_KHẢ_DỤNG` | Kiểm tra Tesseract executable, Visual C++ Runtime và model local |
+| `PDF_OCR_QUÁ_THỜI_GIAN` | Chia tài liệu hoặc kiểm tra provider/network |
+| `PDF_OCR_VƯỢT_GIỚI_HẠN` | Giảm số trang/DPI/kích thước hoặc chia tài liệu; hệ thống không truncate |
+| `OCR_OUTPUT_KHÔNG_HỢP_LỆ` | Provider không trả đủ page/word/span/polygon hợp lệ |
+| `OCR_CONFIDENCE_THẤP` | Đối chiếu field với raw OCR và xác nhận manual review |
 | `DOCX_Ô_GỘP_CẦN_XEM_LẠI` / `DOCX_TRACK_CHANGE_CẦN_XEM_LẠI` | Kiểm tra thủ công hoặc bỏ merge/Accept Changes rồi upload lại |
 | `AI_CONFIDENCE_THẤP` | Candidate vẫn được giữ nhưng phải sửa/xác nhận ở trạng thái review |
 | `CHUNK_VƯỢT_GIỚI_HẠN` | Chia nhỏ tài liệu; hệ thống không bỏ âm thầm phần text vượt giới hạn |
@@ -303,22 +352,41 @@ Nhóm AI Import:
 dotnet test CafeChain.Tests/CafeChain.Tests.csproj --no-build --filter FullyQualifiedName~AIImport
 ```
 
-Kết quả xác minh tại thời điểm cập nhật tài liệu:
+Kết quả xác minh cuối ngày 15/08/2026:
 
-- build ứng dụng: thành công, `0 error`; lượt incremental ban đầu báo `0 warning`, còn lượt biên dịch lại toàn bộ source hiển thị các warning nullable/obsolete tồn tại ở nhiều module ngoài phạm vi AI Import, vì vậy không coi repository là clean-warning;
-- nhóm AI Import không phụ thuộc SQL Server: `72/72` test đạt, bao gồm entity registry, scoped dependency closure, Confirm execution plan và contract module Phase 9;
-- nhóm Supplier duplicate contract sau khi thêm batch matcher: `31/31` test đạt;
-- 6 test `AIImportSqlServerTests` chưa chạy tới nghiệp vụ: `localhost\SQLEXPRESS02` trả `Failed to generate SSPI context`; thử LocalDB disposable cũng thất bại ở bước tạo automatic instance. Đây là giới hạn xác thực/instance của môi trường và không được ghi là test đạt;
-- full suite không-SQL: `2099/2132` test đạt. Có 33 test lỗi ở các contract/UI/seed ngoài AI Smart Import; 32 lỗi thuộc baseline đã ghi nhận, lỗi còn lại là contract `AdminAiSupplierRefactorTests` yêu cầu nhãn “Thông tin kỹ thuật” trong view anomaly không thuộc phạm vi và không bị refactor này chỉnh sửa;
-- full suite có SQL không thể hoàn tất trong giới hạn thời gian vì các nhóm SQL integration cùng không kết nối được test instance. Không dùng database production để thay thế.
+- build ứng dụng/test project: `0 error`; warning nullable/obsolete hiện hữu ngoài phạm vi vẫn còn nên không ghi clean-warning;
+- AI Import không phụ thuộc SQL Server: `90/90` PASS, gồm parser header trùng, OCR/provider/status/resource/cancellation, semantic retry/taxonomy/conflict, multi-file UI/API và migration contract;
+- forward migration `20260815141744_AddAIImportOcrRuntimeAndMultiFile` được sinh từ model hiện hành sau baseline `20260815105817_InitialCreate`;
+- 6 `AIImportSqlServerTests`: `NOT VERIFIED`, `0/6` chạy tới nghiệp vụ vì disposable connection `localhost\SQLEXPRESS02` lỗi `Failed to generate SSPI context` ngay lúc initialize;
+- full suite: `2186/2370` PASS, `184` FAIL; ngoài lỗi SQL/SSPI còn các contract UI/warehouse tồn tại ngoài phạm vi AI Smart Import. Không sửa test để che lỗi và không dùng database production thay thế.
 
 Với SQL integration, cấu hình `CAFECHAIN_TEST_SQLSERVER_CONNECTION_STRING` theo convention `{Database}` của test. Không trỏ test disposable database vào production.
 
 ## 11. Giới hạn đã biết
 
-- Không có OCR/Vision; `OcrConfidence` luôn `null`, `OcrUsed=false`.
-- PDF table reconstruction là heuristic tọa độ; bảng nhiều cột lồng, rotation hoặc layout quá phức tạp có thể cần AI/review.
-- PdfPig có thể trả `Word.Text` kèm khoảng trắng; parser hiện trim từng word và ghép bằng một khoảng trắng, nhưng vẫn không tự sửa các khoảng trắng có chủ ý nằm bên trong một word.
+- OCR production hiện dùng Tesseract local. Integration test native là opt-in sau khi chạy script setup; test parser/TSV/health contract vẫn chạy trong suite không cần secret.
+- PDF table reconstruction vẫn là heuristic tọa độ; layout nhiều cột/bảng lồng quá mơ hồ tạo review thay vì tự quyết định.
+- Text được normalize Unicode/ligature/zero-width/NBSP trước business key nhưng raw evidence vẫn được giữ trong field provenance.
 - DOCX merged cell và tracked changes chưa resolve không được tự suy diễn: candidate bị bắt buộc review; field command bị từ chối.
-- Không lưu binary nguồn; reanalyze DOCX/PDF dựa trên snapshot text đã trích xuất cho tới khi session kết thúc/hết hạn.
+- Không lưu binary nguồn/rendered image. Reanalyze dùng text/OCR snapshot và không gọi OCR; snapshot bị purge ở `COMPLETED`, `CANCELLED`, `EXPIRED`, khi thiếu snapshot phải upload lại.
 - AI không thay thế CRUD validation và không đảm bảo candidate được Confirm.
+
+## 12. Hướng dẫn chức năng mới
+
+### Chọn nguồn khi header trùng
+
+Khi thấy badge **Cần chọn nguồn**, chọn đúng `Name [B]`, `Name [C]` hoặc source key tương ứng trong phần ánh xạ. Trong modal sửa dòng có nút **Chọn làm nguồn cho…** cạnh từng lựa chọn; thao tác này cập nhật toàn vùng, không chỉ dòng đang mở. Sau PATCH thành công, preview được tải lại với version mới.
+
+### Cấu hình OCR
+
+Mở **Cài đặt hệ thống → OCR & nhận dạng tài liệu** (`?tab=ocr`). Màn hình chỉ hiển thị provider local, phiên bản Tesseract, languages và trạng thái executable/model. Lưu trạng thái bật, languages, confidence, DPI và resource/timeout limits độc lập với tab âm kho. Dùng **Kiểm tra OCR** để cập nhật trạng thái `READY`, `NOT_CONFIGURED`, `STALE` hoặc `UNAVAILABLE`.
+
+Tại AI Smart Import, switch **OCR cho PDF scan** mặc định OFF và chỉ bật được khi Tesseract health `READY`. PDF có lớp chữ luôn dùng text trước; chỉ trang image/mixed mới gọi OCR. Không chọn OCR trả `PDF_CẦN_OCR`; provider lỗi/timeout/limit trả mã typed tương ứng. System Settings không còn switch bật/tắt toàn hệ thống.
+
+### Một phiên nhiều file
+
+Chọn hoặc kéo thả tối đa 10 file `.xlsx`, `.docx`, `.pdf`; giới hạn mặc định là 10 MiB/file và 50 MiB/phiên. Preview hiển thị trạng thái từng nguồn và filename trên mỗi Group. Nếu một nguồn lỗi, Confirm bị khóa nhưng dữ liệu hợp lệ vẫn được xem; dùng **Loại nguồn** để bỏ toàn bộ Group/candidate của file lỗi. Confirm còn lại vẫn nguyên tử toàn phiên.
+
+### Cancel an toàn
+
+Cancel thành công đóng modal sửa, xóa draft và không nhận response đến muộn. Nếu server trả `PREVIEW_ĐÃ_THAY_ĐỔI` hoặc Cancel thất bại, modal/draft được giữ và client tải lại trạng thái trước khi người dùng quyết định.

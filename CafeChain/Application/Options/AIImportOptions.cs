@@ -5,6 +5,12 @@ public sealed class AIImportOptions
     public const string SectionName = "AIImport";
     public string[] AllowedExtensions { get; set; } = [".xlsx", ".docx", ".pdf"];
     public long MaxFileBytes { get; set; } = 10 * 1024 * 1024;
+    public int MaxFilesPerSession { get; set; } = 10;
+    public long MaxTotalUploadBytesPerSession { get; set; } = 50 * 1024 * 1024;
+    public int MaxTotalCandidatesPerSession { get; set; } = 50_000;
+    public int MaxTotalExtractedCharactersPerSession { get; set; } = 2_000_000;
+    public int MaxTotalAIChunksPerSession { get; set; } = 200;
+    public int MaxTotalOcrPagesPerSession { get; set; } = 100;
     public long MaxExpandedBytes { get; set; } = 100 * 1024 * 1024;
     public decimal MaxCompressionRatio { get; set; } = 100m;
     public int MaxSheets { get; set; } = 20;
@@ -31,5 +37,16 @@ public sealed class AIImportOptions
     public int MaxAIChunks { get; set; } = 100;
     public int AIChunkMaxCharacters { get; set; } = 12_000;
     public int AIChunkOverlapCharacters { get; set; } = 500;
-    public bool OcrEnabled { get; set; }
+    public string OcrProvider { get; set; } = "TesseractLocal";
+    public string OcrExecutablePath { get; set; } = "tesseract";
+    public string OcrTessdataPath { get; set; } = "Resources/OCR/tessdata";
+    public string OcrLanguages { get; set; } = "vie+eng";
+    public int OcrMaxPages { get; set; } = 50;
+    public long OcrMaxRenderedPixelsPerPage { get; set; } = 20_000_000;
+    public long OcrMaxTotalRenderedPixels { get; set; } = 200_000_000;
+    public int OcrRenderDpi { get; set; } = 200;
+    public int OcrPageTimeoutSeconds { get; set; } = 45;
+    public int OcrTotalTimeoutSeconds { get; set; } = 180;
+    public int OcrMaxConcurrentPages { get; set; } = 1;
+    public decimal OcrReviewConfidenceThreshold { get; set; } = 0.85m;
 }

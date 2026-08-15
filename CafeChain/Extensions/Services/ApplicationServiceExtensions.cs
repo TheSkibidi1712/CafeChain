@@ -88,7 +88,11 @@ namespace CafeChain.Extensions.Services
                 .BindConfiguration(WorkShiftOptions.SectionName);
             services.AddOptions<AIImportOptions>()
                 .BindConfiguration(AIImportOptions.SectionName)
-                .Validate(x => x.MaxFileBytes > 0 && x.MaxExpandedBytes > 0 && x.MaxCompressionRatio > 0
+                .Validate(x => x.MaxFileBytes > 0 && x.MaxFilesPerSession > 0
+                               && x.MaxTotalUploadBytesPerSession >= x.MaxFileBytes
+                               && x.MaxTotalCandidatesPerSession > 0 && x.MaxTotalExtractedCharactersPerSession > 0
+                               && x.MaxTotalAIChunksPerSession > 0 && x.MaxTotalOcrPagesPerSession > 0
+                               && x.MaxExpandedBytes > 0 && x.MaxCompressionRatio > 0
                                && x.MaxSheets > 0 && x.MaxRowsPerSheet > 0 && x.MaxTotalRows > 0
                                && x.MaxColumnsPerSheet > 0 && x.MaxTotalCells > 0 && x.MaxRegionsPerSheet > 0
                                && x.MaxAiSampleRows > 0 && x.SessionLifetimeHours > 0
@@ -102,7 +106,17 @@ namespace CafeChain.Extensions.Services
                                && x.PdfMaxTextBlocks > 0 && x.PdfMaxImages > 0
                                && x.PdfOcrImageAreaRatioThreshold is > 0 and <= 1
                                && x.AIChunkMaxCharacters > x.AIChunkOverlapCharacters
-                               && x.AIChunkOverlapCharacters >= 0 && x.MaxAIChunks > 0,
+                               && x.AIChunkOverlapCharacters >= 0 && x.MaxAIChunks > 0
+                               && x.OcrMaxPages > 0 && x.OcrMaxPages <= x.PdfMaxPages
+                               && x.OcrMaxRenderedPixelsPerPage > 0 && x.OcrMaxTotalRenderedPixels >= x.OcrMaxRenderedPixelsPerPage
+                               && x.OcrRenderDpi is >= 72 and <= 600
+                               && x.OcrPageTimeoutSeconds > 0 && x.OcrTotalTimeoutSeconds >= x.OcrPageTimeoutSeconds
+                                && x.OcrMaxConcurrentPages is > 0 and <= 16
+                                && x.OcrReviewConfidenceThreshold is > 0 and <= 1
+                                && string.Equals(x.OcrProvider, "TesseractLocal", StringComparison.Ordinal)
+                                && !string.IsNullOrWhiteSpace(x.OcrExecutablePath)
+                                && !string.IsNullOrWhiteSpace(x.OcrTessdataPath)
+                                && !string.IsNullOrWhiteSpace(x.OcrLanguages),
                     "AIImport options không hợp lệ.")
                 .ValidateOnStart();
             services.AddScoped<IUserContext, UserContext>();
@@ -165,6 +179,10 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IAIImportSourceParser, AIImportDocxSourceParser>();
             services.AddScoped<IAIImportSourceParser, AIImportPdfSourceParser>();
             services.AddScoped<IAIImportDocumentAiExtractor, AIImportDocumentAiExtractor>();
+            services.AddSingleton<IAIImportPdfPageRenderer, PdfiumAIImportPdfPageRenderer>();
+            services.AddSingleton<ITesseractProcessRunner, TesseractProcessRunner>();
+            services.AddScoped<IAIImportOcrProvider, TesseractLocalOcrProvider>();
+            services.AddScoped<IAIImportOcrRuntimeSettings, AIImportOcrRuntimeSettings>();
             services.AddScoped<IAIImportDocumentPipeline, AIImportDocumentPipeline>();
             services.AddScoped<AIImportCandidateValidator>();
             services.AddSingleton<AIImportResolutionEngine>();

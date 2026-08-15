@@ -60,12 +60,21 @@ public sealed class AIImportSqlServerTests : IAsyncLifetime
         await context.Database.MigrateAsync();
         await context.Database.MigrateAsync();
         var tables = await context.Database.SqlQueryRaw<string>(
-            "SELECT name AS Value FROM sys.tables WHERE name IN ('ImportSessions','ImportGroups','ImportItems','ImportAudits')")
+            "SELECT name AS Value FROM sys.tables WHERE name IN ('ImportSessions','ImportSourceDocuments','ImportGroups','ImportItems','ImportAudits')")
             .ToListAsync();
-        Assert.Equal(4, tables.Count);
+        Assert.Equal(5, tables.Count);
         var applied = await context.Database.GetAppliedMigrationsAsync();
-        Assert.Contains("20260813071843_InitialCreate", applied);
-        Assert.Contains("20260813183911_AddAIImportValidationState", applied);
+        Assert.Contains("20260815105817_InitialCreate", applied);
+        Assert.Contains("20260815141744_AddAIImportOcrRuntimeAndMultiFile", applied);
+        Assert.Equal(2, applied.Count());
+        var traceabilityColumns = await context.Database.SqlQueryRaw<string>(
+                "SELECT COLUMN_NAME AS Value FROM INFORMATION_SCHEMA.COLUMNS WHERE "
+                + "(TABLE_NAME = 'ImportSessions' AND COLUMN_NAME = 'ExtractionVersion') OR "
+                + "(TABLE_NAME = 'ImportGroups' AND COLUMN_NAME = 'LayoutConfidence') OR "
+                + "(TABLE_NAME = 'ImportItems' AND COLUMN_NAME IN ('LayoutConfidence','FieldEvidenceJson')) OR "
+                + "(TABLE_NAME = 'ImportAudits' AND COLUMN_NAME IN ('ExtractionVersion','OcrProvider','OcrProviderVersion','OcrExtractionVersion','OcrConfidenceSummaryJson'))")
+            .ToListAsync();
+        Assert.Equal(9, traceabilityColumns.Count);
     }
 
     [Fact]

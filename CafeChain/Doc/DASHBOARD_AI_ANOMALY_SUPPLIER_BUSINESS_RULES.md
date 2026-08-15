@@ -1,5 +1,7 @@
 # Quy tắc nghiệp vụ Dashboard, AI, tín hiệu vận hành, so sánh nhà cung cấp và AI Smart Import
 
+> Cập nhật AI Smart Import (15/08/2026): baseline `20260815105817_InitialCreate` có forward migration OCR runtime/multi-file. Các invariant RBAC, PreviewVersion, idempotency, transaction `Serializable`, full revalidation và CRUD source-of-truth không thay đổi.
+
 > Cập nhật theo mã nguồn, AI skill/schema, giao diện Dashboard và `Scripts/SeedAll.sql` ngày 14/08/2026.
 
 Tài liệu này mô tả hợp đồng nghiệp vụ của Dashboard quản trị, AI Dashboard, tín hiệu bất thường vận hành, so sánh nhà cung cấp và AI Smart Import. Backend là nguồn quyết định về quyền, phạm vi dữ liệu, số liệu và dữ liệu được phép tạo; giao diện chỉ trình bày kết quả đã được backend cho phép. Mô hình AI chỉ hiểu cấu trúc hoặc diễn giải dữ liệu có bằng chứng, không được tự quyết định hoặc thực hiện nghiệp vụ.
@@ -417,12 +419,12 @@ Category `Icon` chỉ chấp nhận rỗng hoặc một grapheme Unicode hoàn c
 | Định dạng | Cách trích xuất | Trường hợp bắt buộc xem lại hoặc từ chối |
 |---|---|---|
 | Excel `.xlsx` | OpenXML, shared/inline string, number, boolean, date style, cached formula; phát hiện sheet/region/header | Bỏ sheet/dòng/cột ẩn; không chạy formula/macro; mapping không rõ mới dùng AI |
-| Word `.docx` | Bảng và record key-value theo thứ tự tài liệu; list/narrative không rõ mới dùng AI chunk | `.doc`/`.docm` không hỗ trợ; ô gộp hoặc Track Changes chưa resolve bắt buộc review; field command/active content bị từ chối |
-| PDF có text | PdfPig dựng word, reading order, block, table/key-value theo tọa độ; loại header/footer lặp | PDF scan/image-only hoặc vùng ảnh đáng kể không chứng minh trích xuất đủ trả `PDF_CẦN_OCR` |
+| Word `.docx` | Body-only, logical merged grid, revision-aware text, table/key-value và semantic block | `.doc`/`.docm` không hỗ trợ; ownership merge/revision/nested boundary mơ hồ bắt review; active content bị từ chối |
+| PDF text/OCR/mixed | Security preflight, page classifier, rotation/top-left, Unicode, table/key-value; OCR `prebuilt-read` chỉ cho trang cần | OCR tắt trả `PDF_CẦN_OCR`; provider/resource/output lỗi trả typed code; reading order/table qua trang mơ hồ bắt review |
 
 DOCX/PDF chỉ thay đổi bước lấy dữ liệu nguồn. Mọi ứng viên sau đó dùng chung ImportSchema, normalization, reference, duplicate, dependency, preview, PATCH, RBAC, idempotency, transaction và CRUD Confirm với Excel.
 
-OCR/Vision chưa được triển khai: `OcrEnabled=false`, `OcrUsed=false`, `OcrConfidence=null`. Người dùng phải chuyển PDF scan sang PDF searchable text trước khi upload; hệ thống không được giả vờ dùng model text để đọc ảnh.
+OCR production dùng Tesseract local với model `tessdata_fast` `vie+eng`; `UseOcr=false` vẫn là mặc định theo từng lần import và health check phải xác minh executable cùng model. Source/layout/OCR/AI confidence tách riêng, critical field OCR dưới `0,85` bắt manual review. Snapshot không lưu binary/ảnh render và Confirm không gọi OCR lại.
 
 ### 7.4 Ranh giới AI và bằng chứng
 
@@ -437,6 +439,8 @@ Output AI chỉ hợp lệ khi:
 - không chứa SQL, lệnh hoặc chỉ dẫn thay đổi whitelist/schema.
 
 Sai JSON, evidence giả hoặc output ngoài schema phải bị loại bằng lỗi typed. Ứng viên dưới `ReviewConfidenceThreshold`, mặc định 0,70, vẫn được giữ với `AI_CONFIDENCE_THẤP` và `REVIEW_REQUIRED`; không được âm thầm bỏ qua.
+
+Semantic AI dùng table/section/heading/paragraph/page block nguyên tử, tối đa hai attempt cho transport/transient hoặc malformed JSON. Taxonomy metadata gồm `AI_TRANSPORT_ERROR`, `AI_SCHEMA_ERROR`, `AI_SEMANTIC_EVIDENCE_ERROR`; cùng key khác payload giữa chunk tạo `XUNG_ĐỘT_TRÍCH_XUẤT`.
 
 Cùng business key và cùng normalized payload trong một tài liệu chỉ giữ ứng viên đầu; nguồn lặp chuyển `SKIPPED` với `TRÙNG_TRONG_FILE`. Cùng key nhưng payload khác chuyển `REVIEW_REQUIRED` với `XUNG_ĐỘT_DỮ_LIỆU_TRONG_TÀI_LIỆU`. Chunk overlap không được tạo dữ liệu kép.
 
@@ -530,13 +534,13 @@ Theo seed mặc định, Chủ doanh nghiệp có toàn bộ quyền Smart Impor
 
 ### 7.8 Lưu trữ, retention và audit
 
-- Session lưu format, metadata và snapshot text đã trích xuất; không lưu binary upload.
-- Group lưu source label, locator và extraction mode.
-- Item lưu raw/normalized data, source trace, evidence và AI/OCR confidence.
-- Audit lưu format, extraction mode, `OcrUsed`, `OcrPageCount`, `AiChunkCount`, actor, trạng thái và kết quả.
-- Snapshot text bị xóa khi session `COMPLETED`, `CANCELLED` hoặc `EXPIRED`; raw data/evidence không xuất hiện trong application log hoặc history response.
+- Session lưu format, extraction version, metadata và snapshot text/OCR tối thiểu; không lưu binary upload/rendered image.
+- Group lưu stable source region, locator, extraction mode và layout confidence.
+- Item lưu raw/normalized data, source trace, field evidence/provenance và source/layout/OCR/AI confidence tách riêng.
+- Audit lưu format/mode, OCR usage/page/provider/version/confidence summary, AI chunk count, actor, trạng thái và kết quả; không lưu raw OCR/full evidence/full prompt.
+- Snapshot bị xóa khi session `COMPLETED`, `CANCELLED` hoặc `EXPIRED`; raw data/evidence/secret không xuất hiện trong application log hoặc history response.
 
-Baseline là `20260813071843_InitialCreate`; validation state được thêm bằng migration tiến tiếp `20260813183911_AddAIImportValidationState`. Database development/test đã ghi migration ID khác phải được nâng cấp có kiểm soát hoặc tạo lại nếu disposable; không tự động xóa database production.
+Migration theo đúng thứ tự `20260815105817_InitialCreate` (baseline chính thức) rồi `20260815141744_AddAIImportOcrRuntimeAndMultiFile` (forward migration). Database development/test đã ghi migration ID khác phải được nâng cấp có kiểm soát hoặc tạo lại nếu disposable; không tự động xóa database production.
 
 ## 8. Phạm vi cửa hàng và ngày kinh doanh
 
@@ -605,3 +609,12 @@ Bảng theo dõi lần chạy không lưu thông tin nhận dạng cá nhân, c�
 - [Hướng dẫn triển khai và sử dụng AI Smart Import chuyên sâu](./AI_SMART_IMPORT_IMPLEMENTATION_AND_USER_GUIDE.md)
 
 Quyền mã xác thực dùng một lần và đăng ký thiết bị bán hàng độc lập với Dashboard/AI. Không cấp `Dashboard.AI.Use` để thay quyền vận hành POS và không đưa mã xác thực vào dữ liệu dẫn chứng AI.
+
+## 12. Bổ sung hợp đồng AI Smart Import
+
+- Duplicate header được giải quyết bằng Group Mapping theo source key vị trí; chỉnh tay normalized value không giải quyết `XUNG_ĐỘT_ÁNH_XẠ`.
+- Cancel chỉ được coi thành công khi server chuyển trạng thái; client phải đóng dialog và vô hiệu hóa preview cũ sau success, không làm mất draft khi fail.
+- System Settings dùng hai tab độc lập: âm kho và OCR. Lưu tab OCR không thay đổi policy âm kho và ngược lại; cả hai dùng quyền `Settings.View`/`Settings.Update` hiện hữu.
+- OCR effective bằng Tesseract executable + model local đã health-check `READY` AND import `UseOcr`. System Settings không có switch OCR toàn hệ thống. OCR không có secret, không gửi tài liệu ra cloud; response/audit không chứa đường dẫn máy chủ, ảnh render hoặc OCR text đầy đủ.
+- Multi-file dùng `ImportSession 1—N ImportSourceDocument`; duplicate/reference/dependency được đánh giá xuyên file, còn Confirm/idempotency/transaction vẫn cấp phiên.
+- Nguồn lỗi chặn Confirm; không tự nhập riêng phần hợp lệ và không âm thầm bỏ file.

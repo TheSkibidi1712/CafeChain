@@ -21,7 +21,8 @@ public sealed class AIImportRequestSizeLimitFilter(IOptions<AIImportOptions> opt
 
     public async Task OnResourceExecutionAsync(ResourceExecutingContext context, ResourceExecutionDelegate next)
     {
-        var requestLimit = checked(options.Value.MaxFileBytes + MultipartOverheadBytes);
+        var requestLimit = checked(options.Value.MaxTotalUploadBytesPerSession
+                                   + MultipartOverheadBytes * options.Value.MaxFilesPerSession);
         var bodyFeature = context.HttpContext.Features.Get<IHttpMaxRequestBodySizeFeature>();
         if (bodyFeature is { IsReadOnly: false }) bodyFeature.MaxRequestBodySize = requestLimit;
 
