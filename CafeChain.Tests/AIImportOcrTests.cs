@@ -335,17 +335,23 @@ public sealed class AIImportOcrTests
     }
 
     [Fact]
-    public async Task Tesseract_native_integration_is_opt_in()
+    public async Task Tesseract_native_integration_does_not_require_external_tsv_config()
     {
         if (!string.Equals(Environment.GetEnvironmentVariable("CAFECHAIN_RUN_TESSERACT_INTEGRATION"), "1",
                 StringComparison.Ordinal)) return;
 
         var repositoryRoot = FindRepositoryRoot();
         var contentRoot = Path.Combine(repositoryRoot, "CafeChain");
+        var sourceTessdata = Environment.GetEnvironmentVariable("CAFECHAIN_TESSDATA_PATH")
+                             ?? Path.Combine(contentRoot, "Resources", "OCR", "tessdata");
+        using var workspace = new OcrWorkspace(createModels: false);
+        File.Copy(Path.Combine(sourceTessdata, "vie.traineddata"), Path.Combine(workspace.Root, "vie.traineddata"));
+        File.Copy(Path.Combine(sourceTessdata, "eng.traineddata"), Path.Combine(workspace.Root, "eng.traineddata"));
+        Assert.False(Directory.Exists(Path.Combine(workspace.Root, "configs")));
         var options = Options.Create(new AIImportOptions
         {
             OcrExecutablePath = Environment.GetEnvironmentVariable("CAFECHAIN_TESSERACT_PATH") ?? "tesseract",
-            OcrTessdataPath = "Resources/OCR/tessdata",
+            OcrTessdataPath = workspace.Root,
             OcrLanguages = "vie+eng"
         });
         var provider = new TesseractLocalOcrProvider(new PdfiumAIImportPdfPageRenderer(),

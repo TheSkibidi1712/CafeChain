@@ -89,8 +89,9 @@ public sealed class TesseractProcessRunner : ITesseractProcessRunner
         TesseractProcessRequest request,
         CancellationToken cancellationToken) => RunAsync(
             request.ExecutablePath,
+            // Enable TSV directly: a custom --tessdata-dir may contain models only and no configs/tsv file.
             [request.ImagePath, "stdout", "--tessdata-dir", request.TessdataPath, "-l", request.Languages,
-                "--oem", "1", "--psm", "3", "tsv"],
+                "--oem", "1", "--psm", "3", "-c", "tessedit_create_tsv=1"],
             request.TimeoutSeconds,
             cancellationToken);
 

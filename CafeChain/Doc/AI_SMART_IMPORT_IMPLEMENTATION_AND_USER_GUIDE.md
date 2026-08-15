@@ -364,7 +364,7 @@ Với SQL integration, cấu hình `CAFECHAIN_TEST_SQLSERVER_CONNECTION_STRING` 
 
 ## 11. Giới hạn đã biết
 
-- OCR production hiện dùng Tesseract local. Integration test native là opt-in sau khi chạy script setup; test parser/TSV/health contract vẫn chạy trong suite không cần secret.
+- OCR production hiện dùng Tesseract local. Process runner bật TSV bằng `-c tessedit_create_tsv=1`, vì vậy tessdata chỉ cần `vie.traineddata`/`eng.traineddata` và không cần copy `configs/tsv`. Integration test native là opt-in sau khi chạy script setup; test parser/TSV/health contract vẫn chạy trong suite không cần secret.
 - PDF table reconstruction vẫn là heuristic tọa độ; layout nhiều cột/bảng lồng quá mơ hồ tạo review thay vì tự quyết định.
 - Text được normalize Unicode/ligature/zero-width/NBSP trước business key nhưng raw evidence vẫn được giữ trong field provenance.
 - DOCX merged cell và tracked changes chưa resolve không được tự suy diễn: candidate bị bắt buộc review; field command bị từ chối.
