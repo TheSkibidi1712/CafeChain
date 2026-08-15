@@ -1031,15 +1031,7 @@
 
     <script>
         $(document).ready(function () {
-            // ===== 1. INTERACTIVE MOUSE PARALLAX BACKDROP SPOTLIGHT =====
-            $(document).on('mousemove', function (e) {
-                const x = (e.clientX / window.innerWidth) * 100;
-                const y = (e.clientY / window.innerHeight) * 100;
-                document.documentElement.style.setProperty('--mouse-x', x + '%');
-                document.documentElement.style.setProperty('--mouse-y', y + '%');
-            });
-
-            // ===== 2. CANVAS GOLDEN CREMA BOKEH PARTICLES =====
+            // ===== 1. CANVAS GOLDEN CREMA BOKEH PARTICLES =====
             const canvas = document.getElementById('particleCanvas');
             if (canvas) {
                 const ctx = canvas.getContext('2d');
