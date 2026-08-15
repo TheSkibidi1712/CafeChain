@@ -7,7 +7,7 @@
     var search = Model.Search ?? "";
     var canEdit = ViewBag.CanEditThreshold as bool? == true;
     var configured = Model.Items.Count(x => x.ThresholdConfigured);
-    var low = Model.Items.Count(x => x.MinStockLevel.HasValue && x.UsableQty <= x.MinStockLevel.Value);
+    var low = Model.Items.Count(x => x.IsLow);
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
@@ -17,7 +17,7 @@
         <div>
             <div class="ops-eyebrow">Kho &amp; Cung ứng</div>
             <h1 class="ops-title"><i class="fa-solid fa-sliders" aria-hidden="true"></i> Ngưỡng tồn kho</h1>
-            <p class="ops-subtitle">Thiết lập mức tồn tối thiểu theo từng cửa hàng và mặt hàng. Cảnh báo được đánh giá theo <strong>Khả dụng = Tồn vật lý − Giữ chỗ</strong>.</p>
+            <p class="ops-subtitle">Thiết lập ngưỡng cảnh báo và mức tồn mục tiêu theo từng chi nhánh. Cảnh báo dùng <strong>Tồn khả dụng = Tồn vật lý − Giữ chỗ</strong> và chỉ phát sinh khi khả dụng thấp hơn ngưỡng.</p>
         </div>
         <div class="ops-actions">
             <a class="ops-btn" asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index"><i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i> Tồn kho</a>
@@ -76,14 +76,14 @@
         <section class="ops-table-wrap cc-warehouse-table-shell">
             <div class="ops-table-scroll">
                 <table class="ops-table">
-                    <thead><tr><th>Mặt hàng</th><th>Loại</th><th class="number">Tồn vật lý</th><th class="number">Giữ chỗ</th><th class="number">Khả dụng</th><th>Trạng thái</th><th class="number">Ngưỡng tối thiểu</th><th class="text-center">THAO TÁC</th></tr></thead>
+                    <thead><tr><th>Mặt hàng</th><th>Loại</th><th class="number">Tồn vật lý</th><th class="number">Giữ chỗ</th><th class="number">Tồn khả dụng</th><th>Trạng thái</th><th class="number">Ngưỡng cảnh báo tồn thấp</th><th class="number">Mức tồn mục tiêu</th><th class="text-center">Thao tác</th></tr></thead>
                     <tbody>
                     @foreach (var item in Model.Items)
                     {
                         var isOut = item.UsableQty <= 0;
-                        var isLow = item.MinStockLevel.HasValue && item.UsableQty <= item.MinStockLevel.Value;
+                        var isLow = item.IsLow;
                         <tr>
-                            <td><div class="ops-item-name">@item.ItemName</div><div class="ops-secondary">ĐVT: @(item.UnitCode ?? "—")</div></td>
+                            <td><div class="ops-item-name">@item.ItemName</div><div class="ops-secondary">ĐVT: @(item.UnitCode ?? "—")@(string.IsNullOrWhiteSpace(item.TechnicalCode) ? "" : $" · Mã: {item.TechnicalCode}")</div></td>
                             <td>@item.ItemTypeLabel</td>
                             <td class="number">@item.OnHandQty.ToString("N3")</td>
                             <td class="number">@item.ReservedQty.ToString("N3")</td>
@@ -95,6 +95,7 @@
                                 else { <span class="ops-badge ops-badge-success">Bình thường</span> }
                             </td>
                             <td class="number">@(item.MinStockLevel?.ToString("N3") ?? "—")</td>
+                            <td class="number">@(item.IsCanonicalPreparedItem ? item.TargetStockLevel?.ToString("N3") ?? "Chưa cấu hình" : "Không áp dụng")</td>
                             <td class="text-center">
                                 @if (canEdit)
                                 {
@@ -105,7 +106,12 @@
                                         <input type="hidden" name="storeId" value="@Model.SelectedStoreId" />
                                         <input type="hidden" name="search" value="@search" />
                                         <input type="hidden" name="page" value="@currentPage" />
-                            <input type="number" name="minStockLevel" class="ops-input ops-quantity-input" step="0.001" min="0" value="@(item.MinStockLevel?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "")" aria-label="Ngưỡng tối thiểu cho @item.ItemName" placeholder="Để trống" />
+                                        <input type="hidden" name="preparedItemPolicy" value="@(item.IsCanonicalPreparedItem ? "true" : "false")" />
+                                        <input type="number" name="minStockLevel" class="ops-input ops-quantity-input" step="0.001" min="0" value="@(item.MinStockLevel?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "")" aria-label="Ngưỡng cảnh báo tồn thấp cho @item.ItemName" placeholder="Ngưỡng" />
+                                        @if (item.IsCanonicalPreparedItem)
+                                        {
+                                            <input type="number" name="targetStockLevel" class="ops-input ops-quantity-input" step="0.001" min="0" value="@(item.TargetStockLevel?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "")" aria-label="Mức tồn mục tiêu cho @item.ItemName" placeholder="Mục tiêu" />
+                                        }
                                         <button type="submit" class="ops-btn ops-btn-primary">Lưu</button>
                                     </form>
                                 }

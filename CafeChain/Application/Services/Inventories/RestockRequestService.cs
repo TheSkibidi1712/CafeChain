@@ -2,6 +2,8 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Production;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.Interfaces.Admin.Production;
+using CafeChain.Application.Interfaces.Admin.Permissions;
+using CafeChain.Application.Interfaces.Admin.StoreInventories;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Options;
@@ -38,6 +40,8 @@ namespace CafeChain.Application.Services.Inventories
         private readonly IUnitConversionService? _unitConversion;
         private readonly IProductionSourceEligibilityService? _productionEligibility;
         private readonly IPurchaseSourceEligibilityService? _purchaseEligibility;
+        private readonly IPreparedItemReplenishmentReadService? _preparedItemReplenishment;
+        private readonly IAdminPermissionService? _permissions;
         private readonly ProductionOperationsOptions _productionOptions;
 
         public RestockRequestService(
@@ -47,7 +51,9 @@ namespace CafeChain.Application.Services.Inventories
             IUnitConversionService? unitConversion = null,
             IProductionSourceEligibilityService? productionEligibility = null,
             IOptions<ProductionOperationsOptions>? productionOptions = null,
-            IPurchaseSourceEligibilityService? purchaseEligibility = null)
+            IPurchaseSourceEligibilityService? purchaseEligibility = null,
+            IPreparedItemReplenishmentReadService? preparedItemReplenishment = null,
+            IAdminPermissionService? permissions = null)
         {
             _context = context;
             _scopeAuthorization = scopeAuthorization;
@@ -55,6 +61,8 @@ namespace CafeChain.Application.Services.Inventories
             _unitConversion = unitConversion;
             _productionEligibility = productionEligibility;
             _purchaseEligibility = purchaseEligibility;
+            _preparedItemReplenishment = preparedItemReplenishment;
+            _permissions = permissions;
             _productionOptions = productionOptions?.Value ?? new ProductionOperationsOptions();
         }
 
@@ -367,6 +375,130 @@ namespace CafeChain.Application.Services.Inventories
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
             return result;
+        }
+
+        public async Task<ServiceResult<CreateRestockRequestResultDto>> CreatePreparedItemDemandFromConfirmedAlertAsync(
+            int alertId,
+            int managerStaffId,
+            int accountId,
+            int managerStoreId,
+            string? stockRowVersion,
+            string? note,
+            string? priority)
+        {
+            if (alertId <= 0 || managerStaffId <= 0 || accountId <= 0 || managerStoreId <= 0)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Thông tin tạo nhu cầu bổ sung không hợp lệ.");
+            if (_preparedItemReplenishment == null || _permissions == null)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Chưa cấu hình dịch vụ nhu cầu bổ sung bán thành phẩm.");
+
+            var permission = await _permissions.HasPermissionAsync(
+                accountId,
+                PermissionConstants.StockAlertCreateRestockRequest,
+                managerStoreId);
+            if (!permission.IsSuccess || permission.Data?.Allowed != true)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Bạn không có quyền tạo nhu cầu bổ sung tại chi nhánh này.");
+
+            var alert = await _context.StockAlerts
+                .AsNoTracking()
+                .SingleOrDefaultAsync(x => x.StockAlertId == alertId);
+            if (alert == null)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Không tìm thấy cảnh báo tồn kho.");
+            if (alert.StoreId != managerStoreId)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Cảnh báo không thuộc chi nhánh được phép thao tác.");
+            if (alert.Status != StockAlertStatuses.Confirmed)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Chỉ có thể tạo nhu cầu bổ sung từ cảnh báo đã xác nhận.");
+            if (alert.IngredientId.HasValue || !alert.PreparedItemId.HasValue)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure(
+                    "Cảnh báo này không thuộc bán thành phẩm chuẩn.",
+                    errorCode: "ALERT_NOT_CANONICAL_PREPARED_ITEM");
+
+            var existing = await LoadActivePreparedItemRequestAsync(managerStoreId, alert.PreparedItemId.Value);
+            if (existing != null)
+                return ExistingPreparedItemRequest(existing);
+
+            var current = await _preparedItemReplenishment.GetAsync(
+                accountId,
+                managerStoreId,
+                alert.PreparedItemId.Value);
+            if (!current.IsSuccess || current.Data == null)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure(current.Message ?? "Không thể kiểm tra nhu cầu bổ sung hiện tại.");
+            if (string.IsNullOrWhiteSpace(stockRowVersion)
+                || !string.Equals(current.Data.RowVersion, stockRowVersion, StringComparison.Ordinal))
+            {
+                return ServiceResult<CreateRestockRequestResultDto>.Failure(
+                    "Tồn kho đã thay đổi. Vui lòng tải lại để xem nhu cầu mới nhất.",
+                    errorCode: "PREPARED_ITEM_STOCK_CHANGED");
+            }
+            if (!current.Data.TargetStockBase.HasValue)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Cần cấu hình mức tồn mục tiêu trước khi tạo nhu cầu bổ sung.");
+            if (!current.Data.IsLow)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Tồn khả dụng hiện không thấp hơn ngưỡng cảnh báo.");
+            if (!current.Data.NetNeedBase.HasValue)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure(current.Data.BusinessMessageVi);
+            if (current.Data.NetNeedBase.Value <= 0m)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Nguồn sản xuất đang mở đã bao phủ nhu cầu hiện tại.");
+
+            var noteText = Clean(note, MaxNoteLength);
+            var now = DateTime.UtcNow;
+            var referenceCode = await RestockReferenceCodeAllocator.NextAsync(_context, managerStoreId, now);
+            var request = new RestockRequest
+            {
+                StockAlertId = alert.StockAlertId,
+                StoreId = managerStoreId,
+                CreatedForStoreId = managerStoreId,
+                PreparedItemId = alert.PreparedItemId,
+                RecipeId = null,
+                SourceType = RestockRequestSourceTypes.StockAlert,
+                SourceReferenceId = alert.StockAlertId.ToString(CultureInfo.InvariantCulture),
+                RequestedQuantity = current.Data.NetNeedBase.Value,
+                SuggestedQuantity = current.Data.NetNeedBase.Value,
+                RequestedProcurementQuantity = current.Data.NetNeedBase.Value,
+                ProcurementUnitId = current.Data.BaseUnitId,
+                TargetStockProcurementQuantity = current.Data.TargetStockBase,
+                SuggestionAvailableSnapshot = current.Data.UsableBase,
+                SuggestionMinLevelSnapshot = current.Data.LowThresholdBase,
+                SuggestionIncomingQuantitySnapshot = current.Data.OpenProductionCoverageBase,
+                SuggestionReason = $"Nhu cầu bổ sung: mục tiêu {current.Data.TargetStockBase:N3} - tồn khả dụng {current.Data.UsableBase:N3} - nguồn sản xuất đang mở {current.Data.OpenProductionCoverageBase.GetValueOrDefault():N3}.",
+                SourcingStatus = RestockSourcingStatuses.Unallocated,
+                Status = RestockRequestStatuses.Draft,
+                Priority = ResolvePriority(priority, alert.AlertType),
+                CreatedByStaffId = managerStaffId,
+                CreatedAt = now,
+                UpdatedAt = now,
+                Note = noteText,
+                RowVersion = Array.Empty<byte>()
+            };
+            request.AssignReferenceCode(referenceCode);
+
+            try
+            {
+                _context.RestockRequests.Add(request);
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (IsActiveRequestUniqueConflict(ex))
+            {
+                _context.ChangeTracker.Clear();
+                existing = await LoadActivePreparedItemRequestAsync(managerStoreId, alert.PreparedItemId.Value);
+                if (existing != null)
+                    return ExistingPreparedItemRequest(existing);
+                throw;
+            }
+
+            _logger.LogInformation(
+                "[PreparedItemReplenishment] Created demand RestockRequestId={RequestId} AlertId={AlertId} StoreId={StoreId} PreparedItemId={PreparedItemId} NetNeedBase={NetNeedBase}",
+                request.RestockRequestId,
+                alert.StockAlertId,
+                managerStoreId,
+                alert.PreparedItemId,
+                request.RequestedQuantity);
+
+            return ServiceResult<CreateRestockRequestResultDto>.Success(
+                new CreateRestockRequestResultDto
+                {
+                    RestockRequestId = request.RestockRequestId,
+                    ReferenceCode = request.ReferenceCode
+                },
+                "Đã tạo nhu cầu bổ sung bán thành phẩm.");
         }
 
         public async Task<ServiceResult<RestockRequestListResultDto>> ListForStoreAsync(
@@ -1218,6 +1350,28 @@ namespace CafeChain.Application.Services.Inventories
                     && RestockRequestStatuses.ActiveValues.Contains(x.Status))
                 .OrderBy(x => x.RestockRequestId)
                 .FirstOrDefaultAsync();
+
+        private async Task<RestockRequest?> LoadActivePreparedItemRequestAsync(
+            int storeId,
+            int preparedItemId) =>
+            await _context.RestockRequests
+                .AsNoTracking()
+                .Where(x => x.StoreId == storeId
+                    && x.PreparedItemId == preparedItemId
+                    && RestockRequestStatuses.ActiveValues.Contains(x.Status))
+                .OrderBy(x => x.RestockRequestId)
+                .FirstOrDefaultAsync();
+
+        private static ServiceResult<CreateRestockRequestResultDto> ExistingPreparedItemRequest(
+            RestockRequest existing) =>
+            ServiceResult<CreateRestockRequestResultDto>.Success(
+                new CreateRestockRequestResultDto
+                {
+                    RestockRequestId = existing.RestockRequestId,
+                    ReferenceCode = existing.ReferenceCode,
+                    AlreadyExisted = true
+                },
+                "Nhu cầu bổ sung đang mở đã tồn tại; hệ thống trả lại bản ghi hiện có.");
 
         private async Task<RestockRequest?> LoadRestockForAdjustmentAsync(int requestId)
         {

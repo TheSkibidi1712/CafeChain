@@ -5,6 +5,9 @@ namespace CafeChain.Application.DTOs.Admin.InventoryThresholds
         public int StoreInventoryId { get; set; }
         public int StoreId { get; set; }
         public string? StoreName { get; set; }
+        public int? PreparedItemId { get; set; }
+        public string? TechnicalCode { get; set; }
+        public bool IsCanonicalPreparedItem { get; set; }
         public string ItemName { get; set; } = string.Empty;
         public string ItemTypeLabel { get; set; } = string.Empty;
         public string? UnitCode { get; set; }
@@ -13,8 +16,10 @@ namespace CafeChain.Application.DTOs.Admin.InventoryThresholds
         public decimal OnHandQty => AvailableQty;
         public decimal UsableQty => OnHandQty - ReservedQty;
         public decimal? MinStockLevel { get; set; }
+        public decimal? TargetStockLevel { get; set; }
         public string RowVersion { get; set; } = string.Empty;
         public bool ThresholdConfigured => MinStockLevel.HasValue;
+        public bool IsLow => MinStockLevel.HasValue && UsableQty < MinStockLevel.Value;
         public string ThresholdStatusLabel =>
             MinStockLevel.HasValue
                 ? MinStockLevel.Value.ToString("N3")

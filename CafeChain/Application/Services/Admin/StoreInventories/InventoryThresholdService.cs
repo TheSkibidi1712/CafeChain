@@ -68,6 +68,7 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
                 .AsNoTracking()
                 .Include(i => i.Ingredient)!.ThenInclude(ing => ing!.BaseUnit)
                 .Include(i => i.Recipe)
+                .Include(i => i.PreparedItem)!.ThenInclude(x => x!.BaseUnit)
                 .Include(i => i.Store)
                 .Where(i => allowedIds.Contains(i.StoreId) && i.StoreId == selectedStoreId);
 
@@ -76,6 +77,8 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
                 var kw = search.Trim();
                 query = query.Where(i =>
                     (i.IngredientId.HasValue && i.Ingredient != null && i.Ingredient.Name.Contains(kw)) ||
+                    (i.PreparedItemId.HasValue && i.PreparedItem != null &&
+                     (i.PreparedItem.Name.Contains(kw) || i.PreparedItem.Code.Contains(kw))) ||
                     (i.RecipeId.HasValue && i.Recipe != null &&
                      ((i.Recipe.Name != null && i.Recipe.Name.Contains(kw)) ||
                       (i.Recipe.RecipeCode != null && i.Recipe.RecipeCode.Contains(kw)))));
@@ -84,7 +87,9 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
             var total = await query.CountAsync();
             var rows = await query
                 .OrderBy(i => i.IngredientId.HasValue ? 0 : 1)
-                .ThenBy(i => i.Ingredient != null ? i.Ingredient.Name : i.Recipe!.Name)
+                .ThenBy(i => i.Ingredient != null
+                    ? i.Ingredient.Name
+                    : i.PreparedItem != null ? i.PreparedItem.Name : i.Recipe!.Name)
                 .ThenBy(i => i.StoreInventoryId)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -356,12 +361,21 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
             string name;
             string typeLabel;
             string? unit = null;
+            string? technicalCode = null;
 
             if (i.IngredientId.HasValue)
             {
                 name = i.Ingredient?.Name ?? $"Nguyên liệu #{i.IngredientId}";
                 typeLabel = "Nguyên liệu";
                 unit = i.Ingredient?.BaseUnit?.UnitCode;
+                technicalCode = i.Ingredient?.Code;
+            }
+            else if (i.PreparedItemId.HasValue)
+            {
+                name = i.PreparedItem?.Name ?? $"Bán thành phẩm #{i.PreparedItemId}";
+                typeLabel = "Bán thành phẩm";
+                unit = i.PreparedItem?.BaseUnit?.UnitCode;
+                technicalCode = i.PreparedItem?.Code;
             }
             else if (i.RecipeId.HasValue)
             {
@@ -384,12 +398,19 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
                 StoreInventoryId = i.StoreInventoryId,
                 StoreId = i.StoreId,
                 StoreName = i.Store?.Name,
+                PreparedItemId = i.PreparedItemId,
+                TechnicalCode = technicalCode,
+                IsCanonicalPreparedItem = i.PreparedItemId.HasValue
+                    && i.BtpIdentityState == BtpIdentityState.Canonical
+                    && i.QuantitySemanticsStatus == InventoryQuantitySemanticsStatus.BaseUnitConfirmed
+                    && !i.SupersededByStoreInventoryId.HasValue,
                 ItemName = name,
                 ItemTypeLabel = typeLabel,
                 UnitCode = unit,
                 AvailableQty = i.AvailableQty,
                 ReservedQty = i.ReservedQty,
                 MinStockLevel = i.MinStockLevel,
+                TargetStockLevel = i.TargetStockLevel,
                 RowVersion = Convert.ToBase64String(i.RowVersion ?? Array.Empty<byte>()),
                 LastUpdated = i.LastUpdated
             };
