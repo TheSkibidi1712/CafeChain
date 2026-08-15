@@ -35,6 +35,12 @@ namespace CafeChain.Models.Stores
         /// </summary>
         public decimal? MinStockLevel { get; set; }
 
+        /// <summary>
+        /// Store-specific desired recovery level in the stock item's base UOM.
+        /// Null means replenishment quantity cannot be calculated.
+        /// </summary>
+        public decimal? TargetStockLevel { get; set; }
+
         public DateTime LastUpdated { get; set; }
 
         [Timestamp]

@@ -4,6 +4,7 @@ using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Admin.StoreInventories;
 using CafeChain.Application.Results;
 using CafeChain.Data;
+using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore;
@@ -105,6 +106,36 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
             int accountId,
             int storeInventoryId,
             decimal? minStockLevel,
+            string? rowVersion) => await UpdatePolicyAsync(
+                accountId,
+                storeInventoryId,
+                minStockLevel,
+                targetStockLevel: null,
+                updateTarget: false,
+                requireCanonicalPreparedItem: false,
+                rowVersion: rowVersion);
+
+        public async Task<ServiceResult> UpdatePreparedItemPolicyAsync(
+            int accountId,
+            int storeInventoryId,
+            decimal? minStockLevel,
+            decimal? targetStockLevel,
+            string? rowVersion) => await UpdatePolicyAsync(
+                accountId,
+                storeInventoryId,
+                minStockLevel,
+                targetStockLevel,
+                updateTarget: true,
+                requireCanonicalPreparedItem: true,
+                rowVersion: rowVersion);
+
+        private async Task<ServiceResult> UpdatePolicyAsync(
+            int accountId,
+            int storeInventoryId,
+            decimal? minStockLevel,
+            decimal? targetStockLevel,
+            bool updateTarget,
+            bool requireCanonicalPreparedItem,
             string? rowVersion)
         {
             if (accountId <= 0)
@@ -115,7 +146,20 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
 
             if (minStockLevel.HasValue && minStockLevel.Value < 0)
             {
-                return ServiceResult.Failure("Ngưỡng tồn tối thiểu không được âm.");
+                return ServiceResult.Failure("Ngưỡng cảnh báo tồn thấp không được âm.");
+            }
+
+            if (updateTarget && targetStockLevel.HasValue && targetStockLevel.Value < 0)
+            {
+                return ServiceResult.Failure("Mức tồn mục tiêu không được âm.");
+            }
+
+            if (updateTarget && minStockLevel.HasValue && targetStockLevel.HasValue
+                && targetStockLevel.Value < minStockLevel.Value)
+            {
+                return ServiceResult.Failure(
+                    "Mức tồn mục tiêu phải lớn hơn hoặc bằng ngưỡng cảnh báo tồn thấp.",
+                    errorCode: "TARGET_STOCK_BELOW_LOW_THRESHOLD");
             }
 
             if (string.IsNullOrWhiteSpace(rowVersion))
@@ -143,6 +187,26 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
             if (row == null)
                 return ServiceResult.Failure("Không tìm thấy dòng tồn kho.");
 
+            if (requireCanonicalPreparedItem
+                && (!row.PreparedItemId.HasValue
+                    || row.BtpIdentityState != BtpIdentityState.Canonical
+                    || row.QuantitySemanticsStatus != InventoryQuantitySemanticsStatus.BaseUnitConfirmed
+                    || row.SupersededByStoreInventoryId.HasValue))
+            {
+                return ServiceResult.Failure(
+                    "Chỉ bán thành phẩm chuẩn theo đơn vị tồn kho cơ sở mới được cấu hình chính sách bổ sung.",
+                    errorCode: "CANONICAL_PREPARED_ITEM_REQUIRED");
+            }
+
+            var effectiveTarget = updateTarget ? targetStockLevel : row.TargetStockLevel;
+            if (minStockLevel.HasValue && effectiveTarget.HasValue
+                && effectiveTarget.Value < minStockLevel.Value)
+            {
+                return ServiceResult.Failure(
+                    "Mức tồn mục tiêu phải lớn hơn hoặc bằng ngưỡng cảnh báo tồn thấp.",
+                    errorCode: "TARGET_STOCK_BELOW_LOW_THRESHOLD");
+            }
+
             var permission = await _permissionService.HasPermissionAsync(
                 accountId,
                 PermissionConstants.InventoryThresholdUpdate,
@@ -168,6 +232,8 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
             var beforeReserved = row.ReservedQty;
 
             row.MinStockLevel = minStockLevel;
+            if (updateTarget)
+                row.TargetStockLevel = targetStockLevel;
             row.LastUpdated = DateTime.UtcNow;
 
             _context.Entry(row).Property(x => x.RowVersion).OriginalValue = expectedVersion;
@@ -193,10 +259,12 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
             }
 
             _logger.LogInformation(
-                "[InventoryThreshold] Updated MinStockLevel={Min} StoreInventoryId={Id} StoreId={StoreId} AccountId={AccountId}",
-                minStockLevel, storeInventoryId, row.StoreId, accountId);
+                "[InventoryThreshold] Updated Low={Low} Target={Target} StoreInventoryId={Id} StoreId={StoreId} AccountId={AccountId}",
+                minStockLevel, row.TargetStockLevel, storeInventoryId, row.StoreId, accountId);
 
-            return ServiceResult.Success("Cập nhật ngưỡng tồn kho thành công.");
+            return ServiceResult.Success(updateTarget
+                ? "Cập nhật chính sách bổ sung tồn kho thành công."
+                : "Cập nhật ngưỡng tồn kho thành công.");
         }
 
         private async Task<List<InventoryStoreTabDto>> GetAccessibleStoresAsync(int accountId)
