@@ -1,10 +1,16 @@
 using CafeChain.Application.Services.Admin.StoreInventories;
+using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin.Permissions;
+using CafeChain.Application.Interfaces.Admin.Permissions;
+using CafeChain.Application.Results;
+using CafeChain.Application.Services.Admin.Production;
 using CafeChain.Data;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Inventories.PreparedItems;
 using CafeChain.Models.Stores;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using Xunit;
 
 namespace CafeChain.Tests;
@@ -85,6 +91,49 @@ public sealed class PreparedItemInventoryBootstrapSqlServerTests : IAsyncLifetim
             .ToListAsync());
         Assert.Equal(0m, row.AvailableQty);
         Assert.Equal(0m, row.ReservedQty);
+        Assert.Empty(await verify.InventoryTransactions.AsNoTracking().ToListAsync());
+        Assert.Empty(await verify.InventoryCostLayers.AsNoTracking().ToListAsync());
+    }
+
+    [Fact]
+    public async Task ProductionCapability_PersistsExplicitSelectedStoreAndZeroInventory()
+    {
+        await using var context = CreateContext();
+        var permissions = new Mock<IAdminPermissionService>();
+        permissions.Setup(x => x.HasPermissionAsync(_accountId, It.IsAny<string>(), It.IsAny<int?>()))
+            .ReturnsAsync((int accountId, string permissionCode, int? storeId) =>
+                ServiceResult<PermissionDecisionDto>.Success(new PermissionDecisionDto
+                {
+                    AccountId = accountId,
+                    PermissionCode = permissionCode,
+                    TargetStoreId = storeId,
+                    Allowed = permissionCode == PermissionConstants.PreparedItemUpdate
+                        || permissionCode == PermissionConstants.ProductionOrderPlan && storeId == _storeId,
+                    ScopeAllowed = !storeId.HasValue || storeId == _storeId
+                }));
+        var service = new PreparedItemProductionCapabilityService(
+            context,
+            permissions.Object,
+            new PreparedItemInventoryBootstrapService(context));
+
+        var global = await service.SetGlobalProductionAsync(_accountId, 471, _preparedItemId, true, null);
+        var store = await service.SetStoreProductionAsync(
+            _accountId, 471, _storeId, _preparedItemId, true, null);
+
+        Assert.True(global.IsSuccess, global.Message);
+        Assert.True(store.IsSuccess, store.Message);
+        await using var verify = CreateContext();
+        var globalRow = await verify.InventoryItemSourceCapabilities.AsNoTracking()
+            .SingleAsync(x => x.PreparedItemId == _preparedItemId);
+        Assert.True(globalRow.CanProduce);
+        Assert.False(globalRow.CanPurchase);
+        Assert.Single(await verify.StoreProductionCapabilities.AsNoTracking()
+            .Where(x => x.StoreId == _storeId && x.PreparedItemId == _preparedItemId && x.Active)
+            .ToListAsync());
+        var inventory = await verify.StoreInventories.AsNoTracking()
+            .SingleAsync(x => x.StoreId == _storeId && x.PreparedItemId == _preparedItemId);
+        Assert.Equal(0m, inventory.AvailableQty);
+        Assert.Equal(0m, inventory.ReservedQty);
         Assert.Empty(await verify.InventoryTransactions.AsNoTracking().ToListAsync());
         Assert.Empty(await verify.InventoryCostLayers.AsNoTracking().ToListAsync());
     }
