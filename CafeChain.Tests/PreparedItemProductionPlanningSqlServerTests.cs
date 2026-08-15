@@ -1,11 +1,15 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin.Permissions;
 using CafeChain.Application.DTOs.Admin.Production;
 using CafeChain.Application.DTOs.Admin.Replenishment;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
+using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Admin.Production;
 using CafeChain.Application.Interfaces.Admin.StoreInventories;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
+using CafeChain.Application.Options;
+using CafeChain.Application.Services.Admin.Production;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
 using CafeChain.Models.Customers;
@@ -20,6 +24,7 @@ using CafeChain.Models.Stores;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -107,6 +112,77 @@ public sealed class PreparedItemProductionPlanningSqlServerTests : IAsyncLifetim
         Assert.Single(await verify.ProductionRuns.AsNoTracking().ToListAsync());
     }
 
+    [Fact]
+    public async Task SqlServer_CancelReplan_Race_IsSafe()
+    {
+        var readModel = CurrentNeedReadModel();
+        int originalRunId;
+        await using (var seed = CreateContext())
+        {
+            var planned = await CreateService(seed, readModel).SetSourcingDecisionAsync(
+                Command(Guid.NewGuid()),
+                _staffId);
+            Assert.True(planned.IsSuccess, planned.Message);
+            originalRunId = planned.Data.ProductionRunId!.Value;
+        }
+
+        await using var cancelContext = CreateContext();
+        await using var replanContext = CreateContext();
+        var cancelTask = CreateOperationsService(cancelContext).CancelAsync(
+            originalRunId,
+            _staffId,
+            "Điều chỉnh kế hoạch bổ sung");
+        var replanTask = CreateService(replanContext, readModel).SetSourcingDecisionAsync(
+            Command(Guid.NewGuid()),
+            _staffId);
+        var cancelResult = await cancelTask;
+        await replanTask;
+
+        if (!cancelResult.IsSuccess)
+        {
+            await using var retryCancel = CreateContext();
+            var retry = await CreateOperationsService(retryCancel).CancelAsync(
+                originalRunId,
+                _staffId,
+                "Thử lại sau xung đột");
+            Assert.True(retry.IsSuccess, retry.Message);
+        }
+
+        await using (var ensureReplan = CreateContext())
+        {
+            var active = await ensureReplan.RestockSourcingAllocations
+                .CountAsync(x => x.RestockRequestId == _demandId
+                    && x.DecisionType == RestockSourcingDecisionTypes.Production
+                    && x.Status == RestockSourcingAllocationStatuses.Active);
+            if (active == 0)
+            {
+                var replanned = await CreateService(ensureReplan, readModel).SetSourcingDecisionAsync(
+                    Command(Guid.NewGuid()),
+                    _staffId);
+                Assert.True(replanned.IsSuccess, replanned.Message);
+            }
+        }
+
+        await using var verify = CreateContext();
+        Assert.Equal(ProductionRunStatus.Cancelled,
+            await verify.ProductionRuns
+                .Where(x => x.ProductionRunId == originalRunId)
+                .Select(x => x.Status)
+                .SingleAsync());
+        var activeAllocations = await verify.RestockSourcingAllocations
+            .Where(x => x.RestockRequestId == _demandId
+                && x.DecisionType == RestockSourcingDecisionTypes.Production
+                && x.Status == RestockSourcingAllocationStatuses.Active)
+            .ToListAsync();
+        Assert.Single(activeAllocations);
+        Assert.Equal(6m, activeAllocations.Sum(x => x.ProcurementQuantity));
+        Assert.Equal(RestockSourcingAllocationStatuses.Released,
+            await verify.RestockSourcingAllocations
+                .Where(x => x.ProductionRunId == originalRunId)
+                .Select(x => x.Status)
+                .SingleAsync());
+    }
+
     private static AppDbContext CreateContext() => new(
         new DbContextOptionsBuilder<AppDbContext>()
             .UseSqlServer(ConnectionString)
@@ -138,6 +214,57 @@ public sealed class PreparedItemProductionPlanningSqlServerTests : IAsyncLifetim
             NullLogger<RestockRequestService>.Instance,
             productionEligibility: eligibility.Object,
             preparedItemReplenishment: readModel);
+    }
+
+    private IPreparedItemReplenishmentReadService CurrentNeedReadModel()
+    {
+        var read = new Mock<IPreparedItemReplenishmentReadService>();
+        read.Setup(x => x.GetAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(ServiceResult<PreparedItemReplenishmentDto>.Success(new PreparedItemReplenishmentDto
+            {
+                StoreId = _storeId,
+                PreparedItemId = _preparedItemId,
+                BaseUnitId = _unitId,
+                IsLow = true,
+                GrossNeedBase = 6m,
+                OpenProductionCoverageBase = 0m,
+                NetNeedBase = 6m,
+                DataStatus = PreparedItemReplenishmentDataStatuses.Ready
+            }));
+        return read.Object;
+    }
+
+    private static ProductionRunOperationsService CreateOperationsService(AppDbContext context)
+    {
+        var permissions = new Mock<IAdminPermissionService>();
+        permissions.Setup(x => x.HasPermissionAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int?>()))
+            .ReturnsAsync((int accountId, string code, int? storeId) =>
+                ServiceResult<PermissionDecisionDto>.Success(new PermissionDecisionDto
+                {
+                    AccountId = accountId,
+                    PermissionCode = code,
+                    TargetStoreId = storeId,
+                    Allowed = true,
+                    RoleAllowed = true,
+                    ScopeAllowed = true
+                }));
+        var physical = new PhysicalUnitConversionService(
+            context,
+            NullLogger<PhysicalUnitConversionService>.Instance);
+        var readiness = new Mock<IProductionReadinessService>();
+        readiness.Setup(x => x.PreviewAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<decimal>()))
+            .ReturnsAsync(ServiceResult<ProductionReadinessPreviewDto>.Success(new ProductionReadinessPreviewDto
+            {
+                IsReady = true,
+                OverallStatus = "Sẵn sàng"
+            }));
+        return new ProductionRunOperationsService(
+            context,
+            permissions.Object,
+            new UnitConversionService(context, NullLogger<UnitConversionService>.Instance, physical),
+            physical,
+            readiness.Object,
+            Options.Create(new ProductionOperationsOptions()));
     }
 
     private SourcingDecisionRequest Command(Guid requestKey) => new()

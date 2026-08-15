@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Data;
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Production;
 using CafeChain.Application.Interfaces.Admin.Permissions;
@@ -9,6 +10,8 @@ using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Production;
+using CafeChain.Models.Inventories.Stock;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -285,14 +288,86 @@ public sealed class ProductionRunOperationsService : IProductionRunOperationsSer
     {
         if (string.IsNullOrWhiteSpace(reason))
             return Failure(ProductionRunOperationErrorCodes.InvalidActual, "Hủy lệnh sản xuất phải có lý do.");
-        return await TransitionAsync(
-            productionRunId,
-            actorStaffId,
-            new[] { ProductionRunStatus.Planned, ProductionRunStatus.Released },
-            ProductionRunStatus.Cancelled,
-            PermissionConstants.ProductionOrderCancel,
-            "Đã hủy lệnh sản xuất.",
-            reason);
+
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        try
+        {
+            var run = await LoadForUpdateAsync(productionRunId);
+            if (run == null || run.ContractVersion != 2)
+            {
+                await transaction.RollbackAsync();
+                return Failure(ProductionRunOperationErrorCodes.NotFound, "Không tìm thấy lệnh sản xuất theo mẻ.");
+            }
+
+            var authorization = await AuthorizeAsync(
+                run,
+                actorStaffId,
+                PermissionConstants.ProductionOrderCancel);
+            if (!authorization.IsSuccess)
+            {
+                await transaction.RollbackAsync();
+                return Failure(authorization.ErrorCode!, authorization.Message);
+            }
+
+            var replay = run.Status == ProductionRunStatus.Cancelled;
+            if (!replay && run.Status is not (ProductionRunStatus.Planned or ProductionRunStatus.Released))
+            {
+                await transaction.RollbackAsync();
+                return Failure(
+                    ProductionRunOperationErrorCodes.InvalidState,
+                    "Trạng thái hiện tại không cho phép hủy lệnh sản xuất.");
+            }
+
+            var allocation = await _context.RestockSourcingAllocations
+                .SingleOrDefaultAsync(x => x.ProductionRunId == productionRunId
+                    && x.DecisionType == RestockSourcingDecisionTypes.Production);
+            if (allocation != null)
+            {
+                var demand = await LoadRestockRequestForUpdateAsync(allocation.RestockRequestId);
+                var allocations = await _context.RestockSourcingAllocations
+                    .Where(x => x.RestockRequestId == allocation.RestockRequestId)
+                    .ToListAsync();
+                if (allocation.Status == RestockSourcingAllocationStatuses.Active)
+                {
+                    allocation.Status = RestockSourcingAllocationStatuses.Released;
+                    allocation.ReleasedByStaffId = actorStaffId;
+                    allocation.ReleasedAtUtc = DateTime.UtcNow;
+                    allocation.ReleaseReason = Clean(reason);
+                }
+
+                if (demand != null)
+                    RecomputeSourcingState(demand, allocations);
+            }
+
+            if (!replay)
+            {
+                var previous = run.Status;
+                run.Status = ProductionRunStatus.Cancelled;
+                AddTransition(run, previous, run.Status, actorStaffId, reason, null);
+            }
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return ServiceResult<ProductionRunOperationResultDto>.Success(
+                ToResult(run, null, replay),
+                replay ? "Lệnh sản xuất đã được hủy trước đó." : "Đã hủy lệnh sản xuất và hoàn lại phần nhu cầu chưa sản xuất.");
+        }
+        catch (DbUpdateException)
+        {
+            await transaction.RollbackAsync();
+            _context.ChangeTracker.Clear();
+            return Failure(
+                ProductionRunOperationErrorCodes.Concurrency,
+                "Lệnh sản xuất vừa được người khác cập nhật. Vui lòng tải lại dữ liệu.");
+        }
+        catch (Exception ex) when (FindSqlException(ex)?.Number == 1205)
+        {
+            await transaction.RollbackAsync();
+            _context.ChangeTracker.Clear();
+            return Failure(
+                ProductionRunOperationErrorCodes.Concurrency,
+                "Lệnh sản xuất đang được cập nhật đồng thời. Vui lòng tải lại dữ liệu.");
+        }
     }
 
     private async Task<ServiceResult<ProductionRunOperationResultDto>> TransitionAsync(
@@ -551,6 +626,39 @@ public sealed class ProductionRunOperationsService : IProductionRunOperationsSer
         return await _context.ProductionRuns.SingleOrDefaultAsync(x => x.ProductionRunId == productionRunId);
     }
 
+    private async Task<RestockRequest?> LoadRestockRequestForUpdateAsync(int restockRequestId)
+    {
+        if (_context.Database.IsSqlServer())
+        {
+            return await _context.RestockRequests
+                .FromSqlInterpolated(
+                    $@"SELECT * FROM RestockRequests WITH (UPDLOCK, HOLDLOCK, ROWLOCK)
+                       WHERE RestockRequestId = {restockRequestId}")
+                .SingleOrDefaultAsync();
+        }
+        return await _context.RestockRequests.SingleOrDefaultAsync(x => x.RestockRequestId == restockRequestId);
+    }
+
+    private static void RecomputeSourcingState(
+        RestockRequest demand,
+        IReadOnlyCollection<RestockSourcingAllocation> allocations)
+    {
+        var active = allocations
+            .Where(x => x.Status is RestockSourcingAllocationStatuses.Active
+                or RestockSourcingAllocationStatuses.PendingPurchaseAdvice)
+            .ToList();
+        var allocated = active.Sum(x => x.ProcurementQuantity);
+        var requested = demand.RequestedProcurementQuantity ?? demand.RequestedQuantity;
+        demand.SourcingStatus = allocated <= 0
+            ? RestockSourcingStatuses.Unallocated
+            : allocated >= requested
+                ? RestockSourcingStatuses.FullyAllocated
+                : RestockSourcingStatuses.PartiallyAllocated;
+        if (active.Count == 0)
+            demand.SourcingDecision = null;
+        demand.UpdatedAt = DateTime.UtcNow;
+    }
+
     private Task<ProductionRunOutput?> LoadOutputAsync(int productionRunId)
         => _context.ProductionRunOutputs.AsNoTracking()
             .SingleOrDefaultAsync(x => x.ProductionRunId == productionRunId);
@@ -583,6 +691,14 @@ public sealed class ProductionRunOperationsService : IProductionRunOperationsSer
 
     private static string? Clean(string? value)
         => string.IsNullOrWhiteSpace(value) ? null : value.Trim()[..Math.Min(value.Trim().Length, 500)];
+
+    private static SqlException? FindSqlException(Exception exception)
+    {
+        for (Exception? current = exception; current != null; current = current.InnerException)
+            if (current is SqlException sqlException)
+                return sqlException;
+        return null;
+    }
 
     private static ProductionRunOperationResultDto ToResult(
         ProductionRun run,
