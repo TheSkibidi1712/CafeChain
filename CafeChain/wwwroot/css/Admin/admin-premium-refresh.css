@@ -1,0 +1,364 @@
+/* CafeChain Admin — shared shell plus scoped Editorial Operations content refresh. */
+.admin-premium-shell {
+    --cc-refresh-espresso: #2b1b16;
+    --cc-refresh-espresso-2: #3a241c;
+    --cc-refresh-caramel: #b77945;
+    --cc-refresh-canvas: #f3f0eb;
+    --cc-refresh-surface: #fffdf9;
+    --cc-refresh-line: #ded5cc;
+    --cc-refresh-ink: #211a17;
+    --cc-refresh-muted: #70645d;
+}
+
+.admin-premium-shell .sidebar {
+    box-sizing: border-box;
+    width: 272px;
+    padding: 12px;
+    color: #f8f1ea;
+    background: var(--cc-refresh-espresso) !important;
+    border-right: 0 !important;
+    box-shadow: 12px 0 32px rgba(43, 27, 22, .10) !important;
+}
+
+.admin-premium-shell .sidebar-header {
+    min-height: 72px;
+    margin-bottom: 8px;
+    border: 1px solid rgba(255, 255, 255, .1) !important;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .055) !important;
+}
+
+.admin-premium-shell .sidebar :is(a, .sidebar-section-header) {
+    min-height: 42px;
+    margin: 2px 0;
+    padding: 9px 12px;
+    border: 0 !important;
+    border-radius: 10px;
+    color: #d9ccc2 !important;
+    font-weight: 600;
+    transition: color .16s ease, background-color .16s ease;
+}
+
+.admin-premium-shell .sidebar :is(a, .sidebar-section-header):hover {
+    color: #fffaf5 !important;
+    background: rgba(255, 255, 255, .075) !important;
+}
+
+.admin-premium-shell .sidebar :is(a.active, .sidebar-section-header.active) {
+    color: #fff !important;
+    background: #5a3829 !important;
+    box-shadow: inset 3px 0 0 #d9a36f;
+}
+
+.admin-premium-shell .sidebar .collapse a {
+    min-height: 36px;
+    padding-left: 34px;
+    color: #d3c4b9 !important;
+    font-size: 12.75px;
+}
+
+.admin-premium-shell .sidebar .sidebar-sub {
+    margin: 4px 0 8px 12px !important;
+    padding: 5px 6px !important;
+    border: 1px solid rgba(255, 255, 255, .07) !important;
+    border-left: 2px solid rgba(211, 160, 113, .48) !important;
+    border-radius: 0 10px 10px 0;
+    background: #34231d !important;
+}
+
+.admin-premium-shell .sidebar .sidebar-sub a {
+    margin: 1px 0;
+    padding: 8px 10px 8px 12px !important;
+    color: #cdbdb2 !important;
+    background: transparent !important;
+    box-shadow: none;
+}
+
+.admin-premium-shell .sidebar .sidebar-sub a:hover {
+    color: #fff8f2 !important;
+    background: rgba(255, 255, 255, .065) !important;
+}
+
+.admin-premium-shell .sidebar .sidebar-sub a.active {
+    color: #fffaf5 !important;
+    background: #513328 !important;
+    box-shadow: inset 3px 0 0 #d3a071;
+}
+
+.admin-premium-shell .sidebar .sidebar-sub a i {
+    color: #aa8f7d !important;
+}
+
+.admin-premium-shell .sidebar .sidebar-sub a.active i {
+    color: #e0b383 !important;
+}
+
+.admin-premium-shell .sidebar :is(i, .section-icon),
+.admin-premium-shell .sidebar-brand,
+.admin-premium-shell .sidebar-brand * {
+    color: inherit !important;
+}
+
+.admin-premium-shell .sidebar :is(.logo-text, .logo-sub) {
+    color: #f5ece5 !important;
+}
+
+.admin-premium-shell .sidebar .logo-sub {
+    color: #bba99d !important;
+}
+
+.admin-premium-shell .sidebar-system {
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, .1) !important;
+    background: transparent !important;
+}
+
+.admin-premium-shell .sidebar-nav-scroll {
+    overflow-y: scroll !important;
+    scrollbar-gutter: stable !important;
+    overflow-anchor: none;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(211, 160, 113, .42) rgba(255, 255, 255, .035);
+}
+
+.admin-premium-shell .sidebar-nav-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.admin-premium-shell .sidebar-nav-scroll::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, .035);
+    border-radius: 999px;
+}
+
+.admin-premium-shell .sidebar-nav-scroll::-webkit-scrollbar-thumb {
+    min-height: 36px;
+    border-radius: 999px;
+    background: rgba(211, 160, 113, .42);
+}
+
+.admin-premium-shell .sidebar-nav-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(224, 179, 131, .65);
+}
+
+.admin-premium-shell .main-content {
+    margin-left: 272px;
+}
+
+.admin-premium-shell .sidebar .collapsing {
+    overflow: hidden;
+    transition: none !important;
+    will-change: auto;
+}
+
+.admin-premium-shell .sidebar .collapse,
+.admin-premium-shell .sidebar .collapsing {
+    width: 100%;
+}
+
+.admin-premium-refresh .topbar {
+    min-height: 76px;
+    padding: 14px clamp(20px, 3vw, 42px);
+    background: rgba(243, 240, 235, .96) !important;
+    border-bottom: 1px solid var(--cc-refresh-line) !important;
+    box-shadow: none !important;
+}
+
+.admin-premium-refresh .topbar-user {
+    min-height: 44px;
+    padding: 5px 12px 5px 6px;
+    border: 1px solid #cdbeb3 !important;
+    border-radius: 12px !important;
+    background: var(--cc-refresh-surface) !important;
+    color: var(--cc-refresh-ink) !important;
+}
+
+.admin-premium-refresh .admin-page-body {
+    box-sizing: border-box;
+    width: min(100%, 1680px);
+    margin: 0 auto;
+    padding: 28px clamp(20px, 3vw, 44px) 56px;
+    color: var(--cc-refresh-ink);
+}
+
+/* Wide Supplier data remains scrollable inside its own table shell, never at page level. */
+.admin-premium-refresh:has(.supplier-page) {
+    overflow-x: clip;
+}
+
+.admin-premium-refresh .admin-page-body :is(
+    .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
+    .ops-page-header, .notification-page-header, .category-page-header,
+    .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section
+) {
+    min-height: 132px !important;
+    padding: 28px 30px !important;
+    border: 1px solid var(--cc-refresh-line) !important;
+    border-left: 5px solid var(--cc-refresh-espresso) !important;
+    border-radius: 18px !important;
+    background: var(--cc-refresh-surface) !important;
+    box-shadow: 0 14px 34px rgba(57, 38, 29, .07) !important;
+}
+
+.admin-premium-refresh .admin-page-body :is(
+    .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
+    .ops-page-header, .notification-page-header, .category-page-header,
+    .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section
+)::before,
+.admin-premium-refresh .admin-page-body :is(
+    .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
+    .ops-page-header, .notification-page-header, .category-page-header,
+    .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section
+)::after {
+    display: none !important;
+}
+
+.admin-premium-refresh .admin-page-body :is(h1, .page-title, .category-page-title, .drink-page-title) {
+    color: #181210 !important;
+    font-weight: 750 !important;
+    letter-spacing: -.035em;
+}
+
+.admin-premium-refresh .admin-page-body :is(
+    .card, .content-card, .table-card, .filter-card, .filter-section,
+    .table-container, .summary-card, .kpi-card, .stats-card
+) {
+    border-color: var(--cc-refresh-line) !important;
+    border-radius: 16px !important;
+    background-color: var(--cc-refresh-surface) !important;
+    box-shadow: 0 6px 18px rgba(57, 38, 29, .045) !important;
+}
+
+.admin-premium-refresh .admin-page-body :is(input, select, textarea, .form-control, .form-select, .select2-selection) {
+    border-color: #d5c8be !important;
+    border-radius: 10px !important;
+    background-color: #fffefa !important;
+}
+
+/* Consistent accessible targets without changing form or workflow hooks. */
+.admin-premium-refresh .admin-page-body :is(button, a.btn, [role="button"]):not(.btn-close) {
+    min-height: 40px;
+}
+
+.admin-premium-refresh .admin-page-body :is(
+    .drink-search-btn, .catalog-search-button, .action-btn, .table-action,
+    .btn-icon, .icon-button, .ingredient-icon-button, .supplier-icon-button
+) {
+    min-width: 40px;
+    min-height: 40px;
+}
+
+.admin-premium-refresh .admin-page-body .btn-close {
+    box-sizing: content-box;
+    width: 16px;
+    height: 16px;
+    padding: 12px;
+}
+
+.admin-premium-refresh .admin-page-body :is(input, select, textarea, .form-control, .form-select):focus {
+    border-color: #805339 !important;
+    box-shadow: 0 0 0 3px rgba(128, 83, 57, .14) !important;
+}
+
+.admin-premium-refresh .admin-page-body :is(.table, table) {
+    --bs-table-bg: transparent;
+    margin-bottom: 0;
+}
+
+.admin-premium-refresh .admin-page-body :is(.table, table) thead th {
+    height: 48px;
+    color: #4b3024 !important;
+    background: #f4eee8 !important;
+    border-color: #ddcfc4 !important;
+    font-size: 11px !important;
+    letter-spacing: .045em;
+}
+
+.admin-premium-refresh .admin-page-body :is(.table, table) tbody td {
+    border-color: #e6ddd5 !important;
+    background: rgba(255, 253, 249, .72);
+    vertical-align: middle;
+}
+
+.admin-premium-refresh .admin-page-body :is(.table, table) tbody tr:hover td {
+    background: #faf4ed !important;
+}
+
+.admin-premium-refresh .admin-page-body :is(
+    .btn-primary, .btn-save, .btn-edit, .btn-apply, .btn-search,
+    .ops-btn-primary, .supplier-btn-primary, .category-btn-primary
+) {
+    border-color: var(--cc-refresh-espresso-2) !important;
+    background: var(--cc-refresh-espresso-2) !important;
+    color: #fff !important;
+    box-shadow: 0 5px 12px rgba(58, 36, 28, .16) !important;
+}
+
+.admin-premium-refresh .admin-page-body :is(.btn-danger, .btn-delete, .btn-lock, .btn-deactivate) {
+    border-color: #b4232c !important;
+    background: #fff7f7 !important;
+    color: #a51822 !important;
+    box-shadow: none !important;
+}
+
+.admin-premium-refresh .admin-page-body :is(.pagination, nav[aria-label*="trang"] ul) {
+    gap: 6px;
+}
+
+.admin-premium-refresh .admin-page-body .pagination .page-link {
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 10px !important;
+    border-color: #d8c9bf !important;
+    color: #513428;
+    background: #fffdf9;
+}
+
+.admin-premium-refresh .admin-page-body .pagination .active > .page-link {
+    border-color: var(--cc-refresh-espresso-2) !important;
+    background: var(--cc-refresh-espresso-2) !important;
+    color: #fff !important;
+}
+
+.admin-premium-refresh :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid #b56e3d !important;
+    outline-offset: 3px !important;
+}
+
+@media (max-width: 768px) {
+    .admin-premium-shell .sidebar.d-flex {
+        display: none !important;
+    }
+
+    .admin-premium-shell .main-content {
+        margin-left: 0 !important;
+    }
+
+    .admin-premium-refresh .topbar {
+        min-height: 64px;
+        padding: 10px 16px;
+    }
+
+    .admin-premium-refresh .admin-page-body {
+        padding: 18px 14px 40px;
+    }
+
+    .admin-premium-refresh .admin-page-body :is(
+        .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
+        .ops-page-header, .notification-page-header, .category-page-header,
+        .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section
+    ) {
+        min-height: 0 !important;
+        padding: 22px 20px !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .admin-premium-refresh *,
+    .admin-premium-refresh *::before,
+    .admin-premium-refresh *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}

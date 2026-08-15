@@ -42,9 +42,7 @@
     overflow: hidden;
     border: 1px solid var(--cc-border, #E9DED4) !important;
     border-radius: var(--cc-radius-header, 20px) !important;
-    background:
-        radial-gradient(circle at 92% 4%, rgba(201, 158, 125, .16), transparent 260px),
-        linear-gradient(135deg, var(--cc-surface-raised, #FFFFFF) 0%, var(--cc-surface, #FFFDFB) 54%, var(--cc-brown-50, #FAF6F2) 100%) !important;
+    background: var(--cc-surface-raised, #FFFFFF) !important;
     box-shadow: var(--cc-shadow-md);
     box-sizing: border-box !important;
 }
@@ -58,7 +56,7 @@
     width: 5px;
     border-top-left-radius: var(--cc-radius-header, 20px);
     border-bottom-left-radius: var(--cc-radius-header, 20px);
-    background: linear-gradient(180deg, var(--cc-brown-600, #70482F), var(--cc-caramel-500, #A97750));
+    background: var(--cc-brown-600, #70482F);
     box-shadow: 3px 0 12px rgba(112, 72, 47, .18);
     content: "";
 }
@@ -159,6 +157,19 @@
 .supplier-metric-copy { min-width: 0; display: block; }
 .supplier-metrics strong { display: block; font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; color: #201812; font-weight: 800; }
 .supplier-metrics .supplier-metric-copy > span { display: block; margin-top: 6px; overflow: hidden; color: #66584F; font-size: 11px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; }
+
+@media (min-width: 761px) and (max-width: 1400px) {
+    .supplier-metrics > div {
+        gap: 10px;
+        padding-inline: 14px;
+    }
+
+    .supplier-metrics .supplier-metric-copy > span {
+        overflow: visible;
+        line-height: 1.25;
+        white-space: normal;
+    }
+}
 
 .supplier-toolbar {
     display: block;
@@ -519,7 +530,10 @@
     color: #66584F;
 }
 .supplier-table-scroll.cc-warehouse-table-shell {
+    width: 100%;
+    max-width: 100%;
     overflow: auto;
+    contain: inline-size;
     scrollbar-gutter: auto;
     border: 0;
     border-radius: 0;
@@ -948,6 +962,8 @@
     .supplier-filter-result { justify-content: flex-start; }
     .supplier-pagination { justify-content: space-between; }
     .supplier-table { min-width: 600px; }
+    .supplier-table .supplier-btn:hover,
+    .supplier-table .supplier-btn:focus-visible { transform: none; }
     .supplier-list-heading { min-height: 72px; gap: 12px; padding: 12px 14px; }
     .supplier-list-heading-icon { width: 36px; height: 36px; flex-basis: 36px; }
     .supplier-list-total { min-width: auto; min-height: 36px; padding-inline: 10px; }
@@ -988,7 +1004,7 @@
 
 
 /* FE2 batch 12: supplier relationship workspace hierarchy. */
-.supplier-page .supplier-page-header { position:relative; overflow:hidden; border:1px solid var(--cc-border,#E9DED4); border-radius:var(--cc-radius-lg,16px); padding:clamp(18px,2.4vw,28px); background:linear-gradient(135deg,var(--cc-surface,#FFFDFB),var(--cc-surface-muted,#FBF7F2)); }
+.supplier-page .supplier-page-header { position:relative; overflow:hidden; border:1px solid var(--cc-border,#E9DED4); border-radius:var(--cc-radius-lg,16px); padding:clamp(18px,2.4vw,28px); background:var(--cc-surface,#FFFDFB); }
 .supplier-page .supplier-page-header::before { position:absolute; inset:0 auto 0 0; width:4px; background:var(--cc-caramel-500,#A97750); content:""; }
 .supplier-page .supplier-metrics { overflow:hidden; border:1px solid var(--cc-border,#E9DED4); border-radius:var(--cc-radius-md,12px); background:var(--cc-surface,#FFFDFB); }
 .supplier-page .supplier-list-panel { border-top:3px solid var(--cc-brown-600,#70482F); }

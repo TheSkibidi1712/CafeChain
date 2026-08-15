@@ -15,6 +15,24 @@
     box-shadow: var(--cc-shadow-lg, 0 18px 48px rgba(32, 24, 18, 0.14)) !important;
 }
 
+/* Keep dynamic document controls visible to keyboard users. */
+#inventoryCreateModal .inventory-create-form :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--cc-brown-600, #70482f);
+    outline-offset: 3px;
+    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22));
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #inventoryCreateModal .inventory-create-form *,
+    #inventoryCreateModal .inventory-create-form *::before,
+    #inventoryCreateModal .inventory-create-form *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
 .inventory-type-popup .swal2-html-container {
     margin: 0;
 }

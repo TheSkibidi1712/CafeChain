@@ -185,7 +185,7 @@
     margin-bottom: 0;
 }
 
-.table thead th {
+.size-admin-page .table thead th {
     font-size: 11px;
     font-weight: 800;
     color: var(--cc-brown-600, #70482f);
@@ -196,7 +196,7 @@
     text-transform: uppercase;
 }
 
-.table td {
+.size-admin-page .table td {
     font-size: 13.5px;
     line-height: 1.4;
     color: var(--cc-text, #201812);
@@ -366,16 +366,17 @@
     color: var(--cc-brown-900, #3d2418);
 }
 
-/* Table Action Buttons (34px) */
+/* Table Action Buttons — shared compact target contract (40px). */
 .size-action-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
     padding: 0;
     border: 1px solid var(--cc-border-strong, #d8c5b6) !important;
-    border-radius: var(--cc-radius-sm, 8px);
+    border-radius: var(--cc-radius-control, 10px);
     background: var(--cc-surface-raised, #ffffff);
     transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
@@ -386,9 +387,9 @@
 }
 
 .size-action-btn.is-assign {
-    color: #b45309;
-    background: #fef3c7;
-    border-color: #fde68a !important;
+    color: var(--cc-brown-700, #5c3f2b);
+    background: var(--cc-surface-raised, #ffffff);
+    border-color: var(--cc-border-strong, #d8c5b6) !important;
 }
 
 .size-action-btn.is-assign:hover {
@@ -398,15 +399,15 @@
 }
 
 .size-action-btn.is-edit {
-    color: #1d4ed8;
-    background: #eff6ff;
-    border-color: #bfdbfe !important;
+    color: #ffffff;
+    background: var(--cc-brown-600, #70482f);
+    border-color: var(--cc-brown-600, #70482f) !important;
 }
 
 .size-action-btn.is-edit:hover {
     color: #ffffff;
-    background: #1d4ed8;
-    border-color: #1d4ed8 !important;
+    background: var(--cc-brown-900, #3d2418);
+    border-color: var(--cc-brown-900, #3d2418) !important;
 }
 
 .size-action-btn.is-lock {
@@ -422,15 +423,15 @@
 }
 
 .size-action-btn.is-unlock {
-    color: var(--cc-success, #2f6f5e);
-    background: var(--cc-success-bg, #edf6f2);
-    border-color: #bbdccd !important;
+    color: #ffffff;
+    background: var(--cc-brown-600, #70482f);
+    border-color: var(--cc-brown-600, #70482f) !important;
 }
 
 .size-action-btn.is-unlock:hover {
     color: #ffffff;
-    background: var(--cc-success, #2f6f5e);
-    border-color: var(--cc-success, #2f6f5e) !important;
+    background: var(--cc-brown-900, #3d2418);
+    border-color: var(--cc-brown-900, #3d2418) !important;
 }
 
 .size-action-btn i {

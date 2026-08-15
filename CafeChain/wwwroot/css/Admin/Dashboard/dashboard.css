@@ -1380,8 +1380,8 @@
 .dashboard-guide__card summary > i {
     display: grid;
     place-items: center;
-    width: 34px;
-    height: 34px;
+    width: 40px;
+    height: 40px;
     border-radius: var(--cc-radius-control, 10px);
     background: #FBF7F2;
     transition: transform .2s;

@@ -126,7 +126,7 @@
                             }
                         </td>
                         <td class="text-end px-4 py-3">
-                            <button class="btn btn-sm text-primary p-1" onclick="editVoucher(@v.VoucherId)" title="Sửa"><i class="fas fa-pen"></i></button>
+                            <button class="btn btn-sm voucher-action-edit" onclick="editVoucher(@v.VoucherId)" title="Sửa"><i class="fas fa-pen"></i></button>
                             <button class="btn btn-sm @(v.Active ? "text-danger" : "text-success") p-1 ms-2" onclick="toggleVoucher(@v.VoucherId, @(v.Active ? "true" : "false"))" title="@(v.Active ? "Khóa" : "Kích hoạt")">
                                 <i class="fas @(v.Active ? "fa-lock" : "fa-unlock-alt")"></i>
                             </button>
@@ -379,6 +379,8 @@
         .text-orange { color: #d93d20; }
         .bg-orange { background-color: #d93d20; }
         .border-orange { border-color: #d93d20 !important; }
+        .voucher-action-edit { width: 40px; height: 40px; padding: 0; border: 1px solid var(--cc-brown-600, #70482F); border-radius: var(--cc-radius-control, 10px); background: var(--cc-brown-600, #70482F); color: #fff; }
+        .voucher-action-edit:hover { border-color: var(--cc-brown-700, #5C3A27); background: var(--cc-brown-700, #5C3A27); color: #fff; }
         .uppercase { text-transform: uppercase; }
         .form-control:focus, .form-select:focus { border-color: #d93d20; box-shadow: 0 0 0 0.25rem rgba(217, 61, 32, 0.1); }
         .btn-orange:hover { background-color: #b32e18 !important; }

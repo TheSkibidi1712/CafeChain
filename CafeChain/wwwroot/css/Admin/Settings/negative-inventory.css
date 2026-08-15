@@ -38,7 +38,7 @@
     border: 1px solid #E9DED4 !important;
     border-left: 5px solid #5C3F2B !important;
     border-radius: var(--cc-radius-header, 20px) !important;
-    background: linear-gradient(112deg, #FFFFFF 0%, #FBF7F2 62%, #F1E5DA 100%) !important;
+    background: var(--cc-surface, #FFFDFB) !important;
     box-shadow: var(--cc-shadow-md);
     overflow: hidden;
     box-sizing: border-box !important;
@@ -602,7 +602,7 @@
 }
 
 /* FE2 batch 13: settings state, guard and save hierarchy. */
-.system-setting-page .ni-page-header { position:relative; overflow:hidden; border:1px solid var(--cc-border,#E9DED4); border-left:4px solid var(--cc-caramel-500,#A97750); border-radius:var(--cc-radius-lg,16px); padding:clamp(18px,2.4vw,28px); background:linear-gradient(135deg,var(--cc-surface,#FFFDFB),var(--cc-surface-muted,#FBF7F2)); }
+.system-setting-page .ni-page-header { position:relative; overflow:hidden; border:1px solid var(--cc-border,#E9DED4); border-left:4px solid var(--cc-caramel-500,#A97750); border-radius:var(--cc-radius-lg,16px); padding:clamp(18px,2.4vw,28px); background:var(--cc-surface,#FFFDFB); }
 .system-setting-page .ni-feature-panel { border-color:var(--cc-warning,#99623B); background:var(--cc-warning-bg,#FBF3EA); }
 .system-setting-page .ni-section-heading { padding-left:10px; border-left:3px solid var(--cc-caramel-500,#A97750); }
 .system-setting-page .ni-table-wrap { border-top:3px solid var(--cc-brown-600,#70482F)!important; }
