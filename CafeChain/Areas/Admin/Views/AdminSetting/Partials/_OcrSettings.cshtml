@@ -1,0 +1,43 @@
+@model CafeChain.Application.DTOs.Admin.Settings.AIImportOcrSettingsDTO
+
+<div class="ocr-settings" id="ocrSettingsPanel">
+    <div class="alert @(Model.EffectiveEnabled ? "alert-success" : "alert-warning")">
+        <strong>Trạng thái:</strong>
+        @(Model.EffectiveEnabled ? "Sẵn sàng" : !Model.InfrastructureConfigured ? "Tesseract/model chưa sẵn sàng" : Model.HealthStatus == "UNAVAILABLE" ? "Đang lỗi" : "Đang chờ kiểm tra")
+        <div class="small mt-1">@Model.HealthMessage</div>
+    </div>
+
+    <form id="ocrSettingsForm" asp-area="Admin" asp-controller="AdminSetting" asp-action="UpdateOcr" method="post">
+        <div class="alert alert-info mb-3">
+            OCR tự khả dụng khi Tesseract và model đạt trạng thái READY. Tài liệu không được gửi lên cloud và không cần khóa API.
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-md-4"><label class="form-label">Provider</label><input class="form-control" value="@Model.Provider" disabled /></div>
+            <div class="col-md-4"><label class="form-label">Phiên bản Tesseract</label><input class="form-control" value="@(Model.ProviderVersion ?? "Chưa kiểm tra")" disabled /></div>
+            <div class="col-md-2"><label class="form-label">Executable</label><input class="form-control" value="@(Model.ExecutableAvailable ? "Sẵn sàng" : "Chưa sẵn sàng")" disabled /></div>
+            <div class="col-md-2"><label class="form-label">Model</label><input class="form-control" value="@(Model.ModelDataReady ? "Đủ model" : "Thiếu model")" disabled /></div>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label" asp-for="Languages">Ngôn ngữ Tesseract</label>
+                <select class="form-select" asp-for="Languages">
+                    <option value="vie+eng">Tiếng Việt + English (vie+eng)</option>
+                    <option value="vie">Tiếng Việt (vie)</option>
+                    <option value="eng">English (eng)</option>
+                </select>
+            </div>
+            <div class="col-md-3"><label class="form-label" asp-for="ReviewConfidenceThreshold">Ngưỡng review</label><input class="form-control" asp-for="ReviewConfidenceThreshold" type="number" min="0" max="1" step="0.01" /></div>
+            <div class="col-md-3"><label class="form-label" asp-for="RenderDpi">Render DPI</label><input class="form-control" asp-for="RenderDpi" type="number" min="72" max="600" /></div>
+            <div class="col-md-3"><label class="form-label" asp-for="MaxPages">Số trang tối đa</label><input class="form-control" asp-for="MaxPages" type="number" min="1" max="500" /></div>
+            <div class="col-md-4"><label class="form-label" asp-for="MaxRenderedPixelsPerPage">Pixel tối đa/trang</label><input class="form-control" asp-for="MaxRenderedPixelsPerPage" type="number" min="1" /></div>
+            <div class="col-md-4"><label class="form-label" asp-for="MaxTotalRenderedPixels">Tổng pixel tối đa</label><input class="form-control" asp-for="MaxTotalRenderedPixels" type="number" min="1" /></div>
+            <div class="col-md-4"><label class="form-label" asp-for="MaxConcurrentPages">Trang đồng thời</label><input class="form-control" asp-for="MaxConcurrentPages" type="number" min="1" max="16" /></div>
+            <div class="col-md-6"><label class="form-label" asp-for="PageTimeoutSeconds">Timeout mỗi trang (giây)</label><input class="form-control" asp-for="PageTimeoutSeconds" type="number" min="1" max="600" /></div>
+            <div class="col-md-6"><label class="form-label" asp-for="TotalTimeoutSeconds">Timeout tổng (giây)</label><input class="form-control" asp-for="TotalTimeoutSeconds" type="number" min="1" max="3600" /></div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <small class="text-muted">Lần kiểm tra: @(Model.LastHealthCheckedAtUtc?.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss") ?? "Chưa kiểm tra") · phiên bản @Model.ConfigVersion</small>
+            <div class="d-flex gap-2"><button type="button" class="btn btn-outline-secondary" id="checkOcrButton" data-url="@Url.Action("CheckOcr", "AdminSetting", new { area = "Admin" })">Kiểm tra OCR</button><button type="submit" class="btn btn-primary">Lưu cấu hình OCR</button></div>
+        </div>
+    </form>
+</div>

@@ -7,8 +7,9 @@ namespace CafeChain.Application.Interfaces.AIImport;
 public interface IAIImportService
 {
     Task<AIImportOperationResult<AIImportSessionDto>> AnalyzeAsync(
-        IFormFile? file,
+        IReadOnlyList<IFormFile> files,
         AIImportEntityType? entityHint,
+        bool useOcr,
         AdminActorContext actor,
         CancellationToken cancellationToken);
 
@@ -56,6 +57,17 @@ public interface IAIImportService
     Task<AIImportOperationResult<AIImportSessionDto>> CancelAsync(
         int sessionId,
         AIImportCancelRequest request,
+        AdminActorContext actor,
+        CancellationToken cancellationToken);
+
+    Task<AIImportOperationResult<AIImportSessionDto>> RemoveSourceAsync(
+        int sessionId,
+        int sourceDocumentId,
+        int expectedPreviewVersion,
+        AdminActorContext actor,
+        CancellationToken cancellationToken);
+
+    Task<AIImportOperationResult<AIImportOcrCapabilityDto>> GetOcrCapabilityAsync(
         AdminActorContext actor,
         CancellationToken cancellationToken);
 

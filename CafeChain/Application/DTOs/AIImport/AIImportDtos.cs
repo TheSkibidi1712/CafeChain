@@ -6,7 +6,22 @@ namespace CafeChain.Application.DTOs.AIImport;
 public sealed class AIImportAnalyzeRequest
 {
     public IFormFile? File { get; set; }
+    public List<IFormFile> Files { get; set; } = [];
     public AIImportEntityType? EntityHint { get; set; }
+    public bool UseOcr { get; set; }
+}
+
+public sealed class AIImportOcrCapabilityDto
+{
+    public bool InfrastructureConfigured { get; set; }
+    public bool ProviderReady { get; set; }
+    public bool EffectiveEnabled { get; set; }
+    public string Provider { get; set; } = string.Empty;
+    public string? ProviderVersion { get; set; }
+    public string Languages { get; set; } = string.Empty;
+    public string HealthStatus { get; set; } = string.Empty;
+    public string? HealthMessage { get; set; }
+    public DateTime? LastHealthCheckedAtUtc { get; set; }
 }
 
 public sealed class AIImportConfirmRequest
@@ -66,6 +81,21 @@ public sealed class AIImportBoundingBoxDto
     public double Y { get; set; }
     public double Width { get; set; }
     public double Height { get; set; }
+    public double? PageWidth { get; set; }
+    public double? PageHeight { get; set; }
+    public int Rotation { get; set; }
+    public string Unit { get; set; } = "POINT";
+    public List<double> Polygon { get; set; } = new();
+}
+
+public sealed class AIImportFieldEvidenceDto
+{
+    public string SourceKind { get; set; } = string.Empty;
+    public AIImportPositionDto? SourceLocator { get; set; }
+    public string RawText { get; set; } = string.Empty;
+    public string? NormalizedValue { get; set; }
+    public decimal? OcrConfidence { get; set; }
+    public decimal? AiConfidence { get; set; }
 }
 
 public sealed class AIImportErrorDto
@@ -135,17 +165,38 @@ public sealed class AIImportSessionDto
     public List<AIImportErrorDto> AnalysisWarnings { get; set; } = new();
     public AIImportSummaryDto Summary { get; set; } = new();
     public List<AIImportGroupDto> Groups { get; set; } = new();
+    public List<AIImportSourceDocumentDto> SourceDocuments { get; set; } = new();
+    public bool RequestedOcr { get; set; }
+    public bool EffectiveOcr { get; set; }
+    public string OcrConfigVersion { get; set; } = string.Empty;
+    public bool ConfirmBlockedBySources { get; set; }
     public AIImportPageDto Page { get; set; } = new();
+}
+
+public sealed class AIImportSourceDocumentDto
+{
+    public int SourceDocumentId { get; set; }
+    public string FileName { get; set; } = string.Empty;
+    public string SourceFormat { get; set; } = string.Empty;
+    public long FileSize { get; set; }
+    public int SortOrder { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string? ErrorCode { get; set; }
+    public string? ErrorMessage { get; set; }
+    public Dictionary<string, object?> Metadata { get; set; } = new();
 }
 
 public sealed class AIImportGroupDto
 {
     public int GroupId { get; set; }
+    public int? SourceDocumentId { get; set; }
+    public string SourceFileName { get; set; } = string.Empty;
     public string SheetName { get; set; } = string.Empty;
     public string RegionAddress { get; set; } = string.Empty;
     public string SourceLabel { get; set; } = string.Empty;
     public AIImportPositionDto? SourceLocator { get; set; }
     public string ExtractionMode { get; set; } = string.Empty;
+    public string SourceRegionId { get; set; } = string.Empty;
     public int HeaderRow { get; set; }
     public AIImportEntityType EntityType { get; set; }
     public Dictionary<string, string?> Mapping { get; set; } = new();
@@ -154,6 +205,8 @@ public sealed class AIImportGroupDto
     public List<AIImportErrorDto> Issues { get; set; } = new();
     public int DependencyOrder { get; set; }
     public decimal Confidence { get; set; }
+    public decimal SourceConfidence { get; set; }
+    public decimal? LayoutConfidence { get; set; }
     public string Status { get; set; } = string.Empty;
     public List<AIImportItemDto> Items { get; set; } = new();
 }
@@ -169,6 +222,9 @@ public sealed class AIImportItemDto
     public string? EvidenceSnippet { get; set; }
     public decimal? AiConfidence { get; set; }
     public decimal? OcrConfidence { get; set; }
+    public decimal SourceConfidence { get; set; }
+    public decimal? LayoutConfidence { get; set; }
+    public Dictionary<string, AIImportFieldEvidenceDto> FieldEvidence { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public string Status { get; set; } = string.Empty;
     public string Action { get; set; } = string.Empty;
     public List<AIImportErrorDto> Errors { get; set; } = new();

@@ -229,6 +229,7 @@ namespace CafeChain.Data
         public DbSet<InventoryTransferDetail> InventoryTransferDetails { get; set; }
         public DbSet<RequestDeduplication> RequestDeduplications { get; set; }
         public DbSet<ImportSession> ImportSessions { get; set; }
+        public DbSet<ImportSourceDocument> ImportSourceDocuments { get; set; }
         public DbSet<ImportGroup> ImportGroups { get; set; }
         public DbSet<ImportItem> ImportItems { get; set; }
         public DbSet<ImportAudit> ImportAudits { get; set; }

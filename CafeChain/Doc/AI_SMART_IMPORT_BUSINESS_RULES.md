@@ -1,5 +1,7 @@
 # AI Smart Import CafeChain — quy tắc nghiệp vụ
 
+> Cập nhật 15/08/2026: baseline chính thức là `20260815105817_InitialCreate`; thay đổi OCR runtime và multi-file nằm trong forward migration `20260815141744_AddAIImportOcrRuntimeAndMultiFile`. OCR vẫn đi qua Preview/Confirm hiện hữu và mặc định tắt.
+
 ## 1. Mục tiêu và thuật ngữ
 
 AI Smart Import nhập master data toàn hệ thống từ `.xlsx`, `.docx` và PDF có lớp text theo luồng:
@@ -12,11 +14,34 @@ AI Smart Import nhập master data toàn hệ thống từ `.xlsx`, `.docx` và 
 - **Evidence**: đoạn nguyên văn chứng minh dữ liệu AI trả về có trong tài liệu.
 - **Source locator**: vị trí tổng quát để quay lại nguồn: sheet/row, paragraph/table hoặc page/block/bounding box.
 - **Extraction mode**: cách tạo candidate, ví dụ `DOCX_TABLE_DETERMINISTIC` hoặc `PDF_TEXT_AI_EXTRACTION`.
+- **OCR Snapshot**: page/block/word/span/polygon/confidence và provider metadata tối thiểu trong source snapshot; không chứa binary hoặc ảnh render.
+- **Field Provenance**: nguồn gốc riêng cho từng field (`TEXT_LAYER`, `OCR`, `AI_AFTER_TEXT`, `AI_AFTER_OCR`) kèm locator, raw evidence, normalized value và confidence theo tầng.
 - **Lỗi theo trường**: lỗi schema có `Field`, được gắn trực tiếp vào input tương ứng trong modal sửa dòng.
 - **Lỗi cấp dòng**: lỗi/review không gắn với một input cụ thể, ví dụ xung đột payload hoặc confidence thấp; phải được giải thích ở vùng tổng hợp của modal.
 - **Xác nhận thủ công**: hành động người dùng mở candidate `REVIEW_REQUIRED`, kiểm tra normalized data và bấm **Lưu và kiểm tra lại**. Hành động này chỉ hoàn tất review do confidence thấp khi toàn bộ validation khác đã đạt.
 
 DOCX/PDF chỉ mở rộng cách lấy dữ liệu nguồn. Mọi candidate tiếp tục đi qua cùng ImportSchema, normalization, validation, reference, duplicate, dependency, PreviewVersion, RBAC, idempotency, transaction và CRUD service như Excel.
+
+### 1.1 Invariant extraction và confidence
+
+- Không có pipeline OCR/Confirm thứ hai. Security preflight PDF chạy trước classifier/provider; text-only PDF không gọi OCR.
+- Trang PDF được phân loại `TEXT_BASED`, `IMAGE_BASED` hoặc `MIXED`. Khi OCR tắt, trang cần OCR trả `PDF_CẦN_OCR` mà không resolve/call provider.
+- Production provider là `TesseractLocal`. Chỉ trang IMAGE/MIXED được rasterize bằng PDFium ở DPI runtime rồi chuyển cho Tesseract CLI; PDF text-only không render và không gọi OCR.
+- Source, layout, OCR và AI confidence được lưu/hiển thị riêng; cấm tạo “final confidence”. Critical field OCR dưới `0,85` tạo `OCR_CONFIDENCE_THẤP` và manual review dù AI confidence cao.
+- AI-after-OCR chỉ được chấp nhận khi evidence là substring của OCR semantic chunk; retry tối đa một lần cho transport/transient hoặc malformed JSON, không nới whitelist/schema/evidence.
+- Cùng business key và payload giữa chunk được bỏ trùng; cùng key khác payload tạo `XUNG_ĐỘT_TRÍCH_XUẤT`.
+
+### 1.2 Quy tắc nguồn nâng cao
+
+- DOCX chỉ duyệt body; header/footer/comment/footnote/endnote bị cô lập. Logical grid xử lý `gridSpan`/vertical merge nhưng locator vẫn trỏ ô vật lý gốc. Revision, ownership ô gộp hoặc nested-table boundary mơ hồ bắt review.
+- PDF chuẩn hóa rotation `0/90/180/270`, bbox về top-left, Unicode/ligature/zero-width/NBSP trước business key nhưng giữ raw evidence. Header/footer lặp được lọc theo text và vị trí; table qua trang chỉ ghép khi schema/geometry tương thích.
+- Excel region có `SourceRegionId`, bounding/header/data range và layout confidence ổn định. Projection Category/Drink chỉ sinh candidate khi row có đủ required field; parser chỉ phát source issue, còn reference/duplicate vẫn chạy ở Preview/Confirm.
+
+### 1.3 Retention và audit
+
+- Snapshot lưu OCR text/word/span/polygon/confidence/provider/version; không lưu PDF binary hoặc rendered image.
+- Reanalyze khi còn snapshot chỉ chạy semantic extraction, không gọi OCR. Thiếu snapshot/binary khi cần phân tích lại trả `CẦN_TẢI_LẠI_TỆP_NGUỒN`.
+- Snapshot bị purge ở `COMPLETED`, `CANCELLED`, `EXPIRED`. Audit chỉ giữ usage/page count/provider/version/extraction version/confidence summary; không giữ raw OCR, full evidence, prompt, key, token hoặc secret.
 
 ## 2. Phạm vi dữ liệu
 
@@ -129,7 +154,7 @@ Mã Supplier do service sinh. Chỉ `TaxCode` là hard duplicate. Name, hotline,
 - Word được dựng từ letter bằng PdfPig; line/cell/table được dựng theo tọa độ và reading order. Header/footer lặp được loại bỏ.
 - Khi ghép `Word.Text`, parser trim từng word rồi chèn đúng một khoảng trắng để tránh giá trị PDF bị biến thành chuỗi có nhiều khoảng trắng nội bộ.
 - Key-value và bảng tọa độ rõ dùng deterministic extraction; narrative không rõ dùng AI text extraction.
-- PDF không có text, image-only hoặc có vùng ảnh đáng kể mà parser không thể chứng minh đã lấy đủ dữ liệu trả `PDF_CẦN_OCR`. Ngưỡng diện tích ảnh mặc định là 15% diện tích trang và nằm trong `AIImportOptions`. `OcrEnabled=false`; hệ thống không giả vờ dùng model text để đọc ảnh.
+- PDF không có text, image-only hoặc có vùng ảnh đáng kể mà parser không thể chứng minh đã lấy đủ dữ liệu trả `PDF_CẦN_OCR` khi request không chọn `UseOcr`. Ngưỡng diện tích ảnh mặc định là 15% diện tích trang và nằm trong `AIImportOptions`; hệ thống không giả vờ dùng model text để đọc ảnh.
 - Locator PDF gồm page/block/bounding-box và text offset trong snapshot đã trích xuất.
 
 ## 6. Ranh giới AI và evidence
@@ -174,7 +199,7 @@ Mọi giới hạn nằm trong `AIImportOptions`:
 - tối đa 1.000.000 ký tự trích xuất;
 - 100 AI chunk, 12.000 ký tự/chunk, overlap 500 ký tự;
 - session lifetime mặc định 24 giờ;
-- `OcrEnabled=false`.
+- OCR theo từng lần import mặc định không được chọn (`UseOcr=false`).
 
 Controller không hard-code 10 MB. Resource filter lấy giới hạn request từ `AIImportOptions`; service luôn kiểm tra lại `IFormFile.Length`.
 
@@ -248,6 +273,21 @@ Confirm còn kiểm tra quyền `Category.Create`, `Drink.Create`, `Size.Create`
 - Snapshot text chỉ tồn tại khi session còn cần reanalyze; bị xóa khi `COMPLETED`, `CANCELLED` hoặc `EXPIRED`.
 - Raw data/evidence không được ghi vào application log hoặc history response.
 
-Baseline thật là `20260813071843_InitialCreate`. Refactor validation bổ sung migration tiến tiếp `20260813183911_AddAIImportValidationState`; migration này chỉ thêm metadata cột/issue và trạng thái manual review, không sửa hoặc giả lập migration baseline.
+Baseline thật là `20260815105817_InitialCreate`. Forward migration `20260815141744_AddAIImportOcrRuntimeAndMultiFile` bổ sung OCR snapshot cấp phiên, `ImportSourceDocuments` và liên kết nguồn của Group; không sửa baseline.
 
 Vì baseline đã được squash, database development/test cũ phải được tạo lại hoặc có migration chuyển tiếp riêng trước khi deploy. Không được giả định `database update` có thể nâng trực tiếp một database đã ghi migration ID cũ lên baseline mới, và không được tự động xóa database production.
+
+## 12. Quy tắc duplicate header, Cancel, OCR runtime và multi-file
+
+- `sourceKey` là identity theo vị trí cột. `Name [B]` và `Name [C]` không được collapse thành `Name`.
+- `XUNG_ĐỘT_ÁNH_XẠ` mang `resolution=REMAP_GROUP`, `targetField` và `candidateSourceKeys`. Chọn nguồn áp dụng toàn Group/Region, tăng `PreviewVersion` và chỉ giải quyết conflict của target field đã chọn.
+- Cột không được chọn vẫn xuất hiện trong dữ liệu nguồn bổ sung. `CỘT_KHÔNG_XÁC_ĐỊNH` yêu cầu acknowledgement và không được ghi vào entity.
+- Cancel thành công đóng mọi dialog, xóa draft phía client, purge source snapshot và vô hiệu hóa response cũ. Cancel thất bại hoặc stale version phải giữ draft; Cancel lặp lại trên phiên đã `CANCELLED` là idempotent.
+- OCR có hai điều kiện: executable/model local đạt health `READY` và request chọn `UseOcr`. System Settings quản lý languages/DPI/timeout/resource limit và health nhưng không có switch bật/tắt toàn hệ thống. OCR không có API key, không gửi tài liệu ra cloud và không ghi ảnh/text/đường dẫn tạm vào log.
+- Health check chỉ `READY` khi chạy được Tesseract và đủ mọi model trong `OcrLanguages` (mặc định `vie+eng`). Fingerprint gồm provider/path/languages; trạng thái health của cấu hình cũ không được tái sử dụng sau khi cấu hình thay đổi.
+- Tesseract chạy LSTM-only `--oem 1`, page segmentation tự động `--psm 3` và bật TSV trực tiếp bằng `-c tessedit_create_tsv=1`. Thư mục tessdata chỉ cần các model `.traineddata`, không yêu cầu copy thủ công `configs/tsv`. Confidence `0..100` được chuẩn hóa về `0..1`; bounding box pixel và page number được giữ trong OCR Snapshot.
+- Timeout/cancel phải kết thúc cả process tree. Thư mục tạm riêng theo request luôn bị xóa trong `finally`.
+- Một `ImportSession` có nhiều `ImportSourceDocument`; mỗi Group giữ `ImportSourceDocumentId`. Guard chạy độc lập từng file rồi candidate hội tụ về validation/reference/duplicate/dependency toàn phiên.
+- File lỗi không bị silent-drop. Phiên vẫn hiển thị preview của file hợp lệ nhưng Confirm bị khóa cho tới khi nguồn lỗi được loại bỏ.
+- Cùng business key/payload giữa file dùng `TRÙNG_TRONG_PHIÊN` và mặc định SKIP bản sau. Payload khác dùng `XUNG_ĐỘT_DỮ_LIỆU_GIỮA_CÁC_TỆP` và bắt buộc review.
+- Confirm dùng một Idempotency-Key và transaction `Serializable` cho toàn phiên; một lỗi persistence rollback toàn bộ.

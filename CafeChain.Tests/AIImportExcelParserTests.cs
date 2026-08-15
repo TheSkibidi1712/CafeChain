@@ -5,6 +5,9 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Extensions.Options;
+using CafeChain.Application.Interfaces.AI;
+using CafeChain.Models.AIImport;
+using Moq;
 
 namespace CafeChain.Tests;
 
@@ -139,6 +142,31 @@ public sealed class AIImportExcelParserTests
         Assert.Empty(result.Errors);
         Assert.Equal(2, result.Regions.Count);
         Assert.Equal(new[] { 1, 4 }, result.Regions.Select(region => region.MinRow));
+    }
+
+    [Fact]
+    public async Task Duplicate_header_issue_exposes_target_field_and_position_stable_source_keys()
+    {
+        await using var stream = Workbook((_, worksheetPart) =>
+        {
+            worksheetPart.Worksheet = new Worksheet(new SheetData(
+                Row(1, InlineCell("A1", "CategoryCode"), InlineCell("B1", "Name"), InlineCell("C1", "Name")),
+                Row(2, InlineCell("A2", "CAT01"), InlineCell("B2", "Tên A"), InlineCell("C2", "Tên B"))));
+        });
+        var schemas = new AIImportSchemaRegistry();
+        var ollama = new Mock<IOllamaClient>(MockBehavior.Strict);
+        var analyzer = new AIImportRegionAnalyzer(schemas, ollama.Object, Options.Create(new AIImportOptions()));
+        var parser = new AIImportExcelSourceParser(Parser(), analyzer, schemas);
+
+        var result = await parser.ParseAsync(new AIImportSourceFile("duplicate.xlsx", stream.ToArray()), AIImportEntityType.Category, default);
+
+        var group = Assert.Single(result.Groups);
+        Assert.Contains(group.SourceColumns, column => column.Key == "Name [B]");
+        Assert.Contains(group.SourceColumns, column => column.Key == "Name [C]");
+        var issue = Assert.Single(group.Issues.Where(issue => issue.Code == "XUNG_ĐỘT_ÁNH_XẠ"));
+        Assert.Equal("Name", issue.Field);
+        Assert.Equal("Name", issue.Metadata["targetField"]);
+        Assert.Equal(new[] { "Name [B]", "Name [C]" }, Assert.IsType<string[]>(issue.Metadata["candidateSourceKeys"]));
     }
 
     private static AIImportExcelParser Parser(decimal maxCompressionRatio = 100) => new(Options.Create(new AIImportOptions

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using CafeChain.Application.DTOs.AIImport;
+using CafeChain.Application.DTOs.AI;
 using CafeChain.Application.Interfaces.AI;
 using CafeChain.Application.Options;
 using CafeChain.Models.AIImport;
@@ -27,7 +28,12 @@ public sealed class AIImportDocumentAiExtractor(
         AIImportEntityType? entityHint,
         CancellationToken cancellationToken)
     {
-        var chunks = Chunk(document.ExtractedText).Take(_options.MaxAIChunks + 1).ToList();
+        const string promptVersion = "ai-import-document-v2";
+        const string schemaVersion = "ai-import-record-schema-v2";
+        document.Metadata["promptVersion"] = promptVersion;
+        document.Metadata["schemaVersion"] = schemaVersion;
+        document.Metadata["extractionVersion"] = document.ExtractionVersion;
+        var chunks = Chunk(document).Take(_options.MaxAIChunks + 1).ToList();
         if (chunks.Count == 0) return;
         if (chunks.Count > _options.MaxAIChunks)
         {
@@ -74,15 +80,13 @@ public sealed class AIImportDocumentAiExtractor(
         {
             cancellationToken.ThrowIfCancellationRequested();
             document.AiChunkCount++;
-            var response = await ollama.ChatStructuredAsync(
-                systemPrompt,
-                JsonSerializer.Serialize(new { chunkId = chunk.Id, entityHint = entityHint?.ToString(), text = chunk.Text }),
-                jsonSchema,
-                "AIImport.DocumentExtraction",
-                cancellationToken);
+            var userPayload = JsonSerializer.Serialize(new
+                { chunkId = chunk.Id, entityHint = entityHint?.ToString(), text = chunk.Text });
+            var response = await ExtractChunkAsync(systemPrompt, userPayload, jsonSchema, cancellationToken);
             document.UsedAI = true;
             if (!response.Success || string.IsNullOrWhiteSpace(response.Content))
             {
+                document.Metadata["aiFailureType"] = "AI_TRANSPORT_ERROR";
                 document.Warnings.Add(new AIImportErrorDto
                 {
                     Code = response.ErrorCode ?? "AI_TRÍCH_XUẤT_THẤT_BẠI",
@@ -90,6 +94,7 @@ public sealed class AIImportDocumentAiExtractor(
                 });
                 continue;
             }
+            if (!IsJsonObject(response.Content)) document.Metadata["aiFailureType"] = "AI_SCHEMA_ERROR";
             accepted += AcceptResponse(document, chunk, response.Content);
         }
 
@@ -124,6 +129,7 @@ public sealed class AIImportDocumentAiExtractor(
                     || !Enum.TryParse<AIImportEntityType>(entityNode.GetString(), true, out var entity)
                     || !schemas.SupportedEntities.Contains(entity))
                 {
+                    document.Metadata["aiFailureType"] = "AI_SCHEMA_ERROR";
                     document.Warnings.Add(new AIImportErrorDto { Code = "KHÔNG_THUỘC_PHẠM_VI", Message = "AI nhận diện dữ liệu ngoài năm entity CREATE được hỗ trợ." });
                     continue;
                 }
@@ -149,6 +155,7 @@ public sealed class AIImportDocumentAiExtractor(
                         || property.Value.ValueKind is not (JsonValueKind.String or JsonValueKind.Null))
                     {
                         valid = false;
+                        document.Metadata["aiFailureType"] = "AI_SCHEMA_ERROR";
                         document.Errors.Add(AIImportValidationContract.Issue(
                             "NGUỒN_DỮ_LIỆU_AI_KHÔNG_HỢP_LỆ",
                             "AI trả về field, ID hoặc kiểu dữ liệu ngoài schema.",
@@ -160,6 +167,7 @@ public sealed class AIImportDocumentAiExtractor(
                     if (!string.IsNullOrWhiteSpace(value) && !evidence.Contains(value, StringComparison.OrdinalIgnoreCase))
                     {
                         valid = false;
+                        document.Metadata["aiFailureType"] = "AI_SEMANTIC_EVIDENCE_ERROR";
                         document.Errors.Add(AIImportValidationContract.Issue(
                             "AI_TRÍCH_XUẤT_KHÔNG_CÓ_BẰNG_CHỨNG",
                             "Giá trị AI trả về không xuất hiện trong evidence.",
@@ -194,17 +202,22 @@ public sealed class AIImportDocumentAiExtractor(
                 };
                 var mode = document.SourceFormat == AIImportSourceFormats.Docx
                     ? AIImportExtractionModes.DocxAiExtraction
-                    : AIImportExtractionModes.PdfTextAiExtraction;
+                    : document.OcrUsed
+                        ? HasTextLayer(document) ? AIImportExtractionModes.PdfMixedTextOcr : AIImportExtractionModes.PdfOcrAiExtraction
+                        : AIImportExtractionModes.PdfTextAiExtraction;
+                var evidenceSource = ResolveEvidenceSource(document, evidence);
                 var group = new AIImportSourceGroup
                 {
                     SourceLabel = $"AI chunk {chunk.Id} · bản ghi {recordIndex}",
                     SourceLocator = locator,
                     ExtractionMode = mode,
+                    SourceRegionId = $"{document.SourceFormat}:AI:{chunk.Id}:{recordIndex}",
                     HeaderOrdinal = chunk.Id,
                     EntityType = entity,
                     Mapping = fields.Keys.ToDictionary(field => field, field => (string?)field, StringComparer.OrdinalIgnoreCase),
                     SourceHeaders = fields.Keys.ToList(),
-                    Confidence = confidence
+                    Confidence = confidence,
+                    LayoutConfidence = evidenceSource.LayoutConfidence
                 };
                 group.Candidates.Add(new AIImportSourceCandidate
                 {
@@ -215,7 +228,19 @@ public sealed class AIImportDocumentAiExtractor(
                     SourceLocator = locator,
                     EvidenceSnippet = evidence,
                     Confidence = confidence,
-                    AiConfidence = confidence
+                    AiConfidence = confidence,
+                    LayoutConfidence = evidenceSource.LayoutConfidence,
+                    OcrConfidence = evidenceSource.OcrConfidence,
+                    FieldEvidence = fields.ToDictionary(pair => pair.Key, pair => new AIImportFieldEvidence
+                    {
+                        SourceKind = evidenceSource.SourceKind == AIImportSourceKinds.Ocr
+                            ? AIImportSourceKinds.AiAfterOcr : AIImportSourceKinds.AiAfterText,
+                        Locator = evidenceSource.Locator ?? locator,
+                        RawText = evidence,
+                        NormalizedValue = pair.Value,
+                        OcrConfidence = evidenceSource.OcrConfidence,
+                        AiConfidence = confidence
+                    }, StringComparer.OrdinalIgnoreCase)
                 });
                 document.Groups.Add(group);
                 accepted++;
@@ -224,6 +249,7 @@ public sealed class AIImportDocumentAiExtractor(
         }
         catch (JsonException)
         {
+            document.Metadata["aiFailureType"] = "AI_SCHEMA_ERROR";
             document.Errors.Add(AIImportValidationContract.Issue("AI_JSON_KHÔNG_HỢP_LỆ",
                 "AI trả về JSON không hợp lệ.", AIImportIssueSeverities.Error,
                 resolution: AIImportIssueResolutions.ReuploadOrSkip));
@@ -250,10 +276,29 @@ public sealed class AIImportDocumentAiExtractor(
                 if (other == null || existing.EntityType != group.EntityType) return false;
                 var otherKey = AIImportBusinessKeys.Create(existing.EntityType, other.MappedData);
                 var otherPayload = JsonSerializer.Serialize(other.MappedData.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase));
-                return key.Length > 0 && key == otherKey && payload == otherPayload
-                       && SpansOverlap(existing.SourceLocator, group.SourceLocator);
+                return key.Length > 0 && key == otherKey && payload == otherPayload;
             });
-            if (duplicate == null) accepted.Add(group);
+            var conflict = accepted.FirstOrDefault(existing =>
+            {
+                var other = existing.Candidates.SingleOrDefault();
+                if (other == null || existing.EntityType != group.EntityType) return false;
+                var otherKey = AIImportBusinessKeys.Create(existing.EntityType, other.MappedData);
+                var otherPayload = JsonSerializer.Serialize(other.MappedData.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase));
+                return key.Length > 0 && key == otherKey && payload != otherPayload;
+            });
+            if (conflict != null)
+            {
+                var issue = AIImportValidationContract.Issue(
+                    "XUNG_ĐỘT_TRÍCH_XUẤT",
+                    "Các AI chunk trả về cùng business key nhưng payload khác nhau; cần người dùng xử lý.",
+                    AIImportIssueSeverities.Error,
+                    resolution: AIImportIssueResolutions.ReuploadOrSkip,
+                    metadata: new Dictionary<string, object?> { ["businessKey"] = key });
+                group.Issues.Add(issue);
+                conflict.Issues.Add(issue);
+                accepted.Add(group);
+            }
+            else if (duplicate == null) accepted.Add(group);
             else document.Warnings.Add(AIImportValidationContract.Issue(
                 "TRÙNG_NGUỒN_CHUNK",
                 "Candidate lặp do phần overlap giữa các AI chunk đã được loại bỏ.",
@@ -269,8 +314,14 @@ public sealed class AIImportDocumentAiExtractor(
         left.TextStart.HasValue && left.TextEnd.HasValue && right.TextStart.HasValue && right.TextEnd.HasValue
         && left.TextStart.Value < right.TextEnd.Value && right.TextStart.Value < left.TextEnd.Value;
 
-    private IEnumerable<TextChunk> Chunk(string text)
+    private IEnumerable<TextChunk> Chunk(AIImportSourceDocument document)
     {
+        if (document.Blocks.Count > 0)
+        {
+            foreach (var chunk in ChunkBlocks(document)) yield return chunk;
+            yield break;
+        }
+        var text = document.ExtractedText;
         var max = Math.Max(1_000, _options.AIChunkMaxCharacters);
         var overlap = Math.Clamp(_options.AIChunkOverlapCharacters, 0, max / 4);
         var start = 0;
@@ -289,5 +340,127 @@ public sealed class AIImportDocumentAiExtractor(
         }
     }
 
+    private IEnumerable<TextChunk> ChunkBlocks(AIImportSourceDocument document)
+    {
+        var max = Math.Max(1_000, _options.AIChunkMaxCharacters);
+        var chunk = new List<AIImportSemanticBlock>();
+        var length = 0;
+        var id = 0;
+        foreach (var block in document.Blocks.OrderBy(block => block.Ordinal))
+        {
+            var addition = block.Text.Length + Environment.NewLine.Length;
+            if (chunk.Count > 0 && length + addition > max)
+            {
+                yield return BuildBlockChunk(++id, chunk, document.ExtractedText);
+                chunk.Clear();
+                length = 0;
+            }
+            // A semantic block is atomic: table rows and key-value blocks are never split.
+            chunk.Add(block);
+            length += addition;
+        }
+        if (chunk.Count > 0) yield return BuildBlockChunk(++id, chunk, document.ExtractedText);
+    }
+
+    private static TextChunk BuildBlockChunk(
+        int id,
+        IReadOnlyList<AIImportSemanticBlock> blocks,
+        string extractedText)
+    {
+        var text = string.Join(Environment.NewLine, blocks.Select(block => block.Text));
+        var hintedStart = blocks[0].Locator.TextStart ?? 0;
+        var start = extractedText.IndexOf(blocks[0].Text, Math.Clamp(hintedStart, 0, extractedText.Length), StringComparison.Ordinal);
+        return new TextChunk(id, start < 0 ? hintedStart : start, text);
+    }
+
+    private static bool IsJsonObject(string content)
+    {
+        try
+        {
+            using var json = JsonDocument.Parse(content);
+            return json.RootElement.ValueKind == JsonValueKind.Object;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool IsRetryableTransport(string? errorCode)
+    {
+        if (string.IsNullOrWhiteSpace(errorCode)) return false;
+        return errorCode.Contains("TIMEOUT", StringComparison.OrdinalIgnoreCase)
+               || errorCode.Contains("TRANSPORT", StringComparison.OrdinalIgnoreCase)
+               || errorCode.Contains("HTTP_5", StringComparison.OrdinalIgnoreCase)
+               || errorCode.Contains("UNAVAILABLE", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task<OllamaResultDTO> ExtractChunkAsync(
+        string systemPrompt,
+        string userPayload,
+        object jsonSchema,
+        CancellationToken cancellationToken)
+    {
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            try
+            {
+                var response = await ollama.ChatStructuredAsync(
+                    systemPrompt, userPayload, jsonSchema, "AIImport.DocumentExtraction", cancellationToken);
+                var retry = (!response.Success && IsRetryableTransport(response.ErrorCode))
+                            || (response.Success && !string.IsNullOrWhiteSpace(response.Content)
+                                && !IsJsonObject(response.Content));
+                if (attempt == 0 && retry) continue;
+                return response;
+            }
+            catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (attempt == 0) continue;
+                return new OllamaResultDTO
+                {
+                    Success = false,
+                    ErrorCode = "AI_TRANSPORT_ERROR",
+                    ErrorMessage = "Không thể kết nối semantic AI sau hai lần thử."
+                };
+            }
+        }
+        return new OllamaResultDTO
+        {
+            Success = false,
+            ErrorCode = "AI_TRANSPORT_ERROR",
+            ErrorMessage = "Không thể kết nối semantic AI."
+        };
+    }
+
+    private static bool HasTextLayer(AIImportSourceDocument document) =>
+        document.Metadata.TryGetValue("pageClassifications", out var classifications)
+        && JsonSerializer.Serialize(classifications).Contains(AIImportPdfPageClassifications.TextBased,
+            StringComparison.Ordinal);
+
+    private static EvidenceSource ResolveEvidenceSource(AIImportSourceDocument document, string evidence)
+    {
+        var page = document.OcrPages.FirstOrDefault(candidate =>
+            NormalizeWhitespace(candidate.Text).Contains(NormalizeWhitespace(evidence), StringComparison.OrdinalIgnoreCase));
+        if (page == null)
+            return new EvidenceSource(AIImportSourceKinds.TextLayer, null, 0.95m, null);
+        var confidence = page.Words.Count == 0 ? (decimal?)null : page.Words.Average(word => word.Confidence);
+        var box = page.Words.FirstOrDefault()?.BoundingBox;
+        return new EvidenceSource(AIImportSourceKinds.Ocr, confidence, 0.90m, new AIImportSourceLocator
+        {
+            SourceFormat = AIImportSourceFormats.Pdf,
+            Page = page.PageNumber,
+            BoundingBox = box
+        });
+    }
+
+    private static string NormalizeWhitespace(string value) =>
+        string.Join(' ', value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
     private sealed record TextChunk(int Id, int Start, string Text);
+    private sealed record EvidenceSource(
+        string SourceKind,
+        decimal? OcrConfidence,
+        decimal? LayoutConfidence,
+        AIImportSourceLocator? Locator);
 }

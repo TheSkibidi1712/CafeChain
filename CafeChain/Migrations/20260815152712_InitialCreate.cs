@@ -119,6 +119,7 @@ namespace CafeChain.Migrations
                     ModelName = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
                     PromptVersion = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     SchemaVersion = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    ExtractionVersion = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false, defaultValue: "ai-import-extraction-v2"),
                     TotalGroups = table.Column<int>(type: "int", nullable: false),
                     TotalRows = table.Column<int>(type: "int", nullable: false),
                     ValidRows = table.Column<int>(type: "int", nullable: false),
@@ -134,6 +135,9 @@ namespace CafeChain.Migrations
                     FailureMessage = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
                     AnalysisWarningsJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ResultJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    RequestedOcr = table.Column<bool>(type: "bit", nullable: false),
+                    EffectiveOcr = table.Column<bool>(type: "bit", nullable: false),
+                    OcrConfigVersion = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
                 },
                 constraints: table =>
@@ -562,6 +566,7 @@ namespace CafeChain.Migrations
                     ModelName = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
                     PromptVersion = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     SchemaVersion = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    ExtractionVersion = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false, defaultValue: "ai-import-extraction-v2"),
                     PreviewVersion = table.Column<int>(type: "int", nullable: false),
                     IdempotencyKeyHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
                     ResultSummaryJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -570,6 +575,10 @@ namespace CafeChain.Migrations
                     ExtractionMode = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     OcrUsed = table.Column<bool>(type: "bit", nullable: false),
                     OcrPageCount = table.Column<int>(type: "int", nullable: false),
+                    OcrProvider = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    OcrProviderVersion = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    OcrExtractionVersion = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    OcrConfidenceSummaryJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     AiChunkCount = table.Column<int>(type: "int", nullable: false),
                     CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CompletedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true)
@@ -586,32 +595,30 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ImportGroups",
+                name: "ImportSourceDocuments",
                 columns: table => new
                 {
-                    ImportGroupId = table.Column<int>(type: "int", nullable: false)
+                    ImportSourceDocumentId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     ImportSessionId = table.Column<int>(type: "int", nullable: false),
-                    SheetName = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
-                    RegionAddress = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    SourceLabel = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    SourceLocatorJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ExtractionMode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    HeaderRow = table.Column<int>(type: "int", nullable: false),
-                    EntityType = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
-                    MappingJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    SourceHeadersJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    SourceColumnsJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    IssuesJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    DependencyOrder = table.Column<int>(type: "int", nullable: false),
-                    Confidence = table.Column<decimal>(type: "decimal(5,4)", precision: 5, scale: 4, nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false)
+                    OriginalFileName = table.Column<string>(type: "nvarchar(260)", maxLength: 260, nullable: false),
+                    FileHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
+                    FileSize = table.Column<long>(type: "bigint", nullable: false),
+                    SourceFormat = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    SortOrder = table.Column<int>(type: "int", nullable: false),
+                    SourceMetadataJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SourceSnapshotJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    ErrorCode = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    ErrorMessage = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ImportGroups", x => x.ImportGroupId);
+                    table.PrimaryKey("PK_ImportSourceDocuments", x => x.ImportSourceDocumentId);
+                    table.CheckConstraint("CK_ImportSourceDocuments_Status", "[Status] IN ('PROCESSING','READY','FAILED','REMOVED')");
                     table.ForeignKey(
-                        name: "FK_ImportGroups_ImportSessions_ImportSessionId",
+                        name: "FK_ImportSourceDocuments_ImportSessions_ImportSessionId",
                         column: x => x.ImportSessionId,
                         principalTable: "ImportSessions",
                         principalColumn: "ImportSessionId",
@@ -888,46 +895,43 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ImportItems",
+                name: "ImportGroups",
                 columns: table => new
                 {
-                    ImportItemId = table.Column<int>(type: "int", nullable: false)
+                    ImportGroupId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ImportGroupId = table.Column<int>(type: "int", nullable: false),
-                    SourceRow = table.Column<int>(type: "int", nullable: false),
-                    RawDataJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    NormalizedDataJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    SourceTraceJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ImportSessionId = table.Column<int>(type: "int", nullable: false),
+                    ImportSourceDocumentId = table.Column<int>(type: "int", nullable: true),
+                    SheetName = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
+                    RegionAddress = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    SourceLabel = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     SourceLocatorJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    EvidenceSnippet = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
-                    Action = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    ErrorsJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    WarningsJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    SourceIssuesJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ExtractionMode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    HeaderRow = table.Column<int>(type: "int", nullable: false),
+                    EntityType = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    MappingJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SourceHeadersJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SourceColumnsJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IssuesJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DependencyOrder = table.Column<int>(type: "int", nullable: false),
                     Confidence = table.Column<decimal>(type: "decimal(5,4)", precision: 5, scale: 4, nullable: false),
-                    AiConfidence = table.Column<decimal>(type: "decimal(5,4)", precision: 5, scale: 4, nullable: true),
-                    OcrConfidence = table.Column<decimal>(type: "decimal(5,4)", precision: 5, scale: 4, nullable: true),
-                    WarningsAcknowledged = table.Column<bool>(type: "bit", nullable: false),
-                    ManualReviewConfirmed = table.Column<bool>(type: "bit", nullable: false),
-                    ManualReviewConfirmedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ManualReviewConfirmedByAccountId = table.Column<int>(type: "int", nullable: true),
-                    ManualReviewPayloadHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
-                    SupplierDuplicateWarningId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    DuplicateOverrideReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    ImportedEntityId = table.Column<int>(type: "int", nullable: true)
+                    LayoutConfidence = table.Column<decimal>(type: "decimal(5,4)", precision: 5, scale: 4, nullable: true),
+                    Status = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ImportItems", x => x.ImportItemId);
-                    table.CheckConstraint("CK_ImportItems_Action", "[Action] IN ('CREATE','SKIP')");
-                    table.CheckConstraint("CK_ImportItems_Status", "[Status] IN ('VALID','WARNING','ERROR','REVIEW_REQUIRED','SKIPPED','IMPORTED')");
+                    table.PrimaryKey("PK_ImportGroups", x => x.ImportGroupId);
                     table.ForeignKey(
-                        name: "FK_ImportItems_ImportGroups_ImportGroupId",
-                        column: x => x.ImportGroupId,
-                        principalTable: "ImportGroups",
-                        principalColumn: "ImportGroupId",
+                        name: "FK_ImportGroups_ImportSessions_ImportSessionId",
+                        column: x => x.ImportSessionId,
+                        principalTable: "ImportSessions",
+                        principalColumn: "ImportSessionId",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ImportGroups_ImportSourceDocuments_ImportSourceDocumentId",
+                        column: x => x.ImportSourceDocumentId,
+                        principalTable: "ImportSourceDocuments",
+                        principalColumn: "ImportSourceDocumentId");
                 });
 
             migrationBuilder.CreateTable(
@@ -1524,6 +1528,51 @@ namespace CafeChain.Migrations
                         column: x => x.WardId,
                         principalTable: "Wards",
                         principalColumn: "WardId");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ImportItems",
+                columns: table => new
+                {
+                    ImportItemId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ImportGroupId = table.Column<int>(type: "int", nullable: false),
+                    SourceRow = table.Column<int>(type: "int", nullable: false),
+                    RawDataJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    NormalizedDataJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SourceTraceJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SourceLocatorJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    EvidenceSnippet = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: true),
+                    Status = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    Action = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    ErrorsJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    WarningsJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SourceIssuesJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Confidence = table.Column<decimal>(type: "decimal(5,4)", precision: 5, scale: 4, nullable: false),
+                    AiConfidence = table.Column<decimal>(type: "decimal(5,4)", precision: 5, scale: 4, nullable: true),
+                    OcrConfidence = table.Column<decimal>(type: "decimal(5,4)", precision: 5, scale: 4, nullable: true),
+                    LayoutConfidence = table.Column<decimal>(type: "decimal(5,4)", precision: 5, scale: 4, nullable: true),
+                    FieldEvidenceJson = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "{}"),
+                    WarningsAcknowledged = table.Column<bool>(type: "bit", nullable: false),
+                    ManualReviewConfirmed = table.Column<bool>(type: "bit", nullable: false),
+                    ManualReviewConfirmedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ManualReviewConfirmedByAccountId = table.Column<int>(type: "int", nullable: true),
+                    ManualReviewPayloadHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
+                    SupplierDuplicateWarningId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    DuplicateOverrideReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    ImportedEntityId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ImportItems", x => x.ImportItemId);
+                    table.CheckConstraint("CK_ImportItems_Action", "[Action] IN ('CREATE','SKIP')");
+                    table.CheckConstraint("CK_ImportItems_Status", "[Status] IN ('VALID','WARNING','ERROR','REVIEW_REQUIRED','SKIPPED','IMPORTED')");
+                    table.ForeignKey(
+                        name: "FK_ImportItems_ImportGroups_ImportGroupId",
+                        column: x => x.ImportGroupId,
+                        principalTable: "ImportGroups",
+                        principalColumn: "ImportGroupId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -8168,6 +8217,11 @@ namespace CafeChain.Migrations
                 columns: new[] { "ImportSessionId", "SheetName" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_ImportGroups_ImportSourceDocumentId",
+                table: "ImportGroups",
+                column: "ImportSourceDocumentId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ImportItems_ImportGroupId_SourceRow",
                 table: "ImportItems",
                 columns: new[] { "ImportGroupId", "SourceRow" });
@@ -8191,6 +8245,17 @@ namespace CafeChain.Migrations
                 name: "IX_ImportSessions_UploadedByAccountId_CreatedAtUtc",
                 table: "ImportSessions",
                 columns: new[] { "UploadedByAccountId", "CreatedAtUtc" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ImportSourceDocuments_FileHash",
+                table: "ImportSourceDocuments",
+                column: "FileHash");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ImportSourceDocuments_ImportSessionId_SortOrder",
+                table: "ImportSourceDocuments",
+                columns: new[] { "ImportSessionId", "SortOrder" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Ingredients_BaseUnitId",
@@ -11942,7 +12007,7 @@ namespace CafeChain.Migrations
                 name: "OperationalShifts");
 
             migrationBuilder.DropTable(
-                name: "ImportSessions");
+                name: "ImportSourceDocuments");
 
             migrationBuilder.DropTable(
                 name: "InventoryNegativeApprovals");
@@ -11964,6 +12029,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "WheelConfigs");
+
+            migrationBuilder.DropTable(
+                name: "ImportSessions");
 
             migrationBuilder.DropTable(
                 name: "OrderToppings");

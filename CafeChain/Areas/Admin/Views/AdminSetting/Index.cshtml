@@ -1,35 +1,32 @@
 @model CafeChain.ViewModels.Admin.Settings.AdminSettingIndexVM
 @{
-    ViewData["Title"] = "Cấu hình âm kho";
+    ViewData["Title"] = "Cài đặt hệ thống";
+    var ocrActive = Model.ActiveTab == "ocr";
 }
 
 <link rel="stylesheet" href="~/css/Admin/Settings/negative-inventory.css" asp-append-version="true" />
 
 <div class="container-fluid py-4 negative-inventory-page system-setting-page">
-    <div class="ni-page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-        <div>
-            <div class="ni-eyebrow"><i class="fas fa-shield-halved"></i> Chính sách tồn kho</div>
-            <h1 class="h3 fw-bold mb-2 ni-page-title">Cấu hình xuất âm kho</h1>
-            <p class="text-muted mb-0">Kiểm soát quyền yêu cầu xuất vượt tồn và hạn mức áp dụng tại từng cửa hàng.</p>
-        </div>
-        <span class="badge rounded-pill px-3 py-2 ni-role-badge">
-            <i class="fas fa-user-shield me-1"></i>Business Owner / System Admin
-        </span>
+    <div class="ni-page-header mb-4">
+        <div class="ni-eyebrow"><i class="fas fa-gears"></i> Quản trị</div>
+        <h1 class="h3 fw-bold mb-2 ni-page-title">Cài đặt hệ thống</h1>
+        <p class="text-muted mb-0">Cấu hình các chính sách vận hành và khả năng nhận dạng tài liệu.</p>
     </div>
-
-    <div class="card border-0 shadow-sm ni-settings-card">
-        <div class="card-body p-4">
-            @if (Model.NegativeInventory != null)
-            {
-                <partial name="Partials/_NegativeInventorySettings" model="Model.NegativeInventory" />
-                <form id="negativeInventorySettingsForm"
-                      asp-area="Admin"
-                      asp-controller="AdminSetting"
-                      asp-action="UpdateNegativeInventory"
-                      method="post"></form>
-            }
-        </div>
-    </div>
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item"><a class="nav-link @(!ocrActive ? "active" : "")" href="?tab=negative-stock">Cấu hình âm kho</a></li>
+        <li class="nav-item"><a class="nav-link @(ocrActive ? "active" : "")" href="?tab=ocr">OCR &amp; nhận dạng tài liệu</a></li>
+    </ul>
+    <div class="card border-0 shadow-sm ni-settings-card"><div class="card-body p-4">
+        @if (ocrActive && Model.Ocr != null)
+        {
+            <partial name="Partials/_OcrSettings" model="Model.Ocr" />
+        }
+        else if (Model.NegativeInventory != null)
+        {
+            <partial name="Partials/_NegativeInventorySettings" model="Model.NegativeInventory" />
+            <form id="negativeInventorySettingsForm" asp-area="Admin" asp-controller="AdminSetting" asp-action="UpdateNegativeInventory" method="post"></form>
+        }
+    </div></div>
 </div>
 
 @section Scripts {
