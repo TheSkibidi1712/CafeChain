@@ -15,7 +15,7 @@
     {
         Eyebrow = "Sản xuất / BOM",
         Title = "Tạo công thức",
-        Description = "Thiết lập đối tượng áp dụng, thành phần định mức, sản lượng dự kiến và thời điểm hiệu lực.",
+        Description = "Chọn đúng đối tượng, kiểm tra đầu ra và định mức trước khi lưu để công thức được áp dụng ngay.",
         IconClass = "fas fa-flask",
         Breadcrumbs =
         [
@@ -38,6 +38,7 @@
 
     <form method="post" id="recipeForm" class="production-recipe-form" novalidate>
         @Html.AntiForgeryToken()
+        <input type="hidden" name="Active" value="true" />
         <div id="formErrorSummary" class="alert alert-danger" style="display:none;" role="alert" aria-live="assertive" tabindex="-1"></div>
 
         <div class="production-form-grid rb-builder-grid">
@@ -119,18 +120,6 @@
                                 <div id="piActiveConflict" class="alert alert-warning mt-2 py-2 small" style="display:none;" role="alert"></div>
                             </div>
 
-                            <div class="col-md-3">
-                                <label class="form-label fw-semibold" for="EffectiveDate">Ngày hiệu lực <span class="text-danger">*</span></label>
-                                <input name="EffectiveDate" id="EffectiveDate" class="form-control" type="date"
-                                       value="@(form.EffectiveDate.ToString("yyyy-MM-dd"))" />
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-semibold">Trạng thái</label>
-                                <div class="form-check form-switch mt-2">
-                                    <input name="Active" class="form-check-input" type="checkbox" id="Active" value="true" checked="@form.Active">
-                                    <label class="form-check-label" for="Active">Kích hoạt</label>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </section>
@@ -141,7 +130,7 @@
                     <div class="card-body p-4">
                         <div class="row g-3">
                             <div class="col-md-4" id="sectionSub_Yield">
-                                <label class="form-label fw-semibold" for="expectedYieldInput">Sản lượng đầu ra của một mẻ <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold" for="expectedYieldInput">Sản lượng chuẩn một mẻ <span class="text-danger">*</span></label>
                                 <input name="ExpectedYield" id="expectedYieldInput" class="form-control text-end" type="number" step="0.00001" min="0.00001"
                                        value="@(form.ExpectedYield?.ToString(System.Globalization.CultureInfo.InvariantCulture))"
                                        aria-describedby="yieldHelp normalizedOutputPreview" />
@@ -217,6 +206,17 @@
                 <section class="rb-card production-form-section production-review-summary" aria-labelledby="secD">
                     <div class="rb-card-header"><h2 id="secD" class="rb-section-title">Kiểm tra và lưu</h2></div>
                     <div class="card-body p-3">
+                        <div class="production-publication-review" aria-live="polite">
+                            <div class="small text-uppercase fw-bold text-muted">Xác nhận áp dụng ngay</div>
+                            <dl class="production-publication-review-list">
+                                <div><dt>Đối tượng</dt><dd id="publicationTarget">Chưa chọn</dd></div>
+                                <div><dt>Đầu ra</dt><dd id="publicationOutput">Chưa xác định</dd></div>
+                                <div><dt>Định mức</dt><dd id="publicationBomSummary">Chưa có thành phần</dd></div>
+                            </dl>
+                            <div id="publicationChangeSummary" class="production-publication-changes">
+                                Công thức mới sẽ được áp dụng ngay sau khi lưu.
+                            </div>
+                        </div>
                         <div id="costPanel" class="rb-cost-panel incomplete" aria-live="polite">
                             <div class="small text-uppercase fw-bold text-muted mb-1">Giá vốn ước tính</div>
                             <div class="rb-cogs-value" id="displayTotalCost" style="font-size:1.5rem;">—</div>
@@ -240,7 +240,7 @@
                         </div>
                         <div class="production-form-actions">
                             <a class="btn btn-rb-ghost" href="@indexUrl">Hủy</a>
-                            <button type="button" class="btn btn-rb-save" id="btnSaveRecipe" aria-busy="false">Lưu công thức</button>
+                            <button type="button" class="btn btn-rb-save" id="btnSaveRecipe" aria-busy="false">Lưu và áp dụng ngay</button>
                         </div>
                     </div>
                 </section>
@@ -306,7 +306,9 @@
             createUrl: '@createUrl',
             indexUrl: '@indexUrl',
             sizesUrl: '@sizesUrl',
-            editUrlTemplate: '@editUrlTemplate'
+            editUrlTemplate: '@editUrlTemplate',
+            sourceLines: [],
+            isNewVersion: false
         });
     </script>
 }

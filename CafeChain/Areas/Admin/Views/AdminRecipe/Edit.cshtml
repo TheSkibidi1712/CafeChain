@@ -36,6 +36,7 @@
 
     <form asp-action="Edit" asp-route-id="@recipeId" method="post" id="recipeForm" class="production-recipe-form">
         @Html.AntiForgeryToken()
+        <input type="hidden" name="Active" value="true" />
         <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
         <div class="production-form-grid rb-builder-grid">
@@ -108,18 +109,6 @@
                             <div class="form-text">BTP cố định trong chuỗi phiên bản (không đổi).</div>
                         }
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold" for="EffectiveDate">Ngày hiệu lực</label>
-                        <input name="EffectiveDate" id="EffectiveDate" class="form-control" type="date"
-                               value="@(form.EffectiveDate.ToString("yyyy-MM-dd"))" />
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Trạng thái</label>
-                        <div class="form-check form-switch mt-2">
-                            <input name="Active" class="form-check-input" type="checkbox" id="Active" value="true" checked="@form.Active" />
-                            <label class="form-check-label" for="Active">Kích hoạt</label>
-                        </div>
-                    </div>
                 </div>
             </div>
         </section>
@@ -129,7 +118,7 @@
             <div class="card-body p-4">
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold" for="expectedYieldInput">Sản lượng đầu ra của một mẻ <span class="text-danger">*</span></label>
+                        <label class="form-label fw-semibold" for="expectedYieldInput">Sản lượng chuẩn một mẻ <span class="text-danger">*</span></label>
                         <input name="ExpectedYield" id="expectedYieldInput" class="form-control" type="number" step="0.00001" min="0.00001"
                                value="@(form.ExpectedYield?.ToString(System.Globalization.CultureInfo.InvariantCulture))" />
                         <div class="form-text">Đây là lượng BTP thực nhận sau chế biến. Hệ thống không nhân thêm tỷ lệ thu hồi.</div>
@@ -202,6 +191,16 @@
         <section class="rb-card production-form-section production-review-summary" aria-labelledby="editSecReview">
             <div class="rb-card-header"><h2 id="editSecReview" class="rb-section-title">Kiểm tra và lưu</h2></div>
             <div class="card-body p-3">
+                <div class="production-publication-review" aria-live="polite">
+                    <div class="small text-uppercase fw-bold text-muted">Xác nhận áp dụng ngay</div>
+                    <div class="small text-muted mt-1">Từ phiên bản #@recipeId</div>
+                    <dl class="production-publication-review-list">
+                        <div><dt>Đối tượng</dt><dd id="publicationTarget">@recipeName</dd></div>
+                        <div><dt>Đầu ra</dt><dd id="publicationOutput">Đang kiểm tra</dd></div>
+                        <div><dt>Định mức</dt><dd id="publicationBomSummary">Đang kiểm tra</dd></div>
+                    </dl>
+                    <div id="publicationChangeSummary" class="production-publication-changes">Chưa có thay đổi.</div>
+                </div>
                 <div id="costPanel" class="rb-cost-panel incomplete">
                     <div class="small text-uppercase fw-bold text-muted">Giá vốn ước tính</div>
                     <div id="displayTotalCost" class="rb-cogs-value" style="font-size:1.4rem;">—</div>
@@ -212,7 +211,7 @@
                 <p class="small text-muted mt-3 mb-0">Kiểm tra thành phần và dữ liệu giá vốn trước khi tạo phiên bản mới.</p>
                 <div class="production-form-actions">
                     <a asp-action="Index" class="btn btn-rb-ghost">Hủy</a>
-                    <button type="submit" class="btn btn-rb-save">Lưu phiên bản mới</button>
+                    <button type="submit" class="btn btn-rb-save">Lưu và áp dụng ngay</button>
                 </div>
             </div>
         </section>
@@ -277,7 +276,9 @@
                 sizesUrl: '@Url.Action("GetSizesByDrink")',
                 initialSizeId: @(form.SizeId?.ToString() ?? "null"),
                 addInitialRow: false,
-                editUrlTemplate: ''
+                editUrlTemplate: '',
+                sourceLines: prefills,
+                isNewVersion: true
             });
 
             $('#bomTableBody').empty();

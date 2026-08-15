@@ -217,6 +217,41 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             throw new InvalidOperationException("Không thể sinh mã nhà cung cấp duy nhất sau nhiều lần thử.");
         }
 
+        public async Task<AdminSupplierDuplicateWarningDTO?> PrepareDuplicateWarningAsync(
+            AdminSupplierCreateDTO dto,
+            int actorStaffId = 0)
+        {
+            dto.Name = Normalize(dto.Name);
+            dto.TaxCode = SupplierTaxCodeNormalizer.Normalize(dto.TaxCode);
+            await EnsureTaxCodeAvailableAsync(dto.TaxCode);
+            var matches = await FindSoftDuplicateMatchesAsync(dto);
+            if (matches.Count == 0) return null;
+            var warning = await CreateWarningAsync(actorStaffId, BuildPayloadHash(dto), matches);
+            return ToWarningDto(warning, matches);
+        }
+
+        public async Task<List<AdminSupplierDuplicateMatchDTO>> FindDuplicateMatchesAsync(
+            AdminSupplierCreateDTO dto)
+        {
+            dto.Name = Normalize(dto.Name);
+            dto.TaxCode = SupplierTaxCodeNormalizer.Normalize(dto.TaxCode);
+            var matches = await FindSoftDuplicateMatchesAsync(dto);
+            return matches.Select(ToMatchDto).ToList();
+        }
+
+        public async Task<IReadOnlyList<List<AdminSupplierDuplicateMatchDTO>>> FindDuplicateMatchesBatchAsync(
+            IReadOnlyList<AdminSupplierCreateDTO> requests)
+        {
+            if (requests.Count == 0) return [];
+            var candidates = await LoadSoftDuplicateCandidatesAsync();
+            return requests.Select(dto =>
+            {
+                dto.Name = Normalize(dto.Name);
+                dto.TaxCode = SupplierTaxCodeNormalizer.Normalize(dto.TaxCode);
+                return FindSoftDuplicateMatches(dto, candidates).Select(ToMatchDto).ToList();
+            }).ToList();
+        }
+
         // ===== UPDATE =====
         public async Task UpdateAsync(AdminSupplierUpdateDTO dto, int actorStaffId = 0)
         {
@@ -489,13 +524,22 @@ namespace CafeChain.Application.Services.Admin.Suppliers
 
         private async Task<List<SoftDuplicateMatch>> FindSoftDuplicateMatchesAsync(AdminSupplierCreateDTO dto)
         {
-            var candidates = await _context.Suppliers
+            var candidates = await LoadSoftDuplicateCandidatesAsync();
+            return FindSoftDuplicateMatches(dto, candidates);
+        }
+
+        private async Task<List<Supplier>> LoadSoftDuplicateCandidatesAsync() =>
+            await _context.Suppliers
                 .AsNoTracking()
                 .Include(x => x.Phones)
                 .Include(x => x.Contacts)
                 .OrderBy(x => x.SupplierId)
                 .ToListAsync();
 
+        private static List<SoftDuplicateMatch> FindSoftDuplicateMatches(
+            AdminSupplierCreateDTO dto,
+            IReadOnlyList<Supplier> candidates)
+        {
             var incomingName = NormalizeIdentityText(dto.Name);
             var incomingAddress = NormalizeIdentityText(dto.Address);
             var incomingHotlines = dto.AdditionalPhones
@@ -687,14 +731,16 @@ namespace CafeChain.Application.Services.Admin.Suppliers
         {
             WarningId = warning.PublicId,
             ExpiresAtUtc = warning.ExpiresAtUtc,
-            Matches = matches.Select(x => new AdminSupplierDuplicateMatchDTO
-            {
-                SupplierId = x.SupplierId,
-                Code = x.Code,
-                Name = x.Name,
-                Active = x.Active,
-                MatchedSignals = x.Signals
-            }).ToList()
+            Matches = matches.Select(ToMatchDto).ToList()
+        };
+
+        private static AdminSupplierDuplicateMatchDTO ToMatchDto(SoftDuplicateMatch match) => new()
+        {
+            SupplierId = match.SupplierId,
+            Code = match.Code,
+            Name = match.Name,
+            Active = match.Active,
+            MatchedSignals = match.Signals.ToList()
         };
 
         private static string NormalizeIdentityText(string? value)
@@ -832,7 +878,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
         };
 
         private async Task<IDbContextTransaction?> BeginTransactionAsync(IsolationLevel isolationLevel) =>
-            _context.Database.IsRelational()
+            _context.Database.IsRelational() && _context.Database.CurrentTransaction == null
                 ? await _context.Database.BeginTransactionAsync(isolationLevel)
                 : null;
 

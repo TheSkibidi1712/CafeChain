@@ -50,9 +50,9 @@
     }
 
     <div class="uc-tab-bar" role="tablist" aria-label="Nhóm dữ liệu đơn vị và quy đổi">
-        <a class="uc-tab @(tab == "physical" ? "active" : "")" role="tab" aria-selected="@(tab == "physical" ? "true" : "false")" href="?tab=physical"><i class="fa-solid fa-scale-balanced me-1"></i> A. Quy đổi vật lý chuẩn</a>
-        <a class="uc-tab @(tab == "measuring" || tab == "" ? "active" : "")" role="tab" aria-selected="@(tab == "measuring" || tab == "" ? "true" : "false")" href="?tab=measuring&search=@data.Search&status=@data.StatusFilter"><i class="fa-solid fa-flask-vial me-1"></i> B. Quy đổi đo lường theo NL</a>
-        <a class="uc-tab @(tab == "package" ? "active" : "")" role="tab" aria-selected="@(tab == "package" ? "true" : "false")" href="?tab=package&search=@data.Search"><i class="fa-solid fa-box-open me-1"></i> C. Quy cách đóng gói NCC</a>
+        <a class="uc-tab @(tab == "physical" ? "active" : "")" role="tab" aria-selected="@(tab == "physical" ? "true" : "false")" href="?tab=physical"><i class="fa-solid fa-scale-balanced me-1" aria-hidden="true"></i> Quy đổi vật lý chuẩn</a>
+        <a class="uc-tab @(tab == "measuring" || tab == "" ? "active" : "")" role="tab" aria-selected="@(tab == "measuring" || tab == "" ? "true" : "false")" href="?tab=measuring&search=@data.Search&status=@data.StatusFilter"><i class="fa-solid fa-flask-vial me-1" aria-hidden="true"></i> Quy đổi đo lường theo NL</a>
+        <a class="uc-tab @(tab == "package" ? "active" : "")" role="tab" aria-selected="@(tab == "package" ? "true" : "false")" href="?tab=package&search=@data.Search"><i class="fa-solid fa-box-open me-1" aria-hidden="true"></i> Quy cách đóng gói NCC</a>
     </div>
 
     @* ── A. Physical ── *@
@@ -71,7 +71,7 @@
                     <span class="uc-status uc-status-ok">Hệ thống chuẩn</span>
                 </div>
                 <div class="p-4">
-                    <p class="small text-muted mb-3">Nguồn: Hệ thống (<code>PhysicalUnitConversionRegistry</code>). Không thêm/sửa/xóa trực tiếp trong Admin.</p>
+                    <p class="small text-muted mb-3">Nguồn: quy đổi vật lý chuẩn của hệ thống. Dữ liệu chỉ đọc và không thể thêm, sửa hoặc xóa tại trang quản trị.</p>
                     <div class="cc-warehouse-table-shell">
                     <table class="table mb-0" aria-label="Quy đổi vật lý chuẩn">
                         <thead>
@@ -222,7 +222,7 @@
                                     <div class="d-inline-flex flex-row align-items-center gap-2">
                                         @if (canUpdate && row.AllowEdit)
                                         {
-                                            <a class="uc-btn uc-btn-light uc-btn-sm"
+                                            <a class="uc-btn uc-btn-edit uc-btn-sm"
                                                asp-action="Edit" asp-route-id="@row.UnitConversionId">
                                                 <i class="fa-solid fa-pen-to-square"></i> Sửa
                                             </a>

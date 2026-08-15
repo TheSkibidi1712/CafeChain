@@ -20,12 +20,6 @@ public static class CategoryIconPolicy
             return true;
         }
 
-        if (normalized.Length > MaximumLength)
-        {
-            errorMessage = $"Icon tối đa {MaximumLength} ký tự.";
-            return false;
-        }
-
         if (normalized.IndexOfAny(['<', '>', '&']) >= 0)
         {
             errorMessage = "Icon không được chứa HTML.";
@@ -70,6 +64,12 @@ public static class CategoryIconPolicy
         if (!containsSymbol)
         {
             errorMessage = "Icon phải là một biểu tượng Unicode hợp lệ.";
+            return false;
+        }
+
+        if (normalized.Length > MaximumLength)
+        {
+            errorMessage = $"Icon tối đa {MaximumLength} ký tự.";
             return false;
         }
 

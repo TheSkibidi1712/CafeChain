@@ -304,10 +304,11 @@
 
 .pagination { margin-top: 15px; }
 .page-btn {
-    min-width: 34px;
-    padding: 6px 10px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 8px 12px;
     border: 1px solid var(--cc-border);
-    border-radius: 6px;
+    border-radius: var(--cc-radius-control, 10px);
     background: var(--cc-surface);
     color: var(--cc-text-secondary);
     font-weight: 600;
@@ -431,3 +432,6 @@
     .btn-view-all,
     .btn-view { transition: none; }
 }
+
+/* Fix contract: centered inventory columns and semantic actions. */
+.inventory-container table th,.inventory-container table td{vertical-align:middle;text-align:center}.inventory-container table td:first-child{text-align:left}.inventory-container :is(.btn-primary,.cc-button-primary){min-height:44px;border-color:var(--cc-brown-600,#70482F)!important;background:var(--cc-brown-600,#70482F)!important;color:#fff!important}.inventory-container :is(.btn-danger,.btn-outline-danger){border-color:var(--cc-danger,#B42318)!important;background:var(--cc-danger-bg,#FEF3F2)!important;color:var(--cc-danger,#B42318)!important}

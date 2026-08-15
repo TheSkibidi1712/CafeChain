@@ -26,6 +26,8 @@
     var dataIncompleteItems = Model.Items
         .Where(item => item.SuggestionStatus == ReorderRecommendationLevels.DataIncomplete)
         .ToList();
+    var activeRequestCount = Model.Items.Count(item => item.ActiveRestockRequestId.HasValue);
+    var reviewedCount = Math.Max(0, Model.Items.Count - actionableItems.Count - dataIncompleteItems.Count);
 }
 
 @section Styles {
@@ -39,7 +41,7 @@
             <p class="reorder-eyebrow cc-page-kicker">Kho &amp; Cung ứng / Lập kế hoạch</p>
             <h1 class="cc-page-title">Gợi ý nhập hàng</h1>
             <p class="cc-page-description">
-                Một nguồn tính toán chung cho tồn kho, nhu cầu, pipeline mua hàng và quy cách nhà cung cấp.
+                Đối chiếu tồn kho, nhu cầu, đơn mua đang xử lý và quy cách nhà cung cấp trong cùng một quyết định.
             </p>
         </div>
         <div class="reorder-header-actions">
@@ -89,6 +91,28 @@
         </button>
     </form>
 
+    <section class="reorder-summary" aria-label="Tóm tắt gợi ý nhập hàng">
+        <article class="reorder-summary-card reorder-summary-card--action">
+            <span><i class="fas fa-bolt" aria-hidden="true"></i> Có thể xử lý</span>
+            <strong>@actionableItems.Count</strong>
+            <small>Gợi ý đủ điều kiện xác nhận</small>
+        </article>
+        <article class="reorder-summary-card reorder-summary-card--active">
+            <span><i class="fas fa-arrows-rotate" aria-hidden="true"></i> Đang có yêu cầu</span>
+            <strong>@activeRequestCount</strong>
+            <small>Tiếp tục trên yêu cầu hiện tại</small>
+        </article>
+        <article class="reorder-summary-card reorder-summary-card--incomplete">
+            <span><i class="fas fa-circle-exclamation" aria-hidden="true"></i> Thiếu dữ liệu</span>
+            <strong>@dataIncompleteItems.Count</strong>
+            <small>Cần bổ sung điều kiện đầu vào</small>
+        </article>
+        <article class="reorder-summary-card">
+            <span><i class="fas fa-circle-check" aria-hidden="true"></i> Đã đánh giá</span>
+            <strong>@reviewedCount</strong>
+            <small>Chưa cần thao tác mới</small>
+        </article>
+    </section>
     <div class="reorder-note" role="note">
         <i class="fas fa-circle-info" aria-hidden="true"></i>
         Xác nhận sẽ tạo yêu cầu nhập nháp hoặc bổ sung nhu cầu vào yêu cầu đang mở.
@@ -119,7 +143,7 @@
                             <th>Nguyên liệu</th>
                             <th class="text-center">Tồn kho</th>
                             <th class="text-center">Nhu cầu</th>
-                            <th class="text-center">Pipeline</th>
+                            <th class="text-center">Đang thực hiện</th>
                             <th class="text-center">Đề xuất cuối</th>
                             <th class="text-center">Nhà cung cấp</th>
                             <th class="text-center">Trạng thái</th>
@@ -140,14 +164,14 @@
                                 <span>Tối thiểu @(item.MinimumStock?.ToString("N3") ?? "-")</span>
                             </td>
                             <td class="text-center align-middle">
-                                <strong>ROP @(item.ReorderPoint?.ToString("N3") ?? "-")</strong>
-                                <span>Dùng/ngày @(item.AverageDailyConsumption?.ToString("N3") ?? "-") · lead @(item.LeadTimeDays?.ToString() ?? "-") ngày</span>
+                                <strong>Điểm đặt hàng @(item.ReorderPoint?.ToString("N3") ?? "-")</strong>
+                                <span>Dùng/ngày @(item.AverageDailyConsumption?.ToString("N3") ?? "-") · giao dự kiến @(item.LeadTimeDays?.ToString() ?? "-") ngày</span>
                                 <span>Nhu cầu thô @(item.RawDemand?.ToString("N3") ?? "-")</span>
                             </td>
                             <td class="text-center align-middle">
                                 <strong>Đang về @item.IncomingQuantity.ToString("N3")</strong>
                                 <span>Tồn dự kiến @(item.ProjectedStock?.ToString("N3") ?? "-")</span>
-                                <span>Pipeline bao phủ @item.ProcurementCoveredQuantity.ToString("N3")</span>
+                                <span>Đơn đang xử lý đáp ứng @item.ProcurementCoveredQuantity.ToString("N3")</span>
                             </td>
                             <td class="reorder-suggestion-cell text-center align-middle">
                                 <strong>@(item.FinalSuggestedQuantity?.ToString("N3") ?? "-") @item.BaseUnitCode</strong>
@@ -225,7 +249,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <div>
-                        <p class="reorder-modal-eyebrow">Kiểm tra tự động theo rule</p>
+                        <p class="reorder-modal-eyebrow">Kiểm tra điều kiện tự động</p>
                         <h2 class="modal-title fs-5" id="reorderBulkModalLabel">
                             Nguyên liệu cần xử lý tại @Model.StoreName
                         </h2>
@@ -245,7 +269,7 @@
                             <i class="fas fa-circle-info" aria-hidden="true"></i>
                             <span>
                                 <strong>Danh sách đề xuất, chưa phải chứng từ.</strong>
-                                Hệ thống tính theo tồn kho, nhu cầu và pipeline; bạn vẫn là người xác nhận cuối cùng.
+                                Hệ thống tính theo tồn kho, nhu cầu và các đơn đang xử lý; bạn vẫn là người xác nhận cuối cùng.
                             </span>
                         </div>
 
@@ -277,7 +301,7 @@
                                         </th>
                                         <th>Nguyên liệu</th>
                                         <th class="text-center">Tồn / ngưỡng</th>
-                                        <th class="text-center">Pipeline</th>
+                                        <th class="text-center">Đang thực hiện</th>
                                         <th class="text-center">Đề xuất mua</th>
                                         <th class="text-center">Nhà cung cấp</th>
                                         <th class="text-center">Kết quả</th>
@@ -310,7 +334,7 @@
                                         </td>
                                         <td class="text-center align-middle">
                                             <strong>@item.AvailableStock.ToString("N3") @item.BaseUnitCode khả dụng</strong>
-                                            <span>ROP @(item.ReorderPoint?.ToString("N3") ?? "-")</span>
+                                            <span>Điểm đặt hàng @(item.ReorderPoint?.ToString("N3") ?? "-")</span>
                                         </td>
                                         <td class="text-center align-middle">
                                             <strong>Đang về @item.IncomingQuantity.ToString("N3")</strong>
@@ -352,7 +376,7 @@
                         <div class="reorder-empty reorder-empty--compact">
                             <i class="fas fa-circle-check" aria-hidden="true"></i>
                             <h3>Không có nguyên liệu cần tạo yêu cầu nhập</h3>
-                            <p>Tồn kho và pipeline hiện đang đáp ứng nhu cầu tại cửa hàng này.</p>
+                            <p>Tồn kho và các đơn đang xử lý hiện đáp ứng nhu cầu tại cửa hàng này.</p>
                         </div>
                     }
 

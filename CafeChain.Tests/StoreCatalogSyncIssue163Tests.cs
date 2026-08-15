@@ -1,5 +1,8 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin.Recipes;
+using CafeChain.Application.Interfaces.Admin.Recipes;
 using CafeChain.Application.Services.Admin.Profitability;
+using CafeChain.Application.Services.Admin.Recipes;
 using CafeChain.Application.Services.Admin.StoreMenu;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Application.Services.POS;
@@ -9,6 +12,7 @@ using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace CafeChain.Tests;
 
@@ -53,6 +57,71 @@ public sealed class StoreCatalogSyncIssue163Tests : IntegrationTestBase
         Assert.Equal(2, changedA.Version);
         Assert.False(changedA.MenuItems.Single().Sizes.Single().IsAvailable);
         Assert.Equal(1, (await context.PosCatalogStates.AsNoTracking().SingleAsync(x => x.StoreId == StoreB)).Version);
+    }
+
+    [Fact]
+    public async Task Catalog_DoesNotUseSizeLessRecipeWhenExactTargetIsMissing()
+    {
+        await SeedAsync();
+        await using var context = CreateDbContext();
+        var exactRecipe = await context.Recipes.SingleAsync(recipe => recipe.RecipeId == RecipeId);
+        exactRecipe.Active = false;
+        exactRecipe.Status = "Archived";
+        context.Recipes.Add(new Recipe
+        {
+            RecipeCode = "SM163_GENERIC",
+            Name = "Công thức chung không gắn kích cỡ",
+            DrinkId = DrinkId,
+            SizeId = null,
+            Active = true,
+            Status = "Active",
+            EffectiveDate = DateTime.UtcNow.AddDays(-1),
+            RecipeDetails = new List<RecipeDetail>
+            {
+                new() { IngredientId = IngredientId, Quantity = 1m, UnitId = UnitId }
+            }
+        });
+        await context.SaveChangesAsync();
+
+        var snapshot = await CreateService(context).BuildAsync(StoreA, DateTime.UtcNow);
+        var size = snapshot.MenuItems.Single().Sizes.Single();
+
+        Assert.Equal(0, size.RecipeId);
+        Assert.False(size.IsAvailable);
+        Assert.Contains("công thức", size.AvailabilityReason, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task PosCatalog_UsesExactTargetResolver()
+    {
+        await SeedAsync();
+        await using var context = CreateDbContext();
+        var recipe = await context.Recipes.SingleAsync(candidate => candidate.RecipeId == RecipeId);
+        var target = new RecipeTarget.MenuItemSize(DrinkId, SizeId);
+        var resolution = new CurrentRecipeResolution(
+            CurrentRecipeResolutionStatus.Found,
+            recipe,
+            string.Empty);
+        var authority = new Mock<ICurrentRecipeResolver>(MockBehavior.Strict);
+        authority.Setup(resolver => resolver.ResolveAsync(
+                target,
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(resolution);
+        authority.Setup(resolver => resolver.ResolveManyAsync(
+                It.Is<IReadOnlyCollection<RecipeTarget>>(targets => targets.SequenceEqual(new[] { target })),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<RecipeTarget, CurrentRecipeResolution>
+            {
+                [target] = resolution
+            });
+
+        var snapshot = await CreateService(context, authority.Object)
+            .BuildAsync(StoreA, DateTime.UtcNow);
+
+        Assert.Equal(RecipeId, snapshot.MenuItems.Single().Sizes.Single().RecipeId);
+        authority.VerifyAll();
     }
 
     [Fact]
@@ -112,13 +181,23 @@ public sealed class StoreCatalogSyncIssue163Tests : IntegrationTestBase
         await context.SaveChangesAsync();
     }
 
-    private static POSCatalogSnapshotService CreateService(AppDbContext context)
+    private static POSCatalogSnapshotService CreateService(
+        AppDbContext context,
+        ICurrentRecipeResolver? currentRecipeResolver = null)
     {
         var physical = new PhysicalUnitConversionService(context, NullLogger<PhysicalUnitConversionService>.Instance);
         var conversion = new UnitConversionService(context, NullLogger<UnitConversionService>.Instance, physical);
-        var resolver = new DrinkSizeRecipeResolver(context, conversion, physical);
-        var availability = new StoreMenuAvailabilityEvaluator(context, resolver, conversion, physical);
-        return new POSCatalogSnapshotService(context, availability);
+        var resolver = new DrinkSizeRecipeResolver(context, conversion, physical, currentRecipeResolver);
+        var availability = new StoreMenuAvailabilityEvaluator(
+            context,
+            resolver,
+            conversion,
+            physical,
+            currentRecipeResolver);
+        return new POSCatalogSnapshotService(
+            context,
+            availability,
+            currentRecipeResolver: currentRecipeResolver);
     }
 
     private static string FindRepoRoot()

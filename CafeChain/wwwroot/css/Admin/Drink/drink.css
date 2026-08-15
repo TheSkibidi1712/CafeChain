@@ -200,15 +200,16 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
     border: 1px solid var(--cc-border-strong);
-    border-radius: var(--cc-radius-sm);
+    border-radius: var(--cc-radius-control);
     background: var(--cc-surface-raised);
     color: var(--cc-text-secondary);
     padding: 0;
     font-size: 13px;
-    transition: all 0.15s ease;
+    transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .drink-action-btn:hover,
@@ -216,6 +217,48 @@
     border-color: var(--cc-brown-500);
     background: var(--cc-surface-active);
     color: var(--cc-brown-900);
+}
+
+.drink-action-btn.is-edit {
+    border-color: var(--cc-brown-600) !important;
+    background: var(--cc-brown-600) !important;
+    color: #ffffff !important;
+}
+
+.drink-action-btn.is-edit:hover,
+.drink-action-btn.is-edit:focus-visible {
+    border-color: var(--cc-brown-900) !important;
+    background: var(--cc-brown-900) !important;
+    color: #ffffff !important;
+}
+
+.drink-action-btn.is-secondary {
+    border-color: var(--cc-border-strong);
+    background: var(--cc-surface-raised);
+    color: var(--cc-brown-700);
+}
+
+.drink-action-btn.is-lock {
+    border-color: var(--cc-danger-border) !important;
+    background: var(--cc-danger-bg) !important;
+    color: var(--cc-danger) !important;
+}
+
+.drink-action-btn.is-lock:hover,
+.drink-action-btn.is-lock:focus-visible {
+    border-color: var(--cc-danger) !important;
+    background: var(--cc-danger) !important;
+    color: #ffffff !important;
+}
+
+.drink-action-btn.is-unlock {
+    border-color: var(--cc-brown-600) !important;
+    background: var(--cc-brown-600) !important;
+    color: #ffffff !important;
+}
+
+.drink-action-btn i {
+    color: currentColor !important;
 }
 
 /* ==========================================================================

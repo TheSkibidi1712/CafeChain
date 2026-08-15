@@ -1,5 +1,5 @@
 .reorder-page {
-    color: var(--cc-text-primary);
+    color: var(--cc-text, #201812);
     padding: 28px 32px 40px;
 }
 
@@ -13,7 +13,7 @@
 
 .reorder-header h1 {
     font-size: 28px;
-    font-weight: 750;
+    font-weight: 700;
     margin: 2px 0 4px;
 }
 
@@ -23,7 +23,7 @@
 }
 
 .reorder-eyebrow {
-    color: var(--cc-accent) !important;
+    color: var(--cc-caramel-500, #A97750) !important;
     font-size: 13px;
     font-weight: 700;
 }
@@ -50,7 +50,7 @@
 .reorder-note {
     align-items: center;
     background: var(--cc-warning-bg);
-    border-left: 3px solid var(--cc-accent);
+    border-left: 3px solid var(--cc-caramel-500, #A97750);
     display: flex;
     gap: 10px;
     margin: 12px 0;
@@ -76,7 +76,7 @@
 }
 
 .reorder-table-scrollbar:focus-visible {
-    outline: 2px solid var(--cc-accent);
+    outline: 2px solid var(--cc-caramel-500, #A97750);
     outline-offset: -2px;
 }
 
@@ -114,7 +114,7 @@
     font-size: 12px;
     padding: 13px 14px;
     white-space: nowrap;
-    font-weight: 750;
+    font-weight: 700;
 }
 
 .reorder-table td {
@@ -155,7 +155,7 @@
     white-space: nowrap !important;
     word-break: keep-all !important;
     font-size: 0.78rem;
-    font-weight: 750;
+    font-weight: 700;
     line-height: 1.2;
     padding: 4px 12px;
 }
@@ -180,7 +180,7 @@
 .reorder-status--missing_cost {
     background: var(--cc-warning-bg);
     border-color: color-mix(in srgb, var(--cc-warning) 30%, white);
-    color: var(--cc-accent) !important;
+    color: var(--cc-caramel-500, #A97750) !important;
 }
 
 /* Master Reorder Button System - No Wrapping */
@@ -193,7 +193,7 @@
     padding: 8px 16px;
     border-radius: 9px;
     font-size: 0.84rem;
-    font-weight: 750;
+    font-weight: 700;
     letter-spacing: 0.01em;
     text-decoration: none;
     cursor: pointer;
@@ -203,7 +203,11 @@
     background: #ffffff;
     color: var(--cc-text-primary, #1f2937);
     box-shadow: 0 2px 6px rgba(111, 78, 55, 0.05);
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+        background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+        color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     user-select: none;
 }
 
@@ -256,7 +260,7 @@
 }
 
 .cc-button-ai:hover {
-    background: var(--cc-accent) !important;
+    background: var(--cc-caramel-500, #A97750) !important;
     border-color: #a85e2b !important;
     color: #ffffff !important;
     transform: translateY(-2px);
@@ -302,7 +306,7 @@
     word-break: keep-all !important;
     padding: 8px 15px !important;
     font-size: 0.82rem !important;
-    font-weight: 750 !important;
+    font-weight: 700 !important;
     margin-bottom: 6px;
     width: 100%;
     min-width: 155px;
@@ -544,10 +548,10 @@
 
 .reorder-actions-cell .reorder-action-button,
 .reorder-table td .reorder-action-button {
-    border-radius: var(--cc-radius-sm, 8px) !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
     gap: 8px !important;
     margin: 0 !important;
-    min-height: 36px;
+    min-height: 40px;
     padding: 7px 11px !important;
     width: 100% !important;
 }
@@ -629,7 +633,7 @@
 .reorder-selected-count {
     color: #6f4e37;
     font-size: 0.82rem;
-    font-weight: 750;
+    font-weight: 700;
 }
 
 .reorder-bulk-table-shell {
@@ -1102,7 +1106,7 @@
     inset: 0 auto 0 0;
     width: 3px;
     content: "";
-    background: var(--cc-accent);
+    background: var(--cc-caramel-500, #A97750);
 }
 
 .reorder-explain-section:hover {
@@ -1145,3 +1149,60 @@
         padding: 14px;
     }
 }
+/* FE2 Batch 5 — decision summary and bulk-selection clarity. */
+.reorder-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin: 16px 0 12px;
+}
+
+.reorder-summary-card {
+    position: relative;
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    padding: 16px;
+    overflow: hidden;
+    border: 1px solid var(--cc-border, #E9DED4);
+    border-radius: var(--cc-radius-card, 16px);
+    background: var(--cc-surface, #FFFDFB);
+    box-shadow: var(--cc-shadow-xs);
+}
+
+.reorder-summary-card::before { position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--cc-border-strong, #D8C5B6); content: ""; }
+.reorder-summary-card--action::before { background: var(--cc-brown-600, #70482F); }
+.reorder-summary-card--active::before { background: var(--cc-success, #2F6F5E); }
+.reorder-summary-card--incomplete::before { background: var(--cc-warning, #99623B); }
+.reorder-summary-card > span { display: flex; align-items: center; gap: 7px; color: var(--cc-text-secondary, #66584F); font-size: 12px; font-weight: 700; }
+.reorder-summary-card > strong { color: var(--cc-text, #201812); font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; }
+.reorder-summary-card > small { color: var(--cc-text-muted, #7A6C62); line-height: 1.4; }
+
+.reorder-page .reorder-table tbody tr { transition: background-color .18s ease, box-shadow .18s ease; }
+.reorder-page .reorder-data-row:has(.reorder-action-button--confirm) { box-shadow: inset 3px 0 0 var(--cc-caramel-500, #A97750); }
+.reorder-page .reorder-suggestion-cell strong { color: var(--cc-brown-700, #5C3F2B); font-variant-numeric: tabular-nums; }
+.reorder-page :is(.reorder-table, .reorder-bulk-table) :is(strong, .reorder-status) { font-variant-numeric: tabular-nums; }
+
+.reorder-bulk-modal .js-reorder-bulk-row:has(.js-reorder-bulk-select:checked) { background: var(--cc-surface-active, #F4E9DF); box-shadow: inset 3px 0 0 var(--cc-brown-600, #70482F); }
+.reorder-bulk-modal .js-reorder-bulk-row[data-state="processing"] { background: var(--cc-warning-bg, #FBF3EA); }
+.reorder-bulk-modal .js-reorder-bulk-row[data-state="success"] { background: var(--cc-success-bg, #EDF6F2); }
+.reorder-bulk-modal .js-reorder-bulk-row[data-state="blocked"],
+.reorder-bulk-modal .js-reorder-bulk-row[data-state="retry"] { background: var(--cc-danger-bg, #FDF0F0); }
+.reorder-bulk-modal .reorder-selected-count { border: 1px solid var(--cc-brown-200, #DFC5B1); border-radius: var(--cc-radius-pill, 999px); background: var(--cc-surface-active, #F4E9DF); color: var(--cc-brown-700, #5C3F2B); }
+
+.reorder-page :is(a, button, input, select):focus-visible,
+.reorder-bulk-modal :is(button, input):focus-visible { outline: 2px solid var(--cc-brown-600, #70482F); outline-offset: 2px; box-shadow: var(--cc-focus-ring) !important; }
+
+@media (max-width: 1023.98px) { .reorder-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 575.98px) {
+    .reorder-summary { grid-template-columns: 1fr; }
+    .reorder-summary-card { grid-template-columns: 1fr auto; align-items: center; }
+    .reorder-summary-card > small { grid-column: 1 / -1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .reorder-page *,
+    .reorder-bulk-modal * { transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
+/* Fix contract: centered reorder data and semantic actions. */
+.reorder-page table th,.reorder-page table td{vertical-align:middle;text-align:center}.reorder-page table td:first-child{text-align:left}.reorder-page :is(.btn-primary,.cc-button-primary,.reorder-action-button--confirm){min-height:44px;border-color:var(--cc-brown-600,#70482F)!important;background:var(--cc-brown-600,#70482F)!important;color:#fff!important}.reorder-page :is(.btn-danger,.btn-outline-danger,.notification-terminal-reject-button){border-color:var(--cc-danger,#B42318)!important;background:var(--cc-danger-bg,#FEF3F2)!important;color:var(--cc-danger,#B42318)!important}

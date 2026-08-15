@@ -230,6 +230,13 @@
     color: var(--cc-text-inverse, #fff);
 }
 
+.production-bom-page .cc-page-hero__action.is-primary:focus-visible {
+    outline: 0;
+    box-shadow:
+        var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22)),
+        0 8px 18px rgba(92, 63, 43, 0.16);
+}
+
 .production-bom-page .rb-toggle .btn:hover,
 .production-bom-page .rb-toggle .btn:focus-visible,
 .production-bom-page .rb-toggle .btn-check:checked + .btn {
@@ -1131,8 +1138,12 @@
 
 .bom-health-page .bom-health-summary {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 0.75rem;
+}
+
+.bom-health-page form.production-filter-card {
+    grid-template-columns: minmax(220px, 1fr) minmax(150px, 190px) minmax(130px, 160px) auto auto;
 }
 
 .bom-health-page .rb-health-metric {
@@ -1685,6 +1696,14 @@
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
+    .bom-health-page form.production-filter-card {
+        grid-template-columns: minmax(0, 1fr) minmax(170px, 0.7fr) minmax(130px, 0.45fr);
+    }
+
+    .bom-health-page form.production-filter-card > .btn {
+        grid-column: auto;
+    }
+
     .production-bom-page form.production-filter-card,
     .production-bom-page .production-filter-grid {
         grid-template-columns: minmax(0, 1fr) minmax(190px, 0.65fr) auto;
@@ -1789,6 +1808,10 @@
 
     .bom-health-page .bom-health-summary {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .bom-health-page form.production-filter-card {
+        grid-template-columns: 1fr;
     }
 
     .production-bom-page .production-data-table {

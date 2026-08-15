@@ -28,6 +28,7 @@ using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Systems;
 using CafeChain.Application.Interfaces.AI;
+using CafeChain.Application.Interfaces.AIImport;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.AppLauncher;
 using CafeChain.Application.Interfaces.StaffHub;
@@ -68,6 +69,7 @@ using CafeChain.Application.Workers;
 using CafeChain.Application.Services.Admin.Permissions;
 using CafeChain.Application.Services.Systems;
 using CafeChain.Application.Services.AI;
+using CafeChain.Application.Services.AIImport;
 using CafeChain.Application.Services.Admin.StoreScope;
 using CafeChain.Application.Services.AppLauncher;
 using CafeChain.Application.Options;
@@ -84,6 +86,25 @@ namespace CafeChain.Extensions.Services
             services.AddSingleton(TimeProvider.System);
             services.AddOptions<WorkShiftOptions>()
                 .BindConfiguration(WorkShiftOptions.SectionName);
+            services.AddOptions<AIImportOptions>()
+                .BindConfiguration(AIImportOptions.SectionName)
+                .Validate(x => x.MaxFileBytes > 0 && x.MaxExpandedBytes > 0 && x.MaxCompressionRatio > 0
+                               && x.MaxSheets > 0 && x.MaxRowsPerSheet > 0 && x.MaxTotalRows > 0
+                               && x.MaxColumnsPerSheet > 0 && x.MaxTotalCells > 0 && x.MaxRegionsPerSheet > 0
+                               && x.MaxAiSampleRows > 0 && x.SessionLifetimeHours > 0
+                               && x.DefaultPageSize > 0 && x.MaximumPageSize >= x.DefaultPageSize
+                               && x.HighConfidenceThreshold is > 0 and <= 1
+                               && x.ReviewConfidenceThreshold is > 0 and <= 1
+                               && x.HighConfidenceThreshold >= x.ReviewConfidenceThreshold
+                               && x.DocxMaxParagraphs > 0 && x.DocxMaxTables > 0
+                               && x.DocxMaxTableRows > 0 && x.DocxMaxCells > 0
+                               && x.DocumentMaxExtractedCharacters > 0 && x.PdfMaxPages > 0
+                               && x.PdfMaxTextBlocks > 0 && x.PdfMaxImages > 0
+                               && x.PdfOcrImageAreaRatioThreshold is > 0 and <= 1
+                               && x.AIChunkMaxCharacters > x.AIChunkOverlapCharacters
+                               && x.AIChunkOverlapCharacters >= 0 && x.MaxAIChunks > 0,
+                    "AIImport options không hợp lệ.")
+                .ValidateOnStart();
             services.AddScoped<IUserContext, UserContext>();
             services.AddScoped<IAIService, AIService>();
             services.AddScoped<IAIImagePipelineService, AIImagePipelineService>();
@@ -137,6 +158,24 @@ namespace CafeChain.Extensions.Services
 
             // System
             services.AddScoped<IRequestDeduplicationService, RequestDeduplicationService>();
+            services.AddScoped<IAIImportExcelParser, AIImportExcelParser>();
+            services.AddSingleton<IAIImportSchemaRegistry, AIImportSchemaRegistry>();
+            services.AddScoped<IAIImportRegionAnalyzer, AIImportRegionAnalyzer>();
+            services.AddScoped<IAIImportSourceParser, AIImportExcelSourceParser>();
+            services.AddScoped<IAIImportSourceParser, AIImportDocxSourceParser>();
+            services.AddScoped<IAIImportSourceParser, AIImportPdfSourceParser>();
+            services.AddScoped<IAIImportDocumentAiExtractor, AIImportDocumentAiExtractor>();
+            services.AddScoped<IAIImportDocumentPipeline, AIImportDocumentPipeline>();
+            services.AddScoped<AIImportCandidateValidator>();
+            services.AddSingleton<AIImportResolutionEngine>();
+            services.AddScoped<AIImportPreviewValidator>();
+            services.AddSingleton<AIImportAnalysisCoordinator>();
+            services.AddSingleton<AIImportPreviewMutationCoordinator>();
+            services.AddSingleton<AIImportConfirmCoordinator>();
+            services.AddSingleton<AIImportSessionQuery>();
+            services.AddScoped<AIImportEntityCreator>();
+            services.AddSingleton<AIImportEntityRegistry>();
+            services.AddScoped<IAIImportService, AIImportService>();
 
             // File
             services.AddScoped<IFileService, FileService>();
@@ -210,9 +249,14 @@ namespace CafeChain.Extensions.Services
 
             // Admin - Recipes (+ #112 BTP output normalizer)
             services.AddScoped<IRecipeOutputNormalizer, RecipeOutputNormalizer>();
+            services.AddScoped<ICurrentRecipeResolver, CurrentRecipeResolver>();
             services.AddScoped<IAdminRecipeService, AdminRecipeService>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IAdminRecipeQueryService,
                 CafeChain.Application.Services.Admin.Recipes.AdminRecipeQueryService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IRecipeWhereUsedQueryService,
+                CafeChain.Application.Services.Admin.Recipes.RecipeWhereUsedQueryService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IRecipeVersionEvidenceQueryService,
+                CafeChain.Application.Services.Admin.Recipes.RecipeVersionEvidenceQueryService>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IBomDataHealthEvaluator,
                 CafeChain.Application.Services.Admin.Recipes.BomDataHealthEvaluator>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IRecipeBomTreeQueryService,

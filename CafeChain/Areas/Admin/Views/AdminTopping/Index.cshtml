@@ -159,10 +159,23 @@
                             <!-- TOPPING -->
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <img src="@(string.IsNullOrWhiteSpace(item.ImageUrl)
-                                                ? "/images/no-image.png"
-                                                : item.ImageUrl)"
-                                         class="topping-img me-3" />
+                                    @if (string.IsNullOrWhiteSpace(item.ImageUrl))
+                                    {
+                                        <span class="topping-img topping-image-placeholder me-3" aria-hidden="true">
+                                            <i class="fa-solid fa-image"></i>
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <object data="@item.ImageUrl"
+                                                class="topping-img topping-image-placeholder me-3"
+                                                role="img"
+                                                aria-label="Ảnh topping @item.Name">
+                                            <span class="topping-img topping-image-placeholder" aria-hidden="true">
+                                                <i class="fa-solid fa-image"></i>
+                                            </span>
+                                        </object>
+                                    }
                                     <div class="fw-semibold topping-name">
                                         @item.Name
                                     </div>
@@ -287,7 +300,7 @@
                                     @if (canUpdate)
                                     {
                                     <button type="button"
-                                            class="btn btn-sm btn-light btn-edit-topping"
+                                            class="btn btn-sm btn-light btn-edit-topping is-edit"
                                             title="Chỉnh sửa"
                                             data-bs-toggle="modal"
                                             data-bs-target="#editModal"
@@ -304,7 +317,7 @@
                                     @if (canToggle)
                                     {
                                     <button type="button"
-                                            class="btn btn-sm js-toggle-topping"
+                                            class="btn btn-sm js-toggle-topping @(item.Active ? "is-lock" : "is-unlock")"
                                             title="@(item.Active ? "Khóa" : "Mở khóa")"
                                             onclick="toggleTopping(@item.ToppingId, '@Url.Action("ToggleStatus", "AdminTopping", new { area = "Admin", id = item.ToppingId })')"
                                             data-id="@item.ToppingId"

@@ -20,7 +20,7 @@
 }
 
 <main id="staffShiftApp"
-     class="shift-page ops-shell cc-warehouse-page"
+     class="shift-page shift-schedule-page ops-shell cc-warehouse-page"
      data-store-id="@Model.StoreId"
      data-week-start="@Model.StartDate.ToString("yyyy-MM-dd")"
      data-can-create="@Model.CanCreate.ToString().ToLowerInvariant()"
@@ -152,20 +152,22 @@
                                 <td class="text-center">
                                     @if (Model.CanUpdate)
                                     {
-                                        <button type="button" class="shift-action-btn shift-action-edit edit-template"
-                                                data-id="@template.ShiftId" data-name="@template.Name"
-                                                data-start="@template.StartTime.ToString(@"hh\:mm")" data-end="@template.EndTime.ToString(@"hh\:mm")"
-                                                data-notes="@template.Notes" data-version="@template.RowVersion"
-                                                title="Chỉnh sửa thông tin mẫu ca">
-                                            <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
-                                            <span>Sửa</span>
-                                        </button>
-                                        <button type="button" class="shift-action-btn @(template.Active ? "shift-action-toggle-active" : "shift-action-toggle-inactive") toggle-template"
-                                                data-id="@template.ShiftId" data-version="@template.RowVersion"
-                                                title="@(template.Active ? "Ngưng sử dụng mẫu ca này" : "Kích hoạt lại mẫu ca này")">
-                                            <i class="fa-solid @(template.Active ? "fa-ban" : "fa-circle-check")" aria-hidden="true"></i>
-                                            <span>@(template.Active ? "Ngưng" : "Kích hoạt")</span>
-                                        </button>
+                                        <div class="shift-template-actions">
+                                            <button type="button" class="shift-action-btn shift-action-edit edit-template"
+                                                    data-id="@template.ShiftId" data-name="@template.Name"
+                                                    data-start="@template.StartTime.ToString(@"hh\:mm")" data-end="@template.EndTime.ToString(@"hh\:mm")"
+                                                    data-notes="@template.Notes" data-version="@template.RowVersion"
+                                                    title="Chỉnh sửa thông tin mẫu ca">
+                                                <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+                                                <span>Sửa</span>
+                                            </button>
+                                            <button type="button" class="shift-action-btn @(template.Active ? "shift-action-toggle-active" : "shift-action-toggle-inactive") toggle-template"
+                                                    data-id="@template.ShiftId" data-version="@template.RowVersion"
+                                                    title="@(template.Active ? "Ngưng sử dụng mẫu ca này" : "Kích hoạt lại mẫu ca này")">
+                                                <i class="fa-solid @(template.Active ? "fa-ban" : "fa-circle-check")" aria-hidden="true"></i>
+                                                <span>@(template.Active ? "Ngưng" : "Kích hoạt")</span>
+                                            </button>
+                                        </div>
                                     }
                                 </td>
                             </tr>
@@ -194,21 +196,24 @@
                 </div>
             </div>
             <div class="roster-filters" role="search">
-                <label class="filter-control filter-search" for="staffSearch">
-                    <span class="visually-hidden">Tìm nhân viên theo tên hoặc vai trò</span>
-                    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                    <input id="staffSearch" type="search" autocomplete="off" placeholder="Tìm tên hoặc vai trò..." />
-                </label>
-                <label class="filter-control" for="scheduleStatusFilter">
-                    <i class="fa-solid fa-filter" aria-hidden="true"></i>
-                    <span class="visually-hidden">Lọc trạng thái lịch</span>
-                    <select id="scheduleStatusFilter">
-                        <option value="all">Tất cả trạng thái</option>
-                        <option value="scheduled">Có lịch</option>
-                        <option value="unscheduled">Chưa có lịch</option>
-                        <option value="cancelled">Có lịch đã hủy</option>
-                    </select>
-                </label>
+                <div class="roster-filter-field roster-filter-field--search">
+                    <label class="filter-label" for="staffSearch">Tìm kiếm nhân viên</label>
+                    <div class="filter-control filter-search">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input id="staffSearch" type="search" autocomplete="off" placeholder="Tìm tên hoặc vai trò..." />
+                    </div>
+                </div>
+                <div class="roster-filter-field">
+                    <label class="filter-label" for="scheduleStatusFilter">Trạng thái lịch</label>
+                    <div class="filter-control filter-select">
+                        <select id="scheduleStatusFilter">
+                            <option value="all">Tất cả trạng thái</option>
+                            <option value="scheduled">Có lịch</option>
+                            <option value="unscheduled">Chưa có lịch</option>
+                            <option value="cancelled">Có lịch đã hủy</option>
+                        </select>
+                    </div>
+                </div>
                 <button id="resetRosterFilters" class="filter-reset" type="button" hidden>
                     <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Đặt lại
                 </button>

@@ -1,52 +1,3 @@
-:root {
-    --cc-brown-950: #2B1A12;
-    --cc-brown-900: #3D2418;
-    --cc-brown-800: #4D3021;
-    --cc-brown-700: #5C3F2B;
-    --cc-brown-600: #70482F;
-    --cc-brown-500: #8B6247;
-    --cc-caramel-500: #A97750;
-    --cc-caramel-300: #C99E7D;
-    --cc-brown-200: #DFC5B1;
-    --cc-brown-100: #F0E2D6;
-    --cc-brown-50: #FAF6F2;
-
-    --cc-canvas: #F7F4F0;
-    --cc-surface: #FFFDFB;
-    --cc-surface-raised: #FFFFFF;
-    --cc-surface-muted: #FBF7F2;
-    --cc-surface-active: #F4E9DF;
-    --cc-border: #E9DED4;
-    --cc-border-strong: #D8C5B6;
-
-    --cc-text: #201812;
-    --cc-text-secondary: #66584F;
-    --cc-text-muted: #7A6C62;
-    --cc-text-disabled: #A69B93;
-    --cc-text-inverse: #FFFFFF;
-
-    --cc-success: #2F6F5E;
-    --cc-success-bg: #EDF6F2;
-    --cc-warning: #99623B;
-    --cc-warning-bg: #FBF3EA;
-    --cc-danger: #991B1B;
-    --cc-danger-bg: #FDF0F0;
-    --cc-info: #3F5F7A;
-    --cc-info-bg: #EEF4F8;
-
-    --cc-radius-control: 10px;
-    --cc-radius-card: 16px;
-    --cc-radius-header: 20px;
-    --cc-radius-modal: 18px;
-
-    --cc-shadow-xs: 0 2px 8px rgba(61, 36, 24, 0.05);
-    --cc-shadow-sm: 0 4px 16px rgba(61, 36, 24, 0.06);
-    --cc-shadow-md: 0 12px 32px rgba(61, 36, 24, 0.09);
-    --cc-focus-ring: 0 0 0 3px rgba(112, 72, 47, 0.22);
-}
-
-
-
 .category-primary-btn,
 .category-add-btn {
     background-color: var(--cc-brown-700) !important;
@@ -698,25 +649,60 @@
     padding: 14px 20px;
 }
 
-.category-table-footer .btn,
-.category-page-link {
+.category-table-footer .pagination {
+    align-items: center;
+    gap: 8px !important;
+}
+
+.category-table-footer .pagination .btn,
+.category-table-footer .pagination .category-page-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 34px;
-    height: 34px;
-    border: 1px solid #e2e8f0;
-    border-radius: var(--cc-radius-sm, 8px);
-    background: #fff;
-    color: #64748b;
-    font-weight: 800;
+    flex: 0 0 40px;
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid var(--cc-border, #E9DED4) !important;
+    border-radius: var(--cc-radius-control, 10px);
+    background: var(--cc-surface, #FFFDFB);
+    color: var(--cc-text-secondary, #66584F);
+    font-weight: 750;
+    line-height: 1;
+    text-decoration: none;
+    box-shadow: none;
 }
 
-.category-page-link:hover,
-.category-page-link.active {
-    border-color: var(--category-accent);
+.category-table-footer .pagination .btn i {
+    color: currentColor !important;
+}
+
+.category-table-footer .pagination :is(.btn, .category-page-link):hover {
+    border-color: var(--category-accent) !important;
+    background: var(--cc-surface-active, #F4E9DF);
+    color: var(--category-accent-dark, #3D2418);
+}
+
+.category-table-footer .pagination .category-page-link.active {
+    border-color: var(--category-accent) !important;
     background: var(--category-accent);
-    color: #fff;
+    color: var(--cc-text-inverse, #FFFFFF);
+    box-shadow: 0 3px 8px rgba(112, 72, 47, .2);
+}
+
+.category-table-footer .pagination :is(.btn, .category-page-link):focus-visible {
+    outline: 2px solid var(--category-accent);
+    outline-offset: 2px;
+    box-shadow: var(--cc-focus-ring) !important;
+}
+
+.category-table-footer .pagination .btn.disabled {
+    border-color: var(--cc-border, #E9DED4) !important;
+    background: var(--cc-surface-muted, #FBF7F2);
+    color: var(--cc-text-disabled, #A99C92);
+    opacity: .72;
+    pointer-events: none;
 }
 
 .category-modal-content {
@@ -1016,4 +1002,70 @@
         min-height: 0;
         padding: 20px;
     }
+}
+/* FE2 master-data form contract: scoped to Category pages only. */
+.category-form-page {
+    max-width: 960px;
+    margin-inline: auto;
+}
+
+.category-form-page .category-form-header {
+    margin-bottom: 20px;
+}
+
+.category-form-page .category-form-card {
+    overflow: hidden;
+    border: 1px solid var(--cc-border) !important;
+    border-radius: var(--cc-radius-card) !important;
+    background: var(--cc-surface) !important;
+    box-shadow: var(--cc-shadow-sm) !important;
+}
+
+.category-form-page :is(.form-label, .form-check-label) {
+    color: var(--cc-text);
+    font-weight: 600;
+}
+
+.category-form-page :is(.form-control, .form-check-input, .btn):focus-visible,
+.category-page :is(a, button, input, select):focus-visible {
+    outline: 2px solid var(--cc-brown-600);
+    outline-offset: 2px;
+    box-shadow: var(--cc-focus-ring) !important;
+}
+
+.category-form-page .category-validation {
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+}
+
+@media (max-width: 767.98px) {
+    .category-form-page .category-form-header {
+        align-items: flex-start;
+    }
+
+    .category-form-page .category-form-header > .btn {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .category-page *,
+    .category-page *::before,
+    .category-page *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}
+/* Fix branch: consistent compact-action target size. */
+.category-page .table td .category-action-btn { width: 40px !important; min-width: 40px !important; height: 40px !important; min-height: 40px !important; padding: 0 !important; border-radius: var(--cc-radius-control, 10px) !important; }.category-page table th,.category-page table td{vertical-align:middle;text-align:center}.category-page .category-action-edit{border-color:var(--cc-brown-600,#70482F)!important;background:var(--cc-brown-600,#70482F)!important;color:#fff!important}.category-page .category-action-lock{border-color:var(--cc-danger,#B42318)!important;background:var(--cc-danger-bg,#FEF3F2)!important;color:var(--cc-danger,#B42318)!important}.category-page .category-action-unlock{border-color:var(--cc-brown-600,#70482F)!important;background:var(--cc-brown-600,#70482F)!important;color:#fff!important}
+
+.category-page .category-search-field .category-search-btn {
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
 }

@@ -23,6 +23,24 @@ namespace CafeChain.ViewModels.Admin.Recipes
         public const string Indeterminate = "INDETERMINATE";
     }
 
+    public static class BomCurrentRecipeHealthCodes
+    {
+        public const string Current = "CURRENT";
+        public const string Historical = "HISTORICAL";
+        public const string Missing = "MISSING";
+        public const string Ambiguous = "AMBIGUOUS";
+        public const string InvalidTarget = "INVALID_TARGET";
+    }
+
+    public sealed class BomCurrentRecipeHealthVM
+    {
+        public string Code { get; set; } = "";
+        public string ReasonCode { get; set; } = "";
+        public string Label { get; set; } = "";
+        public string Message { get; set; } = "";
+        public bool IsBlocking { get; set; }
+    }
+
     public sealed class BomHealthReasonVM
     {
         public string Code { get; set; } = "";
@@ -49,6 +67,7 @@ namespace CafeChain.ViewModels.Admin.Recipes
         public string Name { get; set; } = "";
         public string TypeLabel { get; set; } = "";
         public string IdentityDisplay { get; set; } = "";
+        public BomCurrentRecipeHealthVM CurrentRecipe { get; set; } = new();
         public BomHealthStatusVM Configuration { get; set; } = new();
         public BomHealthStatusVM Costing { get; set; } = new();
         public decimal? EstimatedCost { get; set; }
@@ -59,12 +78,16 @@ namespace CafeChain.ViewModels.Admin.Recipes
         public List<BomDataHealthRowVM> Items { get; set; } = new();
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 20;
+        public string Search { get; set; } = "";
+        public string TypeFilter { get; set; } = "ALL";
         public int TotalCount { get; set; }
+        public int CurrentPageCount => Items.Count;
         public int TotalPages => Math.Max(1, (int)Math.Ceiling(TotalCount / (double)Math.Max(1, PageSize)));
         public int CompleteCount { get; set; }
         public int MissingQuoteCount { get; set; }
         public int MissingConversionCount { get; set; }
         public int MissingOutputCount { get; set; }
         public int MappingErrorCount { get; set; }
+        public int CurrentRecipeIssueCount { get; set; }
     }
 }

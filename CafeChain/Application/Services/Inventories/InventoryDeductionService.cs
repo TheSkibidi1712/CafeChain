@@ -1,8 +1,11 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin.Recipes;
 using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.DTOs.POS;
+using CafeChain.Application.Interfaces.Admin.Recipes;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Results;
+using CafeChain.Application.Services.Admin.Recipes;
 using CafeChain.Data;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Enums.Inventory;
@@ -37,6 +40,8 @@ namespace CafeChain.Application.Services.Inventories
         private readonly IStoreInventoryWriteResolver? _writeResolver;
         private readonly IInventoryCostLayerConsumptionService? _costLayerConsumption;
         private readonly IOperationalIceReservationConsumptionService? _iceReservationConsumption;
+        private readonly ICurrentRecipeResolver _currentRecipeResolver;
+        private readonly TimeProvider _timeProvider;
 
         public InventoryDeductionService(
             AppDbContext context,
@@ -48,7 +53,9 @@ namespace CafeChain.Application.Services.Inventories
             IInventoryWriterModeService? writerModeService = null,
             IStoreInventoryWriteResolver? writeResolver = null,
             IInventoryCostLayerConsumptionService? costLayerConsumption = null,
-            IOperationalIceReservationConsumptionService? iceReservationConsumption = null)
+            IOperationalIceReservationConsumptionService? iceReservationConsumption = null,
+            ICurrentRecipeResolver? currentRecipeResolver = null,
+            TimeProvider? timeProvider = null)
         {
             _context = context;
             _logger = logger;
@@ -60,6 +67,8 @@ namespace CafeChain.Application.Services.Inventories
             _writeResolver = writeResolver;
             _costLayerConsumption = costLayerConsumption;
             _iceReservationConsumption = iceReservationConsumption;
+            _currentRecipeResolver = currentRecipeResolver ?? new CurrentRecipeResolver(context);
+            _timeProvider = timeProvider ?? TimeProvider.System;
         }
 
         public async Task<ServiceResult<decimal>> CalculateRecipeCogsAsync(int recipeId)
@@ -1036,9 +1045,7 @@ namespace CafeChain.Application.Services.Inventories
                 var recipe = await _context.Recipes
                     .AsNoTracking()
                     .Include(r => r.RecipeDetails)
-                    .FirstOrDefaultAsync(r => r.RecipeId == childRecipeId
-                        && r.Active
-                        && r.Status == "Active");
+                    .FirstOrDefaultAsync(r => r.RecipeId == childRecipeId);
 
                 if (recipe == null || recipe.OutputQuantity is null or <= 0 || !recipe.OutputUnitId.HasValue)
                     throw new InvalidOperationException(
@@ -1260,39 +1267,36 @@ namespace CafeChain.Application.Services.Inventories
         }
 
         /// <summary>
-        /// KNOWN LIMITATION (#121 / ADR-0009): parent sale recipe is Active at deduction time,
-        /// not a persisted sale-time BOM snapshot. After selection, ChildRecipeId is exact.
+        /// Live fallback uses the shared exact-target authority. Committed order lines resolve
+        /// their pinned RecipeId before reaching this fallback. ChildRecipeId remains exact.
         /// </summary>
         private async Task<Recipe?> GetActiveRecipeAsync(int? drinkId, int? sizeId, int? toppingId)
         {
-            var query = _context.Recipes
-                .Include(r => r.RecipeDetails)
-                .Where(r => r.Active && r.Status == "Active");
-
-            if (drinkId.HasValue)
+            RecipeTarget? target = null;
+            if (drinkId.HasValue && sizeId.HasValue)
             {
-                var sizedRecipe = await query
-                    .FirstOrDefaultAsync(r => r.DrinkId == drinkId.Value
-                                           && r.SizeId == sizeId
-                                           && r.ToppingId == null);
-
-                if (sizedRecipe != null)
-                    return sizedRecipe;
-
-                return await query
-                    .FirstOrDefaultAsync(r => r.DrinkId == drinkId.Value
-                                           && r.SizeId == null
-                                           && r.ToppingId == null);
+                target = new RecipeTarget.MenuItemSize(drinkId.Value, sizeId.Value);
+            }
+            else if (toppingId.HasValue)
+            {
+                target = new RecipeTarget.Topping(toppingId.Value);
             }
 
-            if (toppingId.HasValue)
+            if (target == null)
+                return null;
+
+            var resolution = await _currentRecipeResolver.ResolveAsync(
+                target,
+                _timeProvider.GetUtcNow().UtcDateTime);
+            if (resolution.Status != CurrentRecipeResolutionStatus.Found
+                || resolution.Recipe == null)
             {
-                return await query
-                    .FirstOrDefaultAsync(r => r.ToppingId == toppingId.Value
-                                           && r.DrinkId == null);
+                return null;
             }
 
-            return null;
+            return await _context.Recipes
+                .Include(recipe => recipe.RecipeDetails)
+                .SingleOrDefaultAsync(recipe => recipe.RecipeId == resolution.Recipe.RecipeId);
         }
 
         private async Task<Recipe?> GetOrderRecipeAsync(

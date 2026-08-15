@@ -61,6 +61,16 @@
     });
     var canAccessInventoryDocuments = effectivePermissions.Contains(PermissionConstants.InventoryDocumentView)
         || effectivePermissions.Contains(PermissionConstants.InventoryTransferView);
+
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
+    var premiumRefreshExcludedControllers = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "AdminRecipe",
+        "AdminProductionOrder",
+        "AdminPreparedItem",
+        "AdminDrinkProfitability"
+    };
+    var usePremiumRefresh = !premiumRefreshExcludedControllers.Contains(currentController);
 }
 
 <!DOCTYPE html>
@@ -404,10 +414,11 @@
     </style>
     <link rel="stylesheet" href="~/css/Admin/Procurement/procurement-design-system.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/admin-unified-depth.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/Admin/admin-premium-refresh.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
 </head>
 
-<body>
+<body class="admin-premium-shell @(usePremiumRefresh ? "admin-premium-refresh" : string.Empty)">
     <div class="sidebar d-flex flex-column">
         <!-- ===== LOGO ===== -->
         <div class="logo-wrap">
@@ -462,6 +473,13 @@
                 </div>
 
                 <!-- ━━━ 🧪 SẢN XUẤT / BOM ━━━ -->
+                @if (effectivePermissions.Contains(PermissionConstants.AIImportView))
+                {
+                    <a asp-area="Admin" asp-controller="AIImport" asp-action="Index" class="sidebar-section-header @Html.IsActive("AIImport")">
+                        <i class="fas fa-wand-magic-sparkles section-icon"></i> AI Smart Import
+                    </a>
+                }
+
                 @if (canAccessProduction)
                 {
                 <a href="#collapseProduction" data-bs-toggle="collapse"
@@ -773,8 +791,23 @@
 
     <!-- Bootstrap & Plugins -->
     <script src="~/js/Toast/toast.js" asp-append-version="true"></script>
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    @if (currentController is "AdminDrink"
+        or "AdminSize"
+        or "AdminTopping"
+        or "AdminIngredient"
+        or "AdminOrder"
+        or "AdminPermission"
+        or "AdminStaff"
+        or "AdminStaffShift")
+    {
+        <script src="~/lib/jquery/dist/jquery.min.js"></script>
+        <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    }
+    else
+    {
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    }
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="~/lib/microsoft-signalr/signalr.min.js" asp-append-version="true"></script>
     <script src="~/js/Admin/Notifications/inventory-notification-realtime.js" asp-append-version="true"></script>
