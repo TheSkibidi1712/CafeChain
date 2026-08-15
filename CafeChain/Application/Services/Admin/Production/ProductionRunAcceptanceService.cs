@@ -397,6 +397,29 @@ public sealed class ProductionRunAcceptanceService : IProductionRunAcceptanceSer
             run.TotalInputCost = totalInputCost;
             run.OutputUnitCost = outputUnitCost;
             run.ValuedAtUtc = now;
+            allocation.Status = RestockSourcingAllocationStatuses.Released;
+            allocation.ReleasedAtUtc = now;
+            allocation.ReleasedByStaffId = actorStaffId;
+            allocation.ReleaseReason = "Lệnh sản xuất đã hoàn tất; phần bao phủ mở được giải phóng để đánh giá lại nhu cầu.";
+            var remainingActiveAllocationQuantity = await _context.RestockSourcingAllocations
+                .AsNoTracking()
+                .Where(x => x.RestockRequestId == allocation.RestockRequestId
+                    && x.RestockSourcingAllocationId != allocation.RestockSourcingAllocationId
+                    && (x.Status == RestockSourcingAllocationStatuses.Active
+                        || x.Status == RestockSourcingAllocationStatuses.PendingPurchaseAdvice))
+                .Select(x => x.ProcurementQuantity)
+                .ToListAsync();
+            var activeQuantity = remainingActiveAllocationQuantity.Sum();
+            var requestedQuantity = allocation.RestockRequest.RequestedProcurementQuantity
+                ?? allocation.RestockRequest.RequestedQuantity;
+            allocation.RestockRequest.SourcingStatus = activeQuantity <= 0
+                ? RestockSourcingStatuses.Unallocated
+                : activeQuantity >= requestedQuantity
+                    ? RestockSourcingStatuses.FullyAllocated
+                    : RestockSourcingStatuses.PartiallyAllocated;
+            if (activeQuantity <= 0)
+                allocation.RestockRequest.SourcingDecision = null;
+            allocation.RestockRequest.UpdatedAt = now;
             _context.ProductionRunTransitions.Add(new ProductionRunTransition
             {
                 ProductionRunId = run.ProductionRunId,
@@ -410,12 +433,12 @@ public sealed class ProductionRunAcceptanceService : IProductionRunAcceptanceSer
             });
 
             await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
             var result = await BuildResultAsync(run, false);
             result.NormalizedOutputQuantity = output.AcceptedOutputBase;
             result.OutputStoreInventoryId = outputInventory?.StoreInventoryId;
             result.OutputPreparedItemId = recipe.PreparedItemId;
             result.OutputBaseUnitId = recipe.PreparedItem.BaseUnitId;
+            await transaction.CommitAsync();
             if (outputInventory != null)
                 await ReevaluatePreparedItemAlertSafeAsync(run, outputInventory.StoreInventoryId);
             return ServiceResult<ProductionRunExecutionResultDto>.Success(

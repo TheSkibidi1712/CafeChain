@@ -28,6 +28,7 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IAdminStoreInventoryService _storeInventoryService;
         private readonly IRecipeWhereUsedQueryService? _whereUsedQuery;
         private readonly IRecipeVersionEvidenceQueryService? _versionEvidenceQuery;
+        private readonly IPreparedItemReplenishmentReadService? _preparedItemReplenishment;
 
         public AdminRecipeController(
             IAdminRecipeService recipeService,
@@ -38,7 +39,8 @@ namespace CafeChain.Areas.Admin.Controllers
             IProductionReadinessService productionReadiness,
             IAdminStoreInventoryService storeInventoryService,
             IRecipeWhereUsedQueryService? whereUsedQuery = null,
-            IRecipeVersionEvidenceQueryService? versionEvidenceQuery = null)
+            IRecipeVersionEvidenceQueryService? versionEvidenceQuery = null,
+            IPreparedItemReplenishmentReadService? preparedItemReplenishment = null)
         {
             _recipeService = recipeService;
             _queryService = queryService;
@@ -49,6 +51,7 @@ namespace CafeChain.Areas.Admin.Controllers
             _storeInventoryService = storeInventoryService;
             _whereUsedQuery = whereUsedQuery;
             _versionEvidenceQuery = versionEvidenceQuery;
+            _preparedItemReplenishment = preparedItemReplenishment;
         }
 
         [HttpGet]
@@ -103,6 +106,8 @@ namespace CafeChain.Areas.Admin.Controllers
                 || await HasEffectivePermissionAsync(PermissionConstants.RecipeUpdate)
                 || await HasEffectivePermissionAsync(PermissionConstants.RecipeDelete);
             page.CanViewProduction = await HasEffectivePermissionAsync(PermissionConstants.ProductionOrderView);
+            page.CanViewStockAlerts = await HasEffectivePermissionAsync(PermissionConstants.StockAlertView);
+            page.CanViewRestockRequests = await HasEffectivePermissionAsync(PermissionConstants.RestockView);
             page.BackUrl = !string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl)
                 ? returnUrl
                 : Url.Action(nameof(Index), "AdminRecipe", new { area = "Admin" }) ?? "/Admin/AdminRecipe";
@@ -145,6 +150,19 @@ namespace CafeChain.Areas.Admin.Controllers
                     page.ApplyStoreEvidence(storeEvidence);
                 if (page.IsPreparedItemRecipe)
                 {
+                    if (_preparedItemReplenishment != null && page.PreparedItemId.HasValue)
+                    {
+                        var replenishment = await _preparedItemReplenishment.GetAsync(
+                            accountId,
+                            selectedStore.StoreId,
+                            page.PreparedItemId.Value,
+                            openRunLimit: 5);
+                        if (replenishment.IsSuccess && replenishment.Data != null)
+                            page.Replenishment = replenishment.Data;
+                        else
+                            page.ReplenishmentError = replenishment.Message
+                                ?? "Chưa tải được tín hiệu nhu cầu bổ sung tại chi nhánh.";
+                    }
                     page.Operational = await _queryService.GetOperationalDetailAsync(
                         recipeId,
                         selectedStore.StoreId);

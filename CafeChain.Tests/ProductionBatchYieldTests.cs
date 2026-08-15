@@ -64,6 +64,9 @@ public sealed class ProductionBatchYieldTests : IntegrationTestBase
         var restock = await context.RestockRequests.SingleAsync();
         Assert.Equal(RestockRequestStatuses.PartiallyReceived, restock.Status);
         Assert.Equal(400m, restock.RequestedQuantity - posting.Quantity);
+        Assert.Equal(RestockSourcingAllocationStatuses.Released,
+            (await context.RestockSourcingAllocations.SingleAsync()).Status);
+        Assert.Equal(RestockSourcingStatuses.Unallocated, restock.SourcingStatus);
         Assert.Equal(900m, await context.InventoryCostLayers
             .Where(x => x.IngredientId == IngredientId)
             .Select(x => 5_000m - x.RemainingQuantity)
@@ -89,6 +92,8 @@ public sealed class ProductionBatchYieldTests : IntegrationTestBase
             .SingleAsync());
         Assert.Equal(10_000m, Assert.Single(context.RestockFulfillmentPostings).Quantity);
         Assert.Equal(RestockRequestStatuses.Completed, (await context.RestockRequests.SingleAsync()).Status);
+        Assert.Equal(RestockSourcingAllocationStatuses.Released,
+            (await context.RestockSourcingAllocations.SingleAsync()).Status);
         Assert.Equal(500m, result.Data!.NormalizedOutputQuantity - 10_000m);
     }
 

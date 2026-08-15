@@ -101,6 +101,16 @@ namespace CafeChain.ViewModels.Admin.Shared
                 _ => "Chưa quyết định"
             };
 
+        public static AdminStatusDescriptor SourcingAllocation(string? status) =>
+            status?.ToUpperInvariant() switch
+            {
+                "ACTIVE" => AdminStatusDescriptor.Of(status, "Đang mở", "ops-badge-info"),
+                "PENDING_PURCHASE" => AdminStatusDescriptor.Of(status, "Chờ đề nghị mua", "ops-badge-warning"),
+                "RELEASED" => AdminStatusDescriptor.Of(status, "Đã giải phóng", "ops-badge-neutral"),
+                "CANCELLED" => AdminStatusDescriptor.Of(status, "Đã hủy", "ops-badge-neutral"),
+                _ => Unknown("Phân bổ nguồn bổ sung", status, "ops-badge-neutral")
+            };
+
         public static AdminStatusDescriptor BranchReceipt(string status) =>
             status?.ToUpperInvariant() switch
             {

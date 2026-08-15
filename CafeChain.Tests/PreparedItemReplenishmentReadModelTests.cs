@@ -85,6 +85,22 @@ public sealed class PreparedItemReplenishmentReadModelTests : IntegrationTestBas
     }
 
     [Fact]
+    public async Task MissingLowThreshold_IsNotPresentedAsReady()
+    {
+        using var context = CreateDbContext();
+        await SeedStockAsync(context, available: 2m, reserved: 0m, low: null, target: 8m);
+
+        var result = await CreateService(context).GetAsync(AccountId, StoreId, PreparedItemId);
+
+        Assert.True(result.IsSuccess);
+        Assert.False(result.Data.IsLow);
+        Assert.Equal(
+            PreparedItemReplenishmentDataStatuses.LowThresholdNotConfigured,
+            result.Data.DataStatus);
+        Assert.Contains("ngưỡng cảnh báo", result.Data.BusinessMessageVi, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task NetNeed_SubtractsOnlyNonTerminalProductionCoverage()
     {
         using var context = CreateDbContext();

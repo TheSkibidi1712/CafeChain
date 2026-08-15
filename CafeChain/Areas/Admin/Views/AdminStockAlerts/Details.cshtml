@@ -59,7 +59,7 @@
         <div class="ops-metric"><span class="ops-metric-label">Tồn vật lý hiện tại</span><strong class="ops-metric-value">@(Model.OnHandQty.HasValue ? AdminStatusDisplay.Quantity(Model.OnHandQty.Value) : "—")</strong></div>
         <div class="ops-metric"><span class="ops-metric-label">Đang giữ chỗ</span><strong class="ops-metric-value warning">@(Model.ReservedQty.HasValue ? AdminStatusDisplay.Quantity(Model.ReservedQty.Value) : "—")</strong></div>
         <div class="ops-metric"><span class="ops-metric-label">Khả dụng hiện tại</span><strong class="ops-metric-value @(Model.AvailableQty.HasValue && Model.AvailableQty.Value <= 0 ? "danger" : "success")">@(Model.AvailableQty.HasValue ? AdminStatusDisplay.Quantity(Model.AvailableQty.Value) : "—")</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Ngưỡng tối thiểu hiện tại</span><strong class="ops-metric-value">@(Model.CurrentMinimumThresholdBaseQuantity.HasValue ? $"{AdminStatusDisplay.Quantity(Model.CurrentMinimumThresholdBaseQuantity.Value)}{unitSuffix}" : "Chưa đặt")</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Ngưỡng cảnh báo tồn thấp</span><strong class="ops-metric-value">@(Model.CurrentMinimumThresholdBaseQuantity.HasValue ? $"{AdminStatusDisplay.Quantity(Model.CurrentMinimumThresholdBaseQuantity.Value)}{unitSuffix}" : "Chưa đặt")</strong></div>
     </section>
 
     <div class="ops-detail-grid">
@@ -115,7 +115,7 @@
                         }
                         @if (openRestock != null)
                         {
-                            <li><strong>Đã tạo yêu cầu nhập hàng #@openRestock.RestockRequestId</strong><div class="ops-secondary">@AdminStatusDisplay.DateTime(BusinessDateService.ToBusinessTime(openRestock.CreatedAt)) · @AdminStatusDisplay.RestockRequest(openRestock.Status).Label</div></li>
+                            <li><strong>Đã tạo @(isPreparedItemDemand ? "nhu cầu bổ sung" : "yêu cầu nhập hàng") #@openRestock.RestockRequestId</strong><div class="ops-secondary">@AdminStatusDisplay.DateTime(BusinessDateService.ToBusinessTime(openRestock.CreatedAt)) · @AdminStatusDisplay.RestockRequest(openRestock.Status).Label</div></li>
                         }
                         @if (Model.ResolvedAt.HasValue)
                         {
@@ -266,7 +266,7 @@
                                     {
                                         <span>Bù đến ngưỡng tối thiểu: max(0, ngưỡng − khả dụng) = @(suggestedProcurement.HasValue ? $"{AdminStatusDisplay.Quantity(suggestedProcurement.Value)}{procurementUnitSuffix}" : "chưa đủ dữ liệu đơn vị mua hàng").</span>
                                     }
-                                    <span class="d-block mt-1">Snapshot tồn kho tương ứng: @(suggestedBase.HasValue ? $"{AdminStatusDisplay.Quantity(suggestedBase.Value)}{unitSuffix}" : "chưa đủ dữ liệu").</span>
+                                    <span class="d-block mt-1">Dữ liệu tồn kho tại thời điểm ghi nhận: @(suggestedBase.HasValue ? $"{AdminStatusDisplay.Quantity(suggestedBase.Value)}{unitSuffix}" : "chưa đủ dữ liệu").</span>
                                 </div>
                             </div>
                             <div class="ops-form-group">

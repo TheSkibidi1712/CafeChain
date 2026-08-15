@@ -98,7 +98,7 @@ public sealed class PreparedItemReplenishmentReadService : IPreparedItemReplenis
             .Select(x => new PreparedItemAlertSummaryDto
             {
                 StockAlertId = x.StockAlertId,
-                StatusLabel = x.Status == StockAlertStatuses.Confirmed ? "Đã xác nhận" : "Đang mở",
+                StatusCode = x.Status,
                 UpdatedAtUtc = x.UpdatedAt
             })
             .FirstOrDefaultAsync();
@@ -114,10 +114,7 @@ public sealed class PreparedItemReplenishmentReadService : IPreparedItemReplenis
             {
                 RestockRequestId = x.RestockRequestId,
                 ReferenceCode = x.ReferenceCode,
-                StatusLabel = x.Status == RestockRequestStatuses.Draft ? "Bản nháp"
-                    : x.Status == RestockRequestStatuses.Submitted ? "Đã gửi"
-                    : x.Status == RestockRequestStatuses.Processing ? "Đang xử lý"
-                    : "Đã bổ sung một phần",
+                StatusCode = x.Status,
                 UpdatedAtUtc = x.UpdatedAt
             })
             .FirstOrDefaultAsync();
@@ -208,7 +205,12 @@ public sealed class PreparedItemReplenishmentReadService : IPreparedItemReplenis
 
         var status = PreparedItemReplenishmentDataStatuses.Ready;
         var message = "Dữ liệu nhu cầu bổ sung đã sẵn sàng.";
-        if (!stock.TargetStockLevel.HasValue)
+        if (!stock.MinStockLevel.HasValue)
+        {
+            status = PreparedItemReplenishmentDataStatuses.LowThresholdNotConfigured;
+            message = "Cần cấu hình ngưỡng cảnh báo tồn thấp trước khi đánh giá tình trạng tồn kho.";
+        }
+        else if (!stock.TargetStockLevel.HasValue)
         {
             status = PreparedItemReplenishmentDataStatuses.TargetNotConfigured;
             message = "Cần cấu hình mức tồn mục tiêu trước khi tính số lượng cần bổ sung.";

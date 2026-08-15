@@ -1,4 +1,5 @@
 using CafeChain.Application.DTOs.Admin.Production;
+using CafeChain.Application.DTOs.Admin.Replenishment;
 
 namespace CafeChain.ViewModels.Admin.Recipes
 {
@@ -35,6 +36,8 @@ namespace CafeChain.ViewModels.Admin.Recipes
         public string? OutputBaseUnitCode { get; set; }
         public bool CanWrite { get; set; }
         public bool CanViewProduction { get; set; }
+        public bool CanViewStockAlerts { get; set; }
+        public bool CanViewRestockRequests { get; set; }
         public string BackUrl { get; set; } = "/Admin/AdminRecipe";
         public BomHealthStatusVM ConfigurationHealth { get; set; } = new();
         public BomHealthStatusVM CostingHealth { get; set; } = new();
@@ -49,6 +52,8 @@ namespace CafeChain.ViewModels.Admin.Recipes
         public string? SelectedStoreName { get; set; }
         public BomOperationalDetailVM? Operational { get; set; }
         public string? OperationalError { get; set; }
+        public PreparedItemReplenishmentDto? Replenishment { get; set; }
+        public string? ReplenishmentError { get; set; }
         public RecipeWorkspaceCostEvidenceVM DesignCost { get; set; } =
             RecipeWorkspaceCostEvidenceVM.DesignUnavailable();
         public RecipeWorkspaceCostEvidenceVM StoreFifoCost { get; set; } =

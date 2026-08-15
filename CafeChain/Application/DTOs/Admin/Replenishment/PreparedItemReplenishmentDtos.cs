@@ -33,7 +33,7 @@ public sealed class PreparedItemReplenishmentDto
 public sealed class PreparedItemAlertSummaryDto
 {
     public int StockAlertId { get; set; }
-    public string StatusLabel { get; set; } = string.Empty;
+    public string StatusCode { get; set; } = string.Empty;
     public DateTime UpdatedAtUtc { get; set; }
 }
 
@@ -41,7 +41,7 @@ public sealed class PreparedItemRequestSummaryDto
 {
     public int RestockRequestId { get; set; }
     public string ReferenceCode { get; set; } = string.Empty;
-    public string StatusLabel { get; set; } = string.Empty;
+    public string StatusCode { get; set; } = string.Empty;
     public DateTime UpdatedAtUtc { get; set; }
 }
 
@@ -58,6 +58,7 @@ public sealed class PreparedItemOpenProductionRunDto
 public static class PreparedItemReplenishmentDataStatuses
 {
     public const string Ready = "READY";
+    public const string LowThresholdNotConfigured = "LOW_THRESHOLD_NOT_CONFIGURED";
     public const string TargetNotConfigured = "TARGET_NOT_CONFIGURED";
     public const string OpenCoverageUnitIncompatible = "OPEN_COVERAGE_UNIT_INCOMPATIBLE";
 }

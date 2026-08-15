@@ -4,6 +4,7 @@ using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.Production;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
+using CafeChain.Application.Interfaces.Admin.StoreInventories;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Services.Inventories;
 using Microsoft.AspNetCore.Mvc;
@@ -26,6 +27,7 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IUnitConversionService? _unitConversion;
         private readonly IProductionSourceEligibilityService? _productionEligibility;
         private readonly IPurchaseSourceEligibilityService? _purchaseEligibility;
+        private readonly IPreparedItemReplenishmentReadService? _preparedItemReplenishment;
 
         public AdminRestockRequestsController(
             IRestockRequestService service,
@@ -35,7 +37,8 @@ namespace CafeChain.Areas.Admin.Controllers
             AppDbContext? context = null,
             IUnitConversionService? unitConversion = null,
             IProductionSourceEligibilityService? productionEligibility = null,
-            IPurchaseSourceEligibilityService? purchaseEligibility = null)
+            IPurchaseSourceEligibilityService? purchaseEligibility = null,
+            IPreparedItemReplenishmentReadService? preparedItemReplenishment = null)
         {
             _service = service;
             _workflow = workflow;
@@ -45,6 +48,7 @@ namespace CafeChain.Areas.Admin.Controllers
             _unitConversion = unitConversion;
             _productionEligibility = productionEligibility;
             _purchaseEligibility = purchaseEligibility;
+            _preparedItemReplenishment = preparedItemReplenishment;
         }
 
         [HttpGet]
@@ -144,8 +148,13 @@ namespace CafeChain.Areas.Admin.Controllers
             ViewBag.CanCreateReceipt = await HasEffectivePermissionAsync(PermissionConstants.ReceiptCreate);
             ViewBag.CanCancel = await HasEffectivePermissionAsync(PermissionConstants.RestockCancel);
             ViewBag.CanSubmit = await HasEffectivePermissionAsync(PermissionConstants.RestockSubmit);
-            ViewBag.CanAddDemand = await HasEffectivePermissionAsync(PermissionConstants.RestockCreate)
+            var demandAdjustmentPermission = result.Data.PreparedItemId.HasValue
+                ? PermissionConstants.StockAlertCreateRestockRequest
+                : PermissionConstants.RestockCreate;
+            ViewBag.CanAddDemand = await HasEffectivePermissionAsync(demandAdjustmentPermission)
                 && RestockRequestStatuses.ActiveValues.Contains(result.Data.Status);
+            ViewBag.CanViewStockAlerts = await HasEffectivePermissionAsync(PermissionConstants.StockAlertView);
+            ViewBag.CanViewProduction = await HasEffectivePermissionAsync(PermissionConstants.ProductionOrderView);
             ViewBag.ProductionEligibility = _productionEligibility == null
                 ? null
                 : (await _productionEligibility.EvaluateAsync(new()
@@ -164,6 +173,35 @@ namespace CafeChain.Areas.Admin.Controllers
                     IngredientId = result.Data.IngredientId,
                     PreparedItemId = result.Data.PreparedItemId
                 })).Data;
+            if (result.Data.PreparedItemId.HasValue && _preparedItemReplenishment != null)
+            {
+                var replenishment = await _preparedItemReplenishment.GetAsync(
+                    ctx.AccountId,
+                    result.Data.StoreId,
+                    result.Data.PreparedItemId.Value);
+                if (replenishment.IsSuccess && replenishment.Data != null)
+                {
+                    ViewBag.PreparedItemReplenishment = replenishment.Data;
+                    var postedBase = result.Data.FulfillmentPostings.Sum(x => x.Quantity);
+                    var remainingRequestDemandBase = Math.Max(
+                        result.Data.RequestedQuantity
+                            - result.Data.ClosedRemainingQuantity
+                            - postedBase,
+                        0m);
+                    var activeRequestCoverageBase = result.Data.SourcingAllocations
+                        .Where(x => x.Status is RestockSourcingAllocationStatuses.Active
+                            or RestockSourcingAllocationStatuses.PendingPurchaseAdvice)
+                        .Sum(x => x.ProcurementQuantity);
+                    var activeRequestUnallocatedBase = Math.Max(
+                        remainingRequestDemandBase - activeRequestCoverageBase,
+                        0m);
+                    ViewBag.PreparedItemAdditionalDemandBase = replenishment.Data.NetNeedBase.HasValue
+                        ? (decimal?)Math.Max(
+                            replenishment.Data.NetNeedBase.Value - activeRequestUnallocatedBase,
+                            0m)
+                        : null;
+                }
+            }
             return View(result.Data);
         }
 

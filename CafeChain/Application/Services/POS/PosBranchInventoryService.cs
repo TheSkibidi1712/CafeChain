@@ -90,13 +90,13 @@ namespace CafeChain.Application.Services.POS
                 query = query.Where(i =>
                     i.MinStockLevel.HasValue &&
                     i.AvailableQty - i.ReservedQty > 0 &&
-                    i.AvailableQty - i.ReservedQty <= i.MinStockLevel.Value);
+                    i.AvailableQty - i.ReservedQty < i.MinStockLevel.Value);
             }
             else if (normalizedStockStatus == StockFilterNormal)
             {
                 query = query.Where(i =>
                     i.MinStockLevel.HasValue &&
-                    i.AvailableQty - i.ReservedQty > i.MinStockLevel.Value);
+                    i.AvailableQty - i.ReservedQty >= i.MinStockLevel.Value);
             }
             else if (normalizedStockStatus == StockFilterUnconfigured)
             {
@@ -267,7 +267,7 @@ namespace CafeChain.Application.Services.POS
                 return ThresholdStatusUnconfigured;
             if (availableQty <= 0)
                 return ThresholdStatusOut;
-            if (availableQty <= minStockLevel.Value)
+            if (availableQty < minStockLevel.Value)
                 return ThresholdStatusLow;
             return ThresholdStatusNormal;
         }

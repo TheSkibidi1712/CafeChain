@@ -110,6 +110,57 @@ public sealed class PreparedItemProductionPlanningTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task ContinuedConsumption_AdjustsDemandWithoutMutatingOpenRun()
+    {
+        using var context = CreateDbContext();
+        var demandId = await SeedAsync(context);
+        var service = CreateService(context, RecipeV1);
+        var planned = await service.SetSourcingDecisionAsync(
+            Command(demandId, Guid.NewGuid(), 6m), StaffId);
+        Assert.True(planned.IsSuccess, planned.Message);
+        var runBefore = await context.ProductionRuns.AsNoTracking().SingleAsync();
+
+        var stock = await context.StoreInventories
+            .SingleAsync(x => x.StoreId == StoreId && x.PreparedItemId == PreparedItemId);
+        stock.AvailableQty = 1m;
+        await context.SaveChangesAsync();
+        var demand = await context.RestockRequests.AsNoTracking().SingleAsync();
+        var adjusted = await service.AddDemandAdjustmentAsync(new AddRestockDemandAdjustmentRequest
+        {
+            RestockRequestId = demandId,
+            AdjustmentProcurementQuantity = 1m,
+            ProcurementUnitId = UnitId,
+            Reason = "Tiêu thụ tiếp trong lúc đang sản xuất",
+            RowVersion = Convert.ToBase64String(demand.RowVersion),
+            RequestKey = Guid.NewGuid().ToString("N")
+        }, StaffId);
+
+        Assert.True(adjusted.IsSuccess, adjusted.Message);
+        Assert.Equal(7m, adjusted.Data!.QuantityAfter);
+        var runAfter = await context.ProductionRuns.AsNoTracking().SingleAsync();
+        Assert.Equal(runBefore.RecipeId, runAfter.RecipeId);
+        Assert.Equal(runBefore.PlannedBatchCount, runAfter.PlannedBatchCount);
+        Assert.Equal(runBefore.ExpectedOutputBase, runAfter.ExpectedOutputBase);
+    }
+
+    [Fact]
+    public async Task RecipeChangeDuringPlan_RevalidatesBeforePin()
+    {
+        using var context = CreateDbContext();
+        var demandId = await SeedAsync(context);
+        var eligibility = new Mock<IProductionSourceEligibilityService>();
+        eligibility.SetupSequence(x => x.EvaluateAsync(It.IsAny<ProductionSourceEligibilityRequest>()))
+            .ReturnsAsync(Eligible(RecipeV1))
+            .ReturnsAsync(Eligible(RecipeV2));
+
+        var result = await CreateService(context, RecipeV1, eligibility.Object)
+            .SetSourcingDecisionAsync(Command(demandId, Guid.NewGuid(), 6m), StaffId);
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Equal(RecipeV2, (await context.ProductionRuns.SingleAsync()).RecipeId);
+    }
+
+    [Fact]
     public async Task CurrentNeed_BoundsProductionAllocation()
     {
         using var context = CreateDbContext();
@@ -192,6 +243,16 @@ public sealed class PreparedItemProductionPlanningTests : IntegrationTestBase
                 Allowed = true,
                 ScopeAllowed = true
             }));
+        permissions
+            .Setup(x => x.HasPermissionAsync(AccountId, PermissionConstants.StockAlertCreateRestockRequest, StoreId))
+            .ReturnsAsync(ServiceResult<PermissionDecisionDto>.Success(new PermissionDecisionDto
+            {
+                AccountId = AccountId,
+                PermissionCode = PermissionConstants.StockAlertCreateRestockRequest,
+                TargetStoreId = StoreId,
+                Allowed = true,
+                ScopeAllowed = true
+            }));
         var read = new PreparedItemReplenishmentReadService(context, permissions.Object);
 
         if (eligibility == null)
@@ -232,6 +293,20 @@ public sealed class PreparedItemProductionPlanningTests : IntegrationTestBase
         RequestKey = key,
         Reason = "Bổ sung cốt trà"
     };
+
+    private static ServiceResult<ProductionSourceEligibilityDto> Eligible(int recipeId) =>
+        ServiceResult<ProductionSourceEligibilityDto>.Success(new ProductionSourceEligibilityDto
+        {
+            Eligible = true,
+            ReasonCode = ProductionEligibilityReasonCodes.Eligible,
+            Message = "Có thể lập kế hoạch sản xuất.",
+            StoreId = StoreId,
+            PreparedItemId = PreparedItemId,
+            RecipeId = recipeId,
+            ExpectedOutputPerBatchBase = 5m,
+            OutputBaseUnitId = UnitId,
+            OutputBaseUnitCode = "r4-litre"
+        });
 
     private static async Task<int> SeedAsync(CafeChain.Data.AppDbContext context)
     {
