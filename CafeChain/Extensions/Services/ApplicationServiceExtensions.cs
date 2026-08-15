@@ -341,6 +341,7 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IAdminStoreInventoryService, AdminStoreInventoryService>();
             // Issue #104 — MinStockLevel thresholds (Admin)
             services.AddScoped<IInventoryThresholdService, InventoryThresholdService>();
+            services.AddScoped<IPreparedItemInventoryBootstrapService, PreparedItemInventoryBootstrapService>();
             services.AddScoped<IPreparedItemReplenishmentReadService, PreparedItemReplenishmentReadService>();
 
             // Admin - Suppliers
