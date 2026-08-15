@@ -1,6 +1,9 @@
 using System.Linq;
 using System.Threading.Tasks;
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin.Permissions;
+using CafeChain.Application.Interfaces.Admin.Permissions;
+using CafeChain.Application.Results;
 using CafeChain.Application.Services.Admin.StoreInventories;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Models.Customers;
@@ -129,7 +132,7 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task AreaManager_CanUpdate_StoreInScope()
+        public async Task AreaManager_CannotUpdate_StoreInScope()
         {
             using var ctx = CreateDbContext();
             EnsureBase(ctx);
@@ -144,8 +147,9 @@ namespace CafeChain.Tests.POS
 
             var result = await UpdateAsync(service, ctx, AmAccountId, invId, 7m);
 
-            Assert.True(result.IsSuccess);
-            Assert.Equal(7m, (await ctx.StoreInventories.SingleAsync(i => i.StoreInventoryId == invId)).MinStockLevel);
+            Assert.False(result.IsSuccess);
+            Assert.Contains("quyền cập nhật ngưỡng", result.Message);
+            Assert.Null((await ctx.StoreInventories.SingleAsync(i => i.StoreInventoryId == invId)).MinStockLevel);
         }
 
         [Fact]
@@ -334,24 +338,56 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task AccountHasEditRole_MatchesAllowList()
+        public async Task EffectivePermissionDeny_BlocksStoreManagerRole()
         {
             using var ctx = CreateDbContext();
             EnsureBase(ctx);
             EnsureStaffWithRole(ctx, ManagerAccountId, ManagerStaffId, StoreId,
                 RoleConstants.StoreManager, "mgr104h@test.local");
-            EnsureStaffWithRole(ctx, AwAccountId, AwStaffId, StoreId,
-                RoleConstants.AccountantWarehouse, "aw104h@test.local");
-            var service = CreateService(ctx);
+            var invId = await SeedInventoryAsync(
+                ctx, StoreId, IngredientId, null, qty: 5m, reserved: 0m, min: null);
+            var service = CreateService(ctx, (_, _) => false);
 
-            Assert.True(await service.AccountHasEditRoleAsync(ManagerAccountId));
-            Assert.False(await service.AccountHasEditRoleAsync(AwAccountId));
+            var result = await UpdateAsync(service, ctx, ManagerAccountId, invId, 8m);
+
+            Assert.False(result.IsSuccess);
+            Assert.Contains("quyền cập nhật ngưỡng", result.Message);
+            Assert.Null((await ctx.StoreInventories.SingleAsync(i => i.StoreInventoryId == invId)).MinStockLevel);
         }
 
         // ---------- helpers ----------
 
-        private static InventoryThresholdService CreateService(CafeChain.Data.AppDbContext ctx) =>
-            new(ctx, new Mock<ILogger<InventoryThresholdService>>().Object);
+        private static InventoryThresholdService CreateService(
+            CafeChain.Data.AppDbContext ctx,
+            Func<int, int, bool>? permissionDecision = null)
+        {
+            permissionDecision ??= (accountId, _) => ctx.AccountRoles
+                .Where(x => x.AccountId == accountId)
+                .Select(x => x.Role!.Name)
+                .Any(name => name == RoleConstants.StoreManager
+                    || name == RoleConstants.BusinessOwner);
+
+            var permissions = new Mock<IAdminPermissionService>(MockBehavior.Strict);
+            permissions
+                .Setup(x => x.HasPermissionAsync(
+                    It.IsAny<int>(),
+                    PermissionConstants.InventoryThresholdUpdate,
+                    It.IsAny<int?>()))
+                .ReturnsAsync((int accountId, string _, int? storeId) =>
+                    ServiceResult<PermissionDecisionDto>.Success(new PermissionDecisionDto
+                    {
+                        AccountId = accountId,
+                        PermissionCode = PermissionConstants.InventoryThresholdUpdate,
+                        TargetStoreId = storeId,
+                        Allowed = storeId.HasValue && permissionDecision(accountId, storeId.Value),
+                        ScopeAllowed = storeId.HasValue
+                    }));
+
+            return new InventoryThresholdService(
+                ctx,
+                permissions.Object,
+                new Mock<ILogger<InventoryThresholdService>>().Object);
+        }
 
         private static void EnsureBase(CafeChain.Data.AppDbContext ctx)
         {

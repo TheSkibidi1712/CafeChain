@@ -14,7 +14,7 @@ namespace CafeChain.Areas.Admin.Controllers
     /// <summary>
     /// Issue #104 — configure MinStockLevel for StoreInventory (Admin MVC).
     /// Read: any Admin panel role with store scope.
-    /// Edit: StoreManager / AreaManager / BusinessOwner / SystemAdmin only.
+    /// Edit: effective InventoryThreshold.Update permission within Store scope.
     /// </summary>
     [RequirePermission(PermissionConstants.InventoryThresholdView)]
     public class AdminInventoryThresholdsController : AdminBaseController

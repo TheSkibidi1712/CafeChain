@@ -1,5 +1,6 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.InventoryThresholds;
+using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Admin.StoreInventories;
 using CafeChain.Application.Results;
 using CafeChain.Data;
@@ -13,29 +14,23 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
     /// <summary>
     /// Issue #104 — Admin configure MinStockLevel only (no qty mutation).
     /// Store scope mirrors AdminStoreInventoryRepository (StaffScopes + Staff.StoreId).
-    /// Edit roles: StoreManager, AreaManager, BusinessOwner, SystemAdmin only.
+    /// Mutations require effective InventoryThreshold.Update permission and Store scope.
     /// </summary>
     public class InventoryThresholdService : IInventoryThresholdService
     {
         private const int MaxPageSize = 100;
 
-        /// <summary>Roles allowed to change MinStockLevel (not AccountantWarehouse / sales / supervisor).</summary>
-        public static readonly string[] EditRoleNames =
-        {
-            RoleConstants.StoreManager,
-            RoleConstants.AreaManager,
-            RoleConstants.BusinessOwner,
-            RoleConstants.SystemAdmin
-        };
-
         private readonly AppDbContext _context;
+        private readonly IAdminPermissionService _permissionService;
         private readonly ILogger<InventoryThresholdService> _logger;
 
         public InventoryThresholdService(
             AppDbContext context,
+            IAdminPermissionService permissionService,
             ILogger<InventoryThresholdService> logger)
         {
             _context = context;
+            _permissionService = permissionService;
             _logger = logger;
         }
 
@@ -115,11 +110,6 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
             if (accountId <= 0)
                 return ServiceResult.Failure("Không xác định được tài khoản.");
 
-            if (!await AccountHasEditRoleAsync(accountId))
-            {
-                return ServiceResult.Failure("Bạn không có quyền cập nhật ngưỡng tồn kho.");
-            }
-
             if (storeInventoryId <= 0)
                 return ServiceResult.Failure("Mã tồn kho không hợp lệ.");
 
@@ -152,6 +142,13 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
 
             if (row == null)
                 return ServiceResult.Failure("Không tìm thấy dòng tồn kho.");
+
+            var permission = await _permissionService.HasPermissionAsync(
+                accountId,
+                PermissionConstants.InventoryThresholdUpdate,
+                row.StoreId);
+            if (!permission.IsSuccess || permission.Data?.Allowed != true)
+                return ServiceResult.Failure("Bạn không có quyền cập nhật ngưỡng tồn kho.");
 
             if (!row.RowVersion.SequenceEqual(expectedVersion))
             {
@@ -200,22 +197,6 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
                 minStockLevel, storeInventoryId, row.StoreId, accountId);
 
             return ServiceResult.Success("Cập nhật ngưỡng tồn kho thành công.");
-        }
-
-        /// <summary>True if account has an active edit role for MinStockLevel.</summary>
-        public async Task<bool> AccountHasEditRoleAsync(int accountId)
-        {
-            if (accountId <= 0)
-                return false;
-
-            return await _context.Accounts
-                .AsNoTracking()
-                .Where(a => a.AccountId == accountId && a.Active)
-                .SelectMany(a => a.AccountRoles)
-                .AnyAsync(ar =>
-                    ar.Role != null &&
-                    ar.Role.Active &&
-                    EditRoleNames.Contains(ar.Role.Name));
         }
 
         private async Task<List<InventoryStoreTabDto>> GetAccessibleStoresAsync(int accountId)

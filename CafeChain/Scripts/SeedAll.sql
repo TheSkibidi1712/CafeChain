@@ -8621,7 +8621,7 @@ BEGIN TRY
   (N'Inventory.Adjust',0,0,0,0,0,0,0,0),
   (N'Inventory.Export',0,0,0,0,0,0,0,0),
   (N'InventoryThreshold.View',1,1,1,0,1,0,0,0),
-  (N'InventoryThreshold.Update',1,1,1,0,0,0,0,0),
+  (N'InventoryThreshold.Update',1,0,1,0,0,0,0,0),
   (N'StockAlert.View',1,1,1,1,1,0,0,1),
   (N'StockAlert.Resolve',1,0,1,0,0,0,0,0),
   (N'StockAlert.Configure',0,0,0,0,0,0,0,0),
@@ -8720,14 +8720,14 @@ BEGIN TRY
   (N'ProductionOrder.View',1,1,1,0,1,0,0,1),
   (N'ProductionOrder.Create',1,0,1,0,1,0,0,1),
   (N'ProductionOrder.Confirm',1,0,1,0,1,0,0,1),
-  (N'ProductionOrder.Plan',0,0,1,0,0,1,0,0),
-  (N'ProductionOrder.Release',0,0,1,0,0,1,0,0),
-  (N'ProductionOrder.Start',0,0,0,0,0,1,0,1),
-  (N'ProductionOrder.RecordActual',0,0,0,0,0,1,0,1),
-  (N'ProductionOrder.AcceptOutput',0,0,1,0,0,1,0,0),
-  (N'ProductionOrder.ApproveVariance',1,0,0,0,0,1,0,0),
-  (N'ProductionOrder.Cancel',0,0,1,0,0,1,0,0),
-  (N'Restock.SelectProductionSource',0,0,0,0,1,1,0,0),
+  (N'ProductionOrder.Plan',0,0,1,0,0,0,0,0),
+  (N'ProductionOrder.Release',0,0,1,0,0,0,0,0),
+  (N'ProductionOrder.Start',0,0,0,0,0,0,0,1),
+  (N'ProductionOrder.RecordActual',0,0,0,0,0,0,0,1),
+  (N'ProductionOrder.AcceptOutput',0,0,1,0,0,0,0,0),
+  (N'ProductionOrder.ApproveVariance',1,0,0,0,0,0,0,0),
+  (N'ProductionOrder.Cancel',0,0,1,0,0,0,0,0),
+  (N'Restock.SelectProductionSource',0,0,0,0,1,0,0,0),
   (N'OperationalIce.View',1,1,1,0,1,0,0,1),
   (N'OperationalIce.Manage',0,0,0,0,0,0,0,0),
   (N'OperationalIce.Approve',0,0,0,0,0,0,0,0),
@@ -8866,8 +8866,8 @@ BEGIN TRY
   (N'POS.Operator.ManageOwnPin',0,0,1,1,0,0,0,1),
   (N'POS.Terminal.RequestRegistration',0,0,1,1,0,0,0,1);
 
- /* System Admin receives every active main/admin permission. POS operational
-    permissions remain explicitly scoped by #PosPermissionMatrix. */
+ /* System Admin keeps technical administration only; business permissions
+    remain explicitly assigned by the managed matrices. */
  IF EXISTS
  (
   SELECT 1
@@ -9037,7 +9037,7 @@ BEGIN TRY
  );
  INSERT #ExpectedRoleCounts VALUES
   (N'CDN',187),
-  (N'QLV',101),
+  (N'QLV',100),
   (N'QLCN',138),
   (N'NVBH',12),
   (N'KTK',124),

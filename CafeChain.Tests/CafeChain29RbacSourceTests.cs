@@ -139,6 +139,7 @@ public sealed class CafeChain29RbacSourceTests
         Assert.Equal(new[] { 1, 0, 0, 0, 0, 0, 0, 0 }, grants["ProductionOrder.ApproveVariance"]);
         Assert.Equal(new[] { 0, 0, 1, 0, 0, 0, 0, 0 }, grants["ProductionOrder.Cancel"]);
         Assert.Equal(new[] { 0, 0, 0, 0, 1, 0, 0, 0 }, grants["Restock.SelectProductionSource"]);
+        Assert.Equal(new[] { 1, 0, 1, 0, 0, 0, 0, 0 }, grants["InventoryThreshold.Update"]);
     }
 
     [Fact]
