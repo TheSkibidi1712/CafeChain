@@ -8718,7 +8718,7 @@ BEGIN TRY
   (N'PreparedItem.Create',1,0,0,0,1,0,0,0),
   (N'PreparedItem.Update',1,0,0,0,1,0,0,0),
   (N'ProductionOrder.View',1,1,1,0,1,0,0,1),
-  (N'ProductionOrder.Create',1,0,1,0,1,0,0,1),
+  (N'ProductionOrder.Create',1,0,1,0,1,0,0,0),
   (N'ProductionOrder.Confirm',1,0,1,0,1,0,0,1),
   (N'ProductionOrder.Plan',0,0,1,0,0,0,0,0),
   (N'ProductionOrder.Release',0,0,1,0,0,0,0,0),
@@ -9041,7 +9041,7 @@ BEGIN TRY
   (N'QLCN',138),
   (N'NVBH',12),
   (N'KTK',124),
-  (N'CT',37);
+  (N'CT',36);
 
  INSERT #ExpectedRoleCounts(RoleKey,ExpectedCount)
  SELECT N'QTHT',COUNT(*)

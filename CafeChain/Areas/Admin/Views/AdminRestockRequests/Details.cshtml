@@ -10,6 +10,7 @@
     ViewData["Title"] = $"Chi tiết {demandLabel.ToLowerInvariant()}";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var canWarehouse = ViewBag.CanWarehouse as bool? ?? false;
+    var canStartProcessing = ViewBag.CanStartProcessing as bool? ?? false;
     var canCancel = ViewBag.CanCancel as bool? ?? false;
     var canSubmit = ViewBag.CanSubmit as bool? ?? false;
     var canAddDemand = ViewBag.CanAddDemand as bool? ?? false;
@@ -458,7 +459,7 @@
             <section class="ops-panel ops-next-action">
                 <div class="ops-panel-header"><h2 class="ops-panel-title">Thao tác tiếp theo</h2></div>
                 <div class="ops-panel-body">
-                    @if (canWarehouse && Model.Status == "SUBMITTED")
+                    @if (canStartProcessing && Model.Status == "SUBMITTED")
                     {
                         <form method="post" asp-action="StartProcessing" asp-route-id="@Model.RestockRequestId" class="mb-3">@Html.AntiForgeryToken()<input type="hidden" name="rowVersion" value="@Model.RowVersion" /><button type="submit" class="ops-btn ops-btn-primary w-100"><i class="fa-solid fa-play" aria-hidden="true"></i> Tiếp nhận xử lý</button></form>
                     }
