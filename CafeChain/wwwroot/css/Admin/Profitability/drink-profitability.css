@@ -519,10 +519,11 @@ textarea.pf-control {
    OFFCANVAS DRAWERS (PRICE & POLICY)
    ========================================================================== */
 .pf-drawer {
-    width: min(500px, 100vw);
+    --bs-offcanvas-width: min(760px, calc(100vw - 40px));
+    width: min(760px, calc(100vw - 40px));
     display: grid;
     grid-template-rows: auto 1fr auto;
-    background: var(--cc-surface-raised, #ffffff);
+    background: var(--cc-surface-raised, #fffdfb);
     border-left: 1px solid var(--cc-border-strong, #d8c5b6);
     box-shadow: var(--cc-shadow-lg, 0 18px 48px rgba(32, 24, 18, 0.14));
 }
@@ -538,27 +539,88 @@ textarea.pf-control {
     background: var(--cc-surface-muted, #fbf7f2);
 }
 
-.pf-drawer-footer {
-    border-top: 1px solid var(--cc-border, #e9ded4);
-    border-bottom: 0;
-    justify-content: flex-end;
+/* Drawer header: cream gradient with decorative arcs — matches project design system */
+.pf-drawer-header {
+    position: relative;
+    min-height: 100px;
+    align-items: flex-start;
+    padding: 22px 24px;
+    background: linear-gradient(112deg, #FFFFFF 0%, #FBF7F2 62%, #F1E5DA 100%);
+    border-bottom: 1px solid var(--cc-border, #e9ded4);
+    overflow: hidden;
+    isolation: isolate;
 }
 
-.pf-drawer-header span {
-    color: var(--cc-brown-600, #70482f);
-    font-size: 12px;
+.pf-drawer-header > * {
+    position: relative;
+    z-index: 2;
+}
+
+.pf-drawer-header .cc-page-kicker {
+    display: block;
+    margin-bottom: 4px;
+    color: #8B6247;
+    font-size: 11px;
     font-weight: 800;
+    letter-spacing: 0.09em;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
 }
 
-.pf-drawer-header h2 {
+.pf-drawer-header .cc-page-title {
     margin: 2px 0 0;
     color: var(--cc-text, #201812);
     font-size: 20px;
     font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
 }
 
+/* Arc 1 — small circle top-right */
+.pf-drawer-header::before {
+    content: "";
+    display: block;
+    position: absolute;
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    border: 9px solid rgba(211, 140, 95, 0.18);
+    background: transparent;
+    top: -52px;
+    right: 70px;
+    pointer-events: none;
+    z-index: 1;
+    box-sizing: border-box;
+}
+
+/* Arc 2 — larger circle bottom-right */
+.pf-drawer-header::after {
+    content: "";
+    display: block;
+    position: absolute;
+    width: 85px;
+    height: 85px;
+    border-radius: 50%;
+    border: 8px solid rgba(211, 140, 95, 0.14);
+    background: transparent;
+    bottom: -32px;
+    right: -14px;
+    pointer-events: none;
+    z-index: 1;
+    box-sizing: border-box;
+}
+
+.pf-drawer-footer {
+    border-top: 1px solid var(--cc-border, #e9ded4);
+    border-bottom: 0;
+    justify-content: flex-end;
+    background: var(--cc-surface-muted, #fbf7f2);
+}
+
+.pf-drawer-body {
+    overflow-y: auto;
+    padding: 24px;
+    background: var(--cc-surface-raised, #fffdfb);
+}
 .pf-icon-button {
     display: inline-flex;
     align-items: center;
@@ -577,26 +639,43 @@ textarea.pf-control {
     background: var(--cc-surface-active, #f4e9df);
 }
 
-.pf-drawer-body {
-    overflow-y: auto;
-    padding: 24px;
-}
 
 .pf-price-summary {
     display: grid;
     grid-template-columns: 1fr 1fr;
     border: 1px solid var(--cc-border, #e9ded4);
-    border-radius: var(--cc-radius-sm, 8px);
+    border-radius: var(--cc-radius-md, 12px);
     background: var(--cc-surface-muted, #fbf7f2);
     margin-bottom: 16px;
+    overflow: hidden;
 }
 
 .pf-price-summary > div {
-    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 14px 16px;
 }
 
 .pf-price-summary > div + div {
     border-left: 1px solid var(--cc-border, #e9ded4);
+}
+
+.pf-price-summary span {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--cc-text-secondary, #66584F);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.pf-price-summary strong {
+    display: block;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--cc-text, #201812);
+    line-height: 1.3;
 }
 
 .pf-form-section {
