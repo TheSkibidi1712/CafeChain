@@ -27,7 +27,7 @@ public sealed class AIImportEntityRegistry
         Descriptors.GetValueOrDefault(entityType);
 
     public AIImportEntityDescriptor Get(AIImportEntityType entityType) =>
-        Find(entityType) ?? throw new InvalidOperationException($"Entity {entityType} nằm ngoài phạm vi AI Smart Import.");
+        Find(entityType) ?? throw new InvalidOperationException("Loại dữ liệu nằm ngoài phạm vi nhập dữ liệu thông minh.");
 
     public string BusinessKey(AIImportEntityType entityType, IReadOnlyDictionary<string, string?> values)
     {

@@ -30,6 +30,33 @@ public sealed class AiDashboardAndShiftOptimizationUiContractTests
     }
 
     [Fact]
+    public void DashboardAi_UserFacingLanguage_UsesVietnameseBusinessTerms()
+    {
+        var script = Read(
+            "CafeChain",
+            "wwwroot",
+            "js",
+            "Admin",
+            "Dashboard",
+            "dashboard-intelligence.js");
+        var guide = Read(
+            "CafeChain",
+            "Areas",
+            "Admin",
+            "Views",
+            "Dashboard",
+            "Guide.cshtml");
+
+        Assert.Contains("Bằng chứng", script, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("kết quả dự phòng an toàn", script, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Deterministic fallback", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("Evidence:", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("AnswerFocus", guide, StringComparison.Ordinal);
+        Assert.DoesNotContain("Chart / Evidence / Limitation", guide, StringComparison.Ordinal);
+        Assert.DoesNotContain("Retry", guide, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ScheduleConfigurationForm_HasFourLabeledGroupsAndNoProposalActions()
     {
         var view = Read(

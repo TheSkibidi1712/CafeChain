@@ -54,6 +54,12 @@
         G: "g", GRAM: "g", KG: "kg", KILOGRAM: "kg", ML: "ml", MILLILITER: "ml",
         L: "lít", LITER: "lít", PIECE: "cái", PCS: "cái", COUNT: "lần"
     };
+    const filterLabels = {
+        from: "Từ ngày", to: "Đến ngày", fromDate: "Từ ngày", toDate: "Đến ngày",
+        storeId: "Cửa hàng", storeIds: "Cửa hàng", provinceId: "Tỉnh hoặc thành phố",
+        wardId: "Xã, phường hoặc đặc khu", granularity: "Mức thời gian",
+        top: "Số kết quả", limit: "Số kết quả", status: "Trạng thái"
+    };
     const trendLabels = {
         Increasing: "Tăng", Decreasing: "Giảm", Stable: "Ổn định",
         MixedIncreasing: "Biến động nhưng tăng", MixedDecreasing: "Biến động nhưng giảm",
@@ -177,12 +183,12 @@
     }
 
     function fieldLabel(chart, key) {
-        return chart?.fieldLabels?.[key] || defaultLabels[key] || key;
+        return chart?.fieldLabels?.[key] || defaultLabels[key] || "Giá trị";
     }
 
     function localizedLabel(value, map, fallback = "Không xác định") {
         if (value === null || value === undefined || value === "") return fallback;
-        return map[value] || map[String(value).toUpperCase()] || String(value);
+        return map[value] || map[String(value).toUpperCase()] || fallback;
     }
 
     function displayUnitLabel(value) {
@@ -617,7 +623,7 @@
         const config = data.sectionConfig || {};
         const meta = element("div", "dashboard-intelligence__meta");
         [
-            `Kỳ Dashboard: ${String(period.from || "").slice(0, 10)} → ${String(period.to || "").slice(0, 10)}`,
+            `Kỳ phân tích: ${String(period.from || "").slice(0, 10)} → ${String(period.to || "").slice(0, 10)}`,
             `Cửa hàng: ${stores.length ? stores.join(", ") : (data.storeIds || []).join(", ")}`,
             `Trạng thái dữ liệu: ${localizedLabel(data.dataStatus, statusLabels, "Không xác định")}`,
             `Độ tin cậy: ${Math.round(Number(data.confidence || 0) * 100)}%`
@@ -679,13 +685,13 @@
             details.append(element("p", "", `Trạng thái: ${localizedLabel(source.dataStatus || data.dataStatus, statusLabels, "Không xác định")}`));
             const filters = Object.entries(source.appliedFilters || {});
             if (filters.length)
-                details.append(element("p", "", `Bộ lọc: ${filters.map(([key, value]) => `${key}=${value}`).join("; ")}`));
+                details.append(element("p", "", `Bộ lọc: ${filters.map(([key, value]) => `${filterLabels[key] || "Điều kiện lọc"}: ${value}`).join("; ")}`));
             if (Array.isArray(source.widgets) && source.widgets.length)
-                details.append(element("p", "", `Nguồn truy vấn: ${source.widgets.join(", ")}`));
+                details.append(element("p", "", `Nguồn truy vấn: ${source.widgets.length} thẻ dữ liệu nghiệp vụ.`));
             if (Array.isArray(source.evidenceIds) && source.evidenceIds.length)
-                details.append(element("p", "", `Evidence: ${source.evidenceIds.join(", ")}`));
+                details.append(element("p", "", `Mã bằng chứng: ${source.evidenceIds.join(", ")}`));
             if (source.usedFallback)
-                details.append(element("p", "", `Chế độ dự phòng: ${source.fallbackReason || "Deterministic fallback"}`));
+                details.append(element("p", "", "Chế độ dự phòng: hệ thống đã dùng kết quả theo quy tắc vì AI không khả dụng hoặc phản hồi chưa hợp lệ."));
             result.append(details);
         }
     }
@@ -726,7 +732,7 @@
         const contextId = root.dataset.contextId || "";
         const expectedFingerprint = root.dataset.filterFingerprint || "";
         setAnalyzeButtonLoading(true);
-        showStatus("Đang tải dữ liệu theo phạm vi quyền và xây dựng evidence...");
+        showStatus("Đang tải dữ liệu theo phạm vi quyền và xây dựng bằng chứng...");
         try {
             const data = await post(root.dataset.aiAnalyze, {
                 prompt: question,
@@ -744,8 +750,8 @@
                 root.dataset.filterFingerprint = data.filterFingerprint;
             renderResult(data);
             showStatus(data.usedFallback
-                ? "Đã hoàn tất bằng fallback an toàn; facts và biểu đồ backend vẫn khả dụng."
-                : "Đã hoàn tất phân tích dựa trên evidence.");
+                ? "Đã hoàn tất bằng kết quả dự phòng an toàn; dữ kiện và biểu đồ từ máy chủ vẫn khả dụng."
+                : "Đã hoàn tất phân tích dựa trên bằng chứng.");
         } catch (error) {
             if (error?.name !== "AbortError")
                 showStatus(error instanceof Error ? error.message : String(error), true);

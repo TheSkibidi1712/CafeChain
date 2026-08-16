@@ -143,7 +143,7 @@ public sealed class AIImportDocumentAiExtractor(
                     || !schemas.SupportedEntities.Contains(entity))
                 {
                     document.Metadata["aiFailureType"] = "AI_SCHEMA_ERROR";
-                    document.Warnings.Add(new AIImportErrorDto { Code = "KHÔNG_THUỘC_PHẠM_VI", Message = "AI nhận diện dữ liệu ngoài năm entity CREATE được hỗ trợ." });
+                    document.Warnings.Add(new AIImportErrorDto { Code = "KHÔNG_THUỘC_PHẠM_VI", Message = "AI nhận diện loại dữ liệu nằm ngoài năm loại được phép tạo mới." });
                     continue;
                 }
                 if (!record.TryGetProperty("confidence", out var confidenceNode)
@@ -328,7 +328,7 @@ public sealed class AIImportDocumentAiExtractor(
             {
                 var issue = AIImportValidationContract.Issue(
                     "XUNG_ĐỘT_TRÍCH_XUẤT",
-                    "Các AI chunk trả về cùng business key nhưng payload khác nhau; cần người dùng xử lý.",
+                    "Các phần dữ liệu do AI xử lý trả về cùng khóa nghiệp vụ nhưng nội dung khác nhau; cần người dùng xử lý.",
                     AIImportIssueSeverities.Error,
                     resolution: AIImportIssueResolutions.ReuploadOrSkip,
                     metadata: new Dictionary<string, object?> { ["businessKey"] = key });
