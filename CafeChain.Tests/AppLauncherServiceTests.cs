@@ -94,4 +94,72 @@ public sealed class AppLauncherServiceTests
         Assert.Contains(result.Apps, x => x.Code == AppCode.AdminDashboard);
         Assert.DoesNotContain(result.Apps, x => x.Code == AppCode.OperationalIce);
     }
+
+    [Fact]
+    public async Task Production_view_adds_direct_card_without_admin_dashboard_access()
+    {
+        var permissions = new Mock<IAdminPermissionService>();
+        permissions.Setup(x => x.HasPermissionAsync(19, It.IsAny<string>(), null))
+            .ReturnsAsync((int _, string code, int? _) =>
+                ServiceResult<PermissionDecisionDto>.Success(new PermissionDecisionDto
+                {
+                    AccountId = 19,
+                    PermissionCode = code,
+                    Allowed = code is PermissionConstants.ProductionOrderView
+                        or PermissionConstants.AppStaffHub
+                }));
+        var service = new AppLauncherService(permissions.Object);
+
+        var result = await service.GetAppsAsync(19, "Ca trưởng");
+
+        var production = Assert.Single(result.Apps, x => x.Code == AppCode.ProductionOrders);
+        Assert.Equal("Lệnh sản xuất", production.Title);
+        Assert.Equal("/Admin/AdminProductionOrder", production.Route);
+        Assert.False(production.RequiresLaunch);
+        Assert.DoesNotContain(result.Apps, x => x.Code == AppCode.AdminDashboard);
+    }
+
+    [Fact]
+    public async Task Admin_dashboard_suppresses_production_fallback_card()
+    {
+        var permissions = new Mock<IAdminPermissionService>();
+        permissions.Setup(x => x.HasPermissionAsync(20, It.IsAny<string>(), null))
+            .ReturnsAsync((int _, string code, int? _) =>
+                ServiceResult<PermissionDecisionDto>.Success(new PermissionDecisionDto
+                {
+                    AccountId = 20,
+                    PermissionCode = code,
+                    Allowed = code is PermissionConstants.AppAdminDashboard
+                        or PermissionConstants.ProductionOrderView
+                }));
+        var service = new AppLauncherService(permissions.Object);
+
+        var result = await service.GetAppsAsync(20, "Quản lý");
+
+        Assert.Contains(result.Apps, x => x.Code == AppCode.AdminDashboard);
+        Assert.DoesNotContain(result.Apps, x => x.Code == AppCode.ProductionOrders);
+    }
+
+    [Fact]
+    public async Task System_permission_manage_adds_direct_technical_card_without_business_dashboard()
+    {
+        var permissions = new Mock<IAdminPermissionService>();
+        permissions.Setup(x => x.HasPermissionAsync(21, It.IsAny<string>(), null))
+            .ReturnsAsync((int _, string code, int? _) =>
+                ServiceResult<PermissionDecisionDto>.Success(new PermissionDecisionDto
+                {
+                    AccountId = 21,
+                    PermissionCode = code,
+                    Allowed = code == PermissionConstants.SystemPermissionManage
+                }));
+        var service = new AppLauncherService(permissions.Object);
+
+        var result = await service.GetAppsAsync(21, "Quản trị hệ thống");
+
+        var technical = Assert.Single(result.Apps);
+        Assert.Equal(AppCode.SystemAdministration, technical.Code);
+        Assert.Equal("Quản trị hệ thống", technical.Title);
+        Assert.Equal("/Admin/AdminPermission", technical.Route);
+        Assert.DoesNotContain(result.Apps, x => x.Code == AppCode.AdminDashboard);
+    }
 }

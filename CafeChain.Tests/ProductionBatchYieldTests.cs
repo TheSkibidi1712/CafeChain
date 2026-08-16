@@ -1,6 +1,7 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Permissions;
 using CafeChain.Application.DTOs.Admin.Production;
+using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Admin.Production;
 using CafeChain.Application.Interfaces.Inventories;
@@ -63,6 +64,9 @@ public sealed class ProductionBatchYieldTests : IntegrationTestBase
         var restock = await context.RestockRequests.SingleAsync();
         Assert.Equal(RestockRequestStatuses.PartiallyReceived, restock.Status);
         Assert.Equal(400m, restock.RequestedQuantity - posting.Quantity);
+        Assert.Equal(RestockSourcingAllocationStatuses.Released,
+            (await context.RestockSourcingAllocations.SingleAsync()).Status);
+        Assert.Equal(RestockSourcingStatuses.Unallocated, restock.SourcingStatus);
         Assert.Equal(900m, await context.InventoryCostLayers
             .Where(x => x.IngredientId == IngredientId)
             .Select(x => 5_000m - x.RemainingQuantity)
@@ -88,6 +92,8 @@ public sealed class ProductionBatchYieldTests : IntegrationTestBase
             .SingleAsync());
         Assert.Equal(10_000m, Assert.Single(context.RestockFulfillmentPostings).Quantity);
         Assert.Equal(RestockRequestStatuses.Completed, (await context.RestockRequests.SingleAsync()).Status);
+        Assert.Equal(RestockSourcingAllocationStatuses.Released,
+            (await context.RestockSourcingAllocations.SingleAsync()).Status);
         Assert.Equal(500m, result.Data!.NormalizedOutputQuantity - 10_000m);
     }
 
@@ -129,6 +135,87 @@ public sealed class ProductionBatchYieldTests : IntegrationTestBase
         Assert.Equal(2, context.InventoryTransactions.Count());
         Assert.Single(context.RestockFulfillmentPostings);
         Assert.Single(context.InventoryCostLayers.Where(x => x.PreparedItemId == PreparedItemId));
+    }
+
+    [Fact]
+    public async Task CancelledRun_ReleasesProductionCoverage()
+    {
+        using var context = CreateDbContext();
+        var fixture = await SeedBaseAsync(context, ProductionRunStatus.Planned);
+
+        var result = await CreateOperationsService(context).CancelAsync(
+            fixture.RunId,
+            AcceptorStaffId,
+            "Không còn nhu cầu sản xuất");
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Equal(ProductionRunStatus.Cancelled, (await context.ProductionRuns.SingleAsync()).Status);
+        var allocation = await context.RestockSourcingAllocations.SingleAsync();
+        Assert.Equal(RestockSourcingAllocationStatuses.Released, allocation.Status);
+        Assert.Equal(AcceptorStaffId, allocation.ReleasedByStaffId);
+        Assert.NotNull(allocation.ReleasedAtUtc);
+        var demand = await context.RestockRequests.SingleAsync();
+        Assert.Equal(RestockSourcingStatuses.Unallocated, demand.SourcingStatus);
+        Assert.Null(demand.SourcingDecision);
+    }
+
+    [Fact]
+    public async Task CancelReplay_DoesNotReleaseTwice()
+    {
+        using var context = CreateDbContext();
+        var fixture = await SeedBaseAsync(context, ProductionRunStatus.Released);
+        var service = CreateOperationsService(context);
+
+        var first = await service.CancelAsync(fixture.RunId, AcceptorStaffId, "Dừng kế hoạch");
+        var releasedAt = (await context.RestockSourcingAllocations.AsNoTracking().SingleAsync()).ReleasedAtUtc;
+        var replay = await service.CancelAsync(fixture.RunId, AcceptorStaffId, "Gửi lại yêu cầu hủy");
+
+        Assert.True(first.IsSuccess, first.Message);
+        Assert.True(replay.IsSuccess, replay.Message);
+        Assert.True(replay.Data!.WasReplay);
+        Assert.Equal(releasedAt, (await context.RestockSourcingAllocations.AsNoTracking().SingleAsync()).ReleasedAtUtc);
+        Assert.Single(context.ProductionRunTransitions.Where(x => x.ToStatus == "CANCELLED"));
+    }
+
+    [Fact]
+    public async Task AcceptedOutput_ReevaluatesPreparedItemAlert()
+    {
+        using var context = CreateDbContext();
+        var fixture = await SeedAcceptanceAsync(context, acceptedOutput: 9_600m, actualInput: 900m);
+        var alerts = new Mock<IStockAlertService>();
+        alerts.Setup(x => x.EvaluateStoreInventoryItemAsync(
+                It.IsAny<int>(),
+                StockAlertSources.ProductionAcceptance))
+            .ReturnsAsync(ServiceResult<StockAlertEvaluationResultDto>.Success(new StockAlertEvaluationResultDto()));
+
+        var result = await CreateAcceptanceService(context, stockAlerts: alerts.Object)
+            .AcceptAsync(fixture.RunId, AcceptorStaffId);
+
+        Assert.True(result.IsSuccess, result.Message);
+        alerts.Verify(x => x.EvaluateStoreInventoryItemAsync(
+            It.IsAny<int>(),
+            StockAlertSources.ProductionAcceptance), Times.Once);
+    }
+
+    [Fact]
+    public async Task ReevaluationFailure_DoesNotRollbackAcceptedInventory()
+    {
+        using var context = CreateDbContext();
+        var fixture = await SeedAcceptanceAsync(context, acceptedOutput: 9_600m, actualInput: 900m);
+        var alerts = new Mock<IStockAlertService>();
+        alerts.Setup(x => x.EvaluateStoreInventoryItemAsync(It.IsAny<int>(), It.IsAny<string>()))
+            .ThrowsAsync(new InvalidOperationException("auxiliary reevaluation unavailable"));
+
+        var result = await CreateAcceptanceService(context, stockAlerts: alerts.Object)
+            .AcceptAsync(fixture.RunId, AcceptorStaffId);
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Equal(ProductionRunStatus.Completed, (await context.ProductionRuns.SingleAsync()).Status);
+        Assert.Equal(9_600m, await context.StoreInventories
+            .Where(x => x.PreparedItemId == PreparedItemId)
+            .Select(x => x.AvailableQty)
+            .SingleAsync());
+        Assert.Equal(2, await context.InventoryTransactions.CountAsync());
     }
 
     [Fact]
@@ -418,7 +505,8 @@ public sealed class ProductionBatchYieldTests : IntegrationTestBase
 
     private ProductionRunAcceptanceService CreateAcceptanceService(
         AppDbContext context,
-        ILogger<ProductionRunAcceptanceService>? logger = null)
+        ILogger<ProductionRunAcceptanceService>? logger = null,
+        IStockAlertService? stockAlerts = null)
     {
         var physical = new PhysicalUnitConversionService(context, NullLogger<PhysicalUnitConversionService>.Instance);
         var capabilities = new IInventoryWriterCapabilityProvider[]
@@ -434,7 +522,8 @@ public sealed class ProductionBatchYieldTests : IntegrationTestBase
             new InventoryCostLayerConsumptionService(context),
             new RestockFulfillmentPostingService(context),
             capabilities,
-            logger ?? NullLogger<ProductionRunAcceptanceService>.Instance);
+            logger ?? NullLogger<ProductionRunAcceptanceService>.Instance,
+            stockAlerts);
     }
 
     private static IAdminPermissionService AllowAllPermissions()

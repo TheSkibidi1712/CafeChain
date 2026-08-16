@@ -48,6 +48,7 @@ namespace CafeChain.Application.Constants
         public const string PosSale = "POS_SALE";
         public const string OfflineSync = "OFFLINE_SYNC";
         public const string InventoryTransaction = "INVENTORY_TRANSACTION";
+        public const string ProductionAcceptance = "PRODUCTION_ACCEPTANCE";
         /// <summary>Issue #98 — manual shortage report from POS.</summary>
         public const string SalesReport = "SALES_REPORT";
     }

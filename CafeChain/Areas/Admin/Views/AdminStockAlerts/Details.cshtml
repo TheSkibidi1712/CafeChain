@@ -1,5 +1,6 @@
 @model CafeChain.Application.DTOs.Admin.StockAlerts.StockAlertDetailDto
 @using CafeChain.Application.DTOs.Admin.RestockRequests
+@using CafeChain.Application.DTOs.Admin.Replenishment
 @using CafeChain.Application.Interfaces.Systems
 @using CafeChain.ViewModels.Admin.Shared
 @inject IBusinessDateService BusinessDateService
@@ -18,6 +19,8 @@
     var procurementUnitSuffix = string.IsNullOrWhiteSpace(Model.ProcurementUnitName)
         ? ""
         : $" {Model.ProcurementUnitName}";
+    var replenishment = ViewBag.PreparedItemReplenishment as PreparedItemReplenishmentDto;
+    var isPreparedItemDemand = replenishment != null;
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
@@ -56,7 +59,7 @@
         <div class="ops-metric"><span class="ops-metric-label">Tồn vật lý hiện tại</span><strong class="ops-metric-value">@(Model.OnHandQty.HasValue ? AdminStatusDisplay.Quantity(Model.OnHandQty.Value) : "—")</strong></div>
         <div class="ops-metric"><span class="ops-metric-label">Đang giữ chỗ</span><strong class="ops-metric-value warning">@(Model.ReservedQty.HasValue ? AdminStatusDisplay.Quantity(Model.ReservedQty.Value) : "—")</strong></div>
         <div class="ops-metric"><span class="ops-metric-label">Khả dụng hiện tại</span><strong class="ops-metric-value @(Model.AvailableQty.HasValue && Model.AvailableQty.Value <= 0 ? "danger" : "success")">@(Model.AvailableQty.HasValue ? AdminStatusDisplay.Quantity(Model.AvailableQty.Value) : "—")</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Ngưỡng tối thiểu hiện tại</span><strong class="ops-metric-value">@(Model.CurrentMinimumThresholdBaseQuantity.HasValue ? $"{AdminStatusDisplay.Quantity(Model.CurrentMinimumThresholdBaseQuantity.Value)}{unitSuffix}" : "Chưa đặt")</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Ngưỡng cảnh báo tồn thấp</span><strong class="ops-metric-value">@(Model.CurrentMinimumThresholdBaseQuantity.HasValue ? $"{AdminStatusDisplay.Quantity(Model.CurrentMinimumThresholdBaseQuantity.Value)}{unitSuffix}" : "Chưa đặt")</strong></div>
     </section>
 
     <div class="ops-detail-grid">
@@ -112,7 +115,7 @@
                         }
                         @if (openRestock != null)
                         {
-                            <li><strong>Đã tạo yêu cầu nhập hàng #@openRestock.RestockRequestId</strong><div class="ops-secondary">@AdminStatusDisplay.DateTime(BusinessDateService.ToBusinessTime(openRestock.CreatedAt)) · @AdminStatusDisplay.RestockRequest(openRestock.Status).Label</div></li>
+                            <li><strong>Đã tạo @(isPreparedItemDemand ? "nhu cầu bổ sung" : "yêu cầu nhập hàng") #@openRestock.RestockRequestId</strong><div class="ops-secondary">@AdminStatusDisplay.DateTime(BusinessDateService.ToBusinessTime(openRestock.CreatedAt)) · @AdminStatusDisplay.RestockRequest(openRestock.Status).Label</div></li>
                         }
                         @if (Model.ResolvedAt.HasValue)
                         {
@@ -204,7 +207,7 @@
             @if (openRestock != null)
             {
                 <section class="ops-panel">
-                    <div class="ops-panel-header"><h2 class="ops-panel-title">Yêu cầu nhập đang mở</h2></div>
+                    <div class="ops-panel-header"><h2 class="ops-panel-title">Nhu cầu bổ sung đang mở</h2></div>
                     <div class="ops-panel-body">
                         <div class="ops-data-grid">
                             <div><span class="ops-data-label">Mã yêu cầu</span><span class="ops-data-value">#@openRestock.RestockRequestId</span></div>
@@ -212,26 +215,50 @@
                             <div><span class="ops-data-label">Số lượng</span><span class="ops-data-value">@AdminStatusDisplay.Quantity(openRestock.RequestedQuantity)</span></div>
                             <div><span class="ops-data-label">Ưu tiên</span><span class="ops-data-value">@AdminStatusDisplay.RestockRequestPriority(openRestock.Priority).Label</span></div>
                         </div>
-                        <a class="ops-btn ops-btn-primary w-100 text-center mt-3" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@openRestock.RestockRequestId" asp-route-storeId="@Model.StoreId">Mở yêu cầu nhập</a>
+                        <a class="ops-btn ops-btn-primary w-100 text-center mt-3" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@openRestock.RestockRequestId" asp-route-storeId="@Model.StoreId">Mở nhu cầu bổ sung</a>
                     </div>
                 </section>
             }
             else if (isConfirmed)
             {
                 <section class="ops-panel">
-                    <div class="ops-panel-header"><h2 class="ops-panel-title">Tạo yêu cầu nhập hàng</h2></div>
+                    <div class="ops-panel-header"><h2 class="ops-panel-title">@(isPreparedItemDemand ? "Tạo nhu cầu bổ sung" : "Tạo yêu cầu nhập hàng")</h2></div>
                     <div class="ops-panel-body">
                         <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="CreateRestockRequest" method="post">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@Model.StockAlertId" />
                             <input type="hidden" name="storeId" value="@Model.StoreId" />
-                            <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
-                            <input type="hidden" name="procurementUnitId" value="@Model.ProcurementUnitId" />
+                            <input type="hidden" name="rowVersion" value="@(replenishment?.RowVersion ?? Model.RowVersion)" />
+                            @if (!isPreparedItemDemand)
+                            {
+                                <input type="hidden" name="procurementUnitId" value="@Model.ProcurementUnitId" />
+                            }
                             <div class="ops-form-group">
-                                <label class="ops-form-label" for="requestedProcurementQuantity">Số lượng yêu cầu theo đơn vị mua hàng@(string.IsNullOrWhiteSpace(Model.ProcurementUnitName) ? "" : $" ({Model.ProcurementUnitName})") <span class="text-danger">*</span></label>
-                                <input id="requestedProcurementQuantity" type="number" name="requestedProcurementQuantity" class="ops-input w-100" step="0.001" min="0.001" max="@(suggestedProcurement is > 0 ? suggestedProcurement.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" required disabled="@(suggestedProcurement is not > 0 || !Model.ProcurementUnitId.HasValue ? "disabled" : null)" value="@(suggestedProcurement is > 0 ? suggestedProcurement.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" />
+                                @if (isPreparedItemDemand)
+                                {
+                                    <div class="ops-data-grid">
+                                        <div><span class="ops-data-label">Tồn khả dụng</span><span class="ops-data-value">@replenishment!.UsableBase.ToString("N3") @replenishment.BaseUnitCode</span></div>
+                                        <div><span class="ops-data-label">Ngưỡng cảnh báo tồn thấp</span><span class="ops-data-value">@(replenishment.LowThresholdBase?.ToString("N3") ?? "Chưa cấu hình")</span></div>
+                                        <div><span class="ops-data-label">Mức tồn mục tiêu</span><span class="ops-data-value">@(replenishment.TargetStockBase?.ToString("N3") ?? "Chưa cấu hình")</span></div>
+                                        <div><span class="ops-data-label">Nguồn sản xuất đang mở</span><span class="ops-data-value">@(replenishment.OpenProductionCoverageBase?.ToString("N3") ?? "Chưa xác định")</span></div>
+                                        <div><span class="ops-data-label">Còn cần bổ sung</span><span class="ops-data-value">@(replenishment.NetNeedBase?.ToString("N3") ?? "Chưa thể tính") @replenishment.BaseUnitCode</span></div>
+                                    </div>
+                                    @if (!replenishment.NetNeedBase.HasValue)
+                                    {
+                                        <div class="ops-notice ops-notice-warning mt-2">@replenishment.BusinessMessageVi</div>
+                                    }
+                                }
+                                else
+                                {
+                                    <label class="ops-form-label" for="requestedProcurementQuantity">Số lượng yêu cầu theo đơn vị mua hàng@(string.IsNullOrWhiteSpace(Model.ProcurementUnitName) ? "" : $" ({Model.ProcurementUnitName})") <span class="text-danger">*</span></label>
+                                    <input id="requestedProcurementQuantity" type="number" name="requestedProcurementQuantity" class="ops-input w-100" step="0.001" min="0.001" max="@(suggestedProcurement is > 0 ? suggestedProcurement.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" required disabled="@(suggestedProcurement is not > 0 || !Model.ProcurementUnitId.HasValue ? "disabled" : null)" value="@(suggestedProcurement is > 0 ? suggestedProcurement.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" />
+                                }
                                 <div class="ops-help">
-                                    @if (Model.IsOutOfThresholdManualDemand)
+                                    @if (isPreparedItemDemand)
+                                    {
+                                        <span>Số lượng được tính lại trên máy chủ khi xác nhận; dữ liệu trên màn hình không phải quyền lực ghi nhận.</span>
+                                    }
+                                    else if (Model.IsOutOfThresholdManualDemand)
                                     {
                                         <span>Nhu cầu đã xác minh: mục tiêu thủ công − khả dụng = @(suggestedProcurement.HasValue ? $"{AdminStatusDisplay.Quantity(suggestedProcurement.Value)}{procurementUnitSuffix}" : "chưa đủ dữ liệu đơn vị mua hàng").</span>
                                     }
@@ -239,7 +266,7 @@
                                     {
                                         <span>Bù đến ngưỡng tối thiểu: max(0, ngưỡng − khả dụng) = @(suggestedProcurement.HasValue ? $"{AdminStatusDisplay.Quantity(suggestedProcurement.Value)}{procurementUnitSuffix}" : "chưa đủ dữ liệu đơn vị mua hàng").</span>
                                     }
-                                    <span class="d-block mt-1">Snapshot tồn kho tương ứng: @(suggestedBase.HasValue ? $"{AdminStatusDisplay.Quantity(suggestedBase.Value)}{unitSuffix}" : "chưa đủ dữ liệu").</span>
+                                    <span class="d-block mt-1">Dữ liệu tồn kho tại thời điểm ghi nhận: @(suggestedBase.HasValue ? $"{AdminStatusDisplay.Quantity(suggestedBase.Value)}{unitSuffix}" : "chưa đủ dữ liệu").</span>
                                 </div>
                             </div>
                             <div class="ops-form-group">
@@ -254,7 +281,7 @@
                                 <label class="ops-form-label" for="note">Ghi chú</label>
                                 <textarea id="note" name="note" class="ops-textarea" maxlength="500" placeholder="Thông tin cần lưu ý cho bộ phận kho..."></textarea>
                             </div>
-                            <button type="submit" class="ops-btn ops-btn-primary w-100" disabled="@(suggestedProcurement is not > 0 || !Model.ProcurementUnitId.HasValue ? "disabled" : null)"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Gửi yêu cầu nhập</button>
+                            <button type="submit" class="ops-btn ops-btn-primary w-100" disabled="@(isPreparedItemDemand ? replenishment!.NetNeedBase is not > 0 : suggestedProcurement is not > 0 || !Model.ProcurementUnitId.HasValue ? "disabled" : null)"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> @(isPreparedItemDemand ? "Xác nhận nhu cầu bổ sung" : "Gửi yêu cầu nhập")</button>
                         </form>
                         <details class="ops-danger-disclosure">
                             <summary>Đóng cảnh báo mà không tạo yêu cầu</summary>

@@ -109,13 +109,10 @@ namespace CafeChain.Tests.POS
         public void AdminPreparedItem_Index_WriteRole_ShowsCreateButton()
         {
             var html = ReadIndexView();
-            Assert.Contains("id=\"btnCreate\"", html, StringComparison.Ordinal);
+            Assert.Contains("var heroActions = canWrite", html, StringComparison.Ordinal);
+            Assert.Contains("Id = \"btnCreate\"", html, StringComparison.Ordinal);
             Assert.Contains("Tạo bán thành phẩm", html, StringComparison.Ordinal);
-            // Header CTA must stay behind the same canWrite gate as empty-state CTA.
-            Assert.Contains("@if (canWrite)", html, StringComparison.Ordinal);
-            var btnCreateIdx = html.IndexOf("id=\"btnCreate\"", StringComparison.Ordinal);
-            var canWriteBefore = html.LastIndexOf("@if (canWrite)", btnCreateIdx, StringComparison.Ordinal);
-            Assert.True(canWriteBefore >= 0, "btnCreate must be inside @if (canWrite)");
+            Assert.Contains("Actions = heroActions", html, StringComparison.Ordinal);
         }
 
         [Fact]

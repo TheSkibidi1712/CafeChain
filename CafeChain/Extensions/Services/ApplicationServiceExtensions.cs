@@ -302,6 +302,9 @@ namespace CafeChain.Extensions.Services
                 CafeChain.Application.Interfaces.Admin.Production.IProductionSourceEligibilityService,
                 CafeChain.Application.Services.Admin.Production.ProductionSourceEligibilityService>();
             services.AddScoped<
+                CafeChain.Application.Interfaces.Admin.Production.IPreparedItemProductionCapabilityService,
+                CafeChain.Application.Services.Admin.Production.PreparedItemProductionCapabilityService>();
+            services.AddScoped<
                 CafeChain.Application.Interfaces.Admin.Production.IProductionRunOperationsService,
                 CafeChain.Application.Services.Admin.Production.ProductionRunOperationsService>();
             services.AddScoped<
@@ -359,6 +362,8 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IAdminStoreInventoryService, AdminStoreInventoryService>();
             // Issue #104 — MinStockLevel thresholds (Admin)
             services.AddScoped<IInventoryThresholdService, InventoryThresholdService>();
+            services.AddScoped<IPreparedItemInventoryBootstrapService, PreparedItemInventoryBootstrapService>();
+            services.AddScoped<IPreparedItemReplenishmentReadService, PreparedItemReplenishmentReadService>();
 
             // Admin - Suppliers
             services.AddScoped<IAdminSupplierService, AdminSupplierService>();

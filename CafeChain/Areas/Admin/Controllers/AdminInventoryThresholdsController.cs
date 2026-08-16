@@ -14,7 +14,7 @@ namespace CafeChain.Areas.Admin.Controllers
     /// <summary>
     /// Issue #104 — configure MinStockLevel for StoreInventory (Admin MVC).
     /// Read: any Admin panel role with store scope.
-    /// Edit: StoreManager / AreaManager / BusinessOwner / SystemAdmin only.
+    /// Edit: effective InventoryThreshold.Update permission within Store scope.
     /// </summary>
     [RequirePermission(PermissionConstants.InventoryThresholdView)]
     public class AdminInventoryThresholdsController : AdminBaseController
@@ -65,6 +65,8 @@ namespace CafeChain.Areas.Admin.Controllers
         public async Task<IActionResult> Update(
             int storeInventoryId,
             string? minStockLevel,
+            string? targetStockLevel,
+            bool preparedItemPolicy,
             string? rowVersion,
             int storeId = 0,
             string? search = null,
@@ -86,32 +88,23 @@ namespace CafeChain.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Index), new { storeId, search, page });
             }
 
-            decimal? value = null;
-            if (!string.IsNullOrWhiteSpace(minStockLevel))
+            if (!TryParseOptionalQuantity(minStockLevel, out var value))
             {
-                if (!decimal.TryParse(
-                        minStockLevel.Trim().Replace(',', '.'),
-                        NumberStyles.Number,
-                        CultureInfo.InvariantCulture,
-                        out var parsed) &&
-                    !decimal.TryParse(
-                        minStockLevel.Trim(),
-                        NumberStyles.Number,
-                        CultureInfo.GetCultureInfo("vi-VN"),
-                        out parsed))
-                {
-                    TempData["ErrorMessage"] = "Ngưỡng tồn tối thiểu không hợp lệ.";
-                    return RedirectToAction(nameof(Index), new { storeId, search, page });
-                }
-
-                value = parsed;
+                TempData["ErrorMessage"] = "Ngưỡng cảnh báo tồn thấp không hợp lệ.";
+                return RedirectToAction(nameof(Index), new { storeId, search, page });
             }
 
-            var result = await _service.UpdateMinStockLevelAsync(
-                accountId,
-                storeInventoryId,
-                value,
-                rowVersion);
+            if (!TryParseOptionalQuantity(targetStockLevel, out var target))
+            {
+                TempData["ErrorMessage"] = "Mức tồn mục tiêu không hợp lệ.";
+                return RedirectToAction(nameof(Index), new { storeId, search, page });
+            }
+
+            var result = preparedItemPolicy
+                ? await _service.UpdatePreparedItemPolicyAsync(
+                    accountId, storeInventoryId, value, target, rowVersion)
+                : await _service.UpdateMinStockLevelAsync(
+                    accountId, storeInventoryId, value, rowVersion);
             if (!result.IsSuccess)
                 TempData["ErrorMessage"] = result.Message;
             else
@@ -130,6 +123,30 @@ namespace CafeChain.Areas.Admin.Controllers
                 return 0;
 
             return int.TryParse(claim.Value, out var id) ? id : 0;
+        }
+
+        private static bool TryParseOptionalQuantity(string? text, out decimal? value)
+        {
+            value = null;
+            if (string.IsNullOrWhiteSpace(text))
+                return true;
+
+            if (!decimal.TryParse(
+                    text.Trim().Replace(',', '.'),
+                    NumberStyles.Number,
+                    CultureInfo.InvariantCulture,
+                    out var parsed)
+                && !decimal.TryParse(
+                    text.Trim(),
+                    NumberStyles.Number,
+                    CultureInfo.GetCultureInfo("vi-VN"),
+                    out parsed))
+            {
+                return false;
+            }
+
+            value = parsed;
+            return true;
         }
     }
 }

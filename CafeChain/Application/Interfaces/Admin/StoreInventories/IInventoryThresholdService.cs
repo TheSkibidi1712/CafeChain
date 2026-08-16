@@ -18,5 +18,12 @@ namespace CafeChain.Application.Interfaces.Admin.StoreInventories
             int storeInventoryId,
             decimal? minStockLevel,
             string? rowVersion);
+
+        Task<ServiceResult> UpdatePreparedItemPolicyAsync(
+            int accountId,
+            int storeInventoryId,
+            decimal? minStockLevel,
+            decimal? targetStockLevel,
+            string? rowVersion);
     }
 }

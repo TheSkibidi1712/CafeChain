@@ -183,6 +183,16 @@ namespace CafeChain.Data.Configurations.Stores
                 );
 
                 t.HasCheckConstraint(
+                    "CK_StoreInventories_TargetStock_NonNegative",
+                    "[TargetStockLevel] IS NULL OR [TargetStockLevel] >= 0"
+                );
+
+                t.HasCheckConstraint(
+                    "CK_StoreInventories_TargetStock_AtLeastMin",
+                    "[TargetStockLevel] IS NULL OR [MinStockLevel] IS NULL OR [TargetStockLevel] >= [MinStockLevel]"
+                );
+
+                t.HasCheckConstraint(
                     "CK_StoreInventories_BtpLifecycle",
                     @"([IngredientId] IS NOT NULL
                         AND [BtpIdentityState] IS NULL
@@ -238,6 +248,9 @@ namespace CafeChain.Data.Configurations.Stores
 
             // Issue #97 — nullable min threshold for stock alerts
             entity.Property(x => x.MinStockLevel)
+                .HasColumnType("decimal(18,3)");
+
+            entity.Property(x => x.TargetStockLevel)
                 .HasColumnType("decimal(18,3)");
 
             entity.Property(x => x.LastUpdated)

@@ -24,6 +24,15 @@ namespace CafeChain.Application.Interfaces.Inventories
             string? note,
             string? priority);
 
+        Task<ServiceResult<CreateRestockRequestResultDto>> CreatePreparedItemDemandFromConfirmedAlertAsync(
+            int alertId,
+            int managerStaffId,
+            int accountId,
+            int managerStoreId,
+            string? stockRowVersion,
+            string? note,
+            string? priority);
+
         Task<ServiceResult<RestockRequestListResultDto>> ListForStoreAsync(
             int storeId,
             string? statusFilter,

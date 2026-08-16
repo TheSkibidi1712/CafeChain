@@ -3,6 +3,7 @@ using CafeChain.Application.Authorization;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Admin.StoreInventories;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CafeChain.Areas.Admin.Controllers
@@ -18,17 +19,20 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IRestockRequestService _restockService;
         private readonly IAdminActorContextAccessor _actor;
         private readonly IAdminStoreScopeResolver _storeScopeResolver;
+        private readonly IPreparedItemReplenishmentReadService? _preparedItemReplenishment;
 
         public AdminStockAlertsController(
             IStockAlertManagerService service,
             IRestockRequestService restockService,
             IAdminActorContextAccessor actor,
-            IAdminStoreScopeResolver storeScopeResolver)
+            IAdminStoreScopeResolver storeScopeResolver,
+            IPreparedItemReplenishmentReadService? preparedItemReplenishment = null)
         {
             _service = service;
             _restockService = restockService;
             _actor = actor;
             _storeScopeResolver = storeScopeResolver;
+            _preparedItemReplenishment = preparedItemReplenishment;
         }
 
         [HttpGet]
@@ -87,6 +91,16 @@ namespace CafeChain.Areas.Admin.Controllers
 
             var openRestock = await _restockService.GetOpenByAlertAsync(id, targetStoreId);
             ViewBag.OpenRestockRequest = openRestock.IsSuccess ? openRestock.Data : null;
+            if (result.Data.PreparedItemId.HasValue && _preparedItemReplenishment != null)
+            {
+                var replenishment = await _preparedItemReplenishment.GetAsync(
+                    actor.AccountId,
+                    targetStoreId,
+                    result.Data.PreparedItemId.Value);
+                ViewBag.PreparedItemReplenishment = replenishment.IsSuccess
+                    ? replenishment.Data
+                    : null;
+            }
             SetStoreScopeViewData(storeScope);
             ViewBag.IsStoreManager = await HasEffectivePermissionAsync(PermissionConstants.StockAlertResolve);
             return View(result.Data);
@@ -181,6 +195,7 @@ namespace CafeChain.Areas.Admin.Controllers
             int procurementUnitId,
             string? priority,
             string? note,
+            string? rowVersion,
             int? storeId = null)
         {
             if (!await HasEffectivePermissionAsync(PermissionConstants.StockAlertCreateRestockRequest))
@@ -197,19 +212,32 @@ namespace CafeChain.Areas.Admin.Controllers
                 return StoreScopeFailure(storeScope);
             var targetStoreId = storeScope.StoreId!.Value;
 
-            var result = await _restockService.CreateFromConfirmedAlertProcurementAsync(
+            var result = await _restockService.CreatePreparedItemDemandFromConfirmedAlertAsync(
                 id,
                 actor.StaffId,
+                actor.AccountId,
                 targetStoreId,
+                rowVersion,
+                note,
+                priority);
+
+            if (!result.IsSuccess
+                && result.ErrorCode == "ALERT_NOT_CANONICAL_PREPARED_ITEM")
+            {
+                result = await _restockService.CreateFromConfirmedAlertProcurementAsync(
+                    id,
+                    actor.StaffId,
+                    targetStoreId,
                 requestedProcurementQuantity,
                 procurementUnitId,
                 note,
                 priority);
+            }
 
             if (!result.IsSuccess)
                 TempData["ErrorMessage"] = result.Message;
             else
-                TempData["SuccessMessage"] = result.Message ?? "Đã tạo yêu cầu nhập hàng nháp.";
+                TempData["SuccessMessage"] = result.Message ?? "Đã tạo nhu cầu bổ sung.";
 
             return RedirectToAction(nameof(Details), new { id, storeId = targetStoreId });
         }

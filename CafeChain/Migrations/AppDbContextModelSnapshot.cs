@@ -13077,6 +13077,9 @@ namespace CafeChain.Migrations
                     b.Property<int?>("SupersededByStoreInventoryId")
                         .HasColumnType("int");
 
+                    b.Property<decimal?>("TargetStockLevel")
+                        .HasColumnType("decimal(18,3)");
+
                     b.HasKey("StoreInventoryId");
 
                     b.HasIndex("IngredientId");
@@ -13117,6 +13120,10 @@ namespace CafeChain.Migrations
                             t.HasCheckConstraint("CK_StoreInventories_NotSelfSuperseded", "[SupersededByStoreInventoryId] IS NULL OR [SupersededByStoreInventoryId] <> [StoreInventoryId]");
 
                             t.HasCheckConstraint("CK_StoreInventories_QuantityEvidence", "[QuantitySemanticsStatus] IS NULL\r\n                    OR [QuantitySemanticsStatus] = 0\r\n                    OR ([QuantitySemanticsEvidenceType] IS NOT NULL\r\n                        AND [QuantitySemanticsEvidenceReference] IS NOT NULL\r\n                        AND [QuantitySemanticsReviewedAt] IS NOT NULL\r\n                        AND [QuantitySemanticsReviewedByAccountId] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_StoreInventories_TargetStock_AtLeastMin", "[TargetStockLevel] IS NULL OR [MinStockLevel] IS NULL OR [TargetStockLevel] >= [MinStockLevel]");
+
+                            t.HasCheckConstraint("CK_StoreInventories_TargetStock_NonNegative", "[TargetStockLevel] IS NULL OR [TargetStockLevel] >= 0");
 
                             t.HasCheckConstraint("CK_StoreInventories_XOR_Item", "([IngredientId] IS NOT NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NULL)\r\n                    OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NULL)\r\n                    OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NOT NULL)\r\n                    OR ([IngredientId] IS NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NOT NULL)");
 

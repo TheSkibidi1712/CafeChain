@@ -653,6 +653,72 @@
     border-top: 1px solid var(--recipe-border);
 }
 
+.recipe-workspace__replenishment-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    margin: 0 16px 16px;
+    border: 1px solid var(--recipe-border);
+    border-radius: 7px;
+    overflow: hidden;
+}
+
+.recipe-workspace__replenishment-grid article {
+    display: grid;
+    align-content: start;
+    gap: 6px;
+    min-width: 0;
+    padding: 14px;
+    border-right: 1px solid var(--recipe-border);
+}
+
+.recipe-workspace__replenishment-grid article:last-child {
+    border-right: 0;
+}
+
+.recipe-workspace__replenishment-grid span,
+.recipe-workspace__replenishment-grid small,
+.recipe-workspace__replenishment-limit {
+    color: var(--recipe-muted);
+    font-size: 11px;
+    overflow-wrap: anywhere;
+}
+
+.recipe-workspace__replenishment-grid strong {
+    font-size: 14px;
+    overflow-wrap: anywhere;
+}
+
+.recipe-workspace__replenishment-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 16px 16px;
+}
+
+.recipe-workspace__replenishment-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 38px;
+    padding: 8px 10px;
+    border: 1px solid var(--recipe-border-strong);
+    border-radius: 6px;
+    color: var(--recipe-ink);
+    font-size: 11px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.recipe-workspace__replenishment-links a:hover {
+    border-color: var(--recipe-caramel);
+    background: #fff9f3;
+    color: var(--recipe-ink);
+}
+
+.recipe-workspace__replenishment-limit {
+    margin: -6px 16px 16px;
+}
+
 .recipe-workspace__operations-grid article {
     display: grid;
     gap: 6px;
@@ -1133,6 +1199,22 @@
     .recipe-compare__change-group > article {
         grid-template-columns: 1fr;
     }
+
+    .recipe-workspace__replenishment-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .recipe-workspace__replenishment-grid article:nth-child(even) {
+        border-right: 0;
+    }
+
+    .recipe-workspace__replenishment-grid article {
+        border-bottom: 1px solid var(--recipe-border);
+    }
+
+    .recipe-workspace__replenishment-grid article:last-child {
+        border-bottom: 0;
+    }
 }
 
 @media (max-width: 767.98px) {
@@ -1141,6 +1223,28 @@
     .recipe-workspace__rail,
     .recipe-workspace__operations-grid {
         grid-template-columns: 1fr;
+    }
+
+    .recipe-workspace__replenishment-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .recipe-workspace__replenishment-grid article,
+    .recipe-workspace__replenishment-grid article:nth-child(even) {
+        border-right: 0;
+        border-bottom: 1px solid var(--recipe-border);
+    }
+
+    .recipe-workspace__replenishment-grid article:last-child {
+        border-bottom: 0;
+    }
+
+    .recipe-workspace__replenishment-links {
+        display: grid;
+    }
+
+    .recipe-workspace__replenishment-links a {
+        width: 100%;
     }
 
     .recipe-workspace__identity-main,

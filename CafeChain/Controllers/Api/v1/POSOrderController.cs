@@ -604,7 +604,10 @@ namespace CafeChain.Controllers.Api.v1
                     _logger.LogWarning(
                         "[POSOrderController] Inventory warnings: {WarningCount} items thiếu kho",
                         inventoryResult.Errors.Count);
-                    return inventoryResult.Errors;
+                    return inventoryResult.Errors
+                        .Select(PosInventoryWarningDisplayText.ToBusinessMessage)
+                        .Distinct(StringComparer.Ordinal)
+                        .ToList();
                 }
                 else if (!inventoryResult.IsSuccess)
                 {

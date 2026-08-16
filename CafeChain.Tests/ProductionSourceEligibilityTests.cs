@@ -64,7 +64,7 @@ public sealed class ProductionSourceEligibilityTests : IntegrationTestBase
             StoreId = store.StoreId,
             ActorAccountId = 5,
             IngredientId = ingredient.IngredientId,
-            RequiredPermissionCode = PermissionConstants.RestockSelectProductionSource
+            RequiredPermissionCode = PermissionConstants.ProductionOrderPlan
         });
 
         Assert.True(result.IsSuccess);
@@ -155,7 +155,7 @@ public sealed class ProductionSourceEligibilityTests : IntegrationTestBase
         StoreId = PreparedStoreId,
         ActorAccountId = 5,
         PreparedItemId = PreparedItemId,
-        RequiredPermissionCode = PermissionConstants.RestockSelectProductionSource
+        RequiredPermissionCode = PermissionConstants.ProductionOrderPlan
     };
 
     private static ProductionSourceEligibilityService CreateService(

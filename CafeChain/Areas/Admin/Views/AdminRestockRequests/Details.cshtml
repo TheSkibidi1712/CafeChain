@@ -1,15 +1,23 @@
 @model CafeChain.Application.DTOs.Admin.RestockRequests.RestockRequestWorkflowDetailDto
 @using CafeChain.Application.Constants
 @using CafeChain.Application.DTOs.Admin.Production
+@using CafeChain.Application.DTOs.Admin.Replenishment
 @using CafeChain.Application.DTOs.Admin.RestockRequests
 @using CafeChain.ViewModels.Admin.Shared
 @{
-    ViewData["Title"] = "Chi tiết yêu cầu nhập hàng";
+    var isPreparedItemDemand = Model.PreparedItemId.HasValue;
+    var demandLabel = isPreparedItemDemand ? "Nhu cầu bổ sung" : "Yêu cầu nhập hàng";
+    ViewData["Title"] = $"Chi tiết {demandLabel.ToLowerInvariant()}";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var canWarehouse = ViewBag.CanWarehouse as bool? ?? false;
+    var canStartProcessing = ViewBag.CanStartProcessing as bool? ?? false;
     var canCancel = ViewBag.CanCancel as bool? ?? false;
     var canSubmit = ViewBag.CanSubmit as bool? ?? false;
     var canAddDemand = ViewBag.CanAddDemand as bool? ?? false;
+    var canViewStockAlerts = ViewBag.CanViewStockAlerts as bool? ?? false;
+    var canViewProduction = ViewBag.CanViewProduction as bool? ?? false;
+    var preparedItemReplenishment = ViewBag.PreparedItemReplenishment as PreparedItemReplenishmentDto;
+    var preparedItemAdditionalDemandBase = ViewBag.PreparedItemAdditionalDemandBase as decimal?;
     var productionEligibility = ViewBag.ProductionEligibility as ProductionSourceEligibilityDto;
     var purchaseEligibility = ViewBag.PurchaseEligibility as PurchaseSourceEligibilityDto;
     var canOfferPurchase = purchaseEligibility?.Eligible == true
@@ -19,6 +27,11 @@
         && x.Status == RestockSourcingAllocationStatuses.PendingPurchaseAdvice
         && !x.PurchaseAdviceLineId.HasValue
         && !x.PurchaseOrderLineId.HasValue);
+    var productionAllocations = Model.SourcingAllocations
+        .Where(x => x.DecisionType == RestockSourcingDecisionTypes.Production)
+        .OrderByDescending(x => x.CreatedAtUtc)
+        .ToList();
+    var visibleProductionAllocations = productionAllocations.Take(8).ToList();
     var canCreatePurchaseAdvice = canWarehouse
         && Model.IngredientId.HasValue
         && Model.Status is ("PROCESSING" or "PARTIALLY_RECEIVED")
@@ -62,14 +75,14 @@
 <main class="restock-page restock-detail-page ops-shell cc-warehouse-page">
 <header class="ops-header cc-warehouse-header cc-warehouse-header--compact cc-warehouse-header--detail">
         <div>
-            <div class="ops-eyebrow">Yêu cầu nhập hàng @Model.ReferenceCode · Chi nhánh @(Model.StoreName ?? $"#{Model.StoreId}")</div>
+            <div class="ops-eyebrow">@demandLabel @Model.ReferenceCode · Chi nhánh @(Model.StoreName ?? $"#{Model.StoreId}")</div>
             <h1 class="ops-title">@Model.ItemName</h1>
             <p class="ops-subtitle">@Model.ItemTypeLabel · Tạo bởi @(Model.CreatedByName ?? "Chưa xác định người tạo") lúc @Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
         </div>
         <div class="ops-actions restock-header-actions">
             <span class="ops-badge @AdminStatusDisplay.RestockRequest(Model.Status).CssClass restock-header-status">@AdminStatusDisplay.RestockRequest(Model.Status).Label</span>
             <a class="ops-btn" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách</a>
-            @if (Model.StockAlertId.HasValue)
+            @if (canViewStockAlerts && Model.StockAlertId.HasValue)
             {
                 <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Details" asp-route-id="@Model.StockAlertId" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Cảnh báo gốc</a>
             }
@@ -138,6 +151,40 @@
         </section>
     }
 
+    @if (productionAllocations.Count > 0)
+    {
+        <section class="ops-panel" aria-labelledby="productionTraceTitle">
+            <div class="ops-panel-header">
+                <h2 id="productionTraceTitle" class="ops-panel-title">Nguồn sản xuất</h2>
+                <span class="ops-secondary">Hiển thị @visibleProductionAllocations.Count/@productionAllocations.Count phân bổ gần nhất</span>
+            </div>
+            <div class="ops-panel-body">
+                <div class="ops-allocation-summary">
+                    @foreach (var allocation in visibleProductionAllocations)
+                    {
+                        var allocationStatus = AdminStatusDisplay.SourcingAllocation(allocation.Status);
+                        <article class="ops-allocation-item">
+                            <span>
+                                <strong>@AdminStatusDisplay.Quantity(allocation.ProcurementQuantity) @requestUnitName</strong>
+                                <span class="ops-badge @allocationStatus.CssClass">@allocationStatus.Label</span>
+                            </span>
+                            @if (canViewProduction && allocation.ProductionRunId.HasValue)
+                            {
+                                <a class="ops-btn" asp-area="Admin" asp-controller="AdminProductionOrder" asp-action="Details" asp-route-id="@allocation.ProductionRunId">
+                                    Xem lệnh sản xuất #@allocation.ProductionRunId
+                                </a>
+                            }
+                            else
+                            {
+                                <small class="ops-secondary">@(allocation.ProductionRunId.HasValue ? "Lệnh sản xuất đã được liên kết." : "Chưa liên kết lệnh sản xuất.")</small>
+                            }
+                        </article>
+                    }
+                </div>
+            </div>
+        </section>
+    }
+
     <div class="ops-detail-grid">
         <div>
             <section class="ops-panel">
@@ -160,7 +207,7 @@
                     <div class="mt-3"><span class="ops-data-label">Ghi chú</span><div class="ops-notice mt-1 mb-0">@(Model.Note ?? "Không có ghi chú")</div></div>
                     @if (!string.IsNullOrWhiteSpace(Model.ProcessingNote)) { <div class="mt-3"><span class="ops-data-label">Ghi chú xử lý</span><div class="ops-notice mt-1 mb-0">@Model.ProcessingNote</div></div> }
                     @if ((usesProcurement ? Model.ClosedProcurementQuantity.GetValueOrDefault() : Model.ClosedRemainingQuantity) > 0) { <div class="ops-notice ops-notice-warning mt-3">Đã đóng @AdminStatusDisplay.Quantity(usesProcurement ? Model.ClosedProcurementQuantity.GetValueOrDefault() : Model.ClosedRemainingQuantity) @requestUnitName còn lại. Lý do: @Model.RemainingCloseReason</div> }
-                    <div class="ops-help mt-3"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Yêu cầu nhập không trực tiếp thay đổi tồn. Chỉ phiếu nhận hoặc điều chuyển được xác nhận mới tạo biến động kho.</div>
+                    <div class="ops-help mt-3"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> @demandLabel không trực tiếp thay đổi tồn. Với nguồn sản xuất, chỉ sản lượng được chấp nhận mới làm tăng tồn kho.</div>
                 </div>
             </section>
 
@@ -244,7 +291,19 @@
                 <section id="add-demand" class="ops-panel">
                     <div class="ops-panel-header"><h2 class="ops-panel-title">Bổ sung nhu cầu vào yêu cầu hiện tại</h2></div>
                     <div class="ops-panel-body">
-                        <p class="ops-secondary">Dùng khi chi nhánh phát sinh thêm nhu cầu cho cùng nguyên liệu. Hệ thống chỉ tăng tổng nhu cầu; các phân bổ nguồn cung, đề nghị mua và đơn đặt hàng hiện có không bị thay đổi.</p>
+                        @if (isPreparedItemDemand)
+                        {
+                            <p class="ops-secondary">Hệ thống tính lại từ tồn khả dụng, mức mục tiêu, nguồn đang mở và phần nhu cầu chưa phân bổ. Lệnh sản xuất đã ghim không bị thay đổi.</p>
+                            <div class="ops-notice mb-3">
+                                Còn cần bổ sung: <strong>@(preparedItemReplenishment?.NetNeedBase.HasValue == true ? $"{AdminStatusDisplay.Quantity(preparedItemReplenishment.NetNeedBase.Value)} {requestUnitName}" : "chưa tính được")</strong>
+                                · Chưa phân bổ trong yêu cầu: <strong>@AdminStatusDisplay.Quantity(Model.RemainingUnallocatedQuantity) @requestUnitName</strong>
+                                · Điều chỉnh cần xác nhận: <strong>@(preparedItemAdditionalDemandBase.HasValue ? $"{AdminStatusDisplay.Quantity(preparedItemAdditionalDemandBase.Value)} {requestUnitName}" : "chưa tính được")</strong>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="ops-secondary">Dùng khi chi nhánh phát sinh thêm nhu cầu cho cùng nguyên liệu. Hệ thống chỉ tăng tổng nhu cầu; các phân bổ nguồn cung, đề nghị mua và đơn đặt hàng hiện có không bị thay đổi.</p>
+                        }
                         <form method="post" asp-action="AddDemand" data-single-submit>
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="RestockRequestId" value="@Model.RestockRequestId" />
@@ -252,11 +311,11 @@
                             <input type="hidden" name="RowVersion" value="@Model.RowVersion" />
                             <input type="hidden" name="RequestKey" value="@Guid.NewGuid().ToString("N")" />
                             <div class="ops-data-grid">
-                                <div><label class="ops-form-label" for="adjustmentQuantity">Số lượng bổ sung (@requestUnitName)</label><input id="adjustmentQuantity" name="AdjustmentProcurementQuantity" class="ops-input" type="number" min="0.001" step="0.001" required /></div>
+                                <div><label class="ops-form-label" for="adjustmentQuantity">Số lượng bổ sung (@requestUnitName)</label><input id="adjustmentQuantity" name="AdjustmentProcurementQuantity" class="ops-input" type="number" min="0.001" step="0.001" value="@(isPreparedItemDemand ? preparedItemAdditionalDemandBase?.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) : null)" readonly="@(isPreparedItemDemand ? "readonly" : null)" required /></div>
                                 <div><label class="ops-form-label" for="adjustmentNeedBy">Cần trước ngày mới (nếu đổi)</label><input id="adjustmentNeedBy" name="NeedByDate" class="ops-input" type="date" value="@Model.NeedByDate?.ToString("yyyy-MM-dd")" /></div>
                             </div>
                             <div class="mt-3"><label class="ops-form-label" for="adjustmentReason">Lý do bổ sung</label><textarea id="adjustmentReason" name="Reason" class="ops-textarea" maxlength="500" required placeholder="Ví dụ: tăng nhu cầu cuối tuần, phát sinh sự kiện..."></textarea></div>
-                            <button type="submit" class="ops-btn ops-btn-primary mt-3" data-submit-button>Bổ sung nhu cầu</button>
+                            <button type="submit" class="ops-btn ops-btn-primary mt-3" data-submit-button disabled="@(isPreparedItemDemand && preparedItemAdditionalDemandBase is not > 0 ? "disabled" : null)">Bổ sung nhu cầu</button>
                         </form>
                     </div>
                 </section>
@@ -267,7 +326,7 @@
                 <div class="ops-panel-body">
                     @if (Model.PurchaseAdvices.Count == 0)
                     {
-                        <div class="ops-secondary">Chưa có PA liên kết. PA sẽ xuất hiện sau khi yêu cầu được chọn nguồn cung “Mua ngoài”.</div>
+                        <div class="ops-secondary">Chưa có đề nghị mua liên kết. Đề nghị mua sẽ xuất hiện sau khi yêu cầu được chọn nguồn cung “Mua ngoài”.</div>
                     }
                     else
                     {
@@ -286,7 +345,7 @@
                                 <input type="hidden" name="RestockRequestId" value="@Model.RestockRequestId" /><input type="hidden" name="RestockRowVersion" value="@Model.RowVersion" />
                                 <select name="PurchaseAdviceId" class="ops-select" required onchange="this.form.PurchaseAdviceRowVersion.value=this.selectedOptions[0].dataset.version"><option value="">Chọn đề nghị mua nháp...</option>@foreach (var draft in Model.DraftPurchaseAdvices) { <option value="@draft.PurchaseAdviceId" data-version="@draft.RowVersion">@draft.AdviceNumber · cần @AdminStatusDisplay.Date(draft.NeededByDate)</option> }</select>
                                 <input type="hidden" name="PurchaseAdviceRowVersion" value="" />
-                                <button class="ops-btn" type="submit">Thêm vào PA nháp</button>
+                                <button class="ops-btn" type="submit">Thêm vào đề nghị mua nháp</button>
                             </form>
                         }
                     }
@@ -299,7 +358,7 @@
                 <div class="ops-panel-body">
                     @if (canSubmit && Model.Status == "DRAFT")
                     {
-                        <form method="post" asp-action="Submit" asp-route-id="@Model.RestockRequestId" class="mb-3">@Html.AntiForgeryToken()<input type="hidden" name="rowVersion" value="@Model.RowVersion" /><button type="submit" class="ops-btn ops-btn-primary w-100"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Gửi yêu cầu nhập</button></form>
+                        <form method="post" asp-action="Submit" asp-route-id="@Model.RestockRequestId" class="mb-3">@Html.AntiForgeryToken()<input type="hidden" name="rowVersion" value="@Model.RowVersion" /><button type="submit" class="ops-btn ops-btn-primary w-100"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Gửi @demandLabel.ToLowerInvariant()</button></form>
                     }
                     @if (Model.Timeline.Count == 0) { <div class="ops-secondary">Chưa có lịch sử chuyển trạng thái.</div> }
                     else
@@ -343,7 +402,7 @@
             <section class="ops-panel">
                 <div class="ops-panel-header"><h2 class="ops-panel-title">Đơn đặt hàng liên kết</h2></div>
                 <div class="ops-panel-body p-0">
-                    @if (Model.PurchaseOrders.Count == 0) { <div class="p-3 ops-secondary">Chưa có đơn đặt hàng liên kết. Đơn đặt hàng sẽ xuất hiện sau khi PA được gửi, xét duyệt và tổng hợp.</div> }
+                    @if (Model.PurchaseOrders.Count == 0) { <div class="p-3 ops-secondary">Chưa có đơn đặt hàng liên kết. Đơn đặt hàng sẽ xuất hiện sau khi đề nghị mua được gửi, xét duyệt và tổng hợp.</div> }
                     else
                     {
                         <div class="ops-table-scroll"><table class="ops-table ops-table-min-680"><thead><tr><th>Đơn đặt hàng</th><th>Nhà cung cấp</th><th>Trạng thái đơn</th><th>Ngày đặt</th><th class="number">Giá trị</th><th class="text-end">Thao tác</th></tr></thead><tbody>
@@ -400,7 +459,7 @@
             <section class="ops-panel ops-next-action">
                 <div class="ops-panel-header"><h2 class="ops-panel-title">Thao tác tiếp theo</h2></div>
                 <div class="ops-panel-body">
-                    @if (canWarehouse && Model.Status == "SUBMITTED")
+                    @if (canStartProcessing && Model.Status == "SUBMITTED")
                     {
                         <form method="post" asp-action="StartProcessing" asp-route-id="@Model.RestockRequestId" class="mb-3">@Html.AntiForgeryToken()<input type="hidden" name="rowVersion" value="@Model.RowVersion" /><button type="submit" class="ops-btn ops-btn-primary w-100"><i class="fa-solid fa-play" aria-hidden="true"></i> Tiếp nhận xử lý</button></form>
                     }

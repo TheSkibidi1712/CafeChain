@@ -52,7 +52,7 @@ public sealed class CafeChain29RbacSourceTests
             "Permissions", "AdminPermissionService.cs");
 
         Assert.DoesNotContain(".Append(RoleConstants.SystemAdmin)", attribute, StringComparison.Ordinal);
-        Assert.Contains("RoleConstants.SystemAdmin", policies, StringComparison.Ordinal);
+        Assert.Contains("PermissionRequirement(PermissionConstants.AppAdminDashboard)", policies, StringComparison.Ordinal);
         Assert.DoesNotContain("IsActiveSystemAdminAsync", scope, StringComparison.Ordinal);
         Assert.Contains("AdminStoreScopeMode.ReorderSuggestion", resolver, StringComparison.Ordinal);
         Assert.Contains("STORE_SCOPE_DENIED", resolver, StringComparison.Ordinal);
@@ -139,6 +139,97 @@ public sealed class CafeChain29RbacSourceTests
         Assert.Equal(new[] { 1, 0, 0, 0, 0, 0, 0, 0 }, grants["ProductionOrder.ApproveVariance"]);
         Assert.Equal(new[] { 0, 0, 1, 0, 0, 0, 0, 0 }, grants["ProductionOrder.Cancel"]);
         Assert.Equal(new[] { 0, 0, 0, 0, 1, 0, 0, 0 }, grants["Restock.SelectProductionSource"]);
+        Assert.Equal(new[] { 1, 0, 1, 0, 0, 0, 0, 0 }, grants["InventoryThreshold.Update"]);
+    }
+
+    [Fact]
+    public void SeedAll_BomAndProductionPermissions_MatchApprovedSeparationOfDuties()
+    {
+        var seed = Read("CafeChain", "Scripts", "SeedAll.sql");
+        var grants = ParseFinalManagedGrants(seed);
+
+        var bomView = new[] { 1, 1, 1, 0, 1, 0, 0, 0 };
+        var bomManage = new[] { 1, 0, 0, 0, 1, 0, 0, 0 };
+        Assert.Equal(bomView, grants["PreparedItem.View"]);
+        Assert.Equal(bomManage, grants["PreparedItem.Create"]);
+        Assert.Equal(bomManage, grants["PreparedItem.Update"]);
+        Assert.Equal(bomManage, grants["PreparedItem.ToggleStatus"]);
+        Assert.Equal(bomView, grants["Recipe.View"]);
+        Assert.Equal(bomManage, grants["Recipe.Create"]);
+        Assert.Equal(bomManage, grants["Recipe.Update"]);
+        Assert.Equal(bomManage, grants["Recipe.Delete"]);
+
+        Assert.Equal(new[] { 1, 1, 1, 0, 1, 0, 0, 1 }, grants["ProductionOrder.View"]);
+        Assert.Equal(new[] { 0, 0, 1, 0, 0, 0, 0, 0 }, grants["ProductionOrder.Plan"]);
+        Assert.Equal(new[] { 0, 0, 1, 0, 0, 0, 0, 0 }, grants["ProductionOrder.Release"]);
+        Assert.Equal(new[] { 0, 0, 0, 0, 0, 0, 0, 1 }, grants["ProductionOrder.Start"]);
+        Assert.Equal(new[] { 0, 0, 0, 0, 0, 0, 0, 1 }, grants["ProductionOrder.RecordActual"]);
+        Assert.Equal(new[] { 0, 0, 1, 0, 0, 0, 0, 0 }, grants["ProductionOrder.AcceptOutput"]);
+        Assert.Equal(new[] { 1, 0, 0, 0, 0, 0, 0, 0 }, grants["ProductionOrder.ApproveVariance"]);
+        Assert.Equal(new[] { 0, 0, 1, 0, 0, 0, 0, 0 }, grants["ProductionOrder.Cancel"]);
+    }
+
+    [Fact]
+    public void ProductionPlanning_UsesProductionOrderPlanAtControllerAndServiceBoundaries()
+    {
+        var controller = Read("CafeChain", "Areas", "Admin", "Controllers",
+            "AdminRestockRequestsController.cs");
+        var service = Read("CafeChain", "Application", "Services", "Inventories",
+            "RestockRequestService.cs");
+
+        Assert.Contains(
+            "RequiredPermissionCode = PermissionConstants.ProductionOrderPlan",
+            controller,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "RequiredPermissionCode = PermissionConstants.ProductionOrderPlan",
+            service,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "RequiredPermissionCode = PermissionConstants.RestockSelectProductionSource",
+            controller + service,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BomNavigationAndRecipeDeleteGuards_RemainPermissionDriven()
+    {
+        var layout = Read("CafeChain", "Areas", "Admin", "Views", "Shared", "_AdminLayout.cshtml");
+        var recipeController = Read("CafeChain", "Areas", "Admin", "Controllers",
+            "AdminRecipeController.cs");
+        var preparedItemController = Read("CafeChain", "Areas", "Admin", "Controllers",
+            "AdminPreparedItemController.cs");
+        var recipeService = Read("CafeChain", "Application", "Services", "Admin", "Recipes",
+            "AdminRecipeService.cs");
+
+        Assert.Contains("PermissionConstants.PreparedItemView", layout, StringComparison.Ordinal);
+        Assert.Contains("PermissionConstants.RecipeView", layout, StringComparison.Ordinal);
+        Assert.Contains("PermissionConstants.ProductionOrderView", layout, StringComparison.Ordinal);
+        Assert.Contains("PermissionConstants.RecipeCreate", recipeController, StringComparison.Ordinal);
+        Assert.Contains("PermissionConstants.RecipeUpdate", recipeController, StringComparison.Ordinal);
+        Assert.Contains("PermissionConstants.RecipeDelete", recipeController, StringComparison.Ordinal);
+        Assert.Contains("PermissionConstants.PreparedItemCreate", preparedItemController, StringComparison.Ordinal);
+        Assert.Contains("PermissionConstants.PreparedItemUpdate", preparedItemController, StringComparison.Ordinal);
+        Assert.Contains("PermissionConstants.PreparedItemToggleStatus", preparedItemController, StringComparison.Ordinal);
+        Assert.Contains("rd.ChildRecipeId == recipeId", recipeService, StringComparison.Ordinal);
+        Assert.Contains("recipe.Status = \"Archived\"", recipeService, StringComparison.Ordinal);
+        Assert.Contains("recipe.Active = false", recipeService, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ProductionV2Services_RequireActionPermissionWithinRunStoreScope()
+    {
+        var query = Read("CafeChain", "Application", "Services", "Admin", "Production",
+            "ProductionRunQueryService.cs");
+        var operations = Read("CafeChain", "Application", "Services", "Admin", "Production",
+            "ProductionRunOperationsService.cs");
+        var acceptance = Read("CafeChain", "Application", "Services", "Admin", "Production",
+            "ProductionRunAcceptanceService.cs");
+
+        Assert.Contains("PermissionConstants.ProductionOrderView, query.StoreId", query, StringComparison.Ordinal);
+        Assert.Contains("PermissionConstants.ProductionOrderView, run.StoreId", query, StringComparison.Ordinal);
+        Assert.Contains("HasPermissionAsync(accountId, permissionCode, run.StoreId)", operations, StringComparison.Ordinal);
+        Assert.Contains("PermissionConstants.ProductionOrderAcceptOutput,\n                run.StoreId", acceptance.Replace("\r\n", "\n", StringComparison.Ordinal), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -150,7 +241,7 @@ public sealed class CafeChain29RbacSourceTests
         var production = Read("CafeChain", "Areas", "Admin", "Controllers", "AdminProductionOrderController.cs");
         var notifications = Read("CafeChain", "Areas", "Admin", "Controllers", "AdminNotificationsController.cs");
 
-        Assert.Contains("RoleConstants.AccountantWarehouse", authorization, StringComparison.Ordinal);
+        Assert.Contains("AdminPanelAccessRequirement", authorization, StringComparison.Ordinal);
         Assert.DoesNotContain(
             "AuthorizationPolicyConstants.AdminDashboardApp,\n                PermissionConstants.AppAdminDashboard",
             authorization,

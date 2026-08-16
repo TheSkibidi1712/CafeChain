@@ -9,24 +9,31 @@
     var selectedStoreId = ViewBag.SelectedStoreId as int? ?? 0;
     var selectedStatus = ViewBag.SelectedStatus as string;
     var canCreateLegacy = ViewBag.CanCreateLegacy is true;
-    var heroActions = canCreateLegacy
-        ? new List<AdminPageHeroActionVM>
+    var heroActions = new List<AdminPageHeroActionVM>
+    {
+        new()
         {
-            new()
-            {
-                Label = "Sơ chế độc lập",
-                Url = Url.Action("Create", new { storeId = selectedStoreId }) ?? "#",
-                IconClass = "fas fa-fire-burner"
-            }
+            Label = "Năng lực sản xuất",
+            Url = Url.Action("Capabilities", new { storeId = selectedStoreId }) ?? "#",
+            IconClass = "fas fa-sliders"
         }
-        : [];
+    };
+    if (canCreateLegacy)
+    {
+        heroActions.Add(new()
+        {
+            Label = "Sơ chế độc lập",
+            Url = Url.Action("Create", new { storeId = selectedStoreId }) ?? "#",
+            IconClass = "fas fa-fire-burner"
+        });
+    }
     var hero = new AdminPageHeroVM
     {
-        Eyebrow = "Sản xuất / BOM",
+        Eyebrow = "Sản xuất / Định mức nguyên liệu",
         Title = "Lệnh sản xuất",
         Description = "Theo dõi kế hoạch theo mẻ, sản lượng thực tế, chênh lệch và tiến độ đáp ứng nhu cầu tại cửa hàng.",
         IconClass = "fas fa-industry",
-        Breadcrumbs = [new() { Label = "Sản xuất / BOM" }, new() { Label = "Lệnh sản xuất" }],
+        Breadcrumbs = [new() { Label = "Sản xuất / Định mức nguyên liệu" }, new() { Label = "Lệnh sản xuất" }],
         Actions = heroActions
     };
 }
@@ -133,7 +140,7 @@
                                         }
                                     </td>
                                     <td>@(item.ExpectedOutputBase?.ToString("0.###") ?? "—") @item.OutputUnitCode</td>
-                                    <td>@(item.RestockRequestId.HasValue ? $"Yêu cầu nhập hàng #{item.RestockRequestId}" : "Sơ chế độc lập")</td>
+                                    <td>@(item.RestockRequestId.HasValue ? $"Nhu cầu bổ sung #{item.RestockRequestId}" : "Sơ chế độc lập")</td>
                                     <td>
                                         @{ var statusClass = item.Status switch
                                             {

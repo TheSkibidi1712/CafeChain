@@ -1,0 +1,151 @@
+@model CafeChain.Application.DTOs.Admin.Production.PreparedItemProductionCapabilityPageDto
+@using CafeChain.Application.DTOs.Admin.StoreInventories
+@using CafeChain.ViewModels.Admin.Shared
+@{
+    ViewData["Title"] = "Năng lực sản xuất bán thành phẩm";
+    var stores = ViewBag.Stores as IReadOnlyCollection<InventoryStoreDTO> ?? [];
+    var search = Model.Search ?? string.Empty;
+    var totalPages = Math.Max(1, (int)Math.Ceiling(Model.TotalCount / (double)Math.Max(Model.PageSize, 1)));
+    var hero = new AdminPageHeroVM
+    {
+        Eyebrow = "Sản xuất / Định mức nguyên liệu",
+        Title = "Năng lực sản xuất bán thành phẩm",
+        Description = "Quyết định bán thành phẩm nào được sản xuất nội bộ và cửa hàng nào có năng lực thực hiện.",
+        IconClass = "fas fa-sliders",
+        Breadcrumbs =
+        [
+            new() { Label = "Lệnh sản xuất", Url = Url.Action("Index", new { storeId = Model.StoreId }) },
+            new() { Label = "Năng lực sản xuất" }
+        ]
+    };
+}
+<link rel="stylesheet" href="~/css/Admin/ProductionOrder/production-order.css" />
+<link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
+
+<main class="po-page production-bom-page production-bom-shell">
+    <partial name="_PageHero" model="hero" />
+
+    @if (ViewBag.ErrorMessage is string error)
+    {
+        <div class="alert alert-danger" role="alert">@error</div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success" role="status">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger" role="alert">@TempData["ErrorMessage"]</div>
+    }
+
+    <section class="production-filter-card" aria-labelledby="capability-filter-title">
+        <header class="production-filter-card__heading">
+            <h2 id="capability-filter-title">Cửa hàng và bán thành phẩm</h2>
+            <p>Bật cấp toàn chuỗi trước, sau đó bật riêng tại cửa hàng thực sự có năng lực sản xuất.</p>
+        </header>
+        <form method="get" class="production-filter-grid">
+            <div class="production-filter-field">
+                <label for="storeId" class="form-label">Cửa hàng</label>
+                <select id="storeId" name="storeId" class="form-select">
+                    @foreach (var store in stores)
+                    {
+                        <option value="@store.StoreId" selected="@(store.StoreId == Model.StoreId)">@store.StoreName</option>
+                    }
+                </select>
+            </div>
+            <div class="production-filter-field">
+                <label for="search" class="form-label">Bán thành phẩm</label>
+                <input id="search" name="search" value="@search" class="form-control" placeholder="Tìm theo tên hoặc mã" />
+            </div>
+            <div class="production-filter-actions">
+                <button class="btn btn-primary-action" type="submit"><i class="fas fa-filter" aria-hidden="true"></i> Áp dụng</button>
+                <a class="btn btn-ghost" asp-action="Capabilities" asp-route-storeId="@Model.StoreId" aria-label="Đặt lại bộ lọc" title="Đặt lại bộ lọc"><i class="fas fa-rotate-left" aria-hidden="true"></i></a>
+            </div>
+        </form>
+    </section>
+
+    <section class="production-list-section" aria-labelledby="capability-list-title">
+        <header class="production-section-header">
+            <div>
+                <h2 id="capability-list-title">Cấu hình tại @Model.StoreName</h2>
+                <p>Bật năng lực cửa hàng chỉ tạo danh tính tồn kho bằng 0; không nhập tồn và không tạo giá vốn.</p>
+            </div>
+            <span class="production-section-header__count"><strong>@Model.TotalCount</strong> bán thành phẩm</span>
+        </header>
+        <div class="history-card production-table-panel p-0">
+            <div class="table-responsive">
+                <table class="table po-table production-data-table align-middle">
+                    <thead>
+                        <tr><th>Bán thành phẩm</th><th>Toàn chuỗi</th><th>Tại cửa hàng</th><th>Danh tính tồn kho</th></tr>
+                    </thead>
+                    <tbody>
+                    @if (Model.Items.Count == 0)
+                    {
+                        <tr><td colspan="4" class="text-center text-muted py-5">Không tìm thấy bán thành phẩm phù hợp.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td><strong>@item.Name</strong><div class="small text-muted">Mã: @item.Code · Đơn vị cơ sở: @item.BaseUnitCode</div></td>
+                                <td>
+                                    <span class="production-status @(item.CanProduceGlobally ? "is-complete" : "is-neutral")">@(item.CanProduceGlobally ? "Được phép sản xuất" : "Chưa cho phép")</span>
+                                    @if (Model.CanManageGlobalCapability)
+                                    {
+                                        <form method="post" asp-action="SetGlobalCapability" class="mt-2">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="preparedItemId" value="@item.PreparedItemId" />
+                                            <input type="hidden" name="enabled" value="@(!item.CanProduceGlobally ? "true" : "false")" />
+                                            <input type="hidden" name="rowVersion" value="@item.GlobalRowVersion" />
+                                            <input type="hidden" name="storeId" value="@Model.StoreId" />
+                                            <input type="hidden" name="search" value="@search" />
+                                            <input type="hidden" name="page" value="@Model.Page" />
+                                            <button type="submit" class="btn btn-sm @(item.CanProduceGlobally ? "btn-outline-danger" : "btn-primary-action")">@(item.CanProduceGlobally ? "Ngừng cho phép" : "Cho phép sản xuất")</button>
+                                        </form>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="production-status @(item.CanProduceAtStore ? "is-progress" : "is-neutral")">@(item.CanProduceAtStore ? "Đã bật" : "Chưa bật")</span>
+                                    @if (Model.CanManageStoreCapability && (item.CanProduceGlobally || item.CanProduceAtStore))
+                                    {
+                                        <form method="post" asp-action="SetStoreCapability" class="mt-2">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="preparedItemId" value="@item.PreparedItemId" />
+                                            <input type="hidden" name="enabled" value="@(!item.CanProduceAtStore ? "true" : "false")" />
+                                            <input type="hidden" name="rowVersion" value="@item.StoreRowVersion" />
+                                            <input type="hidden" name="storeId" value="@Model.StoreId" />
+                                            <input type="hidden" name="search" value="@search" />
+                                            <input type="hidden" name="page" value="@Model.Page" />
+                                            <button type="submit" class="btn btn-sm @(item.CanProduceAtStore ? "btn-outline-danger" : "btn-primary-action")">@(item.CanProduceAtStore ? "Tắt tại cửa hàng" : "Bật tại cửa hàng")</button>
+                                        </form>
+                                    }
+                                    else if (!item.CanProduceGlobally)
+                                    {
+                                        <div class="small text-muted mt-2">Cần được cho phép ở cấp toàn chuỗi trước.</div>
+                                    }
+                                </td>
+                                <td><span class="production-status @(item.HasCanonicalInventory ? "is-complete" : "is-neutral")">@(item.HasCanonicalInventory ? "Đã sẵn sàng" : "Chưa khởi tạo")</span></td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <nav class="d-flex justify-content-between align-items-center" aria-label="Phân trang">
+        <span>Trang @Model.Page / @totalPages</span>
+        <div class="d-flex gap-2">
+            @if (Model.Page > 1)
+            {
+                <a class="btn btn-ghost" asp-action="Capabilities" asp-route-storeId="@Model.StoreId" asp-route-search="@search" asp-route-page="@(Model.Page - 1)">Trước</a>
+            }
+            @if (Model.Page < totalPages)
+            {
+                <a class="btn btn-ghost" asp-action="Capabilities" asp-route-storeId="@Model.StoreId" asp-route-search="@search" asp-route-page="@(Model.Page + 1)">Sau</a>
+            }
+        </div>
+    </nav>
+</main>

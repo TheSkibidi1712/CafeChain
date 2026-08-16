@@ -1,8 +1,10 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.InventoryThresholds;
+using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Admin.StoreInventories;
 using CafeChain.Application.Results;
 using CafeChain.Data;
+using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore;
@@ -13,29 +15,23 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
     /// <summary>
     /// Issue #104 — Admin configure MinStockLevel only (no qty mutation).
     /// Store scope mirrors AdminStoreInventoryRepository (StaffScopes + Staff.StoreId).
-    /// Edit roles: StoreManager, AreaManager, BusinessOwner, SystemAdmin only.
+    /// Mutations require effective InventoryThreshold.Update permission and Store scope.
     /// </summary>
     public class InventoryThresholdService : IInventoryThresholdService
     {
         private const int MaxPageSize = 100;
 
-        /// <summary>Roles allowed to change MinStockLevel (not AccountantWarehouse / sales / supervisor).</summary>
-        public static readonly string[] EditRoleNames =
-        {
-            RoleConstants.StoreManager,
-            RoleConstants.AreaManager,
-            RoleConstants.BusinessOwner,
-            RoleConstants.SystemAdmin
-        };
-
         private readonly AppDbContext _context;
+        private readonly IAdminPermissionService _permissionService;
         private readonly ILogger<InventoryThresholdService> _logger;
 
         public InventoryThresholdService(
             AppDbContext context,
+            IAdminPermissionService permissionService,
             ILogger<InventoryThresholdService> logger)
         {
             _context = context;
+            _permissionService = permissionService;
             _logger = logger;
         }
 
@@ -72,6 +68,7 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
                 .AsNoTracking()
                 .Include(i => i.Ingredient)!.ThenInclude(ing => ing!.BaseUnit)
                 .Include(i => i.Recipe)
+                .Include(i => i.PreparedItem)!.ThenInclude(x => x!.BaseUnit)
                 .Include(i => i.Store)
                 .Where(i => allowedIds.Contains(i.StoreId) && i.StoreId == selectedStoreId);
 
@@ -80,6 +77,8 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
                 var kw = search.Trim();
                 query = query.Where(i =>
                     (i.IngredientId.HasValue && i.Ingredient != null && i.Ingredient.Name.Contains(kw)) ||
+                    (i.PreparedItemId.HasValue && i.PreparedItem != null &&
+                     (i.PreparedItem.Name.Contains(kw) || i.PreparedItem.Code.Contains(kw))) ||
                     (i.RecipeId.HasValue && i.Recipe != null &&
                      ((i.Recipe.Name != null && i.Recipe.Name.Contains(kw)) ||
                       (i.Recipe.RecipeCode != null && i.Recipe.RecipeCode.Contains(kw)))));
@@ -88,7 +87,9 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
             var total = await query.CountAsync();
             var rows = await query
                 .OrderBy(i => i.IngredientId.HasValue ? 0 : 1)
-                .ThenBy(i => i.Ingredient != null ? i.Ingredient.Name : i.Recipe!.Name)
+                .ThenBy(i => i.Ingredient != null
+                    ? i.Ingredient.Name
+                    : i.PreparedItem != null ? i.PreparedItem.Name : i.Recipe!.Name)
                 .ThenBy(i => i.StoreInventoryId)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -110,22 +111,60 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
             int accountId,
             int storeInventoryId,
             decimal? minStockLevel,
+            string? rowVersion) => await UpdatePolicyAsync(
+                accountId,
+                storeInventoryId,
+                minStockLevel,
+                targetStockLevel: null,
+                updateTarget: false,
+                requireCanonicalPreparedItem: false,
+                rowVersion: rowVersion);
+
+        public async Task<ServiceResult> UpdatePreparedItemPolicyAsync(
+            int accountId,
+            int storeInventoryId,
+            decimal? minStockLevel,
+            decimal? targetStockLevel,
+            string? rowVersion) => await UpdatePolicyAsync(
+                accountId,
+                storeInventoryId,
+                minStockLevel,
+                targetStockLevel,
+                updateTarget: true,
+                requireCanonicalPreparedItem: true,
+                rowVersion: rowVersion);
+
+        private async Task<ServiceResult> UpdatePolicyAsync(
+            int accountId,
+            int storeInventoryId,
+            decimal? minStockLevel,
+            decimal? targetStockLevel,
+            bool updateTarget,
+            bool requireCanonicalPreparedItem,
             string? rowVersion)
         {
             if (accountId <= 0)
                 return ServiceResult.Failure("Không xác định được tài khoản.");
-
-            if (!await AccountHasEditRoleAsync(accountId))
-            {
-                return ServiceResult.Failure("Bạn không có quyền cập nhật ngưỡng tồn kho.");
-            }
 
             if (storeInventoryId <= 0)
                 return ServiceResult.Failure("Mã tồn kho không hợp lệ.");
 
             if (minStockLevel.HasValue && minStockLevel.Value < 0)
             {
-                return ServiceResult.Failure("Ngưỡng tồn tối thiểu không được âm.");
+                return ServiceResult.Failure("Ngưỡng cảnh báo tồn thấp không được âm.");
+            }
+
+            if (updateTarget && targetStockLevel.HasValue && targetStockLevel.Value < 0)
+            {
+                return ServiceResult.Failure("Mức tồn mục tiêu không được âm.");
+            }
+
+            if (updateTarget && minStockLevel.HasValue && targetStockLevel.HasValue
+                && targetStockLevel.Value < minStockLevel.Value)
+            {
+                return ServiceResult.Failure(
+                    "Mức tồn mục tiêu phải lớn hơn hoặc bằng ngưỡng cảnh báo tồn thấp.",
+                    errorCode: "TARGET_STOCK_BELOW_LOW_THRESHOLD");
             }
 
             if (string.IsNullOrWhiteSpace(rowVersion))
@@ -153,6 +192,33 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
             if (row == null)
                 return ServiceResult.Failure("Không tìm thấy dòng tồn kho.");
 
+            if (requireCanonicalPreparedItem
+                && (!row.PreparedItemId.HasValue
+                    || row.BtpIdentityState != BtpIdentityState.Canonical
+                    || row.QuantitySemanticsStatus != InventoryQuantitySemanticsStatus.BaseUnitConfirmed
+                    || row.SupersededByStoreInventoryId.HasValue))
+            {
+                return ServiceResult.Failure(
+                    "Chỉ bán thành phẩm chuẩn theo đơn vị tồn kho cơ sở mới được cấu hình chính sách bổ sung.",
+                    errorCode: "CANONICAL_PREPARED_ITEM_REQUIRED");
+            }
+
+            var effectiveTarget = updateTarget ? targetStockLevel : row.TargetStockLevel;
+            if (minStockLevel.HasValue && effectiveTarget.HasValue
+                && effectiveTarget.Value < minStockLevel.Value)
+            {
+                return ServiceResult.Failure(
+                    "Mức tồn mục tiêu phải lớn hơn hoặc bằng ngưỡng cảnh báo tồn thấp.",
+                    errorCode: "TARGET_STOCK_BELOW_LOW_THRESHOLD");
+            }
+
+            var permission = await _permissionService.HasPermissionAsync(
+                accountId,
+                PermissionConstants.InventoryThresholdUpdate,
+                row.StoreId);
+            if (!permission.IsSuccess || permission.Data?.Allowed != true)
+                return ServiceResult.Failure("Bạn không có quyền cập nhật ngưỡng tồn kho.");
+
             if (!row.RowVersion.SequenceEqual(expectedVersion))
             {
                 return ServiceResult.Failure(
@@ -171,6 +237,8 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
             var beforeReserved = row.ReservedQty;
 
             row.MinStockLevel = minStockLevel;
+            if (updateTarget)
+                row.TargetStockLevel = targetStockLevel;
             row.LastUpdated = DateTime.UtcNow;
 
             _context.Entry(row).Property(x => x.RowVersion).OriginalValue = expectedVersion;
@@ -196,26 +264,12 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
             }
 
             _logger.LogInformation(
-                "[InventoryThreshold] Updated MinStockLevel={Min} StoreInventoryId={Id} StoreId={StoreId} AccountId={AccountId}",
-                minStockLevel, storeInventoryId, row.StoreId, accountId);
+                "[InventoryThreshold] Updated Low={Low} Target={Target} StoreInventoryId={Id} StoreId={StoreId} AccountId={AccountId}",
+                minStockLevel, row.TargetStockLevel, storeInventoryId, row.StoreId, accountId);
 
-            return ServiceResult.Success("Cập nhật ngưỡng tồn kho thành công.");
-        }
-
-        /// <summary>True if account has an active edit role for MinStockLevel.</summary>
-        public async Task<bool> AccountHasEditRoleAsync(int accountId)
-        {
-            if (accountId <= 0)
-                return false;
-
-            return await _context.Accounts
-                .AsNoTracking()
-                .Where(a => a.AccountId == accountId && a.Active)
-                .SelectMany(a => a.AccountRoles)
-                .AnyAsync(ar =>
-                    ar.Role != null &&
-                    ar.Role.Active &&
-                    EditRoleNames.Contains(ar.Role.Name));
+            return ServiceResult.Success(updateTarget
+                ? "Cập nhật chính sách bổ sung tồn kho thành công."
+                : "Cập nhật ngưỡng tồn kho thành công.");
         }
 
         private async Task<List<InventoryStoreTabDto>> GetAccessibleStoresAsync(int accountId)
@@ -307,12 +361,21 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
             string name;
             string typeLabel;
             string? unit = null;
+            string? technicalCode = null;
 
             if (i.IngredientId.HasValue)
             {
                 name = i.Ingredient?.Name ?? $"Nguyên liệu #{i.IngredientId}";
                 typeLabel = "Nguyên liệu";
                 unit = i.Ingredient?.BaseUnit?.UnitCode;
+                technicalCode = i.Ingredient?.Code;
+            }
+            else if (i.PreparedItemId.HasValue)
+            {
+                name = i.PreparedItem?.Name ?? $"Bán thành phẩm #{i.PreparedItemId}";
+                typeLabel = "Bán thành phẩm";
+                unit = i.PreparedItem?.BaseUnit?.UnitCode;
+                technicalCode = i.PreparedItem?.Code;
             }
             else if (i.RecipeId.HasValue)
             {
@@ -335,12 +398,19 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
                 StoreInventoryId = i.StoreInventoryId,
                 StoreId = i.StoreId,
                 StoreName = i.Store?.Name,
+                PreparedItemId = i.PreparedItemId,
+                TechnicalCode = technicalCode,
+                IsCanonicalPreparedItem = i.PreparedItemId.HasValue
+                    && i.BtpIdentityState == BtpIdentityState.Canonical
+                    && i.QuantitySemanticsStatus == InventoryQuantitySemanticsStatus.BaseUnitConfirmed
+                    && !i.SupersededByStoreInventoryId.HasValue,
                 ItemName = name,
                 ItemTypeLabel = typeLabel,
                 UnitCode = unit,
                 AvailableQty = i.AvailableQty,
                 ReservedQty = i.ReservedQty,
                 MinStockLevel = i.MinStockLevel,
+                TargetStockLevel = i.TargetStockLevel,
                 RowVersion = Convert.ToBase64String(i.RowVersion ?? Array.Empty<byte>()),
                 LastUpdated = i.LastUpdated
             };

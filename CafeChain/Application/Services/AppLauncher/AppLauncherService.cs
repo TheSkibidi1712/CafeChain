@@ -31,6 +31,24 @@ public sealed class AppLauncherService : IAppLauncherService
                 15,
                 PermissionConstants.OperationalIceView,
                 false),
+            new AppDefinition(
+                AppCode.ProductionOrders,
+                "Lệnh sản xuất",
+                "Theo dõi và thực hiện công đoạn sản xuất được phân công tại cửa hàng.",
+                "bi-box-seam",
+                "/Admin/AdminProductionOrder",
+                16,
+                PermissionConstants.ProductionOrderView,
+                false),
+            new AppDefinition(
+                AppCode.SystemAdministration,
+                "Quản trị hệ thống",
+                "Quản lý phân quyền, chẩn đoán và các công cụ kỹ thuật của hệ thống.",
+                "bi-shield-lock",
+                "/Admin/AdminPermission",
+                17,
+                PermissionConstants.SystemPermissionManage,
+                false),
             new AppDefinition(AppCode.AdminDashboard, "Admin Dashboard", "Theo dõi vận hành, doanh thu và các chỉ số quản trị.", "bi-speedometer2", "/Admin/Dashboard", 10, PermissionConstants.AppAdminDashboard, false),
             new AppDefinition(AppCode.StaffHub, "StaffHub", "Xem lịch dự kiến và truy cập các tác vụ hằng ngày của nhân viên.", "bi-people", "/StaffHub", 20, PermissionConstants.AppStaffHub, false),
             new AppDefinition(AppCode.Pos, "POS", "Khởi chạy giao diện bán hàng mới.", "bi-receipt-cutoff", "#", 30, PermissionConstants.AppPos, true)
@@ -59,7 +77,11 @@ public sealed class AppLauncherService : IAppLauncherService
         }
 
         if (cards.Any(x => x.Code == AppCode.AdminDashboard))
+        {
             cards.RemoveAll(x => x.Code == AppCode.OperationalIce);
+            cards.RemoveAll(x => x.Code == AppCode.ProductionOrders);
+            cards.RemoveAll(x => x.Code == AppCode.SystemAdministration);
+        }
 
         return new AppLauncherVM
         {

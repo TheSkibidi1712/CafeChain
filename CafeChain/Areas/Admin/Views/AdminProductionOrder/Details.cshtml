@@ -17,7 +17,7 @@
     };
     var hero = new AdminPageHeroVM
     {
-        Eyebrow = "Sản xuất / BOM",
+        Eyebrow = "Sản xuất / Định mức nguyên liệu",
         Title = $"Lệnh sản xuất PR-{Model.ProductionRunId}",
         Description = $"{Model.StoreName} · {Model.OutputName}. Theo dõi kế hoạch, số liệu thực tế và bước xử lý tiếp theo.",
         IconClass = "fas fa-industry",
@@ -94,7 +94,7 @@
         {
             <hr />
             <div class="row g-3">
-                <div class="col-md-3"><span class="text-muted">Yêu cầu nhập hàng</span><div><a asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@Model.RestockRequestId">@AdminStatusDisplay.RestockReference(Model.RestockReferenceCode, Model.RestockRequestId.Value)</a></div></div>
+                <div class="col-md-3"><span class="text-muted">Nhu cầu bổ sung</span><div><a asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@Model.RestockRequestId">@AdminStatusDisplay.RestockReference(Model.RestockReferenceCode, Model.RestockRequestId.Value)</a></div></div>
                 <div class="col-md-3"><span class="text-muted">Nhu cầu</span><div><strong>@Model.RestockRequestedQuantity?.ToString("0.###") @unit</strong></div></div>
                 <div class="col-md-3"><span class="text-muted">Đã đáp ứng</span><div><strong>@Model.RestockFulfilledQuantity.ToString("0.###") @unit</strong></div></div>
                 <div class="col-md-3"><span class="text-muted">Còn lại</span><div><strong>@Model.RestockRemainingQuantity.ToString("0.###") @unit</strong></div></div>
@@ -103,7 +103,7 @@
     </section>
 
     <section id="production-inputs" class="history-section mb-4" aria-labelledby="actual-input-title">
-        <div class="history-header"><h2 id="actual-input-title" class="history-title">Đầu vào thực tế</h2><span class="small text-muted">FIFO dùng số lượng thực tế đã xác nhận</span></div>
+        <div class="history-header"><h2 id="actual-input-title" class="history-title">Đầu vào thực tế</h2><span class="small text-muted">Nhập trước - xuất trước (FIFO) dùng số lượng thực tế đã xác nhận</span></div>
         <div class="history-card">
             <div class="table-responsive">
                 <table class="table po-table align-middle">

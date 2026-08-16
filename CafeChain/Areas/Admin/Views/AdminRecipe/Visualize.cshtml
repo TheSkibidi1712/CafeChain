@@ -23,7 +23,7 @@
 
     var hero = new AdminPageHeroVM
     {
-        Eyebrow = "Sản xuất / BOM",
+        Eyebrow = "Sản xuất / Công thức và định mức",
         Title = Model.BusinessName,
         Description = $"{Model.TargetLabel}. Xem đầu ra, định mức đầu vào và bằng chứng phiên bản trong một bố cục thống nhất.",
         IconClass = "fas fa-diagram-project",
@@ -378,8 +378,8 @@
                         <header class="recipe-workspace__section-heading bom-section-heading">
                             <span class="recipe-workspace__section-icon"><i class="fas fa-store" aria-hidden="true"></i></span>
                             <div>
-                                <h2 id="operations-title">Sản xuất gần đây</h2>
-                                <p>Bằng chứng vận hành của đúng phiên bản công thức tại chi nhánh đã chọn.</p>
+                                <h2 id="operations-title">Tồn và sản xuất tại chi nhánh</h2>
+                                <p>Tín hiệu bổ sung theo bán thành phẩm; tồn thực tế và nguồn sản xuất đang mở luôn được trình bày riêng.</p>
                             </div>
                         </header>
                         @if (!Model.SelectedStoreId.HasValue)
@@ -393,24 +393,85 @@
                         else if (Model.Operational != null)
                         {
                             var operational = Model.Operational;
+                            @if (Model.Replenishment != null)
+                            {
+                                var replenishment = Model.Replenishment;
+                                <div class="recipe-workspace__replenishment-grid" aria-label="Tín hiệu nhu cầu bổ sung tại chi nhánh">
+                                    <article>
+                                        <span>Tồn khả dụng</span>
+                                        <strong>@replenishment.UsableBase.ToString("0.###") @replenishment.BaseUnitCode</strong>
+                                        <small>Hiện có @replenishment.OnHandBase.ToString("0.###") · Đã giữ @replenishment.ReservedBase.ToString("0.###")</small>
+                                    </article>
+                                    <article>
+                                        <span>Ngưỡng cảnh báo tồn thấp</span>
+                                        <strong>@(replenishment.LowThresholdBase.HasValue ? $"{replenishment.LowThresholdBase.Value:0.###} {replenishment.BaseUnitCode}" : "Chưa cấu hình")</strong>
+                                        <small>@(!replenishment.LowThresholdBase.HasValue
+                                            ? "Cần cấu hình ngưỡng trước khi đánh giá."
+                                            : replenishment.IsLow
+                                                ? "Tồn khả dụng đang dưới ngưỡng."
+                                                : "Tồn khả dụng chưa xuống dưới ngưỡng.")</small>
+                                    </article>
+                                    <article>
+                                        <span>Mức tồn mục tiêu</span>
+                                        <strong>@(replenishment.TargetStockBase.HasValue ? $"{replenishment.TargetStockBase.Value:0.###} {replenishment.BaseUnitCode}" : "Chưa cấu hình")</strong>
+                                        <small>@replenishment.BusinessMessageVi</small>
+                                    </article>
+                                    <article>
+                                        <span>Nguồn sản xuất đang mở</span>
+                                        <strong>@(replenishment.OpenProductionCoverageBase.HasValue ? $"{replenishment.OpenProductionCoverageBase.Value:0.###} {replenishment.BaseUnitCode}" : "Chưa quy đổi được")</strong>
+                                        <small>Chỉ giảm nhu cầu lập kế hoạch, không làm tăng tồn kho.</small>
+                                    </article>
+                                    <article>
+                                        <span>Còn cần bổ sung</span>
+                                        <strong>@(replenishment.NetNeedBase.HasValue ? $"{replenishment.NetNeedBase.Value:0.###} {replenishment.BaseUnitCode}" : "Chưa tính được")</strong>
+                                        <small>@(replenishment.NetNeedBase.HasValue ? "Đã trừ nguồn sản xuất đang mở." : "Cần đủ chính sách tồn và dữ liệu quy đổi.")</small>
+                                    </article>
+                                </div>
+                                <div class="recipe-workspace__replenishment-links" aria-label="Liên kết truy vết nhu cầu bổ sung">
+                                    @if (Model.CanViewStockAlerts && replenishment.ActiveAlert != null)
+                                    {
+                                        <a asp-controller="AdminStockAlerts" asp-action="Details" asp-route-id="@replenishment.ActiveAlert.StockAlertId" asp-route-storeId="@replenishment.StoreId">
+                                            <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+                                            Cảnh báo tồn kho · @AdminStatusDisplay.StockAlert(replenishment.ActiveAlert.StatusCode).Label
+                                        </a>
+                                    }
+                                    @if (Model.CanViewRestockRequests && replenishment.ActiveRestockRequest != null)
+                                    {
+                                        <a asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@replenishment.ActiveRestockRequest.RestockRequestId">
+                                            <i class="fas fa-clipboard-list" aria-hidden="true"></i>
+                                            Nhu cầu bổ sung · @AdminStatusDisplay.RestockRequest(replenishment.ActiveRestockRequest.StatusCode).Label
+                                        </a>
+                                    }
+                                    @if (Model.CanViewProduction && replenishment.OpenProductionRuns.Count > 0)
+                                    {
+                                        @foreach (var openRun in replenishment.OpenProductionRuns)
+                                        {
+                                            <a asp-controller="AdminProductionOrder" asp-action="Details" asp-route-id="@openRun.ProductionRunId">
+                                                <i class="fas fa-industry" aria-hidden="true"></i>
+                                                Lệnh sản xuất #@openRun.ProductionRunId · @openRun.StatusLabel
+                                            </a>
+                                        }
+                                    }
+                                </div>
+                                @if (replenishment.HasMoreOpenProductionRuns)
+                                {
+                                    <p class="recipe-workspace__replenishment-limit">Hiển thị @replenishment.OpenProductionRuns.Count/@replenishment.OpenProductionRunTotal nguồn sản xuất đang mở gần nhất.</p>
+                                }
+                            }
+                            else
+                            {
+                                <p class="recipe-workspace__notice">@(!string.IsNullOrWhiteSpace(Model.ReplenishmentError) ? Model.ReplenishmentError : "Chưa có tín hiệu nhu cầu bổ sung được phép xem tại chi nhánh này.")</p>
+                            }
                             <div class="recipe-workspace__operations-grid">
                                 <article>
-                                    <span>Tồn bán thành phẩm</span>
-                                    @if (operational.OutputStock == null)
-                                    {
-                                        <strong>Chưa có dữ liệu tồn chuẩn</strong>
-                                        <small>Cần kiểm tra liên kết tồn kho của bán thành phẩm.</small>
-                                    }
-                                    else
-                                    {
-                                        <strong>@operational.OutputStock.UsableQuantity.ToString("0.###") @operational.OutputStock.BaseUnitCode khả dụng</strong>
-                                        <small>Hiện có @operational.OutputStock.CurrentQuantity.ToString("0.###") · Đã giữ @operational.OutputStock.ReservedQuantity.ToString("0.###")</small>
-                                    }
+                                    <span>Sản xuất gần đây</span>
+                                    <strong>@operational.RecentRuns.Count lệnh</strong>
+                                    <small>@(operational.RecentRuns.Count == 0 ? "Chưa có bằng chứng cho đúng phiên bản này." : "Tối đa 5 lệnh gần nhất của phiên bản đang xem.")</small>
                                 </article>
                                 <article>
-                                    <span>Lệnh sản xuất</span>
-                                    <strong>@operational.RecentRuns.Count lần gần đây</strong>
-                                    <small>@(operational.RecentRuns.Count == 0 ? "Chưa có dữ liệu cho đúng phiên bản này." : "Tối đa 5 lệnh gần nhất của phiên bản đang xem.")</small>
+                                    <span>Phiên bản bằng chứng</span>
+                                    <strong>@Model.VersionLabel</strong>
+                                    <small>Mỗi lệnh tiếp tục dùng đúng phiên bản đã ghim khi lập kế hoạch.</small>
                                 </article>
                             </div>
                             @if (operational.RecentRuns.Count > 0)

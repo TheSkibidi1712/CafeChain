@@ -1,11 +1,16 @@
 using System.Linq;
 using System.Threading.Tasks;
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin.Permissions;
+using CafeChain.Application.Interfaces.Admin.Permissions;
+using CafeChain.Application.Results;
 using CafeChain.Application.Services.Admin.StoreInventories;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
+using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Ingredients;
+using CafeChain.Models.Inventories.PreparedItems;
 using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Permissions;
 using CafeChain.Models.Staffs;
@@ -39,6 +44,83 @@ namespace CafeChain.Tests.POS
         private const int BoAccountId = 722;
         private const int BoStaffId = 723;
         private const int UnitId = 1;
+        private const int PreparedItemId = 7703;
+
+        [Fact]
+        public async Task PreparedItemThreshold_IsStoreSpecific()
+        {
+            using var ctx = CreateDbContext();
+            EnsureBase(ctx);
+            EnsureStaffWithRole(ctx, ManagerAccountId, ManagerStaffId, StoreId,
+                RoleConstants.StoreManager, "mgr104-policy@test.local");
+            var ownId = await SeedCanonicalPreparedItemInventoryAsync(ctx, StoreId, 2m, 0m);
+            var otherId = await SeedCanonicalPreparedItemInventoryAsync(ctx, OtherStoreId, 2m, 0m);
+            var service = CreateService(ctx);
+
+            var own = await UpdatePolicyAsync(service, ctx, ManagerAccountId, ownId, 3m, 8m);
+            var other = await UpdatePolicyAsync(service, ctx, ManagerAccountId, otherId, 3m, 8m);
+
+            Assert.True(own.IsSuccess);
+            Assert.False(other.IsSuccess);
+            Assert.Equal(8m, (await ctx.StoreInventories.SingleAsync(x => x.StoreInventoryId == ownId)).TargetStockLevel);
+            Assert.Null((await ctx.StoreInventories.SingleAsync(x => x.StoreInventoryId == otherId)).TargetStockLevel);
+        }
+
+        [Fact]
+        public async Task TargetStock_MustNotBeBelowLowThreshold()
+        {
+            using var ctx = CreateDbContext();
+            EnsureBase(ctx);
+            EnsureStaffWithRole(ctx, ManagerAccountId, ManagerStaffId, StoreId,
+                RoleConstants.StoreManager, "mgr104-target@test.local");
+            var invId = await SeedCanonicalPreparedItemInventoryAsync(ctx, StoreId, 2m, 0m);
+            var service = CreateService(ctx);
+
+            var result = await UpdatePolicyAsync(service, ctx, ManagerAccountId, invId, 5m, 4m);
+
+            Assert.False(result.IsSuccess);
+            Assert.Equal("TARGET_STOCK_BELOW_LOW_THRESHOLD", result.ErrorCode);
+            var row = await ctx.StoreInventories.SingleAsync(x => x.StoreInventoryId == invId);
+            Assert.Null(row.MinStockLevel);
+            Assert.Null(row.TargetStockLevel);
+        }
+
+        [Fact]
+        public async Task PolicyUpdate_DoesNotMutateInventoryQuantity()
+        {
+            using var ctx = CreateDbContext();
+            EnsureBase(ctx);
+            EnsureStaffWithRole(ctx, ManagerAccountId, ManagerStaffId, StoreId,
+                RoleConstants.StoreManager, "mgr104-quantity@test.local");
+            var invId = await SeedCanonicalPreparedItemInventoryAsync(ctx, StoreId, 6.5m, 1.25m);
+            var service = CreateService(ctx);
+
+            var result = await UpdatePolicyAsync(service, ctx, ManagerAccountId, invId, 3m, 9m);
+
+            Assert.True(result.IsSuccess);
+            var row = await ctx.StoreInventories.SingleAsync(x => x.StoreInventoryId == invId);
+            Assert.Equal(6.5m, row.AvailableQty);
+            Assert.Equal(1.25m, row.ReservedQty);
+            Assert.Equal(3m, row.MinStockLevel);
+            Assert.Equal(9m, row.TargetStockLevel);
+        }
+
+        [Fact]
+        public async Task LegacyPreparedItemRow_CannotBecomeNewPolicyAuthority()
+        {
+            using var ctx = CreateDbContext();
+            EnsureBase(ctx);
+            EnsureStaffWithRole(ctx, ManagerAccountId, ManagerStaffId, StoreId,
+                RoleConstants.StoreManager, "mgr104-legacy@test.local");
+            var invId = await SeedInventoryAsync(ctx, StoreId, null, RecipeId, 2m, 0m, null);
+            var service = CreateService(ctx);
+
+            var result = await UpdatePolicyAsync(service, ctx, ManagerAccountId, invId, 3m, 8m);
+
+            Assert.False(result.IsSuccess);
+            Assert.Equal("CANONICAL_PREPARED_ITEM_REQUIRED", result.ErrorCode);
+            Assert.Null((await ctx.StoreInventories.SingleAsync(x => x.StoreInventoryId == invId)).TargetStockLevel);
+        }
 
         [Fact]
         public async Task StoreManager_UpdatesMinStockLevel_OwnStore_Ingredient()
@@ -129,7 +211,7 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task AreaManager_CanUpdate_StoreInScope()
+        public async Task AreaManager_CannotUpdate_StoreInScope()
         {
             using var ctx = CreateDbContext();
             EnsureBase(ctx);
@@ -144,8 +226,9 @@ namespace CafeChain.Tests.POS
 
             var result = await UpdateAsync(service, ctx, AmAccountId, invId, 7m);
 
-            Assert.True(result.IsSuccess);
-            Assert.Equal(7m, (await ctx.StoreInventories.SingleAsync(i => i.StoreInventoryId == invId)).MinStockLevel);
+            Assert.False(result.IsSuccess);
+            Assert.Contains("quyền cập nhật ngưỡng", result.Message);
+            Assert.Null((await ctx.StoreInventories.SingleAsync(i => i.StoreInventoryId == invId)).MinStockLevel);
         }
 
         [Fact]
@@ -334,24 +417,56 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task AccountHasEditRole_MatchesAllowList()
+        public async Task EffectivePermissionDeny_BlocksStoreManagerRole()
         {
             using var ctx = CreateDbContext();
             EnsureBase(ctx);
             EnsureStaffWithRole(ctx, ManagerAccountId, ManagerStaffId, StoreId,
                 RoleConstants.StoreManager, "mgr104h@test.local");
-            EnsureStaffWithRole(ctx, AwAccountId, AwStaffId, StoreId,
-                RoleConstants.AccountantWarehouse, "aw104h@test.local");
-            var service = CreateService(ctx);
+            var invId = await SeedInventoryAsync(
+                ctx, StoreId, IngredientId, null, qty: 5m, reserved: 0m, min: null);
+            var service = CreateService(ctx, (_, _) => false);
 
-            Assert.True(await service.AccountHasEditRoleAsync(ManagerAccountId));
-            Assert.False(await service.AccountHasEditRoleAsync(AwAccountId));
+            var result = await UpdateAsync(service, ctx, ManagerAccountId, invId, 8m);
+
+            Assert.False(result.IsSuccess);
+            Assert.Contains("quyền cập nhật ngưỡng", result.Message);
+            Assert.Null((await ctx.StoreInventories.SingleAsync(i => i.StoreInventoryId == invId)).MinStockLevel);
         }
 
         // ---------- helpers ----------
 
-        private static InventoryThresholdService CreateService(CafeChain.Data.AppDbContext ctx) =>
-            new(ctx, new Mock<ILogger<InventoryThresholdService>>().Object);
+        private static InventoryThresholdService CreateService(
+            CafeChain.Data.AppDbContext ctx,
+            Func<int, int, bool>? permissionDecision = null)
+        {
+            permissionDecision ??= (accountId, _) => ctx.AccountRoles
+                .Where(x => x.AccountId == accountId)
+                .Select(x => x.Role!.Name)
+                .Any(name => name == RoleConstants.StoreManager
+                    || name == RoleConstants.BusinessOwner);
+
+            var permissions = new Mock<IAdminPermissionService>(MockBehavior.Strict);
+            permissions
+                .Setup(x => x.HasPermissionAsync(
+                    It.IsAny<int>(),
+                    PermissionConstants.InventoryThresholdUpdate,
+                    It.IsAny<int?>()))
+                .ReturnsAsync((int accountId, string _, int? storeId) =>
+                    ServiceResult<PermissionDecisionDto>.Success(new PermissionDecisionDto
+                    {
+                        AccountId = accountId,
+                        PermissionCode = PermissionConstants.InventoryThresholdUpdate,
+                        TargetStoreId = storeId,
+                        Allowed = storeId.HasValue && permissionDecision(accountId, storeId.Value),
+                        ScopeAllowed = storeId.HasValue
+                    }));
+
+            return new InventoryThresholdService(
+                ctx,
+                permissions.Object,
+                new Mock<ILogger<InventoryThresholdService>>().Object);
+        }
 
         private static void EnsureBase(CafeChain.Data.AppDbContext ctx)
         {
@@ -559,6 +674,45 @@ namespace CafeChain.Tests.POS
             return row.StoreInventoryId;
         }
 
+        private static async Task<int> SeedCanonicalPreparedItemInventoryAsync(
+            CafeChain.Data.AppDbContext ctx,
+            int storeId,
+            decimal available,
+            decimal reserved)
+        {
+            if (!ctx.PreparedItems.Any(x => x.PreparedItemId == PreparedItemId))
+            {
+                ctx.PreparedItems.Add(new PreparedItem
+                {
+                    PreparedItemId = PreparedItemId,
+                    Code = "BTP104",
+                    Name = "Cốt trà kiểm thử",
+                    BaseUnitId = UnitId,
+                    Active = true
+                });
+                await ctx.SaveChangesAsync();
+            }
+
+            var row = new StoreInventory
+            {
+                StoreId = storeId,
+                PreparedItemId = PreparedItemId,
+                BtpIdentityState = BtpIdentityState.Canonical,
+                QuantitySemanticsStatus = InventoryQuantitySemanticsStatus.BaseUnitConfirmed,
+                QuantitySemanticsEvidenceType = QuantitySemanticsEvidenceType.SystemCanonicalCreation,
+                QuantitySemanticsEvidenceReference = "TEST_104",
+                QuantitySemanticsReviewedAt = DateTime.UtcNow,
+                QuantitySemanticsReviewedByAccountId = ManagerAccountId,
+                AvailableQty = available,
+                ReservedQty = reserved,
+                LastUpdated = DateTime.UtcNow,
+                RowVersion = new byte[] { 0 }
+            };
+            ctx.StoreInventories.Add(row);
+            await ctx.SaveChangesAsync();
+            return row.StoreInventoryId;
+        }
+
         private static async Task<CafeChain.Application.Results.ServiceResult> UpdateAsync(
             InventoryThresholdService service,
             CafeChain.Data.AppDbContext context,
@@ -577,6 +731,28 @@ namespace CafeChain.Tests.POS
                 storeInventoryId,
                 minStockLevel,
                 System.Convert.ToBase64String(rowVersion));
+        }
+
+        private static async Task<CafeChain.Application.Results.ServiceResult> UpdatePolicyAsync(
+            InventoryThresholdService service,
+            CafeChain.Data.AppDbContext context,
+            int accountId,
+            int storeInventoryId,
+            decimal? minStockLevel,
+            decimal? targetStockLevel)
+        {
+            var rowVersion = await context.StoreInventories
+                .AsNoTracking()
+                .Where(x => x.StoreInventoryId == storeInventoryId)
+                .Select(x => x.RowVersion)
+                .SingleAsync();
+
+            return await service.UpdatePreparedItemPolicyAsync(
+                accountId,
+                storeInventoryId,
+                minStockLevel,
+                targetStockLevel,
+                Convert.ToBase64String(rowVersion));
         }
     }
 }

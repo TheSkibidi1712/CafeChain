@@ -25,6 +25,7 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IProductionRunQueryService _queryService;
         private readonly IProductionReadinessService _readinessService;
         private readonly IAdminStoreInventoryService _storeInventoryService;
+        private readonly IPreparedItemProductionCapabilityService _capabilityService;
 
         public AdminProductionOrderController(
             IProductionRunService productionRunService,
@@ -33,7 +34,8 @@ namespace CafeChain.Areas.Admin.Controllers
             IProductionRunAcceptanceService acceptanceService,
             IProductionRunQueryService queryService,
             IProductionReadinessService readinessService,
-            IAdminStoreInventoryService storeInventoryService)
+            IAdminStoreInventoryService storeInventoryService,
+            IPreparedItemProductionCapabilityService capabilityService)
         {
             _productionRunService = productionRunService;
             _executionService = executionService;
@@ -42,6 +44,7 @@ namespace CafeChain.Areas.Admin.Controllers
             _queryService = queryService;
             _readinessService = readinessService;
             _storeInventoryService = storeInventoryService;
+            _capabilityService = capabilityService;
         }
 
         [HttpGet]
@@ -80,6 +83,85 @@ namespace CafeChain.Areas.Admin.Controllers
                 return View(new ProductionRunListDto());
             }
             return View(result.Data);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Capabilities(
+            int storeId = 0,
+            string? search = null,
+            int page = 1)
+        {
+            var accountId = GetAccountId();
+            var stores = accountId > 0
+                ? await _storeInventoryService.GetStoresByStaffAsync(accountId)
+                : new List<InventoryStoreDTO>();
+            var homeStoreId = User.GetStoreIdOrDefault();
+            var selectedStoreId = stores.Any(x => x.StoreId == storeId)
+                ? storeId
+                : stores.Any(x => x.StoreId == homeStoreId)
+                    ? homeStoreId
+                    : stores.FirstOrDefault()?.StoreId ?? 0;
+            ViewBag.Stores = stores;
+            if (selectedStoreId <= 0)
+                return View(new PreparedItemProductionCapabilityPageDto());
+
+            var result = await _capabilityService.GetPageAsync(
+                accountId,
+                selectedStoreId,
+                search,
+                page,
+                20);
+            if (!result.IsSuccess || result.Data == null)
+            {
+                Response.StatusCode = StatusCodes.Status403Forbidden;
+                ViewBag.ErrorMessage = result.Message;
+                return View(new PreparedItemProductionCapabilityPageDto { StoreId = selectedStoreId });
+            }
+
+            return View(result.Data);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.PreparedItemUpdate)]
+        public async Task<IActionResult> SetGlobalCapability(
+            int preparedItemId,
+            bool enabled,
+            string? rowVersion,
+            int storeId,
+            string? search,
+            int page = 1)
+        {
+            var result = await _capabilityService.SetGlobalProductionAsync(
+                GetAccountId(),
+                User.GetStaffId(),
+                preparedItemId,
+                enabled,
+                rowVersion);
+            SetOperationMessage(result.IsSuccess, result.Message);
+            return RedirectToAction(nameof(Capabilities), new { storeId, search, page });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.ProductionOrderPlan)]
+        public async Task<IActionResult> SetStoreCapability(
+            int preparedItemId,
+            bool enabled,
+            string? rowVersion,
+            int storeId,
+            string? search,
+            int page = 1)
+        {
+            var result = await _capabilityService.SetStoreProductionAsync(
+                GetAccountId(),
+                User.GetStaffId(),
+                storeId,
+                preparedItemId,
+                enabled,
+                rowVersion);
+            SetOperationMessage(result.IsSuccess, result.Message);
+            return RedirectToAction(nameof(Capabilities), new { storeId, search, page });
         }
 
         [HttpGet]
