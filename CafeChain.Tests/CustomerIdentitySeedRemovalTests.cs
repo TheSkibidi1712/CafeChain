@@ -122,7 +122,7 @@ public sealed class CustomerIdentitySeedRemovalTests : IntegrationTestBase
         var accountConfiguration = Read("CafeChain", "Data", "Configurations", "Customers", "Accounts", "AccountConfiguration.cs");
         var customerConfiguration = Read("CafeChain", "Data", "Configurations", "Customers", "CustomerInfos", "CustomerConfiguration.cs");
         var seedAll = Read("CafeChain", "Scripts", "SeedAll.sql");
-        var initialMigration = Read("CafeChain", "Migrations", "20260810115400_InitialCreate.cs");
+        var initialMigration = Read("CafeChain", "Migrations", "20260815152712_InitialCreate.cs");
         var snapshot = Read("CafeChain", "Migrations", "AppDbContextModelSnapshot.cs");
 
         foreach (var source in new[] { accountConfiguration, customerConfiguration, initialMigration, snapshot })

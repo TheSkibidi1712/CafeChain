@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml;
+using System.Xml.Linq;
 using CafeChain.Application.DTOs.AIImport;
 using CafeChain.Application.Options;
 using CafeChain.Models.AIImport;
@@ -471,9 +472,27 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
         .Where(text => !text.Ancestors<OpenXmlElement>().Any(IsDeletedRevision))
         .Select(text => text.Text)).Trim();
 
-    private static string RevisionAwareText(OpenXmlElement element) => string.Join(" ", element.Descendants<Text>()
-        .Where(text => !text.Ancestors<OpenXmlElement>().Any(IsDeletedRevision))
-        .Select(text => text.Text.Trim()).Where(text => text.Length > 0)).Trim();
+    private static string RevisionAwareText(OpenXmlElement element)
+    {
+        // Some producers emit moveFrom/moveTo as generic OpenXml elements. Reading the XML by local name
+        // keeps the accepted move target while still excluding deleted/moved-from content.
+        try
+        {
+            var root = XElement.Parse(element.OuterXml, LoadOptions.PreserveWhitespace);
+            return string.Join(" ", root.Descendants()
+                .Where(node => node.Name.LocalName == "t"
+                               && !node.Ancestors().Any(ancestor =>
+                                   ancestor.Name.LocalName is "del" or "moveFrom"))
+                .Select(node => node.Value.Trim())
+                .Where(text => text.Length > 0)).Trim();
+        }
+        catch (XmlException)
+        {
+            return string.Join(" ", element.Descendants<Text>()
+                .Where(text => !text.Ancestors<OpenXmlElement>().Any(IsDeletedRevision))
+                .Select(text => text.Text.Trim()).Where(text => text.Length > 0)).Trim();
+        }
+    }
 
     private static bool HasTrackedChanges(OpenXmlElement element) => element.Descendants<OpenXmlElement>().Any(value =>
         value.LocalName is "ins" or "del" or "moveFrom" or "moveTo");
