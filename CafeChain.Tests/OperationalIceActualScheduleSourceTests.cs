@@ -304,18 +304,16 @@ public sealed class OperationalIceActualScheduleSourceTests : IntegrationTestBas
     }
 
     [Fact]
-    public void Migration_BackfillsOnlyDeterministicDraftsAndLeavesHistoryUntouched()
+    public void Baseline_CreatesScheduleSourceRelationWithoutLegacyHistoryBackfill()
     {
-        var migrationPath = Directory.GetFiles(
-            Path.Combine(FindRepositoryRoot(), "CafeChain", "Migrations"),
-            "*_AddOperationalShiftStaffScheduleSources.cs").Single();
+        var migrationPath = Path.Combine(
+            FindRepositoryRoot(), "CafeChain", "Migrations", "20260815152712_InitialCreate.cs");
         var migration = File.ReadAllText(migrationPath);
 
-        Assert.Contains("os.Status = 'Draft'", migration, StringComparison.Ordinal);
-        Assert.Contains("os.CreationSource = 'StaffSchedule'", migration, StringComparison.Ordinal);
-        Assert.Contains("NOT EXISTS (", migration, StringComparison.Ordinal);
-        Assert.Contains("MIN(EffectiveStartAtUtc) = MAX(EffectiveStartAtUtc)", migration, StringComparison.Ordinal);
-        Assert.Contains("HAVING COUNT(DISTINCT source.OperationalShiftId) = 1", migration, StringComparison.Ordinal);
+        Assert.Contains("name: \"OperationalShiftScheduleSources\"", migration, StringComparison.Ordinal);
+        Assert.Contains("x => new { x.OperationalShiftId, x.StaffShiftId }", migration, StringComparison.Ordinal);
+        Assert.Contains("name: \"IX_OperationalShiftScheduleSources_StaffShiftId\"", migration, StringComparison.Ordinal);
+        Assert.Contains("unique: true", migration, StringComparison.Ordinal);
         Assert.DoesNotContain("UPDATE OperationalShifts", migration, StringComparison.OrdinalIgnoreCase);
     }
 

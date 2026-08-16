@@ -1,6 +1,6 @@
 # AI Smart Import CafeChain — quy tắc nghiệp vụ
 
-> Cập nhật 15/08/2026: baseline chính thức là `20260815105817_InitialCreate`; thay đổi OCR runtime và multi-file nằm trong forward migration `20260815141744_AddAIImportOcrRuntimeAndMultiFile`. OCR vẫn đi qua Preview/Confirm hiện hữu và mặc định tắt.
+> Cập nhật 16/08/2026: baseline chính thức là `20260815152712_InitialCreate`, đã gồm OCR runtime và multi-file. Forward migration `20260816170000_AddPreparedItemTargetStockLevel` chỉ bổ sung Target Stock cho kho, không đổi hợp đồng AI Import.
 
 ## 1. Mục tiêu và thuật ngữ
 
@@ -273,7 +273,7 @@ Confirm còn kiểm tra quyền `Category.Create`, `Drink.Create`, `Size.Create`
 - Snapshot text chỉ tồn tại khi session còn cần reanalyze; bị xóa khi `COMPLETED`, `CANCELLED` hoặc `EXPIRED`.
 - Raw data/evidence không được ghi vào application log hoặc history response.
 
-Baseline thật là `20260815105817_InitialCreate`. Forward migration `20260815141744_AddAIImportOcrRuntimeAndMultiFile` bổ sung OCR snapshot cấp phiên, `ImportSourceDocuments` và liên kết nguồn của Group; không sửa baseline.
+Baseline thật là `20260815152712_InitialCreate`; baseline này đã có OCR snapshot cấp phiên, `ImportSourceDocuments` và liên kết nguồn của Group. Migration kế tiếp là `20260816170000_AddPreparedItemTargetStockLevel`, không phải migration AI Import.
 
 Vì baseline đã được squash, database development/test cũ phải được tạo lại hoặc có migration chuyển tiếp riêng trước khi deploy. Không được giả định `database update` có thể nâng trực tiếp một database đã ghi migration ID cũ lên baseline mới, và không được tự động xóa database production.
 
@@ -286,8 +286,16 @@ Vì baseline đã được squash, database development/test cũ phải được
 - OCR có hai điều kiện: executable/model local đạt health `READY` và request chọn `UseOcr`. System Settings quản lý languages/DPI/timeout/resource limit và health nhưng không có switch bật/tắt toàn hệ thống. OCR không có API key, không gửi tài liệu ra cloud và không ghi ảnh/text/đường dẫn tạm vào log.
 - Health check chỉ `READY` khi chạy được Tesseract và đủ mọi model trong `OcrLanguages` (mặc định `vie+eng`). Fingerprint gồm provider/path/languages; trạng thái health của cấu hình cũ không được tái sử dụng sau khi cấu hình thay đổi.
 - Tesseract chạy LSTM-only `--oem 1`, page segmentation tự động `--psm 3` và bật TSV trực tiếp bằng `-c tessedit_create_tsv=1`. Thư mục tessdata chỉ cần các model `.traineddata`, không yêu cầu copy thủ công `configs/tsv`. Confidence `0..100` được chuẩn hóa về `0..1`; bounding box pixel và page number được giữ trong OCR Snapshot.
+- Stdout/stderr Tesseract phải được đọc UTF-8. Dòng OCR được khôi phục theo line metadata/offset TSV trước khi fallback theo hình học, tránh mojibake và tách sai nhãn tiếng Việt.
 - Timeout/cancel phải kết thúc cả process tree. Thư mục tạm riêng theo request luôn bị xóa trong `finally`.
 - Một `ImportSession` có nhiều `ImportSourceDocument`; mỗi Group giữ `ImportSourceDocumentId`. Guard chạy độc lập từng file rồi candidate hội tụ về validation/reference/duplicate/dependency toàn phiên.
 - File lỗi không bị silent-drop. Phiên vẫn hiển thị preview của file hợp lệ nhưng Confirm bị khóa cho tới khi nguồn lỗi được loại bỏ.
 - Cùng business key/payload giữa file dùng `TRÙNG_TRONG_PHIÊN` và mặc định SKIP bản sau. Payload khác dùng `XUNG_ĐỘT_DỮ_LIỆU_GIỮA_CÁC_TỆP` và bắt buộc review.
+
+## 13. Runtime smoke test
+
+- Manifest `CafeChain.Tests/Fixtures/AIImport/runtime-smoke-manifest.json` bao phủ đúng 126 fixture: 43 Excel, 33 DOC/DOCX, 30 PDF text và 20 PDF scan.
+- Runner `scripts/run-ai-import-runtime-smoke.ps1` kiểm tra deterministic pipeline, regression non-SQL, Tesseract thật, Ollama `qwen3:4b`, SQL Server tùy theo environment và full suite. Runner không ghi document/OCR text, secret, connection string hay đường dẫn tạm vào report.
+- PowerShell runner không tự nhận UI click/screenshot là PASS. Hành trình rendered UI cần Browser session riêng; nếu Browser backend không khả dụng thì report phải ghi blocker, trong khi view/JavaScript contract vẫn chạy ở tầng non-SQL.
+- Fixture `S19_scan_unknown_extra_columns.pdf` là environment blocker đã biết: `tessdata_fast vie+eng`, PSM 3, DPI 200 chỉ trả một word. Hệ thống phải trả `BỐ_CỤC_PDF_KHÔNG_RÕ`, không đoán header/cột lạ khi thiếu evidence.
 - Confirm dùng một Idempotency-Key và transaction `Serializable` cho toàn phiên; một lỗi persistence rollback toàn bộ.

@@ -103,25 +103,28 @@ public sealed class AIImportContractTests
     }
 
     [Fact]
-    public void Document_source_migration_is_backward_compatible_and_keeps_initial_migration()
+    public void Migration_history_uses_current_baseline_then_target_stock_forward_migration()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite("Data Source=:memory:").Options;
         using var context = new AppDbContext(options);
-        Assert.Contains("20260815105817_InitialCreate", context.Database.GetMigrations());
-        Assert.Contains("20260815141744_AddAIImportOcrRuntimeAndMultiFile", context.Database.GetMigrations());
-        Assert.Equal(2, context.Database.GetMigrations().Count());
-        var migration = Read("CafeChain", "Migrations", "20260815105817_InitialCreate.cs");
-        Assert.Contains("name: \"ImportSessions\"", migration, StringComparison.Ordinal);
-        Assert.Contains("CK_ImportSessions_Status", migration, StringComparison.Ordinal);
-        Assert.Contains("name: \"ImportSessions\"", migration[migration.IndexOf("protected override void Down", StringComparison.Ordinal)..], StringComparison.Ordinal);
-        Assert.Contains("ManualReviewConfirmed = table.Column<bool>", migration, StringComparison.Ordinal);
-        Assert.Contains("SourceColumnsJson = table.Column<string>", migration, StringComparison.Ordinal);
-        Assert.Contains("ExtractionVersion = table.Column<string>", migration, StringComparison.Ordinal);
-        Assert.Contains("FieldEvidenceJson = table.Column<string>", migration, StringComparison.Ordinal);
-        var forward = Read("CafeChain", "Migrations", "20260815141744_AddAIImportOcrRuntimeAndMultiFile.cs");
-        Assert.Contains("name: \"ImportSourceDocuments\"", forward, StringComparison.Ordinal);
-        Assert.Contains("name: \"RequestedOcr\"", forward, StringComparison.Ordinal);
-        Assert.Contains("name: \"EffectiveOcr\"", forward, StringComparison.Ordinal);
+        var migrations = context.Database.GetMigrations().ToArray();
+        Assert.Equal([
+            "20260815152712_InitialCreate",
+            "20260816170000_AddPreparedItemTargetStockLevel"
+        ], migrations);
+        var baseline = Read("CafeChain", "Migrations", "20260815152712_InitialCreate.cs");
+        Assert.Contains("name: \"ImportSessions\"", baseline, StringComparison.Ordinal);
+        Assert.Contains("name: \"ImportSourceDocuments\"", baseline, StringComparison.Ordinal);
+        Assert.Contains("CK_ImportSessions_Status", baseline, StringComparison.Ordinal);
+        Assert.Contains("ManualReviewConfirmed = table.Column<bool>", baseline, StringComparison.Ordinal);
+        Assert.Contains("RequestedOcr = table.Column<bool>", baseline, StringComparison.Ordinal);
+        Assert.Contains("EffectiveOcr = table.Column<bool>", baseline, StringComparison.Ordinal);
+        Assert.Contains("SourceColumnsJson = table.Column<string>", baseline, StringComparison.Ordinal);
+        Assert.Contains("ExtractionVersion = table.Column<string>", baseline, StringComparison.Ordinal);
+        Assert.Contains("FieldEvidenceJson = table.Column<string>", baseline, StringComparison.Ordinal);
+        var forward = Read("CafeChain", "Migrations", "20260816170000_AddPreparedItemTargetStockLevel.cs");
+        Assert.Contains("name: \"TargetStockLevel\"", forward, StringComparison.Ordinal);
+        Assert.DoesNotContain("CreateTable", forward, StringComparison.Ordinal);
     }
 
     [Fact]

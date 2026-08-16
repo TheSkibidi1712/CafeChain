@@ -1,6 +1,6 @@
 # Hướng dẫn sử dụng Dashboard, AI, tín hiệu vận hành, so sánh nhà cung cấp và AI Smart Import
 
-> Cập nhật AI Smart Import (15/08/2026): hỗ trợ chọn nguồn cho header trùng, Cancel an toàn, OCR Tesseract local và nhiều tài liệu trong một phiên. Lựa chọn OCR theo từng lần import mặc định tắt; tài liệu OCR không rời khỏi máy chủ.
+> Cập nhật AI Smart Import (16/08/2026): hỗ trợ chọn nguồn cho header trùng, Cancel an toàn, OCR Tesseract local UTF-8/TSV và nhiều tài liệu trong một phiên. Lựa chọn OCR theo từng lần import mặc định tắt; tài liệu OCR không rời khỏi máy chủ. Bộ runtime smoke 126 fixture được chạy bằng `scripts/run-ai-import-runtime-smoke.ps1`.
 
 > Cập nhật theo mã nguồn, AI skill/schema, giao diện Dashboard và `Scripts/SeedAll.sql` ngày 14/08/2026.
 

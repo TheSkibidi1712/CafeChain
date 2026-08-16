@@ -1,6 +1,6 @@
 # Quy tắc nghiệp vụ Dashboard, AI, tín hiệu vận hành, so sánh nhà cung cấp và AI Smart Import
 
-> Cập nhật AI Smart Import (15/08/2026): baseline `20260815105817_InitialCreate` có forward migration OCR runtime/multi-file. Các invariant RBAC, PreviewVersion, idempotency, transaction `Serializable`, full revalidation và CRUD source-of-truth không thay đổi.
+> Cập nhật AI Smart Import (16/08/2026): baseline `20260815152712_InitialCreate` đã gồm OCR runtime/multi-file; forward migration hiện hành là `20260816170000_AddPreparedItemTargetStockLevel`. Các invariant RBAC, PreviewVersion, idempotency, transaction `Serializable`, full revalidation và CRUD source-of-truth không thay đổi.
 
 > Cập nhật theo mã nguồn, AI skill/schema, giao diện Dashboard và `Scripts/SeedAll.sql` ngày 14/08/2026.
 
@@ -540,7 +540,7 @@ Theo seed mặc định, Chủ doanh nghiệp có toàn bộ quyền Smart Impor
 - Audit lưu format/mode, OCR usage/page/provider/version/confidence summary, AI chunk count, actor, trạng thái và kết quả; không lưu raw OCR/full evidence/full prompt.
 - Snapshot bị xóa khi session `COMPLETED`, `CANCELLED` hoặc `EXPIRED`; raw data/evidence/secret không xuất hiện trong application log hoặc history response.
 
-Migration theo đúng thứ tự `20260815105817_InitialCreate` (baseline chính thức) rồi `20260815141744_AddAIImportOcrRuntimeAndMultiFile` (forward migration). Database development/test đã ghi migration ID khác phải được nâng cấp có kiểm soát hoặc tạo lại nếu disposable; không tự động xóa database production.
+Migration theo đúng thứ tự `20260815152712_InitialCreate` (baseline chính thức) rồi `20260816170000_AddPreparedItemTargetStockLevel` (forward migration). Database development/test đã ghi migration ID khác phải được nâng cấp có kiểm soát hoặc tạo lại nếu disposable; không tự động xóa database production.
 
 ## 8. Phạm vi cửa hàng và ngày kinh doanh
 
