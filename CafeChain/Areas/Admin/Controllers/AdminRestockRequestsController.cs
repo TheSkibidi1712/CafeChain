@@ -146,6 +146,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             ViewBag.CanWarehouse = await HasEffectivePermissionAsync(PermissionConstants.RestockUpdate);
+            ViewBag.CanStartProcessing = await HasEffectivePermissionAsync(PermissionConstants.RestockApprove);
             ViewBag.CanCreateReceipt = await HasEffectivePermissionAsync(PermissionConstants.ReceiptCreate);
             ViewBag.CanCancel = await HasEffectivePermissionAsync(PermissionConstants.RestockCancel);
             ViewBag.CanSubmit = await HasEffectivePermissionAsync(PermissionConstants.RestockSubmit);
