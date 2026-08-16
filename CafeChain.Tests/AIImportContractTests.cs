@@ -390,6 +390,43 @@ public sealed class AIImportContractTests
     }
 
     [Fact]
+    public void Ui_history_can_switch_sessions_repeatedly_and_close_the_view_without_cancelling()
+    {
+        var view = Read("CafeChain", "Areas", "Admin", "Views", "AIImport", "Index.cshtml");
+        var script = Read("CafeChain", "wwwroot", "js", "Admin", "AIImport", "ai-import.js");
+
+        Assert.Contains("id=\"closeSessionButton\"", view, StringComparison.Ordinal);
+        Assert.Contains("async function switchSession(id)", script, StringComparison.Ordinal);
+        Assert.Contains("const generation = ++state.sessionGeneration;", script, StringComparison.Ordinal);
+        Assert.Contains("if (generation !== state.sessionGeneration) return false;", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("state.session && state.session.sessionId !== id", script, StringComparison.Ordinal);
+
+        var closeView = Between(script, "function closeSessionView()", "function closeImportWorkspace(result)");
+        Assert.Contains("state.session = null;", closeView, StringComparison.Ordinal);
+        Assert.DoesNotContain("/cancel", closeView, StringComparison.Ordinal);
+        Assert.DoesNotContain("ai-import:completed", closeView, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Ui_mapping_is_source_column_first_unique_and_fully_localized()
+    {
+        var view = Read("CafeChain", "Areas", "Admin", "Views", "AIImport", "Index.cshtml");
+        var script = Read("CafeChain", "wwwroot", "js", "Admin", "AIImport", "ai-import.js");
+
+        Assert.Contains("data-source-column", script, StringComparison.Ordinal);
+        Assert.Contains("data-target-field", script, StringComparison.Ordinal);
+        Assert.Contains("mapping[select.value] = select.dataset.sourceColumn", script, StringComparison.Ordinal);
+        Assert.Contains("Bỏ qua cột này", script, StringComparison.Ordinal);
+        Assert.Contains("Trường có thể ánh xạ", script, StringComparison.Ordinal);
+        Assert.Contains("Hệ thống nhận diện nhưng bỏ qua", script, StringComparison.Ordinal);
+        Assert.Contains("Chưa xác định", script, StringComparison.Ordinal);
+        Assert.Contains("Không được phép nhập", script, StringComparison.Ordinal);
+        Assert.Contains("Cột nguồn", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("Gợi ý entity", view, StringComparison.Ordinal);
+        Assert.DoesNotContain(">Preview<", view, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Documentation_contains_demo_accounts_credentials_and_production_warning()
     {
         var guide = Read("CafeChain", "Doc", "AI_SMART_IMPORT_IMPLEMENTATION_AND_USER_GUIDE.md");
@@ -404,6 +441,14 @@ public sealed class AIImportContractTests
 
     private static string Read(params string[] parts) =>
         File.ReadAllText(Path.Combine(FindRoot(), Path.Combine(parts))).ReplaceLineEndings("\n");
+    private static string Between(string value, string start, string end)
+    {
+        var startIndex = value.IndexOf(start, StringComparison.Ordinal);
+        Assert.True(startIndex >= 0, $"Không tìm thấy mốc bắt đầu: {start}");
+        var endIndex = value.IndexOf(end, startIndex + start.Length, StringComparison.Ordinal);
+        Assert.True(endIndex > startIndex, $"Không tìm thấy mốc kết thúc: {end}");
+        return value[startIndex..endIndex];
+    }
     private static string FindRoot()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);

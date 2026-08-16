@@ -1,6 +1,6 @@
 @model CafeChain.Application.DTOs.Admin.Dashboard.DashboardGuidePageDto
 @{
-    ViewData["Title"] = "Hướng dẫn Dashboard Analytics và AI";
+    ViewData["Title"] = "Hướng dẫn bảng điều khiển phân tích và AI";
 }
 
 @section Styles {
@@ -10,7 +10,7 @@
 <main class="dashboard-guide">
     <header class="dashboard-guide__header">
         <div>
-            <span class="analytics-eyebrow">CafeChain Learning Center</span>
+            <span class="analytics-eyebrow">Trung tâm hướng dẫn CafeChain</span>
             <h1>Hướng dẫn tổng quan và trợ lý phân tích</h1>
             <p>Thiết lập đúng phạm vi, đọc chính xác chỉ số và khai thác AI an toàn trong một quy trình rõ ràng.</p>
         </div>
@@ -18,7 +18,7 @@
            asp-area="Admin"
            asp-controller="Dashboard"
            asp-action="Index">
-            <i class="bi bi-arrow-left"></i> Quay lại Dashboard
+            <i class="bi bi-arrow-left"></i> Quay lại bảng điều khiển
         </a>
     </header>
 
@@ -30,9 +30,9 @@
                 <a href="#ai-usage"><span>02</span>Sử dụng trợ lý phân tích</a>
                 <a href="#ai-questions"><span>03</span>Câu hỏi mẫu</a>
                 <a href="#ai-result"><span>04</span>Đọc kết quả AI</a>
-                <a href="#tabs"><span>05</span>Các tab dữ liệu</a>
+                <a href="#tabs"><span>05</span>Các thẻ dữ liệu</a>
                 <a href="#formulas"><span>06</span>Công thức</a>
-                <a href="#states"><span>07</span>Trạng thái widget</a>
+                <a href="#states"><span>07</span>Trạng thái thẻ dữ liệu</a>
                 <a href="#troubleshooting"><span>08</span>Xử lý sự cố</a>
             </nav>
         </aside>
@@ -42,7 +42,7 @@
                 <div>
                     <span class="analytics-eyebrow">Bắt đầu trong 3 phút</span>
                     <h2>Từ dữ liệu vận hành đến quyết định có căn cứ</h2>
-                    <p>Chọn đúng phạm vi, đặt câu hỏi rõ ràng và luôn kiểm tra evidence trước khi đưa ra hành động.</p>
+                    <p>Chọn đúng phạm vi, đặt câu hỏi rõ ràng và luôn kiểm tra bằng chứng trước khi đưa ra hành động.</p>
                 </div>
                 <span class="dashboard-guide__hero-icon" aria-hidden="true">
                     <svg class="dashboard-ai-logo dashboard-ai-logo--large" viewBox="0 0 32 32" fill="none">
@@ -59,7 +59,7 @@
             <div class="dashboard-guide__quick">
                 <div><span>01</span><p><strong>Thiết lập phạm vi</strong>Ngày, cửa hàng, độ chi tiết</p></div>
                 <div><span>02</span><p><strong>Đặt câu hỏi</strong>Rõ mục tiêu, đúng ngữ cảnh</p></div>
-                <div><span>03</span><p><strong>Kiểm tra evidence</strong>Hiểu giới hạn trước khi dùng</p></div>
+                <div><span>03</span><p><strong>Kiểm tra bằng chứng</strong>Hiểu giới hạn trước khi dùng</p></div>
             </div>
 
             <details class="dashboard-guide__card" id="filters" open>
@@ -70,14 +70,14 @@
                 </summary>
                 <div class="dashboard-guide__body">
                     <ul>
-                        <li><strong>Từ ngày/Đến ngày:</strong> khoảng nghiệp vụ cần phân tích; hệ thống sử dụng khoảng ngày nửa mở ở backend.</li>
+                        <li><strong>Từ ngày/Đến ngày:</strong> khoảng nghiệp vụ cần phân tích; hệ thống sử dụng khoảng ngày nửa mở ở máy chủ.</li>
                         <li><strong>Tỉnh/Thành phố, Xã/Phường/Đặc khu, Cửa hàng:</strong> lọc dần trong danh sách thuộc phạm vi truy cập của nhân viên.</li>
                         <li><strong>Mức thời gian:</strong> Giờ, Ngày, Tuần hoặc Tháng; tuần bắt đầu vào thứ Hai.</li>
                         <li><strong>Số kết quả xếp hạng:</strong> số dòng hiển thị, từ 1 đến 100.</li>
                     </ul>
                     <div class="dashboard-guide__callout">
                         <i class="bi bi-info-circle"></i>
-                        <span>Nhấn <strong>Áp dụng</strong> để hủy request cũ, xóa cache tab và tải lại tab đang mở. Các tab khác chỉ tải khi được mở lần đầu.</span>
+                        <span>Nhấn <strong>Áp dụng</strong> để hủy yêu cầu cũ, xóa dữ liệu tạm của thẻ và tải lại thẻ đang mở. Các thẻ khác chỉ tải khi được mở lần đầu.</span>
                     </div>
                 </div>
             </details>
@@ -92,10 +92,10 @@
                     <ol>
                         <li>Chọn khoảng ngày và cửa hàng thuộc phạm vi được cấp quyền.</li>
                         <li>Nhấn <strong>Áp dụng</strong> để trang tổng quan đồng bộ bộ lọc.</li>
-                        <li>Mở tab <strong>Hỏi AI</strong>.</li>
+                        <li>Mở thẻ <strong>Hỏi AI</strong>.</li>
                         <li>Nhập câu hỏi tiếng Việt vào vùng <strong>Hỏi dữ liệu bằng tiếng Việt</strong>.</li>
-                        <li>Nhấn <strong>Phân tích</strong> và chờ hệ thống lập data plan read-only.</li>
-                        <li>Đọc bối cảnh phân tích, kết luận chính, biểu đồ, evidence, giới hạn và khuyến nghị nếu có.</li>
+                        <li>Nhấn <strong>Phân tích</strong> và chờ hệ thống lập kế hoạch truy vấn chỉ đọc.</li>
+                        <li>Đọc bối cảnh phân tích, kết luận chính, biểu đồ, bằng chứng, giới hạn và khuyến nghị nếu có.</li>
                     </ol>
                     <div class="dashboard-guide__callout">
                         <i class="bi bi-shield-lock"></i>
@@ -145,24 +145,24 @@
                 </summary>
                 <div class="dashboard-guide__body">
                     <dl>
-                        <dt>AnalysisContext / KeyConclusion</dt>
-                        <dd>Bối cảnh ngắn và kết luận chính, chỉ tập trung vào đúng AnswerFocus của câu hỏi.</dd>
-                        <dt>Fact / Statistic</dt>
-                        <dd>Số liệu do server tạo từ stored procedure và dataset đã kiểm soát.</dd>
-                        <dt>Inference</dt>
-                        <dd>Nhận định có khả năng giải thích dữ liệu; phải tham chiếu evidence và không phải kết luận chắc chắn.</dd>
-                        <dt>DataStatus</dt>
-                        <dd><code>Complete</code> là đủ dataset, <code>Partial</code> là thiếu một phần và <code>Chưa đủ dữ liệu</code> là không đủ dữ liệu để kết luận.</dd>
+                        <dt>Bối cảnh phân tích / Kết luận chính</dt>
+                        <dd>Bối cảnh ngắn và kết luận chính, chỉ tập trung vào đúng trọng tâm câu trả lời.</dd>
+                        <dt>Dữ kiện / Số liệu thống kê</dt>
+                        <dd>Số liệu do máy chủ tạo từ nguồn dữ liệu đã được kiểm soát.</dd>
+                        <dt>Nhận định</dt>
+                        <dd>Nhận định có khả năng giải thích dữ liệu; phải tham chiếu bằng chứng và không phải kết luận chắc chắn.</dd>
+                        <dt>Trạng thái dữ liệu</dt>
+                        <dd><strong>Đầy đủ</strong> là đủ dữ liệu, <strong>Một phần</strong> là thiếu một phần và <strong>Chưa đủ dữ liệu</strong> là không đủ dữ liệu để kết luận.</dd>
                         <dt>Trợ lý sẵn sàng / Kết quả dự phòng</dt>
                         <dd>“Trợ lý sẵn sàng” nghĩa là hệ thống đã tạo phần diễn giải; “Kết quả dự phòng” vẫn trả kết quả có cấu trúc từ quy tắc và bằng chứng khi dịch vụ phân tích không khả dụng hoặc dữ liệu phản hồi không hợp lệ.</dd>
-                        <dt>Chart / Evidence / Limitation</dt>
-                        <dd>Biểu đồ và bảng evidence chứng minh kết luận; limitation nêu rõ dữ liệu thiếu hoặc chỉ có một phần.</dd>
-                        <dt>Recommendation</dt>
-                        <dd>Chỉ xuất hiện với câu hỏi hành động hoặc reorder đủ dữ liệu; AI không tự thực hiện thao tác ghi.</dd>
+                        <dt>Biểu đồ / Bằng chứng / Giới hạn dữ liệu</dt>
+                        <dd>Biểu đồ và bảng bằng chứng hỗ trợ kết luận; phần giới hạn nêu rõ dữ liệu thiếu hoặc chỉ có một phần.</dd>
+                        <dt>Khuyến nghị</dt>
+                        <dd>Chỉ xuất hiện với câu hỏi hành động hoặc đề nghị nhập hàng đủ dữ liệu; AI không tự thực hiện thao tác ghi.</dd>
                     </dl>
                     <div class="dashboard-guide__callout dashboard-guide__callout--warning">
                         <i class="bi bi-exclamation-triangle"></i>
-                        <span>Dữ liệu demo phù hợp kiểm thử các khoảng 7–15 ngày tại Store 1 và Store 3. Không dùng fixture để kết luận mùa vụ dài hạn hoặc so sánh những tháng không có dữ liệu.</span>
+                        <span>Dữ liệu minh họa phù hợp kiểm thử các khoảng 7–15 ngày tại Cửa hàng 1 và Cửa hàng 3. Không dùng bộ dữ liệu kiểm thử để kết luận mùa vụ dài hạn hoặc so sánh những tháng không có dữ liệu.</span>
                     </div>
                 </div>
             </details>
@@ -170,20 +170,20 @@
             <details class="dashboard-guide__card" id="tabs" open>
                 <summary>
                     <span class="dashboard-guide__number">05</span>
-                    <span><small>Không gian phân tích</small><strong>Sáu tab dữ liệu và một tab Hỏi AI</strong></span>
+                    <span><small>Không gian phân tích</small><strong>Sáu thẻ dữ liệu và một thẻ Hỏi AI</strong></span>
                     <i class="bi bi-chevron-down"></i>
                 </summary>
                 <div class="dashboard-guide__body">
                     <dl>
-                        <dt>Điều hành</dt><dd>KPI, net sales, xếp hạng cửa hàng, payment mix, heatmap đơn hàng và cảnh báo vận hành.</dd>
-                        <dt>POS / WorkShift</dt><dd>Chênh lệch két, doanh số ca, thanh toán theo ca, đối soát offline, đơn theo giờ và KPI ca.</dd>
+                        <dt>Điều hành</dt><dd>Chỉ số hiệu suất chính (KPI), doanh thu thuần, xếp hạng cửa hàng, cơ cấu thanh toán, bản đồ nhiệt đơn hàng và cảnh báo vận hành.</dd>
+                        <dt>Điểm bán hàng (POS) / Ca làm việc</dt><dd>Chênh lệch két, doanh số ca, thanh toán theo ca, đối soát ngoại tuyến, đơn theo giờ và chỉ số hiệu suất ca.</dd>
                         <dt>Kho</dt><dd>Nguy cơ thiếu hàng, biến động, ngưỡng tồn, đề xuất đặt lại, hao hụt và tuổi lớp FIFO.</dd>
-                        <dt>Mua hàng</dt><dd>PO pipeline, PO quá hạn, chất lượng nhà cung cấp, xu hướng giá, chi tiêu và nhóm sự cố.</dd>
+                        <dt>Mua hàng</dt><dd>Tiến độ đơn mua hàng, đơn mua quá hạn, chất lượng nhà cung cấp, xu hướng giá, chi tiêu và nhóm sự cố.</dd>
                         <dt>Sản phẩm</dt><dd>Sản phẩm xếp hạng cao, sản lượng và biên lợi nhuận, lợi nhuận theo kích cỡ và món thêm, mức ổn định của định mức nguyên liệu và hiệu quả tiêu hao.</dd>
                         <dt>Nhân sự &amp; lịch dự kiến</dt><dd>Lịch phân ca dự kiến, nhu cầu theo giờ và hoạt động POS theo nhân viên trong phạm vi được phép. Đây không phải dữ liệu chấm công hoặc tính lương.</dd>
-                        <dt>Hỏi AI</dt><dd>Lập kế hoạch truy vấn chỉ đọc từ câu hỏi, tạo gói bằng chứng và diễn giải có kiểm chứng; chuyển tab không gọi tải lại dữ liệu phân tích.</dd>
+                        <dt>Hỏi AI</dt><dd>Lập kế hoạch truy vấn chỉ đọc từ câu hỏi, tạo gói bằng chứng và diễn giải có kiểm chứng; chuyển thẻ không gọi tải lại dữ liệu phân tích.</dd>
                     </dl>
-                    <p>Di chuột hoặc dùng bàn phím để xem tooltip; bấm legend để ẩn/hiện series. Bảng rộng có thể cuộn ngang trên màn hình nhỏ.</p>
+                    <p>Di chuột hoặc dùng bàn phím để xem chú thích; bấm chú giải để ẩn/hiện chuỗi dữ liệu. Bảng rộng có thể cuộn ngang trên màn hình nhỏ.</p>
                 </div>
             </details>
 
@@ -195,10 +195,10 @@
                 </summary>
                 <div class="dashboard-guide__body">
                     <ul>
-                        <li>Chỉ đơn <strong>Completed</strong> được tính vào doanh thu.</li>
-                        <li><strong>Merchandise net</strong> = Order.Total − ShippingFee.</li>
-                        <li>Full refund đảo doanh thu của đơn hoàn tất; topping revenue nhân số lượng OrderDetail.</li>
-                        <li>Gross profit chỉ được xác nhận khi COGS đầy đủ. Widget có thể báo dữ liệu một phần nếu chi phí chưa hoàn chỉnh.</li>
+                        <li>Chỉ đơn <strong>Đã hoàn tất</strong> được tính vào doanh thu.</li>
+                        <li><strong>Doanh thu hàng hóa thuần</strong> = Tổng đơn hàng − Phí giao hàng.</li>
+                        <li>Hoàn tiền toàn bộ đảo doanh thu của đơn hoàn tất; doanh thu món thêm được nhân theo số lượng chi tiết đơn hàng.</li>
+                        <li>Lợi nhuận gộp chỉ được xác nhận khi giá vốn hàng bán (COGS) đầy đủ. Thẻ dữ liệu có thể báo dữ liệu một phần nếu chi phí chưa hoàn chỉnh.</li>
                     </ul>
                 </div>
             </details>
@@ -206,15 +206,15 @@
             <details class="dashboard-guide__card" id="states" open>
                 <summary>
                     <span class="dashboard-guide__number">07</span>
-                    <span><small>Hiểu trạng thái</small><strong>Trạng thái widget</strong></span>
+                    <span><small>Hiểu trạng thái</small><strong>Trạng thái thẻ dữ liệu</strong></span>
                     <i class="bi bi-chevron-down"></i>
                 </summary>
                 <div class="dashboard-guide__body">
                     <div class="dashboard-guide__states">
-                        <div><strong>Đang tải</strong><span>Skeleton đang chờ hệ thống xử lý dữ liệu trả dữ liệu.</span></div>
-                        <div><strong>NO_DATA</strong><span>Không có bản ghi trong filter hiện tại; thử mở rộng ngày hoặc cửa hàng.</span></div>
-                        <div><strong>PARTIAL_DATA</strong><span>Một widget lỗi hoặc COGS chưa đầy đủ, các widget còn lại vẫn dùng được.</span></div>
-                        <div><strong>ERROR</strong><span>Widget không tải được; dùng nút Retry thay vì tải lại toàn trang.</span></div>
+                        <div><strong>Đang tải</strong><span>Khung chờ đang hiển thị trong khi hệ thống xử lý dữ liệu.</span></div>
+                        <div><strong>Không có dữ liệu</strong><span>Không có bản ghi trong bộ lọc hiện tại; thử mở rộng ngày hoặc cửa hàng.</span></div>
+                        <div><strong>Dữ liệu một phần</strong><span>Một thẻ dữ liệu lỗi hoặc giá vốn chưa đầy đủ; các thẻ còn lại vẫn dùng được.</span></div>
+                        <div><strong>Lỗi dữ liệu</strong><span>Thẻ dữ liệu không tải được; dùng nút Thử lại thay vì tải lại toàn trang.</span></div>
                     </div>
                 </div>
             </details>
@@ -227,11 +227,11 @@
                 </summary>
                 <div class="dashboard-guide__body">
                     <ul>
-                        <li><strong>403:</strong> tài khoản thiếu quyền xem trang tổng quan, bị cấu hình từ chối quyền hoặc cửa hàng nằm ngoài phạm vi truy cập của nhân viên; quản trị viên hệ thống dùng global scope.</li>
-                        <li><strong>Không có dữ liệu:</strong> kiểm tra khoảng ngày, store và trạng thái nghiệp vụ đã hoàn tất.</li>
-                        <li><strong>Kết quả phân tích dự phòng:</strong> kiểm tra dịch vụ phân tích; phần dữ kiện và thống kê vẫn lấy từ dữ liệu server.</li>
+                        <li><strong>Không có quyền (403):</strong> tài khoản thiếu quyền xem trang tổng quan, bị cấu hình từ chối quyền hoặc cửa hàng nằm ngoài phạm vi truy cập của nhân viên; quản trị viên hệ thống dùng phạm vi toàn hệ thống.</li>
+                        <li><strong>Không có dữ liệu:</strong> kiểm tra khoảng ngày, cửa hàng và trạng thái nghiệp vụ đã hoàn tất.</li>
+                        <li><strong>Kết quả phân tích dự phòng:</strong> kiểm tra dịch vụ phân tích; phần dữ kiện và thống kê vẫn lấy từ dữ liệu máy chủ.</li>
                         <li><strong>Chưa đủ dữ liệu:</strong> mở rộng khoảng ngày hoặc chọn cửa hàng có dữ liệu; AI sẽ không tự đoán.</li>
-                        <li><strong>Biểu đồ chưa đổi:</strong> nhấn Áp dụng sau khi chỉnh filter; request trước đó sẽ bị hủy.</li>
+                        <li><strong>Biểu đồ chưa đổi:</strong> nhấn Áp dụng sau khi chỉnh bộ lọc; yêu cầu trước đó sẽ bị hủy.</li>
                         <li>Trang tổng quan chưa hỗ trợ xuất báo cáo và không tự làm mới liên tục; tải lại dữ liệu khi cần số liệu mới.</li>
                     </ul>
                 </div>

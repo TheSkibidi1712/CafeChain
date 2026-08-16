@@ -46,7 +46,7 @@ public sealed partial class AIImportSchemaRegistry : IAIImportSchemaRegistry
     public AIImportSchemaDefinition Get(AIImportEntityType entityType) =>
         Schemas.TryGetValue(entityType, out var schema)
             ? schema
-            : throw new ArgumentOutOfRangeException(nameof(entityType), "Entity không thuộc phạm vi AI Smart Import MVP.");
+            : throw new ArgumentOutOfRangeException(nameof(entityType), "Loại dữ liệu không thuộc phạm vi nhập dữ liệu thông minh.");
 
     public (AIImportEntityType EntityType, Dictionary<string, string?> Mapping, decimal Confidence) Detect(
         IEnumerable<string?> headers,
@@ -100,26 +100,26 @@ public sealed partial class AIImportSchemaRegistry : IAIImportSchemaRegistry
         {
             var value = Clean(values.GetValueOrDefault(field.Name));
             if (field.Required && string.IsNullOrWhiteSpace(value))
-                errors.Add(NewError("TRƯỜNG_BẮT_BUỘC", $"{field.Name} là bắt buộc.", field.Name));
+                errors.Add(NewError("TRƯỜNG_BẮT_BUỘC", $"{FieldLabel(field.Name)} là bắt buộc.", field.Name));
             if (!string.Equals(field.Name, "Icon", StringComparison.OrdinalIgnoreCase)
                 && field.MaxLength > 0 && value?.Length > field.MaxLength)
-                errors.Add(NewError("VƯỢT_GIỚI_HẠN", $"{field.Name} tối đa {field.MaxLength} ký tự.", field.Name));
+                errors.Add(NewError("VƯỢT_GIỚI_HẠN", $"{FieldLabel(field.Name)} tối đa {field.MaxLength} ký tự.", field.Name));
         }
 
         string? Value(string field) => Clean(values.GetValueOrDefault(field));
         if (entityType == AIImportEntityType.Category)
         {
-            if (Value("CategoryCode") is { Length: > 0 and < 2 }) errors.Add(NewError("KHÔNG_HỢP_LỆ", "CategoryCode phải từ 2 ký tự.", "CategoryCode"));
-            if (Value("Name") is { Length: > 0 and < 2 }) errors.Add(NewError("KHÔNG_HỢP_LỆ", "Name phải từ 2 ký tự.", "Name"));
+            if (Value("CategoryCode") is { Length: > 0 and < 2 }) errors.Add(NewError("KHÔNG_HỢP_LỆ", "Mã danh mục phải từ 2 ký tự.", "CategoryCode"));
+            if (Value("Name") is { Length: > 0 and < 2 }) errors.Add(NewError("KHÔNG_HỢP_LỆ", "Tên danh mục phải từ 2 ký tự.", "Name"));
             if (!CategoryIconPolicy.TryNormalize(Value("Icon"), out _, out var iconError))
-                errors.Add(NewError("ICON_KHÔNG_HỢP_LỆ", iconError ?? "Icon không hợp lệ.", "Icon"));
+                errors.Add(NewError("ICON_KHÔNG_HỢP_LỆ", iconError?.Replace("Icon", "Biểu tượng", StringComparison.Ordinal) ?? "Biểu tượng không hợp lệ.", "Icon"));
             if (Value("Active") is { Length: > 0 } active && !bool.TryParse(active, out _))
-                errors.Add(NewError("KHÔNG_HỢP_LỆ", "Trạng thái hoạt động chỉ nhận true hoặc false.", "Active"));
+                errors.Add(NewError("KHÔNG_HỢP_LỆ", "Trạng thái hoạt động chỉ nhận Có hoặc Không.", "Active"));
         }
         if (entityType == AIImportEntityType.Size && Value("SizeType") is { Length: > 0 } sizeType
             && !string.Equals(sizeType, "Cup", StringComparison.OrdinalIgnoreCase)
             && !string.Equals(sizeType, "Volume", StringComparison.OrdinalIgnoreCase))
-            errors.Add(NewError("KHÔNG_HỢP_LỆ", "SizeType chỉ nhận Cup hoặc Volume.", "SizeType"));
+            errors.Add(NewError("KHÔNG_HỢP_LỆ", "Loại kích cỡ chỉ nhận Theo ly hoặc Theo dung tích.", "SizeType"));
         if (entityType == AIImportEntityType.Supplier && Value("TaxCode") is { Length: > 0 } taxCode
             && !TaxCodeRegex().IsMatch(taxCode))
             errors.Add(NewError("MÃ_SỐ_THUẾ_KHÔNG_HỢP_LỆ", "Mã số thuế phải có 10 chữ số hoặc dạng 10-3 chữ số.", "TaxCode"));
@@ -161,7 +161,7 @@ public sealed partial class AIImportSchemaRegistry : IAIImportSchemaRegistry
             else if (IsKnownIgnoredHeader(column.Label))
             {
                 column.Classification = AIImportColumnClassifications.Ignored;
-                column.Reason = "Cột metadata kiểm thử/nguồn được biết rõ và không thuộc ImportSchema.";
+                column.Reason = "Cột thông tin phụ đã được hệ thống nhận diện nhưng không thuộc danh sách trường được phép nhập.";
             }
             else
             {
@@ -184,6 +184,31 @@ public sealed partial class AIImportSchemaRegistry : IAIImportSchemaRegistry
         }
         return result;
     }
+
+    private static string FieldLabel(string name) => name switch
+    {
+        "CategoryCode" => "Mã danh mục",
+        "DrinkCode" => "Mã đồ uống",
+        "SizeCode" => "Mã kích cỡ",
+        "Code" => "Mã nguyên liệu",
+        "Name" => "Tên",
+        "Icon" => "Biểu tượng",
+        "Active" => "Trạng thái hoạt động",
+        "Description" => "Mô tả",
+        "Category" => "Danh mục",
+        "ProductType" => "Loại sản phẩm",
+        "SizeType" => "Loại kích cỡ",
+        "BaseUnit" => "Đơn vị cơ sở",
+        "TaxCode" => "Mã số thuế",
+        "Address" => "Địa chỉ",
+        "Note" => "Ghi chú",
+        "PrimaryPhone" => "Số điện thoại chính",
+        "PrimaryContactName" => "Tên người liên hệ",
+        "PrimaryContactPhone" => "Số điện thoại người liên hệ",
+        "PrimaryContactEmail" => "Email người liên hệ",
+        "PrimaryContactPosition" => "Chức vụ người liên hệ",
+        _ => "Trường dữ liệu"
+    };
 
     private static IReadOnlyDictionary<AIImportEntityType, AIImportSchemaDefinition> BuildSchemas()
     {
