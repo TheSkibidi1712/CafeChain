@@ -19,12 +19,12 @@
 
     <section class="ai-import-card upload-card" id="uploadPanel">
         <div class="drop-zone" id="dropZone">
-            <input type="file" id="excelFile" accept=".xlsx,.docx,.pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf" hidden />
+            <input type="file" id="excelFile" multiple accept=".xlsx,.docx,.pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf" hidden />
             <i class="fa-solid fa-file-arrow-up"></i>
-            <strong>Thả tệp .xlsx, .docx hoặc .pdf vào đây</strong>
-            <span>Tối đa 10 MiB · PDF scan/ảnh cần OCR và chưa được hỗ trợ</span>
+            <strong>Thả một hoặc nhiều tệp .xlsx, .docx hoặc .pdf vào đây</strong>
+            <span>Tối đa 10 tệp · 10 MiB/tệp · 50 MiB/phiên</span>
             <button type="button" class="btn-ai" id="chooseFileButton">Chọn tài liệu</button>
-            <small id="selectedFileName"></small>
+            <div id="selectedFileName" class="selected-files"></div>
         </div>
         <div class="upload-actions">
             <label>Gợi ý entity
@@ -32,6 +32,7 @@
                     <option value="">Tự động</option><option value="Category">Danh mục</option><option value="Drink">Đồ uống</option><option value="Size">Size</option><option value="Ingredient">Nguyên liệu</option><option value="Supplier">Nhà cung cấp</option>
                 </select>
             </label>
+            <label class="ocr-import-toggle" title="Đang kiểm tra cấu hình OCR…"><input type="checkbox" id="useOcr" aria-label="OCR cho PDF scan" disabled /> OCR cho PDF scan</label>
             <button type="button" class="btn-ai primary" id="analyzeButton" disabled><i class="fa-solid fa-magnifying-glass-chart"></i> Phân tích</button>
         </div>
     </section>
@@ -50,6 +51,7 @@
         </div>
 
         <div class="summary-grid" id="summaryGrid"></div>
+        <div class="source-documents" id="sourceDocuments"></div>
         <div class="ai-import-alert warning" id="analysisWarnings" hidden></div>
         <div class="workspace-grid">
             <aside class="ai-import-card group-list">
@@ -59,7 +61,11 @@
             <div class="ai-import-card preview-card">
                 <div class="preview-toolbar">
                     <div><strong id="activeGroupTitle">Preview</strong><small id="activeGroupMeta"></small></div>
-                    <label>Trạng thái <select id="statusFilter"><option value="">Tất cả</option><option value="VALID">Hợp lệ</option><option value="WARNING">Cảnh báo</option><option value="ERROR">Lỗi</option><option value="REVIEW_REQUIRED">Cần xem lại</option><option value="SKIPPED">Bỏ qua</option><option value="IMPORTED">Đã nhập</option></select></label>
+                    <div>
+                        <label>Tệp nguồn <select id="sourceFilter"><option value="">Tất cả</option></select></label>
+                        <label>Loại dữ liệu <select id="entityFilter"><option value="">Tất cả</option><option value="Category">Danh mục</option><option value="Drink">Đồ uống</option><option value="Size">Size</option><option value="Ingredient">Nguyên liệu</option><option value="Supplier">Nhà cung cấp</option></select></label>
+                        <label>Trạng thái <select id="statusFilter"><option value="">Tất cả</option><option value="VALID">Hợp lệ</option><option value="WARNING">Cảnh báo</option><option value="ERROR">Lỗi</option><option value="REVIEW_REQUIRED">Cần xem lại</option><option value="SKIPPED">Bỏ qua</option><option value="IMPORTED">Đã nhập</option></select></label>
+                    </div>
                 </div>
                 <details class="mapping-panel" open>
                     <summary>Loại dữ liệu và ánh xạ cột</summary>
@@ -83,7 +89,7 @@
             <div class="edit-dialog-body" id="editDialogBody">
                 <div class="edit-form-alert" id="editFormAlert" hidden></div>
                 <div id="editFields" class="edit-fields"></div>
-                <label class="check-row manual-review-row" id="manualReviewRow" hidden><input type="checkbox" id="manualReviewConfirmed" /> Tôi đã đối chiếu dữ liệu với bằng chứng nguồn và xác nhận kết quả review</label>
+                <label class="check-row manual-review-row" id="manualReviewRow" hidden><input type="checkbox" id="manualReviewConfirmed" /> Tôi đã đối chiếu từng trường cần review với bằng chứng nguồn/OCR và xác nhận dữ liệu đúng</label>
                 <details class="edit-source-details"><summary>Dữ liệu nguồn bổ sung</summary><div id="editSourceData"></div></details>
                 <section class="edit-warning-section" id="warningSection">
                     <div class="edit-warning-messages" id="editWarningMessages"></div>

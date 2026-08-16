@@ -372,3 +372,6 @@ FodyWeavers.xsd
 
 # AI Assistant
 .gemini/
+
+# Tesseract language models are downloaded by scripts/setup-tesseract-ocr.ps1
+/CafeChain/Resources/OCR/tessdata/*.traineddata

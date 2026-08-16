@@ -621,7 +621,8 @@
     gap: 6px;
     padding: 6px 14px;
     border: 1px solid var(--cc-border-strong, #d8c5b6);
-    border-radius: var(--cc-radius-sm, 8px);
+    min-height: 40px;
+    border-radius: var(--cc-radius-control, 10px);
     background: var(--cc-surface-muted, #fbf7f2);
     color: var(--cc-brown-900, #3d2418);
     font-size: 12.5px;
@@ -676,5 +677,23 @@
 @media (max-width: 640px) {
     .transfer-filter-grid {
         grid-template-columns: 1fr !important;
+    }
+}
+
+/* Consistent keyboard focus and reduced-motion behavior. */
+.transfer-page :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--cc-brown-600, #70482f);
+    outline-offset: 3px;
+    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22));
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .transfer-page *,
+    .transfer-page *::before,
+    .transfer-page *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
     }
 }

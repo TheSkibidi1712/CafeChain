@@ -27,15 +27,40 @@ public static class AIImportExtractionModes
     public const string DocxAiExtraction = "DOCX_AI_EXTRACTION";
     public const string PdfTextDeterministic = "PDF_TEXT_DETERMINISTIC";
     public const string PdfTextAiExtraction = "PDF_TEXT_AI_EXTRACTION";
+    public const string PdfOcrDeterministic = "PDF_OCR_DETERMINISTIC";
+    public const string PdfOcrAiExtraction = "PDF_OCR_AI_EXTRACTION";
+    public const string PdfMixedTextOcr = "PDF_MIXED_TEXT_OCR";
 }
 
-public sealed record AIImportSourceFile(string FileName, byte[] Content, string? ContentType = null);
+public static class AIImportPdfPageClassifications
+{
+    public const string TextBased = "TEXT_BASED";
+    public const string ImageBased = "IMAGE_BASED";
+    public const string Mixed = "MIXED";
+}
+
+public static class AIImportSourceKinds
+{
+    public const string TextLayer = "TEXT_LAYER";
+    public const string Ocr = "OCR";
+    public const string AiAfterText = "AI_AFTER_TEXT";
+    public const string AiAfterOcr = "AI_AFTER_OCR";
+}
+
+public sealed record AIImportSourceFile(
+    string FileName,
+    byte[] Content,
+    string? ContentType = null,
+    bool UseOcr = false,
+    AIImportOcrRuntimeState? OcrRuntime = null);
 
 public sealed class AIImportSourceSnapshot
 {
     public string SourceFormat { get; init; } = string.Empty;
     public string ExtractedText { get; init; } = string.Empty;
     public Dictionary<string, object?> Metadata { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+    public List<AIImportSemanticBlock> Blocks { get; init; } = [];
+    public List<AIImportOcrPageSnapshot> OcrPages { get; init; } = [];
 }
 
 public sealed class AIImportBoundingBox
@@ -44,6 +69,39 @@ public sealed class AIImportBoundingBox
     public double Y { get; init; }
     public double Width { get; init; }
     public double Height { get; init; }
+    public double? PageWidth { get; init; }
+    public double? PageHeight { get; init; }
+    public int Rotation { get; init; }
+    public string Unit { get; init; } = "POINT";
+    public List<double> Polygon { get; init; } = [];
+}
+
+public sealed class AIImportFieldEvidence
+{
+    public string SourceKind { get; init; } = AIImportSourceKinds.TextLayer;
+    public AIImportSourceLocator Locator { get; init; } = new();
+    public string RawText { get; init; } = string.Empty;
+    public string? NormalizedValue { get; init; }
+    public decimal? OcrConfidence { get; init; }
+    public decimal? AiConfidence { get; init; }
+}
+
+public sealed class AIImportSemanticBlock
+{
+    public int Ordinal { get; init; }
+    public string Kind { get; init; } = "PARAGRAPH_GROUP";
+    public string Text { get; init; } = string.Empty;
+    public AIImportSourceLocator Locator { get; init; } = new();
+}
+
+public sealed class AIImportOcrPageSnapshot
+{
+    public int PageNumber { get; init; }
+    public string Text { get; init; } = string.Empty;
+    public List<AIImportOcrWord> Words { get; init; } = [];
+    public string Provider { get; init; } = string.Empty;
+    public string? ProviderVersion { get; init; }
+    public string ExtractionVersion { get; init; } = string.Empty;
 }
 
 public sealed class AIImportSourceLocator
@@ -75,6 +133,9 @@ public sealed class AIImportSourceCandidate
     public string EvidenceSnippet { get; init; } = string.Empty;
     public decimal Confidence { get; init; }
     public decimal? AiConfidence { get; init; }
+    public decimal? LayoutConfidence { get; init; }
+    public decimal? OcrConfidence { get; init; }
+    public Dictionary<string, AIImportFieldEvidence> FieldEvidence { get; init; } = new(StringComparer.OrdinalIgnoreCase);
     public string? AIErrorCode { get; init; }
     public List<AIImportErrorDto> Issues { get; init; } = [];
 }
@@ -83,7 +144,11 @@ public sealed class AIImportSourceGroup
 {
     public string SourceLabel { get; init; } = string.Empty;
     public AIImportSourceLocator SourceLocator { get; init; } = new();
-    public string ExtractionMode { get; init; } = string.Empty;
+    public string ExtractionMode { get; set; } = string.Empty;
+    public string SourceRegionId { get; init; } = string.Empty;
+    public string? BoundingRange { get; init; }
+    public string? HeaderRange { get; init; }
+    public string? DataRange { get; init; }
     public int HeaderOrdinal { get; init; }
     public AIImportEntityType EntityType { get; init; }
     public Dictionary<string, string?> Mapping { get; init; } = new(StringComparer.OrdinalIgnoreCase);
@@ -91,6 +156,7 @@ public sealed class AIImportSourceGroup
     public List<AIImportSourceColumn> SourceColumns { get; init; } = [];
     public List<AIImportErrorDto> Issues { get; init; } = [];
     public decimal Confidence { get; init; }
+    public decimal? LayoutConfidence { get; init; }
     public List<AIImportSourceCandidate> Candidates { get; init; } = [];
 }
 
@@ -104,6 +170,13 @@ public sealed class AIImportSourceDocument
     public List<AIImportErrorDto> Errors { get; init; } = [];
     public int AiChunkCount { get; set; }
     public bool UsedAI { get; set; }
+    public bool OcrUsed { get; set; }
+    public int OcrPageCount { get; set; }
+    public string? OcrProvider { get; set; }
+    public string? OcrProviderVersion { get; set; }
+    public string ExtractionVersion { get; set; } = "ai-import-extraction-v2";
+    public List<AIImportSemanticBlock> Blocks { get; init; } = [];
+    public List<AIImportOcrPageSnapshot> OcrPages { get; init; } = [];
 }
 
 public interface IAIImportSourceParser
@@ -179,7 +252,16 @@ public sealed class AIImportDocumentPipeline : IAIImportDocumentPipeline
         {
             SourceFormat = snapshot.SourceFormat,
             ExtractedText = snapshot.ExtractedText,
-            Metadata = snapshot.Metadata
+            Metadata = snapshot.Metadata,
+            Blocks = snapshot.Blocks,
+            OcrPages = snapshot.OcrPages,
+            OcrUsed = snapshot.OcrPages.Count > 0,
+            OcrPageCount = snapshot.OcrPages.Count,
+            OcrProvider = snapshot.OcrPages.FirstOrDefault()?.Provider,
+            OcrProviderVersion = snapshot.OcrPages.FirstOrDefault()?.ProviderVersion,
+            ExtractionVersion = snapshot.Metadata.TryGetValue("extractionVersion", out var version)
+                ? Convert.ToString(version) ?? "ai-import-extraction-v2"
+                : "ai-import-extraction-v2"
         };
         if (_aiExtractor == null || string.IsNullOrWhiteSpace(snapshot.ExtractedText))
         {

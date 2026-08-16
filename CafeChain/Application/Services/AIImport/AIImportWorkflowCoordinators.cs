@@ -4,6 +4,31 @@ namespace CafeChain.Application.Services.AIImport;
 
 public sealed class AIImportAnalysisCoordinator
 {
+    public AIImportSourceSnapshot CaptureDocumentState(ImportSession session, AIImportSourceDocument document)
+    {
+        document.Metadata["aiChunkCount"] = document.AiChunkCount;
+        document.Metadata["ocrUsed"] = document.OcrUsed;
+        document.Metadata["ocrPageCount"] = document.OcrPageCount;
+        document.Metadata["ocrProvider"] = document.OcrProvider;
+        document.Metadata["ocrProviderVersion"] = document.OcrProviderVersion;
+        document.Metadata["extractionVersion"] = document.ExtractionVersion;
+        if (document.Metadata.TryGetValue("promptVersion", out var promptVersion)
+            && !string.IsNullOrWhiteSpace(Convert.ToString(promptVersion)))
+            session.PromptVersion = Convert.ToString(promptVersion)!;
+        if (document.Metadata.TryGetValue("schemaVersion", out var schemaVersion)
+            && !string.IsNullOrWhiteSpace(Convert.ToString(schemaVersion)))
+            session.SchemaVersion = Convert.ToString(schemaVersion)!;
+        session.ExtractionVersion = document.ExtractionVersion;
+        return new AIImportSourceSnapshot
+        {
+            SourceFormat = document.SourceFormat,
+            ExtractedText = document.ExtractedText,
+            Metadata = document.Metadata,
+            Blocks = document.Blocks,
+            OcrPages = document.OcrPages
+        };
+    }
+
     public string ClaimReanalysis(ImportSession session)
     {
         var previous = session.Status;
@@ -46,6 +71,14 @@ public sealed class AIImportConfirmCoordinator(AIImportEntityRegistry entityRegi
             .Select(_ => entityRegistry.Get(group.EntityType).CreatePermission))
         .Distinct(StringComparer.Ordinal)
         .ToList();
+
+    public void Complete(ImportSession session, DateTime completedAtUtc, string resultJson)
+    {
+        session.Status = AIImportSessionStatuses.Completed;
+        session.CompletedAtUtc = completedAtUtc;
+        session.SourceSnapshotJson = null;
+        session.ResultJson = resultJson;
+    }
 }
 
 public sealed class AIImportSessionQuery

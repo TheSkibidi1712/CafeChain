@@ -239,6 +239,43 @@
         updateStoreTabs();
         renderItems();
 
+        const ocrForm = document.getElementById("ocrSettingsForm");
+        if (ocrForm) {
+            ocrForm.addEventListener("submit", async (event) => {
+                event.preventDefault();
+                const button = ocrForm.querySelector('[type="submit"]');
+                if (button) button.disabled = true;
+                try {
+                    const response = await fetch(ocrForm.action, {
+                        method: "POST",
+                        body: new FormData(ocrForm),
+                        headers: { "X-Requested-With": "XMLHttpRequest" }
+                    });
+                    const payload = await response.json().catch(() => ({}));
+                    const providerReady = payload.data?.providerReady === true && payload.data?.healthStatus === "READY";
+                    await showMessage(
+                        response.ok ? (providerReady ? "OCR sẵn sàng" : "Đã lưu cấu hình") : "Không thể lưu OCR",
+                        payload.message ?? `HTTP ${response.status}`,
+                        response.ok ? (providerReady ? "success" : "warning") : "error");
+                    if (response.ok) window.location.assign(`${location.pathname}?tab=ocr`);
+                } catch {
+                    await showMessage("Lỗi kết nối", "Không thể gửi cấu hình OCR.", "error");
+                } finally { if (button) button.disabled = false; }
+            });
+            document.getElementById("checkOcrButton")?.addEventListener("click", async (event) => {
+                const button = event.currentTarget;
+                button.disabled = true;
+                try {
+                    const response = await fetch(button.dataset.url, { method: "POST", body: new FormData(ocrForm), headers: { "X-Requested-With": "XMLHttpRequest" } });
+                    const payload = await response.json().catch(() => ({}));
+                    await showMessage(response.ok ? "OCR sẵn sàng" : "OCR không khả dụng", payload.message ?? `HTTP ${response.status}`, response.ok ? "success" : "error");
+                    window.location.assign(`${location.pathname}?tab=ocr`);
+                } catch {
+                    await showMessage("Lỗi kết nối", "Không thể kiểm tra OCR provider.", "error");
+                } finally { button.disabled = false; }
+            });
+        }
+
         if (!form) return;
 
         form.addEventListener("submit", async (event) => {

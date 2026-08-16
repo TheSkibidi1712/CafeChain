@@ -25,7 +25,8 @@ public sealed class AIImportContractTests
             [nameof(AIImportController.PatchGroup)] = "/api/ai-import/{id:int}/groups/{groupId:int}",
             [nameof(AIImportController.PatchItem)] = "/api/ai-import/{id:int}/items/{itemId:int}",
             [nameof(AIImportController.Confirm)] = "/api/ai-import/{id:int}/confirm",
-            [nameof(AIImportController.Cancel)] = "/api/ai-import/{id:int}/cancel"
+            [nameof(AIImportController.Cancel)] = "/api/ai-import/{id:int}/cancel",
+            [nameof(AIImportController.RemoveSource)] = "/api/ai-import/{id:int}/sources/{sourceDocumentId:int}"
         };
 
         foreach (var (methodName, route) in mutations)
@@ -57,23 +58,27 @@ public sealed class AIImportContractTests
     }
 
     [Fact]
-    public void Ef_model_contains_four_import_tables_indexes_constraints_and_rowversion()
+    public void Ef_model_contains_import_tables_indexes_constraints_and_rowversion()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite("Data Source=:memory:").Options;
         using var context = new AppDbContext(options);
         var model = context.GetService<IDesignTimeModel>().Model;
         var session = model.FindEntityType(typeof(ImportSession))!;
         var group = model.FindEntityType(typeof(ImportGroup))!;
+        var source = model.FindEntityType(typeof(ImportSourceDocument))!;
         var item = model.FindEntityType(typeof(ImportItem))!;
         var audit = model.FindEntityType(typeof(ImportAudit))!;
 
         Assert.Equal("ImportSessions", session.GetTableName());
         Assert.Equal("ImportGroups", group.GetTableName());
+        Assert.Equal("ImportSourceDocuments", source.GetTableName());
         Assert.Equal("ImportItems", item.GetTableName());
         Assert.Equal("ImportAudits", audit.GetTableName());
         Assert.True(session.FindProperty(nameof(ImportSession.RowVersion))!.IsConcurrencyToken);
         Assert.Equal(10, session.FindProperty(nameof(ImportSession.SourceFormat))!.GetMaxLength());
         Assert.NotNull(group.FindProperty(nameof(ImportGroup.ExtractionMode)));
+        Assert.NotNull(group.FindProperty(nameof(ImportGroup.ImportSourceDocumentId)));
+        Assert.Contains(source.GetCheckConstraints(), x => x.Name == "CK_ImportSourceDocuments_Status");
         Assert.NotNull(item.FindProperty(nameof(ImportItem.SourceLocatorJson)));
         Assert.NotNull(item.FindProperty(nameof(ImportItem.AiConfidence)));
         Assert.NotNull(item.FindProperty(nameof(ImportItem.ManualReviewConfirmed)));
@@ -93,6 +98,7 @@ public sealed class AIImportContractTests
             .Options;
         using var context = new AppDbContext(options);
         Assert.NotNull(context.Model.FindEntityType(typeof(ImportSession)));
+        Assert.NotNull(context.Model.FindEntityType(typeof(ImportSourceDocument)));
         Assert.NotNull(context.Model.FindEntityType(typeof(ImportAudit)));
     }
 
@@ -101,16 +107,21 @@ public sealed class AIImportContractTests
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite("Data Source=:memory:").Options;
         using var context = new AppDbContext(options);
-        Assert.Contains("20260813071843_InitialCreate", context.Database.GetMigrations());
-        Assert.Contains("20260813183911_AddAIImportValidationState", context.Database.GetMigrations());
-        var migration = Read("CafeChain", "Migrations", "20260813071843_InitialCreate.cs");
+        Assert.Contains("20260815105817_InitialCreate", context.Database.GetMigrations());
+        Assert.Contains("20260815141744_AddAIImportOcrRuntimeAndMultiFile", context.Database.GetMigrations());
+        Assert.Equal(2, context.Database.GetMigrations().Count());
+        var migration = Read("CafeChain", "Migrations", "20260815105817_InitialCreate.cs");
         Assert.Contains("name: \"ImportSessions\"", migration, StringComparison.Ordinal);
         Assert.Contains("CK_ImportSessions_Status", migration, StringComparison.Ordinal);
         Assert.Contains("name: \"ImportSessions\"", migration[migration.IndexOf("protected override void Down", StringComparison.Ordinal)..], StringComparison.Ordinal);
-        var validationMigration = Read("CafeChain", "Migrations", "20260813183911_AddAIImportValidationState.cs");
-        Assert.Contains("name: \"ManualReviewConfirmed\"", validationMigration, StringComparison.Ordinal);
-        Assert.Contains("name: \"SourceColumnsJson\"", validationMigration, StringComparison.Ordinal);
-        Assert.Contains("defaultValue: \"[]\"", validationMigration, StringComparison.Ordinal);
+        Assert.Contains("ManualReviewConfirmed = table.Column<bool>", migration, StringComparison.Ordinal);
+        Assert.Contains("SourceColumnsJson = table.Column<string>", migration, StringComparison.Ordinal);
+        Assert.Contains("ExtractionVersion = table.Column<string>", migration, StringComparison.Ordinal);
+        Assert.Contains("FieldEvidenceJson = table.Column<string>", migration, StringComparison.Ordinal);
+        var forward = Read("CafeChain", "Migrations", "20260815141744_AddAIImportOcrRuntimeAndMultiFile.cs");
+        Assert.Contains("name: \"ImportSourceDocuments\"", forward, StringComparison.Ordinal);
+        Assert.Contains("name: \"RequestedOcr\"", forward, StringComparison.Ordinal);
+        Assert.Contains("name: \"EffectiveOcr\"", forward, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -303,7 +314,62 @@ public sealed class AIImportContractTests
         Assert.Contains("function closeEditDialog()", script, StringComparison.Ordinal);
         Assert.Contains("if (dialog?.open) dialog.close();", script, StringComparison.Ordinal);
         Assert.Contains("state.editingItem = null;", script, StringComparison.Ordinal);
-        Assert.Contains("closeEditDialog();\n            render();", script, StringComparison.Ordinal);
+        Assert.Contains("closeAllDialogs();", script, StringComparison.Ordinal);
+        Assert.Contains("state.sessionGeneration++;", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Browser_contract_exposes_group_remap_cancel_invalidation_ocr_and_multi_file_controls()
+    {
+        var script = Read("CafeChain", "wwwroot", "js", "Admin", "AIImport", "ai-import.js");
+        var view = Read("CafeChain", "Areas", "Admin", "Views", "AIImport", "Index.cshtml");
+        Assert.Contains("remapFromEditor", script, StringComparison.Ordinal);
+        Assert.Contains("candidateSourceKeys", script, StringComparison.Ordinal);
+        Assert.Contains("sessionGeneration", script, StringComparison.Ordinal);
+        Assert.Contains("closeAllDialogs", script, StringComparison.Ordinal);
+        Assert.Contains("form.append('Files'", script, StringComparison.Ordinal);
+        Assert.Contains("ocr-capability", script, StringComparison.Ordinal);
+        Assert.Contains("multiple accept=", view, StringComparison.Ordinal);
+        Assert.Contains("id=\"useOcr\"", view, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Ocr_settings_and_import_toggle_expose_the_locked_runtime_contract()
+    {
+        var settingsView = Read("CafeChain", "Areas", "Admin", "Views", "AdminSetting", "Partials", "_OcrSettings.cshtml");
+        var settingsController = Read("CafeChain", "Areas", "Admin", "Controllers", "AdminSettingController.cs");
+        var importView = Read("CafeChain", "Areas", "Admin", "Views", "AIImport", "Index.cshtml");
+        var importScript = Read("CafeChain", "wwwroot", "js", "Admin", "AIImport", "ai-import.js");
+
+        Assert.Contains("value=\"@Model.Provider\" disabled", settingsView, StringComparison.Ordinal);
+        Assert.Contains("Model.ProviderVersion", settingsView, StringComparison.Ordinal);
+        Assert.Contains("Model.ExecutableAvailable", settingsView, StringComparison.Ordinal);
+        Assert.Contains("Model.ModelDataReady", settingsView, StringComparison.Ordinal);
+        Assert.Contains("<select class=\"form-select\" asp-for=\"Languages\">", settingsView, StringComparison.Ordinal);
+        Assert.Contains("<option value=\"vie+eng\">", settingsView, StringComparison.Ordinal);
+        Assert.Contains("<option value=\"vie\">", settingsView, StringComparison.Ordinal);
+        Assert.Contains("<option value=\"eng\">", settingsView, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"ocrCapabilityText\"", importView, StringComparison.Ordinal);
+        Assert.DoesNotContain("ocrCapabilityText", importScript, StringComparison.Ordinal);
+        Assert.Contains("async function refreshOcrCapability()", importScript, StringComparison.Ordinal);
+        Assert.Contains("window.addEventListener('focus', refreshOcrCapability)", importScript, StringComparison.Ordinal);
+        Assert.Contains("Đã lưu cấu hình nhưng OCR chưa sẵn sàng", settingsController, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Ocr_preview_contract_exposes_modes_field_provenance_and_independent_manual_review()
+    {
+        var script = Read("CafeChain", "wwwroot", "js", "Admin", "AIImport", "ai-import.js");
+        var view = Read("CafeChain", "Areas", "Admin", "Views", "AIImport", "Index.cshtml");
+
+        Assert.Contains("PDF_OCR_DETERMINISTIC", script, StringComparison.Ordinal);
+        Assert.Contains("PDF_OCR_AI_EXTRACTION", script, StringComparison.Ordinal);
+        Assert.Contains("PDF_MIXED_TEXT_OCR", script, StringComparison.Ordinal);
+        Assert.Contains("item.fieldEvidence", script, StringComparison.Ordinal);
+        Assert.Contains("evidence.ocrConfidence", script, StringComparison.Ordinal);
+        Assert.Contains("issue.metadata?.resolution === 'MANUAL_REVIEW'", script, StringComparison.Ordinal);
+        Assert.Contains("bằng chứng nguồn/OCR", view, StringComparison.Ordinal);
+        Assert.Contains("overrideReasonGroup", view, StringComparison.Ordinal);
     }
 
     [Fact]

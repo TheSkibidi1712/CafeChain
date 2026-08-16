@@ -62,6 +62,13 @@ namespace CafeChain.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("ExtractionVersion")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("ai-import-extraction-v2");
+
                     b.Property<string>("IdempotencyKeyHash")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
@@ -73,8 +80,23 @@ namespace CafeChain.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<string>("OcrConfidenceSummaryJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OcrExtractionVersion")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<int>("OcrPageCount")
                         .HasColumnType("int");
+
+                    b.Property<string>("OcrProvider")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("OcrProviderVersion")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<bool>("OcrUsed")
                         .HasColumnType("bit");
@@ -151,9 +173,16 @@ namespace CafeChain.Migrations
                     b.Property<int>("ImportSessionId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("ImportSourceDocumentId")
+                        .HasColumnType("int");
+
                     b.Property<string>("IssuesJson")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("LayoutConfidence")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("decimal(5,4)");
 
                     b.Property<string>("MappingJson")
                         .IsRequired()
@@ -193,6 +222,8 @@ namespace CafeChain.Migrations
 
                     b.HasKey("ImportGroupId");
 
+                    b.HasIndex("ImportSourceDocumentId");
+
                     b.HasIndex("ImportSessionId", "SheetName");
 
                     b.ToTable("ImportGroups", (string)null);
@@ -231,11 +262,21 @@ namespace CafeChain.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
 
+                    b.Property<string>("FieldEvidenceJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("nvarchar(max)")
+                        .HasDefaultValue("{}");
+
                     b.Property<int>("ImportGroupId")
                         .HasColumnType("int");
 
                     b.Property<int?>("ImportedEntityId")
                         .HasColumnType("int");
+
+                    b.Property<decimal?>("LayoutConfidence")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("decimal(5,4)");
 
                     b.Property<bool>("ManualReviewConfirmed")
                         .HasColumnType("bit");
@@ -330,11 +371,21 @@ namespace CafeChain.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("EffectiveOcr")
+                        .HasColumnType("bit");
+
                     b.Property<int>("ErrorRows")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("ExpiresAtUtc")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("ExtractionVersion")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("ai-import-extraction-v2");
 
                     b.Property<string>("FailureCode")
                         .HasMaxLength(100)
@@ -361,6 +412,11 @@ namespace CafeChain.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<string>("OcrConfigVersion")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<int>("PreviewVersion")
                         .HasColumnType("int");
 
@@ -368,6 +424,9 @@ namespace CafeChain.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("RequestedOcr")
+                        .HasColumnType("bit");
 
                     b.Property<string>("ResultJson")
                         .HasColumnType("nvarchar(max)");
@@ -438,6 +497,74 @@ namespace CafeChain.Migrations
                     b.ToTable("ImportSessions", null, t =>
                         {
                             t.HasCheckConstraint("CK_ImportSessions_Status", "[Status] IN ('UPLOADED','ANALYZING','VALIDATING','READY_TO_PREVIEW','IMPORTING','COMPLETED','FAILED','CANCELLED','EXPIRED')");
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.AIImport.ImportSourceDocument", b =>
+                {
+                    b.Property<int>("ImportSourceDocumentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ImportSourceDocumentId"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ErrorCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("FileHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("ImportSessionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("nvarchar(260)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SourceFormat")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("SourceMetadataJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SourceSnapshotJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("ImportSourceDocumentId");
+
+                    b.HasIndex("FileHash");
+
+                    b.HasIndex("ImportSessionId", "SortOrder")
+                        .IsUnique();
+
+                    b.ToTable("ImportSourceDocuments", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ImportSourceDocuments_Status", "[Status] IN ('PROCESSING','READY','FAILED','REMOVED')");
                         });
                 });
 
@@ -14005,7 +14132,14 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("CafeChain.Models.AIImport.ImportSourceDocument", "SourceDocument")
+                        .WithMany("Groups")
+                        .HasForeignKey("ImportSourceDocumentId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("Session");
+
+                    b.Navigation("SourceDocument");
                 });
 
             modelBuilder.Entity("CafeChain.Models.AIImport.ImportItem", b =>
@@ -14017,6 +14151,17 @@ namespace CafeChain.Migrations
                         .IsRequired();
 
                     b.Navigation("Group");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.AIImport.ImportSourceDocument", b =>
+                {
+                    b.HasOne("CafeChain.Models.AIImport.ImportSession", "Session")
+                        .WithMany("SourceDocuments")
+                        .HasForeignKey("ImportSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Session");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Analytics.ForecastPoint", b =>
@@ -18083,6 +18228,13 @@ namespace CafeChain.Migrations
                 {
                     b.Navigation("Audits");
 
+                    b.Navigation("Groups");
+
+                    b.Navigation("SourceDocuments");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.AIImport.ImportSourceDocument", b =>
+                {
                     b.Navigation("Groups");
                 });
 
