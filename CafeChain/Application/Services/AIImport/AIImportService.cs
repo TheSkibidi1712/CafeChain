@@ -1147,8 +1147,11 @@ public sealed class AIImportService : IAIImportService
     {
         (page, pageSize) = Page(page, pageSize);
         var session = await _db.ImportSessions.AsNoTracking().Include(x => x.SourceDocuments).Include(x => x.Groups).SingleAsync(x => x.ImportSessionId == id && x.UploadedByAccountId == actor.AccountId, cancellationToken);
+        var orderedGroups = session.Groups.OrderBy(x => x.DependencyOrder).ThenBy(x => x.ImportGroupId).ToList();
+        var previewGroupId = groupId ?? orderedGroups.Select(x => (int?)x.ImportGroupId).FirstOrDefault();
         var itemQuery = _db.ImportItems.AsNoTracking().Where(x => x.Group.ImportSessionId == id);
-        if (groupId.HasValue) itemQuery = itemQuery.Where(x => x.ImportGroupId == groupId.Value);
+        if (previewGroupId.HasValue) itemQuery = itemQuery.Where(x => x.ImportGroupId == previewGroupId.Value);
+        else itemQuery = itemQuery.Where(_ => false);
         if (!string.IsNullOrWhiteSpace(status)) itemQuery = itemQuery.Where(x => x.Status == status);
         var total = await itemQuery.CountAsync(cancellationToken);
         var items = await _sessionQuery.OrderPreviewItems(itemQuery)
@@ -1179,7 +1182,7 @@ public sealed class AIImportService : IAIImportService
                 Metadata = Deserialize<Dictionary<string, object?>>(source.SourceMetadataJson) ?? new()
             }).ToList(),
             Summary = Summary(session), Page = PageDto(page, pageSize, total),
-            Groups = session.Groups.OrderBy(x => x.DependencyOrder).ThenBy(x => x.ImportGroupId).Select(x => new AIImportGroupDto
+            Groups = orderedGroups.Select(x => new AIImportGroupDto
             {
                 GroupId = x.ImportGroupId, SourceDocumentId = x.ImportSourceDocumentId,
                 SourceFileName = session.SourceDocuments.SingleOrDefault(source => source.ImportSourceDocumentId == x.ImportSourceDocumentId)?.OriginalFileName ?? session.FileName,

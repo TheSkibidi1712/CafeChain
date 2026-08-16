@@ -1,6 +1,8 @@
 using System.Security.Claims;
-using CafeChain.Application.Interfaces.AppLauncher;
 using CafeChain.Application.Constants;
+using CafeChain.Application.Interfaces.Admin.Actor;
+using CafeChain.Application.Interfaces.Admin.Dashboard;
+using CafeChain.Application.Interfaces.AppLauncher;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,13 +13,19 @@ public sealed class AppLauncherController : Controller
 {
     private readonly IAppLauncherService _service;
     private readonly IPosLaunchCoordinator _posLaunchCoordinator;
+    private readonly IAdminActorContextAccessor _actorContext;
+    private readonly IDashboardAuthorizationService _dashboardAuthorization;
 
     public AppLauncherController(
         IAppLauncherService service,
-        IPosLaunchCoordinator posLaunchCoordinator)
+        IPosLaunchCoordinator posLaunchCoordinator,
+        IAdminActorContextAccessor actorContext,
+        IDashboardAuthorizationService dashboardAuthorization)
     {
         _service = service;
         _posLaunchCoordinator = posLaunchCoordinator;
+        _actorContext = actorContext;
+        _dashboardAuthorization = dashboardAuthorization;
     }
 
     [HttpGet]
@@ -32,6 +40,23 @@ public sealed class AppLauncherController : Controller
             User.FindFirstValue(ClaimTypes.Name),
             HttpContext.RequestAborted);
         return View(model);
+    }
+
+    [HttpGet]
+    [Authorize(Policy = AuthorizationPolicyConstants.AdminPanelAccess)]
+    public async Task<IActionResult> OpenAdminDashboard()
+    {
+        try
+        {
+            await _dashboardAuthorization.GetAccessAsync(
+                _actorContext.Get(User),
+                HttpContext.RequestAborted);
+            return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return RedirectToAction("MyProfile", "AdminProfile", new { area = "Admin" });
+        }
     }
 
     [HttpPost]

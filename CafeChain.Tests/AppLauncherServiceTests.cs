@@ -91,7 +91,8 @@ public sealed class AppLauncherServiceTests
 
         var result = await service.GetAppsAsync(18, "Quản lý");
 
-        Assert.Contains(result.Apps, x => x.Code == AppCode.AdminDashboard);
+        var dashboard = Assert.Single(result.Apps, x => x.Code == AppCode.AdminDashboard);
+        Assert.Equal("/AppLauncher/OpenAdminDashboard", dashboard.Route);
         Assert.DoesNotContain(result.Apps, x => x.Code == AppCode.OperationalIce);
     }
 
