@@ -25,6 +25,26 @@ public sealed class ReplenishmentAuthorizationLocalizationIssue473Tests
     }
 
     [Fact]
+    public void AuthorizedActor_SeesReceiveProcessingCtaOnDetails()
+    {
+        var controller = Read("CafeChain", "Areas", "Admin", "Controllers", "AdminRestockRequestsController.cs");
+        var detailsStart = controller.IndexOf(
+            "public async Task<IActionResult> Details(int id)",
+            StringComparison.Ordinal);
+        var detailsEnd = controller.IndexOf(
+            "public async Task<IActionResult> CreateManual",
+            detailsStart,
+            StringComparison.Ordinal);
+
+        Assert.True(detailsStart >= 0 && detailsEnd > detailsStart);
+        var detailsAction = controller[detailsStart..detailsEnd];
+        Assert.Contains(
+            "ViewBag.CanStartProcessing = await HasEffectivePermissionAsync(PermissionConstants.RestockApprove)",
+            detailsAction,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DirectBackendAuthorization_RemainsAuthoritative()
     {
         var controller = Read("CafeChain", "Areas", "Admin", "Controllers", "AdminRestockRequestsController.cs");
