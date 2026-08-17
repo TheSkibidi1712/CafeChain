@@ -112,6 +112,96 @@ public sealed class SupplierFoundationPhaseOneSqlServerTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task ActiveOffer_CreatesZeroInventoryOnlyForServedStores()
+    {
+        int ingredientId;
+        await using (var arrange = CreateContext())
+        {
+            var unitId = await arrange.Units.OrderBy(x => x.UnitId).Select(x => x.UnitId).FirstAsync();
+            var ingredient = new Ingredient
+            {
+                Code = "ING-SQL-BOOTSTRAP-ONE",
+                Name = "Nguyên liệu bootstrap SQL",
+                BaseUnitId = unitId,
+                Active = true
+            };
+            arrange.Ingredients.Add(ingredient);
+            arrange.SupplierStores.AddRange(
+                NewSupplierStore(1, 1),
+                NewSupplierStore(1, 2));
+            await arrange.SaveChangesAsync();
+            ingredientId = ingredient.IngredientId;
+
+            var service = CreateSupplierService(arrange);
+            await service.CreateIngredientOfferAsync(NewOffer(1, ingredientId, unitId), actorStaffId: 1);
+        }
+
+        await using var verify = CreateContext();
+        var servedStoreIds = await verify.SupplierStores
+            .Where(x => x.SupplierId == 1 && x.Active)
+            .Select(x => x.StoreId)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync();
+        var inventories = await verify.StoreInventories
+            .Where(x => x.IngredientId == ingredientId)
+            .OrderBy(x => x.StoreId)
+            .ToListAsync();
+
+        Assert.Equal(servedStoreIds, inventories.Select(x => x.StoreId).ToList());
+        Assert.All(inventories, x =>
+        {
+            Assert.Equal(0m, x.AvailableQty);
+            Assert.Equal(0m, x.ReservedQty);
+        });
+        Assert.False(await verify.InventoryTransactions.AnyAsync(x =>
+            x.StoreInventory.IngredientId == ingredientId));
+        Assert.False(await verify.InventoryCostLayers.AnyAsync(x =>
+            x.IngredientId == ingredientId));
+    }
+
+    [Fact]
+    public async Task ConcurrentActiveOffers_CreateOneIngredientInventoryPerStore()
+    {
+        int ingredientId;
+        int unitId;
+        await using (var arrange = CreateContext())
+        {
+            unitId = await arrange.Units.OrderBy(x => x.UnitId).Select(x => x.UnitId).FirstAsync();
+            var ingredient = new Ingredient
+            {
+                Code = "ING-SQL-BOOTSTRAP-RACE",
+                Name = "Nguyên liệu bootstrap concurrent",
+                BaseUnitId = unitId,
+                Active = true
+            };
+            arrange.Ingredients.Add(ingredient);
+            arrange.SupplierStores.AddRange(
+                NewSupplierStore(1, 1),
+                NewSupplierStore(1, 2),
+                NewSupplierStore(2, 1));
+            await arrange.SaveChangesAsync();
+            ingredientId = ingredient.IngredientId;
+        }
+
+        await using var firstContext = CreateContext();
+        await using var secondContext = CreateContext();
+        await Task.WhenAll(
+            CreateSupplierService(firstContext).CreateIngredientOfferAsync(
+                NewOffer(1, ingredientId, unitId), actorStaffId: 1),
+            CreateSupplierService(secondContext).CreateIngredientOfferAsync(
+                NewOffer(2, ingredientId, unitId), actorStaffId: 1));
+
+        await using var verify = CreateContext();
+        var inventories = await verify.StoreInventories
+            .Where(x => x.IngredientId == ingredientId)
+            .ToListAsync();
+        Assert.NotEmpty(inventories);
+        Assert.Equal(inventories.Count, inventories.Select(x => x.StoreId).Distinct().Count());
+        Assert.All(inventories, x => Assert.Equal(0m, x.AvailableQty));
+    }
+
+    [Fact]
     public async Task SqlServer_ReceiptConfirmIdempotent_AndPackageConversionProducesCorrectFifoCost()
     {
         await using var context = CreateContext();
@@ -218,6 +308,21 @@ public sealed class SupplierFoundationPhaseOneSqlServerTests : IAsyncLifetime
         PrimaryPhone = phone,
         PrimaryContactName = name + " contact",
         PrimaryContactPhone = phone
+    };
+
+    private static AdminIngredientSupplierSaveDTO NewOffer(
+        int supplierId,
+        int ingredientId,
+        int unitId) => new()
+    {
+        SupplierId = supplierId,
+        IngredientId = ingredientId,
+        UnitId = unitId,
+        PackageQuantity = 1m,
+        CurrentPrice = 10m,
+        MinimumOrderPackageCount = 1,
+        IsPrimary = false,
+        Active = true
     };
 
     private static SupplierStore NewSupplierStore(int supplierId, int storeId) => new()

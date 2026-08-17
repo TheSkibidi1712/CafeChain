@@ -10,6 +10,7 @@ using CafeChain.Infrastrusture.Interfaces.Admin.Suppliers;
 using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Inventories.Auditing;
 using CafeChain.Models.Locations;
+using CafeChain.Models.Stores;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -980,9 +981,14 @@ namespace CafeChain.Application.Services.Admin.Suppliers
 
             var looseUnitPrice = await ResolveLooseUnitPriceAsync(dto);
 
-            await using var tx = await _context.Database.BeginTransactionAsync();
+            await using var tx = await _context.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable);
             try
             {
+                if (!await TryAcquireIngredientInventoryBootstrapLockAsync(dto.IngredientId))
+                    throw new InvalidOperationException(
+                        "Nguyên liệu đang được cấu hình tại cửa hàng bởi thao tác khác. Vui lòng thử lại.");
+
                 if (dto.IsPrimary)
                     await ClearPrimaryAsync(dto.IngredientId, excludeId: null);
 
@@ -1021,6 +1027,11 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 _context.IngredientSuppliers.Add(entity);
                 await _context.SaveChangesAsync();
 
+                if (entity.Active)
+                    await EnsureIngredientInventoryForActiveSupplierStoresAsync(
+                        entity.SupplierId,
+                        entity.IngredientId);
+
                 _context.Set<IngredientSupplierPriceHistory>().Add(new IngredientSupplierPriceHistory
                 {
                     IngredientSupplierId = entity.IngredientSupplierId,
@@ -1047,6 +1058,68 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 await tx.RollbackAsync();
                 throw;
             }
+        }
+
+        private async Task EnsureIngredientInventoryForActiveSupplierStoresAsync(
+            int supplierId,
+            int ingredientId)
+        {
+            var storeIds = await _context.SupplierStores
+                .Where(x => x.SupplierId == supplierId && x.Active)
+                .Select(x => x.StoreId)
+                .Distinct()
+                .ToListAsync();
+            if (storeIds.Count == 0)
+                return;
+
+            var existingStoreIds = await _context.StoreInventories
+                .Where(x => x.IngredientId == ingredientId && storeIds.Contains(x.StoreId))
+                .Select(x => x.StoreId)
+                .ToListAsync();
+            var existing = existingStoreIds.ToHashSet();
+            var now = DateTime.UtcNow;
+
+            foreach (var storeId in storeIds.Where(x => !existing.Contains(x)))
+            {
+                _context.StoreInventories.Add(new StoreInventory
+                {
+                    StoreId = storeId,
+                    IngredientId = ingredientId,
+                    AvailableQty = 0m,
+                    ReservedQty = 0m,
+                    LastUpdated = now
+                });
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
+        private async Task<bool> TryAcquireIngredientInventoryBootstrapLockAsync(int ingredientId)
+        {
+            if (!_context.Database.IsSqlServer())
+                return true;
+
+            var currentTransaction = _context.Database.CurrentTransaction
+                ?? throw new InvalidOperationException(
+                    "Ingredient inventory bootstrap requires an active transaction.");
+            var connection = _context.Database.GetDbConnection();
+            await using var command = connection.CreateCommand();
+            command.Transaction = currentTransaction.GetDbTransaction();
+            command.CommandText = """
+                DECLARE @result int;
+                EXEC @result = sys.sp_getapplock
+                    @Resource = @resource,
+                    @LockMode = N'Exclusive',
+                    @LockOwner = N'Transaction',
+                    @LockTimeout = 15000;
+                SELECT @result;
+                """;
+            var resource = command.CreateParameter();
+            resource.ParameterName = "@resource";
+            resource.Value = $"CafeChain:IngredientInventoryBootstrap:{ingredientId}";
+            command.Parameters.Add(resource);
+            var result = await command.ExecuteScalarAsync();
+            return result != null && Convert.ToInt32(result) >= 0;
         }
 
         public Task UpdateIngredientOfferAsync(AdminIngredientSupplierSaveDTO dto) =>
