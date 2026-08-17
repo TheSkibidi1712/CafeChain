@@ -82,8 +82,19 @@ public sealed class ReplenishmentAuthorizationLocalizationIssue473Tests
     {
         var seed = Read("CafeChain", "Scripts", "SeedAll.sql");
 
-        Assert.Contains("(N'ProductionOrder.Create',1,0,1,0,1,0,0,0)", seed, StringComparison.Ordinal);
+        Assert.Contains("(N'ProductionOrder.Create',1,0,1,0,0,0,0,0)", seed, StringComparison.Ordinal);
         Assert.DoesNotContain("(N'ProductionOrder.Create',1,0,1,0,1,0,0,1)", seed, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void WarehouseAndShiftSupervisor_DefaultRoles_DoNotHaveLegacyProductionOperations()
+    {
+        var seed = Read("CafeChain", "Scripts", "SeedAll.sql");
+
+        Assert.Contains("(N'ProductionOrder.Create',1,0,1,0,0,0,0,0)", seed, StringComparison.Ordinal);
+        Assert.Contains("(N'ProductionOrder.Confirm',1,0,1,0,0,0,0,0)", seed, StringComparison.Ordinal);
+        Assert.DoesNotContain("(N'ProductionOrder.Create',1,0,1,0,1,0,0,0)", seed, StringComparison.Ordinal);
+        Assert.DoesNotContain("(N'ProductionOrder.Confirm',1,0,1,0,1,0,0,1)", seed, StringComparison.Ordinal);
     }
 
     [Fact]
