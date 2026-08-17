@@ -895,7 +895,7 @@ namespace CafeChain.Application.Services.Inventories
         private sealed class GroupPlan
         {
             public ConsolidationGroupManifestDto Group { get; init; } = null!;
-            public List<(StoreInventory Row, decimal ConvAvail, decimal ConvReserved, ConsolidationConversionEvidenceDto? Conv)> Sources { get; init; } = new();
+            public List<(StoreInventory Row, BtpIdentityState? BeforeIdentityState, decimal ConvAvail, decimal ConvReserved, ConsolidationConversionEvidenceDto? Conv)> Sources { get; init; } = new();
             public StoreInventory? ExistingTarget { get; init; }
             public bool CreateTarget { get; init; }
             public decimal TargetBeforeAvail { get; init; }
@@ -993,10 +993,12 @@ namespace CafeChain.Application.Services.Inventories
                 }
                 else if (group.CreateCanonicalTarget)
                 {
+                    var sourceIds = group.SourceStoreInventoryIds.ToHashSet();
                     var existingCanon = invMap.Values.Where(x =>
                         x.PreparedItemId == group.PreparedItemId
                         && x.BtpIdentityState == BtpIdentityState.Canonical
-                        && x.SupersededByStoreInventoryId == null).ToList();
+                        && x.SupersededByStoreInventoryId == null
+                        && !sourceIds.Contains(x.StoreInventoryId)).ToList();
                     if (existingCanon.Count > 0)
                         v.Blockers.Add(ConsolidationFailureCodes.TargetCollision);
                 }
@@ -1019,7 +1021,7 @@ namespace CafeChain.Application.Services.Inventories
 
                 // Alert collision: legacy Recipe alert + PI alert for same PI
                 var recipeIdsInGroup = new HashSet<int>();
-                var sources = new List<(StoreInventory Row, decimal ConvAvail, decimal ConvReserved, ConsolidationConversionEvidenceDto? Conv)>();
+                var sources = new List<(StoreInventory Row, BtpIdentityState? BeforeIdentityState, decimal ConvAvail, decimal ConvReserved, ConsolidationConversionEvidenceDto? Conv)>();
 
                 foreach (var sourceId in group.SourceStoreInventoryIds.OrderBy(id => id))
                 {
@@ -1093,7 +1095,7 @@ namespace CafeChain.Application.Services.Inventories
                             continue;
                         }
 
-                        sources.Add((source, convertedA, convertedR, conv));
+                        sources.Add((source, source.BtpIdentityState, convertedA, convertedR, conv));
                     }
                     else if (needsConversion)
                     {
@@ -1103,7 +1105,7 @@ namespace CafeChain.Application.Services.Inventories
                     else
                     {
                         // BaseUnitConfirmed → factor 1
-                        sources.Add((source, source.AvailableQty, source.ReservedQty, null));
+                        sources.Add((source, source.BtpIdentityState, source.AvailableQty, source.ReservedQty, null));
                     }
                 }
 
@@ -1280,11 +1282,13 @@ namespace CafeChain.Application.Services.Inventories
                         .FirstAsync(p => p.PreparedItemId == plan.Group.PreparedItemId, cancellationToken);
 
                     // Re-check no concurrent canonical
+                    var sourceIds = plan.Sources.Select(x => x.Row.StoreInventoryId).ToHashSet();
                     var existingCanon = await _context.StoreInventories
                         .Where(x => x.StoreId == manifest.StoreId
                             && x.PreparedItemId == plan.Group.PreparedItemId
                             && x.BtpIdentityState == BtpIdentityState.Canonical
-                            && x.SupersededByStoreInventoryId == null)
+                            && x.SupersededByStoreInventoryId == null
+                            && !sourceIds.Contains(x.StoreInventoryId))
                         .ToListAsync(cancellationToken);
                     if (existingCanon.Count > 0)
                     {
@@ -1292,6 +1296,16 @@ namespace CafeChain.Application.Services.Inventories
                             "Canonical target collision during execute.",
                             errorCode: ConsolidationFailureCodes.TargetCollision);
                     }
+
+                    // Seeded compatibility rows can carry Canonical state while still being
+                    // Recipe-bound. Release their filtered unique slot inside this transaction
+                    // before creating the PreparedItem-only canonical target.
+                    foreach (var sourcePlan in plan.Sources.Where(x =>
+                                 x.Row.BtpIdentityState == BtpIdentityState.Canonical))
+                    {
+                        sourcePlan.Row.BtpIdentityState = BtpIdentityState.Legacy;
+                    }
+                    await _context.SaveChangesAsync(cancellationToken);
 
                     target = new StoreInventory
                     {
@@ -1395,7 +1409,7 @@ namespace CafeChain.Application.Services.Inventories
                         BeforeReservedQty = beforeReserved,
                         BeforeMinStockLevel = source.MinStockLevel,
                         BeforeMaxNegativeQty = source.MaxNegativeQty,
-                        BeforeIdentityState = BtpIdentityState.Legacy, // pre-state was not superseded
+                        BeforeIdentityState = srcPlan.BeforeIdentityState,
                         BeforeQuantitySemantics = srcPlan.Row.QuantitySemanticsStatus,
                         ApprovedConversionFactor = srcPlan.Conv?.Factor,
                         ApprovedConversionFromUnitId = srcPlan.Conv?.FromUnitId,

@@ -56,7 +56,7 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
             {
                 result.Errors.Add(Error(
                     "NỘI_DUNG_CHỦ_ĐỘNG_KHÔNG_ĐƯỢC_HỖ_TRỢ",
-                    "DOCX chứa field command hoặc nội dung liên kết động không được hỗ trợ."));
+                    "DOCX chứa lệnh trường hoặc nội dung liên kết động không được hỗ trợ."));
                 return Task.FromResult(result);
             }
             var hasTrackedChanges = HasTrackedChanges(body);
@@ -65,7 +65,7 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
                 result.Warnings.Add(new AIImportErrorDto
                 {
                     Code = "DOCX_TRACK_CHANGE_CẦN_XEM_LẠI",
-                    Message = "DOCX có Track Changes chưa được chấp nhận; mọi bản ghi trích xuất phải được xem lại."
+                    Message = "DOCX có nội dung theo dõi thay đổi chưa được chấp nhận; mọi bản ghi trích xuất phải được xem lại."
                 });
             }
 
@@ -281,7 +281,7 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
                     "Bảng DOCX có ô gộp; cần đối chiếu từng trường với nguồn.", group.SourceLocator));
             if (tableHasTrackedChanges)
                 group.Issues.Add(ReviewIssue("DOCX_TRACK_CHANGE_CẦN_XEM_LẠI",
-                    "DOCX có Track Changes chưa được chấp nhận; cần đối chiếu từng trường với nguồn.", group.SourceLocator));
+                    "DOCX có nội dung theo dõi thay đổi chưa được chấp nhận; cần đối chiếu từng trường với nguồn.", group.SourceLocator));
             if (hasNestedTable)
                 group.Issues.Add(AIImportValidationContract.Issue("KHÔNG_XÁC_ĐỊNH_RANH_GIỚI_BẢN_GHI",
                     "Bảng có bảng lồng; nội dung bảng lồng không được nhập chung với ô cha.",
@@ -356,7 +356,7 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
             };
             if (hasTrackedChanges)
                 group.Issues.Add(ReviewIssue("DOCX_TRACK_CHANGE_CẦN_XEM_LẠI",
-                    "DOCX có Track Changes chưa được chấp nhận; cần đối chiếu từng trường với nguồn.", locator));
+                    "DOCX có nội dung theo dõi thay đổi chưa được chấp nhận; cần đối chiếu từng trường với nguồn.", locator));
             var candidate = Candidate(++ordinal, new Dictionary<string, string?>(record, StringComparer.OrdinalIgnoreCase), detected.Mapping, locator,
                 AIImportExtractionModes.DocxTextDeterministic, confidence, string.Join(Environment.NewLine, evidence),
                 new Dictionary<string, string?>(sourceTrace, StringComparer.OrdinalIgnoreCase));
@@ -462,7 +462,7 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
                     resolution: AIImportIssueResolutions.ReuploadOrSkip));
             else if (column.Classification == AIImportColumnClassifications.Unknown)
                 candidate.Issues.Add(AIImportValidationContract.Issue("CỘT_KHÔNG_XÁC_ĐỊNH",
-                    $"Cột '{column.Label}' không thuộc ImportSchema và sẽ bị bỏ qua.", AIImportIssueSeverities.Warning,
+                    $"Cột '{column.Label}' không thuộc danh sách trường được phép nhập và sẽ bị bỏ qua.", AIImportIssueSeverities.Warning,
                     resolution: AIImportIssueResolutions.Acknowledge));
         }
     }

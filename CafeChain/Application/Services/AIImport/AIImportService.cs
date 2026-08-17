@@ -262,7 +262,7 @@ public sealed class AIImportService : IAIImportService
         var session = await OwnedSessionAsync(sessionId, actor, true, cancellationToken);
         if (session == null) return NotFound<AIImportSessionDto>();
         if (session.PreviewVersion != request.ExpectedPreviewVersion)
-            return Conflict<AIImportSessionDto>("PREVIEW_ĐÃ_THAY_ĐỔI", "Preview đã thay đổi; vui lòng tải lại.");
+            return Conflict<AIImportSessionDto>("PREVIEW_ĐÃ_THAY_ĐỔI", "Bản xem trước đã thay đổi; vui lòng tải lại.");
         if (session.Status is not AIImportSessionStatuses.ReadyToPreview and not AIImportSessionStatuses.Failed)
             return Conflict<AIImportSessionDto>("PHIÊN_ĐÃ_XỬ_LÝ", "Phiên không thể phân tích lại.");
         var requiresDocumentSnapshot = session.SourceFormat is AIImportSourceFormats.Docx or AIImportSourceFormats.Pdf
@@ -283,7 +283,7 @@ public sealed class AIImportService : IAIImportService
         }
         catch (DbUpdateConcurrencyException)
         {
-            return Conflict<AIImportSessionDto>("PREVIEW_ĐÃ_THAY_ĐỔI", "Preview đã thay đổi; vui lòng tải lại.");
+            return Conflict<AIImportSessionDto>("PREVIEW_ĐÃ_THAY_ĐỔI", "Bản xem trước đã thay đổi; vui lòng tải lại.");
         }
 
         try
@@ -417,7 +417,7 @@ public sealed class AIImportService : IAIImportService
         var access = await RequireAsync(actor, PermissionConstants.AIImportAnalyze);
         if (access != null) return AIImportOperationResult<AIImportSessionDto>.Fail(403, "KHÔNG_CÓ_QUYỀN", access);
         if (!_schemas.SupportedEntities.Contains(request.EntityType) || !_schemas.IsAllowedMapping(request.EntityType, request.Mapping))
-            return AIImportOperationResult<AIImportSessionDto>.Fail(400, "MAPPING_KHÔNG_HỢP_LỆ", "Mapping chứa entity/field lạ hoặc một cột nguồn được dùng nhiều lần.");
+            return AIImportOperationResult<AIImportSessionDto>.Fail(400, "MAPPING_KHÔNG_HỢP_LỆ", "Ánh xạ chứa loại dữ liệu hoặc trường không hợp lệ, hoặc một cột nguồn được dùng nhiều lần.");
         var session = await OwnedSessionAsync(sessionId, actor, true, cancellationToken);
         if (session == null) return NotFound<AIImportSessionDto>();
         var editable = CheckEditable<AIImportSessionDto>(session, request.ExpectedPreviewVersion);
@@ -457,7 +457,7 @@ public sealed class AIImportService : IAIImportService
         }
         catch (DbUpdateConcurrencyException)
         {
-            return Conflict<AIImportSessionDto>("PREVIEW_ĐÃ_THAY_ĐỔI", "Preview đã được request khác cập nhật; vui lòng tải lại.");
+            return Conflict<AIImportSessionDto>("PREVIEW_ĐÃ_THAY_ĐỔI", "Bản xem trước đã được một yêu cầu khác cập nhật; vui lòng tải lại.");
         }
         return AIImportOperationResult<AIImportSessionDto>.Ok(await BuildSessionDtoAsync(sessionId, groupId, null, 1, _options.DefaultPageSize, actor, cancellationToken));
     }
@@ -468,7 +468,7 @@ public sealed class AIImportService : IAIImportService
         var access = await RequireAsync(actor, PermissionConstants.AIImportAnalyze);
         if (access != null) return AIImportOperationResult<AIImportSessionDto>.Fail(403, "KHÔNG_CÓ_QUYỀN", access);
         if (request.Action is not (AIImportActions.Create or AIImportActions.Skip))
-            return AIImportOperationResult<AIImportSessionDto>.Fail(400, "ACTION_KHÔNG_HỢP_LỆ", "Chỉ hỗ trợ CREATE hoặc SKIP.");
+            return AIImportOperationResult<AIImportSessionDto>.Fail(400, "ACTION_KHÔNG_HỢP_LỆ", "Chỉ hỗ trợ tạo mới hoặc bỏ qua bản ghi.");
         var session = await OwnedSessionAsync(sessionId, actor, true, cancellationToken);
         if (session == null) return NotFound<AIImportSessionDto>();
         var editable = CheckEditable<AIImportSessionDto>(session, request.ExpectedPreviewVersion);
@@ -541,7 +541,7 @@ public sealed class AIImportService : IAIImportService
         }
         catch (DbUpdateConcurrencyException)
         {
-            return Conflict<AIImportSessionDto>("PREVIEW_ĐÃ_THAY_ĐỔI", "Preview đã được request khác cập nhật; vui lòng tải lại.");
+            return Conflict<AIImportSessionDto>("PREVIEW_ĐÃ_THAY_ĐỔI", "Bản xem trước đã được một yêu cầu khác cập nhật; vui lòng tải lại.");
         }
         return AIImportOperationResult<AIImportSessionDto>.Ok(await BuildSessionDtoAsync(sessionId, item.ImportGroupId, null, 1, _options.DefaultPageSize, actor, cancellationToken));
     }
@@ -552,7 +552,7 @@ public sealed class AIImportService : IAIImportService
         var access = await RequireAsync(actor, PermissionConstants.AIImportConfirm);
         if (access != null) return AIImportOperationResult<AIImportConfirmResultDto>.Fail(403, "KHÔNG_CÓ_QUYỀN", access);
         if (string.IsNullOrWhiteSpace(idempotencyKey))
-            return AIImportOperationResult<AIImportConfirmResultDto>.Fail(400, "IDEMPOTENCY_KEY_BẮT_BUỘC", "Header Idempotency-Key là bắt buộc.");
+            return AIImportOperationResult<AIImportConfirmResultDto>.Fail(400, "IDEMPOTENCY_KEY_BẮT_BUỘC", "Thiếu khóa chống gửi lặp cho yêu cầu xác nhận.");
 
         await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         try
@@ -585,7 +585,7 @@ public sealed class AIImportService : IAIImportService
             if (session.PreviewVersion != request.ExpectedPreviewVersion)
             {
                 await transaction.RollbackAsync(cancellationToken);
-                return Conflict<AIImportConfirmResultDto>("PREVIEW_ĐÃ_THAY_ĐỔI", "Preview đã thay đổi; vui lòng tải lại.");
+                return Conflict<AIImportConfirmResultDto>("PREVIEW_ĐÃ_THAY_ĐỔI", "Bản xem trước đã thay đổi; vui lòng tải lại.");
             }
             var failedSources = session.SourceDocuments
                 .Where(source => source.Status is AIImportSourceDocumentStatuses.Failed or AIImportSourceDocumentStatuses.Processing)
@@ -663,11 +663,11 @@ public sealed class AIImportService : IAIImportService
             if (claimed != 1)
             {
                 await transaction.RollbackAsync(cancellationToken);
-                return Conflict<AIImportConfirmResultDto>("PHIÊN_ĐANG_ĐƯỢC_XỬ_LÝ", "Phiên đã được request khác nhận xử lý.");
+                return Conflict<AIImportConfirmResultDto>("PHIÊN_ĐANG_ĐƯỢC_XỬ_LÝ", "Phiên đã được một yêu cầu khác nhận xử lý.");
             }
 
             session = await OwnedSessionAsync(sessionId, actor, true, cancellationToken)
-                ?? throw new InvalidOperationException("Không thể tải lại phiên sau khi claim.");
+                ?? throw new InvalidOperationException("Không thể tải lại phiên sau khi giữ quyền xử lý.");
             var result = new AIImportConfirmResultDto { SessionId = sessionId, Status = AIImportSessionStatuses.Completed };
             foreach (var entry in _confirmCoordinator.BuildExecutionPlan(session))
             {
@@ -727,7 +727,7 @@ public sealed class AIImportService : IAIImportService
                     await BuildSessionDtoAsync(sessionId, null, null, 1, _options.DefaultPageSize, actor, cancellationToken),
                     "Phiên đã được hủy trước đó.");
             if (current.PreviewVersion != request.ExpectedPreviewVersion)
-                return Conflict<AIImportSessionDto>("PREVIEW_ĐÃ_THAY_ĐỔI", "Preview đã thay đổi; vui lòng tải lại trạng thái phiên.");
+                return Conflict<AIImportSessionDto>("PREVIEW_ĐÃ_THAY_ĐỔI", "Bản xem trước đã thay đổi; vui lòng tải lại trạng thái phiên.");
             return Conflict<AIImportSessionDto>("PHIÊN_ĐÃ_XỬ_LÝ", $"Không thể hủy phiên ở trạng thái {current.Status}.");
         }
         await _db.ImportSourceDocuments.Where(source => source.ImportSessionId == sessionId)
@@ -960,8 +960,8 @@ public sealed class AIImportService : IAIImportService
                     {
                         AIImportValidationContract.Issue(crossesFiles ? "TRÙNG_TRONG_PHIÊN" : "TRÙNG_TRONG_FILE",
                             crossesFiles
-                                ? "Bản ghi trùng business key và payload giữa các tệp trong phiên, mặc định SKIP."
-                                : "Bản ghi trùng business key và payload trong tài liệu, mặc định SKIP.",
+                                ? "Bản ghi trùng khóa nghiệp vụ và nội dung giữa các tệp trong phiên nên được mặc định bỏ qua."
+                                : "Bản ghi trùng khóa nghiệp vụ và nội dung trong tài liệu nên được mặc định bỏ qua.",
                             AIImportIssueSeverities.Warning,
                             resolution: AIImportIssueResolutions.Acknowledge,
                             metadata: new Dictionary<string, object?> { ["sourceDocumentIds"] = sourceIds })
@@ -974,8 +974,8 @@ public sealed class AIImportService : IAIImportService
                 AddIssue(conflict.Item, AIImportValidationContract.Issue(
                     crossesFiles ? "XUNG_ĐỘT_DỮ_LIỆU_GIỮA_CÁC_TỆP" : "XUNG_ĐỘT_DỮ_LIỆU_TRONG_TÀI_LIỆU",
                     crossesFiles
-                        ? "Cùng business key xuất hiện với payload khác nhau giữa các tệp; hãy đối chiếu nguồn và chỉ giữ một bản ghi."
-                        : "Cùng business key nhưng payload khác nhau; hãy SKIP các bản ghi sai và chỉ giữ lại một bản ghi.",
+                        ? "Cùng khóa nghiệp vụ xuất hiện với nội dung khác nhau giữa các tệp; hãy đối chiếu nguồn và chỉ giữ một bản ghi."
+                        : "Cùng khóa nghiệp vụ nhưng nội dung khác nhau; hãy bỏ qua các bản ghi sai và chỉ giữ lại một bản ghi.",
                     AIImportIssueSeverities.Review,
                     resolution: AIImportIssueResolutions.SkipConflict,
                     metadata: new Dictionary<string, object?> { ["businessKey"] = groupItems.Key.Key, ["sourceDocumentIds"] = sourceIds }));
@@ -1061,7 +1061,7 @@ public sealed class AIImportService : IAIImportService
                 item.Status = AIImportItemStatuses.Skipped;
                 SetIssues(item, AllIssues(item).Concat(new[]
                 {
-                    AIImportValidationContract.Issue("ĐÃ_TỒN_TẠI", "Bản ghi đã tồn tại, mặc định SKIP.",
+                    AIImportValidationContract.Issue("ĐÃ_TỒN_TẠI", "Bản ghi đã tồn tại nên được mặc định bỏ qua.",
                         AIImportIssueSeverities.Warning, resolution: AIImportIssueResolutions.Acknowledge)
                 }), item.ManualReviewConfirmed);
                 continue;
@@ -1147,8 +1147,11 @@ public sealed class AIImportService : IAIImportService
     {
         (page, pageSize) = Page(page, pageSize);
         var session = await _db.ImportSessions.AsNoTracking().Include(x => x.SourceDocuments).Include(x => x.Groups).SingleAsync(x => x.ImportSessionId == id && x.UploadedByAccountId == actor.AccountId, cancellationToken);
+        var orderedGroups = session.Groups.OrderBy(x => x.DependencyOrder).ThenBy(x => x.ImportGroupId).ToList();
+        var previewGroupId = groupId ?? orderedGroups.Select(x => (int?)x.ImportGroupId).FirstOrDefault();
         var itemQuery = _db.ImportItems.AsNoTracking().Where(x => x.Group.ImportSessionId == id);
-        if (groupId.HasValue) itemQuery = itemQuery.Where(x => x.ImportGroupId == groupId.Value);
+        if (previewGroupId.HasValue) itemQuery = itemQuery.Where(x => x.ImportGroupId == previewGroupId.Value);
+        else itemQuery = itemQuery.Where(_ => false);
         if (!string.IsNullOrWhiteSpace(status)) itemQuery = itemQuery.Where(x => x.Status == status);
         var total = await itemQuery.CountAsync(cancellationToken);
         var items = await _sessionQuery.OrderPreviewItems(itemQuery)
@@ -1179,7 +1182,7 @@ public sealed class AIImportService : IAIImportService
                 Metadata = Deserialize<Dictionary<string, object?>>(source.SourceMetadataJson) ?? new()
             }).ToList(),
             Summary = Summary(session), Page = PageDto(page, pageSize, total),
-            Groups = session.Groups.OrderBy(x => x.DependencyOrder).ThenBy(x => x.ImportGroupId).Select(x => new AIImportGroupDto
+            Groups = orderedGroups.Select(x => new AIImportGroupDto
             {
                 GroupId = x.ImportGroupId, SourceDocumentId = x.ImportSourceDocumentId,
                 SourceFileName = session.SourceDocuments.SingleOrDefault(source => source.ImportSourceDocumentId == x.ImportSourceDocumentId)?.OriginalFileName ?? session.FileName,
@@ -1212,14 +1215,14 @@ public sealed class AIImportService : IAIImportService
         foreach (var permission in permissionCodes)
         {
             var decision = await _permissions.HasPermissionAsync(actor.AccountId, permission, null);
-            if (!decision.IsSuccess || decision.Data?.Allowed != true) return $"Thiếu quyền {permission}.";
+            if (!decision.IsSuccess || decision.Data?.Allowed != true) return "Tài khoản không có quyền thực hiện thao tác này.";
         }
         return null;
     }
 
     private async Task TransitionAsync(ImportSession session, string expected, string next, AdminActorContext actor, string action, CancellationToken cancellationToken)
     {
-        if (session.Status != expected) throw new InvalidOperationException($"Chuyển trạng thái không hợp lệ: {session.Status} → {next}.");
+        if (session.Status != expected) throw new InvalidOperationException("Trạng thái hiện tại không cho phép thực hiện thao tác này.");
         session.Status = next;
         AddAudit(session, actor, action, expected, next);
         await _db.SaveChangesAsync(cancellationToken);
@@ -1451,7 +1454,7 @@ public sealed class AIImportService : IAIImportService
                     metadata: new Dictionary<string, object?> { ["sourceColumn"] = column.Key });
             else if (column.Classification == AIImportColumnClassifications.Unknown)
                 yield return AIImportValidationContract.Issue("CỘT_KHÔNG_XÁC_ĐỊNH",
-                    $"Cột '{column.Label}' không thuộc ImportSchema và sẽ bị bỏ qua.", AIImportIssueSeverities.Warning,
+                    $"Cột '{column.Label}' không thuộc danh sách trường được phép nhập và sẽ bị bỏ qua.", AIImportIssueSeverities.Warning,
                     resolution: AIImportIssueResolutions.Acknowledge,
                     metadata: new Dictionary<string, object?> { ["sourceColumn"] = column.Key });
         }
@@ -1615,7 +1618,7 @@ public sealed class AIImportService : IAIImportService
     }
     private static AIImportOperationResult<T> NotFound<T>() => AIImportOperationResult<T>.Fail(404, "KHÔNG_TÌM_THẤY_PHIÊN", "Không tìm thấy phiên thuộc tài khoản hiện tại.");
     private static AIImportOperationResult<T> Conflict<T>(string code, string message) => AIImportOperationResult<T>.Fail(409, code, message);
-    private static AIImportOperationResult<T>? CheckEditable<T>(ImportSession session, int expected) => session.Status != AIImportSessionStatuses.ReadyToPreview ? Conflict<T>("PHIÊN_KHÔNG_THỂ_SỬA", "Phiên không ở trạng thái Preview.") : session.PreviewVersion != expected ? Conflict<T>("PREVIEW_ĐÃ_THAY_ĐỔI", "Preview đã thay đổi; vui lòng tải lại.") : null;
+    private static AIImportOperationResult<T>? CheckEditable<T>(ImportSession session, int expected) => session.Status != AIImportSessionStatuses.ReadyToPreview ? Conflict<T>("PHIÊN_KHÔNG_THỂ_SỬA", "Phiên không ở trạng thái xem trước.") : session.PreviewVersion != expected ? Conflict<T>("PREVIEW_ĐÃ_THAY_ĐỔI", "Bản xem trước đã thay đổi; vui lòng tải lại.") : null;
     private static string BusinessErrorCode(Exception ex) => ex is SupplierDomainException supplier ? supplier.Code : FindSql(ex) is { Number: 2601 or 2627 } ? "DỮ_LIỆU_ĐÃ_TỒN_TẠI" : ex is DuplicateDataException ? "DỮ_LIỆU_ĐÃ_TỒN_TẠI" : "IMPORT_THẤT_BẠI";
     private static string BusinessMessage(Exception ex) => FindSql(ex) is { Number: 2601 or 2627 } ? "Dữ liệu nghiệp vụ đã tồn tại; toàn bộ phiên đã được rollback." : ex is SupplierDomainException or DuplicateDataException or InvalidOperationException or ArgumentException ? ex.Message : "Không thể tạo dữ liệu; toàn bộ phiên đã được rollback.";
     private static SqlException? FindSql(Exception ex) { for (var current = ex; current != null; current = current.InnerException!) if (current is SqlException sql) return sql; return null; }

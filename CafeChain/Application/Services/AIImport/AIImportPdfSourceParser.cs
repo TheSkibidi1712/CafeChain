@@ -1045,7 +1045,7 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
                     AIImportIssueSeverities.Error, resolution: AIImportIssueResolutions.ReuploadOrSkip));
             else if (column.Classification == AIImportColumnClassifications.Unknown)
                 candidate.Issues.Add(AIImportValidationContract.Issue("CỘT_KHÔNG_XÁC_ĐỊNH",
-                    $"Cột '{column.Label}' không thuộc ImportSchema và sẽ bị bỏ qua.",
+                    $"Cột '{column.Label}' không thuộc danh sách trường được phép nhập và sẽ bị bỏ qua.",
                     AIImportIssueSeverities.Warning, resolution: AIImportIssueResolutions.Acknowledge));
         }
     }

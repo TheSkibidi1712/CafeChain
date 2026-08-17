@@ -219,17 +219,41 @@ public sealed class AIImportContractTests
     {
         var view = Read("CafeChain", "Areas", "Admin", "Views", "AIImport", "Index.cshtml");
         var script = Read("CafeChain", "wwwroot", "js", "Admin", "AIImport", "ai-import.js");
+        var interactions = Read("CafeChain", "wwwroot", "js", "Admin", "AIImport", "ai-import-interactions.js");
         var styles = Read("CafeChain", "wwwroot", "css", "Admin", "AIImport", "ai-import.css");
 
         Assert.DoesNotContain("id=\"messageBox\"", view, StringComparison.Ordinal);
         Assert.DoesNotContain("function message(", script, StringComparison.Ordinal);
         Assert.DoesNotContain("confirm(", script, StringComparison.Ordinal);
-        Assert.Contains("window.Swal.fire", script, StringComparison.Ordinal);
+        Assert.Contains("alertCoordinator.show", script, StringComparison.Ordinal);
         Assert.Contains("Xác nhận nhập", script, StringComparison.Ordinal);
         Assert.Contains("Hủy phiên", script, StringComparison.Ordinal);
         Assert.Contains("Phân tích thành công", script, StringComparison.Ordinal);
-        Assert.Contains("target: activeDialog || document.body", script, StringComparison.Ordinal);
-        Assert.Contains(".edit-dialog>.swal2-container", styles, StringComparison.Ordinal);
+        Assert.Contains("topLayer: true", interactions, StringComparison.Ordinal);
+        Assert.DoesNotContain(".edit-dialog>.swal2-container", styles, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Ui_serializes_mutations_and_keeps_feedback_out_of_the_native_dialog()
+    {
+        var layout = Read("CafeChain", "Areas", "Admin", "Views", "Shared", "_AdminLayout.cshtml");
+        var view = Read("CafeChain", "Areas", "Admin", "Views", "AIImport", "Index.cshtml");
+        var script = Read("CafeChain", "wwwroot", "js", "Admin", "AIImport", "ai-import.js");
+        var styles = Read("CafeChain", "wwwroot", "css", "Admin", "AIImport", "ai-import.css");
+
+        Assert.Contains("sweetalert2@11.26.25", layout, StringComparison.Ordinal);
+        Assert.True(
+            view.IndexOf("ai-import-interactions.js", StringComparison.Ordinal)
+            < view.IndexOf("ai-import.js", StringComparison.Ordinal));
+        Assert.Contains("window.AIImportInteractions", script, StringComparison.Ordinal);
+        Assert.Contains("interactionFactory.createOperationGuard", script, StringComparison.Ordinal);
+        Assert.Contains("interactionFactory.createAlertCoordinator", script, StringComparison.Ordinal);
+        Assert.Contains("runMutation(`item:${item.itemId}`", script, StringComparison.Ordinal);
+        Assert.Contains("runMutation('save-mapping'", script, StringComparison.Ordinal);
+        Assert.Contains("runMutation('confirm-session'", script, StringComparison.Ordinal);
+        Assert.Contains("runMutation('cancel-session'", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("target: activeDialog || document.body", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("has-swal", script + styles, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -385,8 +409,48 @@ public sealed class AIImportContractTests
         Assert.Contains("state.session = null;", script, StringComparison.Ordinal);
         Assert.Contains("bootstrapModal.getOrCreateInstance(modal).hide();", script, StringComparison.Ordinal);
         Assert.Contains("new CustomEvent('ai-import:completed'", script, StringComparison.Ordinal);
-        Assert.Contains("clearMutationState();\n            closeImportWorkspace(result);", script, StringComparison.Ordinal);
+        var confirmFlow = Between(script, "async function confirmSession()", "async function handleMutationError");
+        Assert.True(
+            confirmFlow.IndexOf("clearMutationState();", StringComparison.Ordinal)
+            < confirmFlow.IndexOf("closeImportWorkspace(result);", StringComparison.Ordinal));
         Assert.DoesNotContain("await loadSession(state.session.sessionId);\n            clearMutationState();", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Ui_history_can_switch_sessions_repeatedly_and_close_the_view_without_cancelling()
+    {
+        var view = Read("CafeChain", "Areas", "Admin", "Views", "AIImport", "Index.cshtml");
+        var script = Read("CafeChain", "wwwroot", "js", "Admin", "AIImport", "ai-import.js");
+
+        Assert.Contains("id=\"closeSessionButton\"", view, StringComparison.Ordinal);
+        Assert.Contains("async function switchSession(id)", script, StringComparison.Ordinal);
+        Assert.Contains("const generation = ++state.sessionGeneration;", script, StringComparison.Ordinal);
+        Assert.Contains("if (generation !== state.sessionGeneration) return false;", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("state.session && state.session.sessionId !== id", script, StringComparison.Ordinal);
+
+        var closeView = Between(script, "function closeSessionView()", "function closeImportWorkspace(result)");
+        Assert.Contains("state.session = null;", closeView, StringComparison.Ordinal);
+        Assert.DoesNotContain("/cancel", closeView, StringComparison.Ordinal);
+        Assert.DoesNotContain("ai-import:completed", closeView, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Ui_mapping_is_source_column_first_unique_and_fully_localized()
+    {
+        var view = Read("CafeChain", "Areas", "Admin", "Views", "AIImport", "Index.cshtml");
+        var script = Read("CafeChain", "wwwroot", "js", "Admin", "AIImport", "ai-import.js");
+
+        Assert.Contains("data-source-column", script, StringComparison.Ordinal);
+        Assert.Contains("data-target-field", script, StringComparison.Ordinal);
+        Assert.Contains("mapping[select.value] = select.dataset.sourceColumn", script, StringComparison.Ordinal);
+        Assert.Contains("Bỏ qua cột này", script, StringComparison.Ordinal);
+        Assert.Contains("Trường có thể ánh xạ", script, StringComparison.Ordinal);
+        Assert.Contains("Hệ thống nhận diện nhưng bỏ qua", script, StringComparison.Ordinal);
+        Assert.Contains("Chưa xác định", script, StringComparison.Ordinal);
+        Assert.Contains("Không được phép nhập", script, StringComparison.Ordinal);
+        Assert.Contains("Cột nguồn", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("Gợi ý entity", view, StringComparison.Ordinal);
+        Assert.DoesNotContain(">Preview<", view, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -404,6 +468,14 @@ public sealed class AIImportContractTests
 
     private static string Read(params string[] parts) =>
         File.ReadAllText(Path.Combine(FindRoot(), Path.Combine(parts))).ReplaceLineEndings("\n");
+    private static string Between(string value, string start, string end)
+    {
+        var startIndex = value.IndexOf(start, StringComparison.Ordinal);
+        Assert.True(startIndex >= 0, $"Không tìm thấy mốc bắt đầu: {start}");
+        var endIndex = value.IndexOf(end, startIndex + start.Length, StringComparison.Ordinal);
+        Assert.True(endIndex > startIndex, $"Không tìm thấy mốc kết thúc: {end}");
+        return value[startIndex..endIndex];
+    }
     private static string FindRoot()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);

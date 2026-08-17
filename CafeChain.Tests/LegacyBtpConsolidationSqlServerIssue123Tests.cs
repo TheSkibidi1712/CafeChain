@@ -182,6 +182,56 @@ IF DB_ID(N'{Database}') IS NULL
         }
 
         [Fact]
+        public async Task SqlServer_CanonicalCompatibilitySource_CreatesPreparedItemOnlyTarget()
+        {
+            int preparedItemId;
+            int recipeId;
+            int sourceId;
+            await using (var seed = CreateContext())
+            {
+                preparedItemId = await SeedPreparedItemAsync(seed, "PI-SQL-123-SEED-COMPAT");
+                recipeId = await SeedRecipeAsync(seed, "RCP-SQL-123-SEED-COMPAT", preparedItemId);
+                await PutBlockedAsync(seed);
+                sourceId = await SeedCanonicalCompatibilityAsync(seed, recipeId, preparedItemId, 9m);
+            }
+
+            var key = Guid.NewGuid();
+            string dryRunHash;
+            await using (var dryRunContext = CreateContext())
+            {
+                var dryRun = await CreateService(dryRunContext)
+                    .DryRunAsync(Req(key, CreateTargetManifest(preparedItemId, sourceId)));
+                Assert.True(dryRun.IsSuccess, dryRun.Message + " " + dryRun.ErrorCode);
+                dryRunHash = dryRun.Data!.DryRunHash!;
+            }
+
+            await using (var executeContext = CreateContext())
+            {
+                var execute = await CreateService(executeContext).ExecuteAsync(Exec(key, dryRunHash));
+                Assert.True(execute.IsSuccess, execute.Message + " " + execute.ErrorCode);
+            }
+
+            await using var verify = CreateContext();
+            var source = await verify.StoreInventories.SingleAsync(x => x.StoreInventoryId == sourceId);
+            var target = await verify.StoreInventories.SingleAsync(x =>
+                x.StoreId == StoreId
+                && x.PreparedItemId == preparedItemId
+                && x.BtpIdentityState == BtpIdentityState.Canonical);
+            Assert.Equal(BtpIdentityState.Superseded, source.BtpIdentityState);
+            Assert.Equal(target.StoreInventoryId, source.SupersededByStoreInventoryId);
+            Assert.Null(target.RecipeId);
+            Assert.Equal(9m, target.AvailableQty);
+            Assert.Equal(9m, await verify.InventoryConsolidationRuns
+                .Where(x => x.RequestKey == key)
+                .Select(x => x.BeforeAvailableTotal)
+                .SingleAsync());
+            Assert.Equal(9m, await verify.InventoryConsolidationRuns
+                .Where(x => x.RequestKey == key)
+                .Select(x => x.AfterAvailableTotal)
+                .SingleAsync());
+        }
+
+        [Fact]
         public async Task SqlServer_Execute_WithReverseSourceOrder_UsesDeterministicLocks()
         {
             int preparedItemId;
@@ -479,6 +529,29 @@ IF DB_ID(N'{Database}') IS NULL
                 QuantitySemanticsStatus = InventoryQuantitySemanticsStatus.BaseUnitConfirmed,
                 QuantitySemanticsEvidenceType = QuantitySemanticsEvidenceType.ManualReview,
                 QuantitySemanticsEvidenceReference = "sql",
+                QuantitySemanticsReviewedAt = DateTime.UtcNow,
+                QuantitySemanticsReviewedByAccountId = 1,
+                AvailableQty = avail,
+                ReservedQty = 0,
+                LastUpdated = DateTime.UtcNow
+            };
+            ctx.StoreInventories.Add(row);
+            await ctx.SaveChangesAsync();
+            return row.StoreInventoryId;
+        }
+
+        private static async Task<int> SeedCanonicalCompatibilityAsync(
+            AppDbContext ctx, int recipeId, int preparedItemId, decimal avail)
+        {
+            var row = new StoreInventory
+            {
+                StoreId = StoreId,
+                RecipeId = recipeId,
+                PreparedItemId = preparedItemId,
+                BtpIdentityState = BtpIdentityState.Canonical,
+                QuantitySemanticsStatus = InventoryQuantitySemanticsStatus.BaseUnitConfirmed,
+                QuantitySemanticsEvidenceType = QuantitySemanticsEvidenceType.SystemCanonicalCreation,
+                QuantitySemanticsEvidenceReference = "sql-seeded-compatibility",
                 QuantitySemanticsReviewedAt = DateTime.UtcNow,
                 QuantitySemanticsReviewedByAccountId = 1,
                 AvailableQty = avail,
