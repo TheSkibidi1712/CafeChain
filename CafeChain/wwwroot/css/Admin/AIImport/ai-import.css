@@ -39,7 +39,6 @@ select,input,textarea{border:1px solid #d8deea;border-radius:9px;padding:.55rem 
 
 /* Modal sửa dòng dùng cùng ngôn ngữ thị giác với các form Create nghiệp vụ. */
 .edit-dialog{width:min(900px,calc(100vw - 2rem));max-height:min(88vh,900px);padding:0;overflow:hidden}
-.edit-dialog.has-swal{overflow:visible}.edit-dialog>.swal2-container{position:fixed;inset:0;z-index:999999}
 .edit-dialog form{display:flex;flex-direction:column;height:min(88vh,900px);max-height:88vh;min-height:0}
 .edit-dialog header,.edit-dialog footer{flex:0 0 auto}
 .edit-dialog header{padding:1rem 1.25rem;border-bottom:1px solid #e7eaf0;background:linear-gradient(135deg,#f8f7ff,#fff)}

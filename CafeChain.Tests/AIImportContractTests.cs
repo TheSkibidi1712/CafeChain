@@ -219,17 +219,41 @@ public sealed class AIImportContractTests
     {
         var view = Read("CafeChain", "Areas", "Admin", "Views", "AIImport", "Index.cshtml");
         var script = Read("CafeChain", "wwwroot", "js", "Admin", "AIImport", "ai-import.js");
+        var interactions = Read("CafeChain", "wwwroot", "js", "Admin", "AIImport", "ai-import-interactions.js");
         var styles = Read("CafeChain", "wwwroot", "css", "Admin", "AIImport", "ai-import.css");
 
         Assert.DoesNotContain("id=\"messageBox\"", view, StringComparison.Ordinal);
         Assert.DoesNotContain("function message(", script, StringComparison.Ordinal);
         Assert.DoesNotContain("confirm(", script, StringComparison.Ordinal);
-        Assert.Contains("window.Swal.fire", script, StringComparison.Ordinal);
+        Assert.Contains("alertCoordinator.show", script, StringComparison.Ordinal);
         Assert.Contains("Xác nhận nhập", script, StringComparison.Ordinal);
         Assert.Contains("Hủy phiên", script, StringComparison.Ordinal);
         Assert.Contains("Phân tích thành công", script, StringComparison.Ordinal);
-        Assert.Contains("target: activeDialog || document.body", script, StringComparison.Ordinal);
-        Assert.Contains(".edit-dialog>.swal2-container", styles, StringComparison.Ordinal);
+        Assert.Contains("topLayer: true", interactions, StringComparison.Ordinal);
+        Assert.DoesNotContain(".edit-dialog>.swal2-container", styles, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Ui_serializes_mutations_and_keeps_feedback_out_of_the_native_dialog()
+    {
+        var layout = Read("CafeChain", "Areas", "Admin", "Views", "Shared", "_AdminLayout.cshtml");
+        var view = Read("CafeChain", "Areas", "Admin", "Views", "AIImport", "Index.cshtml");
+        var script = Read("CafeChain", "wwwroot", "js", "Admin", "AIImport", "ai-import.js");
+        var styles = Read("CafeChain", "wwwroot", "css", "Admin", "AIImport", "ai-import.css");
+
+        Assert.Contains("sweetalert2@11.26.25", layout, StringComparison.Ordinal);
+        Assert.True(
+            view.IndexOf("ai-import-interactions.js", StringComparison.Ordinal)
+            < view.IndexOf("ai-import.js", StringComparison.Ordinal));
+        Assert.Contains("window.AIImportInteractions", script, StringComparison.Ordinal);
+        Assert.Contains("interactionFactory.createOperationGuard", script, StringComparison.Ordinal);
+        Assert.Contains("interactionFactory.createAlertCoordinator", script, StringComparison.Ordinal);
+        Assert.Contains("runMutation(`item:${item.itemId}`", script, StringComparison.Ordinal);
+        Assert.Contains("runMutation('save-mapping'", script, StringComparison.Ordinal);
+        Assert.Contains("runMutation('confirm-session'", script, StringComparison.Ordinal);
+        Assert.Contains("runMutation('cancel-session'", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("target: activeDialog || document.body", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("has-swal", script + styles, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -385,7 +409,10 @@ public sealed class AIImportContractTests
         Assert.Contains("state.session = null;", script, StringComparison.Ordinal);
         Assert.Contains("bootstrapModal.getOrCreateInstance(modal).hide();", script, StringComparison.Ordinal);
         Assert.Contains("new CustomEvent('ai-import:completed'", script, StringComparison.Ordinal);
-        Assert.Contains("clearMutationState();\n            closeImportWorkspace(result);", script, StringComparison.Ordinal);
+        var confirmFlow = Between(script, "async function confirmSession()", "async function handleMutationError");
+        Assert.True(
+            confirmFlow.IndexOf("clearMutationState();", StringComparison.Ordinal)
+            < confirmFlow.IndexOf("closeImportWorkspace(result);", StringComparison.Ordinal));
         Assert.DoesNotContain("await loadSession(state.session.sessionId);\n            clearMutationState();", script, StringComparison.Ordinal);
     }
 
