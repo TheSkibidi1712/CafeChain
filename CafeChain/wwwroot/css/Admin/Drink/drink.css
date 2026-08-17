@@ -977,11 +977,19 @@
     height: 42px;
     margin: -1px 12px -1px -12px;
     border: 0;
-    border-right: 1px solid var(--cc-border-strong);
-    background: var(--cc-surface-active);
+    border-right: 1px solid var(--cc-brown-600);
+    background: var(--cc-brown-600);
     padding: 0 15px;
-    color: var(--cc-brown-700);
+    color: var(--cc-text-inverse);
     font-weight: 750;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.drink-image-file-input::file-selector-button:hover {
+    background: var(--cc-brown-900);
+    border-color: var(--cc-brown-900);
+    color: var(--cc-text-inverse);
 }
 
 .drink-image-file-input:focus {
