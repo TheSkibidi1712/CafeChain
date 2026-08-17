@@ -1813,7 +1813,8 @@ html {
 .admin-page-body > .drink-page,
 .admin-page-body > .supplier-page,
 .admin-page-body > .sm-page,
-.admin-page-body > .pf-page {
+.admin-page-body > .pf-page,
+.admin-page-body > .sales-history-page {
     width: 100%;
     max-width: none;
     align-self: stretch;

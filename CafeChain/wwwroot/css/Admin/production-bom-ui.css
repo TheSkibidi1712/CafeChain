@@ -542,9 +542,9 @@
 
 .production-bom-page #bomTable .bom-col-index { width: 4%; }
 .production-bom-page #bomTable .bom-col-type { width: 11%; }
-.production-bom-page #bomTable .bom-col-component { width: 29%; }
+.production-bom-page #bomTable .bom-col-component { width: 25%; }
 .production-bom-page #bomTable .bom-col-quantity { width: 9%; }
-.production-bom-page #bomTable .bom-col-unit { width: 10%; }
+.production-bom-page #bomTable .bom-col-unit { width: 14%; }
 .production-bom-page #bomTable .bom-col-cost { width: 11%; }
 .production-bom-page #bomTable .bom-col-status { width: 14%; }
 .production-bom-page #bomTable .bom-col-action { width: 12%; }
@@ -557,6 +557,14 @@
 .production-bom-page #bomTable .select2-selection__rendered {
     min-width: 0;
     max-width: 100%;
+}
+
+.production-bom-page #bomTable .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    text-align: center !important;
+    padding-left: 36px !important;
+    padding-right: 36px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
 }
 
 .production-bom-page #bomTable th:last-child,
@@ -1444,13 +1452,13 @@
 
 .production-bom-page .rb-actions-cell > div,
 .production-bom-page .rb-prepareditem-actions-cell > div {
-    justify-content: flex-end !important;
+    justify-content: center !important;
 }
 
 .production-bom-page .production-row-actions {
     display: inline-flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: center;
     gap: 0.45rem;
     white-space: nowrap;
 }
@@ -1525,7 +1533,7 @@
 
 .production-bom-page.production-run-list-page .production-action-column {
     width: 10%;
-    text-align: right !important;
+    text-align: center !important;
     white-space: nowrap;
 }
 
@@ -1875,4 +1883,75 @@
     .production-bom-page .cc-page-hero__action {
         transition: none;
     }
+}
+
+/* Center all columns (headers and cells) in the BOM, Production Order, and Prepared Item tables */
+.production-bom-page .rb-prepareditem-table :is(th, td),
+.po-page .po-table :is(th, td),
+.production-bom-page .rb-recipe-table :is(th, td) {
+    text-align: center !important;
+}
+
+/* Ensure flex/grid items inside these tables are centered */
+.production-bom-page .production-data-table td :is(.d-flex, .rb-health-identity, .rb-prepared-status-stack),
+.po-page .po-table td .d-flex {
+    justify-content: center !important;
+    justify-items: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    margin-inline: auto !important;
+}
+
+.production-bom-page .rb-prepared-status-stack {
+    justify-content: center !important;
+    justify-items: center !important;
+}
+
+.production-bom-page .rb-prepared-recipe-cell,
+.production-bom-page .rb-prepared-recipe-cell .production-link {
+    justify-content: center !important;
+    text-align: center !important;
+}
+
+/* Force left-aligned source lines or nested lines to center */
+.production-bom-page .rb-source-cell,
+.production-bom-page .rb-source-cell .rb-source-line {
+    text-align: center !important;
+    justify-content: center !important;
+}
+
+/* Equal height columns layout for POS and TOPPING tabs only */
+.production-bom-page:has(input[name="RecipeType"][value="POS"]:checked) .production-form-grid,
+.production-bom-page:has(input[name="RecipeType"][value="TOPPING"]:checked) .production-form-grid {
+    align-items: stretch !important;
+}
+
+.production-bom-page:has(input[name="RecipeType"][value="POS"]:checked) .production-form-main,
+.production-bom-page:has(input[name="RecipeType"][value="TOPPING"]:checked) .production-form-main {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+}
+
+/* Make the instruction (notes) section (which is the last child of main) expand to fill space */
+.production-bom-page:has(input[name="RecipeType"][value="POS"]:checked) .production-form-main > section:last-child,
+.production-bom-page:has(input[name="RecipeType"][value="TOPPING"]:checked) .production-form-main > section:last-child {
+    flex-grow: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    margin-bottom: 0 !important;
+}
+
+.production-bom-page:has(input[name="RecipeType"][value="POS"]:checked) .production-form-main > section:last-child .card-body,
+.production-bom-page:has(input[name="RecipeType"][value="TOPPING"]:checked) .production-form-main > section:last-child .card-body {
+    flex-grow: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.production-bom-page:has(input[name="RecipeType"][value="POS"]:checked) .production-form-main > section:last-child textarea,
+.production-bom-page:has(input[name="RecipeType"][value="TOPPING"]:checked) .production-form-main > section:last-child textarea {
+    flex-grow: 1 !important;
+    height: 100% !important;
+    resize: none !important;
 }

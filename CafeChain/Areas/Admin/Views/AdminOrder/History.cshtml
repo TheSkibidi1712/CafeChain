@@ -8,84 +8,76 @@
 }
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/Order/orderhistory.css" asp-append-version="true" />
 }
 
-<div class="sales-history-page">
+<main class="sales-history-page ops-shell cc-warehouse-page">
 
     <!-- Header Banner -->
-    <div class="sales-history-header">
-        <div class="sales-history-header-left">
-            <div class="sales-history-header-icon">
-                <i class="fas fa-receipt" aria-hidden="true"></i>
-            </div>
-            <div>
-                <span class="sales-history-kicker">Đơn hàng / Lịch sử bán hàng</span>
-                <h1 class="sales-history-title">Lịch sử bán hàng</h1>
-                <p class="sales-history-subtitle">Chỉ hiển thị giao dịch POS tại quầy đã thanh toán hoặc đã hoàn tiền.</p>
-            </div>
+    <header class="sales-history-header ops-header cc-warehouse-header">
+        <div>
+            <div class="sales-eyebrow ops-eyebrow">Đơn hàng / Lịch sử bán hàng</div>
+            <h1 class="sales-history-title ops-title"><i class="fas fa-file-invoice-dollar" aria-hidden="true"></i> Lịch sử bán hàng</h1>
+            <p class="sales-history-subtitle ops-subtitle">Chỉ hiển thị giao dịch POS tại quầy đã thanh toán hoặc đã hoàn tiền.</p>
         </div>
-        <div class="sales-history-actions">
+        <div class="sales-history-actions ops-actions">
             <button class="btn btn-export-csv" id="btnExportCsv">
                 <i class="fas fa-file-csv" aria-hidden="true"></i> Xuất CSV
             </button>
         </div>
-    </div>
+    </header>
 
     <!-- KPI Cards Grid -->
     <section class="history-kpis-grid" aria-label="Tổng quan giao dịch">
         <div class="history-kpi-card">
-            <div class="history-kpi-content">
-                <span class="history-kpi-label">Đơn đã thanh toán</span>
-                <strong class="history-kpi-value" id="paidOrders">-</strong>
-            </div>
             <div class="history-kpi-icon">
                 <i class="fas fa-shopping-bag" aria-hidden="true"></i>
+            </div>
+            <div class="history-kpi-content">
+                <strong class="history-kpi-value" id="paidOrders">-</strong>
+                <span class="history-kpi-label">Đơn đã thanh toán</span>
             </div>
         </div>
 
         <div class="history-kpi-card history-kpi-card--revenue">
-            <div class="history-kpi-content">
-                <span class="history-kpi-label">Doanh thu</span>
-                <strong class="history-kpi-value" id="paidRevenue">-</strong>
-            </div>
             <div class="history-kpi-icon">
                 <i class="fas fa-coins" aria-hidden="true"></i>
             </div>
-        </div>
-
-        <div class="history-kpi-card">
             <div class="history-kpi-content">
-                <span class="history-kpi-label">Đã hoàn tiền</span>
-                <strong class="history-kpi-value" id="refundedOrders">-</strong>
-            </div>
-            <div class="history-kpi-icon">
-                <i class="fas fa-undo-alt" aria-hidden="true"></i>
+                <strong class="history-kpi-value" id="paidRevenue">-</strong>
+                <span class="history-kpi-label">Doanh thu</span>
             </div>
         </div>
 
         <div class="history-kpi-card history-kpi-card--refund">
-            <div class="history-kpi-content">
-                <span class="history-kpi-label">Giá trị hoàn tiền</span>
-                <strong class="history-kpi-value" id="refundedAmount">-</strong>
+            <div class="history-kpi-icon">
+                <i class="fas fa-undo" aria-hidden="true"></i>
             </div>
+            <div class="history-kpi-content">
+                <strong class="history-kpi-value" id="refundedOrders">-</strong>
+                <span class="history-kpi-label">Đã hoàn tiền</span>
+            </div>
+        </div>
+
+        <div class="history-kpi-card history-kpi-card--refund-value">
             <div class="history-kpi-icon">
                 <i class="fas fa-hand-holding-usd" aria-hidden="true"></i>
+            </div>
+            <div class="history-kpi-content">
+                <strong class="history-kpi-value" id="refundedAmount">-</strong>
+                <span class="history-kpi-label">Giá trị hoàn tiền</span>
             </div>
         </div>
     </section>
 
-    <!-- Filter Card -->
-    <section class="history-filter-card" aria-label="Bộ lọc lịch sử">
-        <div class="history-filter-header">
-            <h3 class="history-filter-title">
-                <i class="fas fa-filter text-muted" aria-hidden="true"></i> Bộ lọc giao dịch
-            </h3>
-        </div>
-        <div class="history-filter-grid">
+    <!-- Main Module Panel -->
+    <section class="history-panel">
+        <div class="history-filter-toolbar">
+            <div class="history-filter-grid">
             <div class="history-field">
                 <label for="filterStore">Cửa hàng</label>
-                <select class="form-select" id="filterStore" @(stores.Count <= 1 ? "disabled" : null)>
+                <select class="form-select" id="filterStore">
                     @if (stores.Count > 1)
                     {
                         <option value="">Tất cả cửa hàng trong phạm vi</option>
@@ -138,13 +130,8 @@
                 <i class="fas fa-rotate-left" aria-hidden="true"></i> Đặt lại
             </button>
         </div>
-    </section>
-
-    <!-- Table Card -->
-    <div class="history-table-card">
-        <div class="history-table-header">
-            <h3 class="history-table-title">Danh sách giao dịch POS</h3>
         </div>
+
         <div class="history-table-wrap">
             <table class="table history-table">
                 <thead>
@@ -171,9 +158,9 @@
             <span id="paginationInfo">Đang tải...</span>
             <div class="history-pagination__buttons" id="paginationButtons"></div>
         </div>
-    </div>
+    </section>
 
-</div>
+</main>
 
 <aside class="offcanvas offcanvas-end history-drawer" tabindex="-1" id="orderDetailDrawer">
     <div class="offcanvas-header">

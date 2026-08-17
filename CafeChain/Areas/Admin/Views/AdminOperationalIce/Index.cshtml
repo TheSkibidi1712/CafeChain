@@ -310,6 +310,25 @@
                         </div>
                     </div>
 
+                    <style>
+                        /* Bypass static CSS caching to instantly unify empty state button heights */
+                        body.admin-premium-shell .ice-state-actions .ice-btn,
+                        body.admin-premium-shell #switchToManualButton,
+                        body.admin-premium-shell .ice-state-actions a.ice-btn-secondary {
+                            min-height: 44px !important;
+                            height: 44px !important;
+                            padding: 10px 22px !important;
+                            font-size: 13.5px !important;
+                            font-weight: 750 !important;
+                            border-radius: var(--cc-radius-control, 10px) !important;
+                            display: inline-flex !important;
+                            align-items: center !important;
+                            justify-content: center !important;
+                            box-sizing: border-box !important;
+                            line-height: 1.2 !important;
+                        }
+                    </style>
+
                     <div id="scheduleEmptyState" class="ice-schedule-state ice-schedule-state-empty" hidden>
                         <i class="fa-regular fa-calendar-xmark" aria-hidden="true"></i>
                         <div>

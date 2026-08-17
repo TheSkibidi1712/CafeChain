@@ -20,11 +20,11 @@
     --cc-brown-100: #f0e2d6;
     --cc-brown-50: #faf6f2;
 
-    /* Surfaces & Canvas */
+    /* Surfaces & Canvas — unified single cream background */
     --cc-canvas: #f7f4f0;
-    --cc-surface: #fffdfb;
-    --cc-surface-raised: #ffffff;
-    --cc-surface-muted: #fbf7f2;
+    --cc-surface: #f7f4f0;
+    --cc-surface-raised: #f7f4f0;
+    --cc-surface-muted: #f7f4f0;
     --cc-surface-active: #f4e9df;
     --cc-border: #e9ded4;
     --cc-border-strong: #d8c5b6;
@@ -318,16 +318,25 @@ body {
     box-sizing: border-box;
 }
 
-.topbar {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    padding-bottom: 16px;
-    margin-bottom: 24px;
-    border-bottom: 1px solid var(--cc-border);
-}
+        .topbar {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--cc-border, #e9ded4);
+        }
+
+        /* Uniform top spacing for all Admin pages */
+        .admin-page-body {
+            padding-top: 28px !important;
+        }
+
+        .admin-page-body > :is(.ops-shell, .rb-page, .pf-page, .sm-page, .production-bom-page, .category-page, .admin-wo-page, .po-page, .analytics-page, .perm-page, .cc-page, .cc-warehouse-page, .sales-history-page) {
+            padding-top: 0 !important;
+        }
 
 .topbar-user {
     display: inline-flex;
@@ -1314,6 +1323,7 @@ body {
     .uc-header,
     .store-inventory-header,
     .order-history-header,
+    .sales-history-header,
     .admin-order-header,
     .drink-profitability-header,
     .pf-header,
@@ -1340,7 +1350,7 @@ body {
     border: 1px solid var(--cc-border, #E9DED4) !important;
     border-left: 5px solid #5C3F2B !important;
     border-radius: var(--cc-radius-header, 20px) !important;
-    background: linear-gradient(112deg, #FFFFFF 0%, #FBF7F2 62%, #F1E5DA 100%) !important;
+    background: #f7f4f0 !important;
     box-shadow: var(--cc-shadow-md) !important;
     overflow: hidden !important;
     isolation: isolate !important;
@@ -1423,6 +1433,7 @@ body {
     .uc-header,
     .store-inventory-header,
     .order-history-header,
+    .sales-history-header,
     .admin-order-header,
     .drink-profitability-header,
     .pf-header,
@@ -1490,6 +1501,7 @@ body {
     .uc-header,
     .store-inventory-header,
     .order-history-header,
+    .sales-history-header,
     .admin-order-header,
     .drink-profitability-header,
     .pf-header,
@@ -1570,6 +1582,7 @@ body {
     .uc-header,
     .store-inventory-header,
     .order-history-header,
+    .sales-history-header,
     .admin-order-header,
     .drink-profitability-header,
     .pf-header,
@@ -1607,7 +1620,7 @@ body {
 /* SweetAlert Coffee-Brown Premium Theme Synchronization */
 .swal2-popup {
     border-radius: var(--cc-radius-modal, 18px) !important;
-    background: var(--cc-surface-raised, #FFFDFB) !important;
+    background: var(--cc-surface-raised, #f7f4f0) !important;
     border: 1px solid var(--cc-border-strong, #D8C5B6) !important;
     box-shadow: var(--cc-shadow-lg, 0 18px 48px rgba(32, 24, 18, 0.14)) !important;
     color: var(--cc-text-primary, #201812) !important;
@@ -1653,7 +1666,7 @@ body {
 
 .swal2-actions .swal2-cancel,
 .btn-swal-cancel {
-    background: #FFFDFB !important;
+    background: #f7f4f0 !important;
     border: 1px solid #D8C5B6 !important;
     color: #66584F !important;
     font-weight: 750 !important;
@@ -1727,8 +1740,7 @@ body {
     min-height: 44px;
     border: 1px solid #D8C5B6 !important;
     border-radius: var(--cc-radius-control, 10px) !important;
-    background-color: #FFFDFB !important;
-    color: #201812 !important;
+    background-color: #f7f4f0 !important;
     font-size: 13.5px !important;
     font-weight: 500;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -1756,8 +1768,7 @@ body {
     min-height: 108px;
     border: 1px solid #D8C5B6 !important;
     border-radius: var(--cc-radius-control, 10px) !important;
-    background-color: #FFFDFB !important;
-    color: #201812 !important;
+    background-color: #f7f4f0 !important;
     font-size: 13.5px !important;
     padding: 10px 14px;
 }
@@ -1792,8 +1803,7 @@ body {
     padding: 0 18px;
     border: 1px solid #D8C5B6 !important;
     border-radius: var(--cc-radius-control, 10px) !important;
-    background-color: #FFFDFB !important;
-    color: #201812 !important;
+    background-color: #f7f4f0 !important;
     font-weight: 750 !important;
     font-size: 13.5px !important;
     transition: all 140ms ease;
@@ -1802,7 +1812,7 @@ body {
 .admin-page-body .btn-outline-secondary:hover,
 .admin-page-body .btn-light:hover {
     border-color: #70482F !important;
-    background-color: #FBF7F2 !important;
+    background-color: #f7f4f0 !important;
     color: #70482F !important;
     box-shadow: 0 2px 8px rgba(61, 36, 24, 0.08);
 }
@@ -1811,20 +1821,20 @@ body {
 .modal-content {
     border: 1px solid #E9DED4 !important;
     border-radius: var(--cc-radius-modal, 18px) !important;
-    background-color: #FFFDFB !important;
+    background-color: #f7f4f0 !important;
     box-shadow: var(--cc-shadow-lg) !important;
     overflow: hidden;
 }
 
 .modal-header {
     border-bottom: 1px solid #E9DED4 !important;
-    background-color: #FFFDFB !important;
+    background-color: #f7f4f0 !important;
     padding: 20px 24px !important;
 }
 
 .modal-footer {
     border-top: 1px solid #E9DED4 !important;
-    background-color: #FBF7F2 !important;
+    background-color: #f7f4f0 !important;
     padding: 16px 24px !important;
 }
 

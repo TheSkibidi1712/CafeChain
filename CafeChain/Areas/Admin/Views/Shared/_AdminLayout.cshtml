@@ -63,13 +63,7 @@
         || effectivePermissions.Contains(PermissionConstants.InventoryTransferView);
 
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
-    var premiumRefreshExcludedControllers = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-    {
-        "AdminRecipe",
-        "AdminProductionOrder",
-        "AdminPreparedItem",
-        "AdminDrinkProfitability"
-    };
+    var premiumRefreshExcludedControllers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     var usePremiumRefresh = !premiumRefreshExcludedControllers.Contains(currentController);
 }
 
@@ -91,6 +85,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         /* ========== BASE ========== */
+        html {
+            overflow-y: scroll; /* Force vertical scrollbar to prevent layout shift between pages */
+        }
         body {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             background-color: var(--cc-canvas, #f7f4f0);
