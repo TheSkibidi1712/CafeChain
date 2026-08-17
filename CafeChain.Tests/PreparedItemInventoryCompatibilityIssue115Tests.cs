@@ -8,6 +8,7 @@ using CafeChain.Areas.Admin.Controllers;
 using CafeChain.Data;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Enums.Unit;
+using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.PreparedItems;
 using CafeChain.Models.Orders;
@@ -129,6 +130,48 @@ namespace CafeChain.Tests
             Assert.False(item.IsLegacyUnmapped);
             Assert.Equal(QuantitySemanticsStatuses.Unknown, item.QuantitySemanticsStatus);
             Assert.Equal("—", item.UnitName);
+        }
+
+        [Fact]
+        public async Task BranchInventory_ExcludesSupersededLegacyRow_ButKeepsCanonicalEvidence()
+        {
+            using var context = CreateDbContext();
+            await SeedAsync(context, linkRecipeToPreparedItem: true);
+
+            var canonical = new StoreInventory
+            {
+                StoreId = StoreId,
+                PreparedItemId = PreparedItemId,
+                BtpIdentityState = BtpIdentityState.Canonical,
+                QuantitySemanticsStatus = InventoryQuantitySemanticsStatus.BaseUnitConfirmed,
+                AvailableQty = 12m,
+                ReservedQty = 2m,
+                LastUpdated = DateTime.UtcNow
+            };
+            context.StoreInventories.Add(canonical);
+            await context.SaveChangesAsync();
+
+            context.StoreInventories.Add(new StoreInventory
+            {
+                StoreId = StoreId,
+                RecipeId = RecipeId,
+                PreparedItemId = PreparedItemId,
+                BtpIdentityState = BtpIdentityState.Superseded,
+                QuantitySemanticsStatus = InventoryQuantitySemanticsStatus.BaseUnitConfirmed,
+                SupersededByStoreInventoryId = canonical.StoreInventoryId,
+                AvailableQty = 0m,
+                ReservedQty = 0m,
+                LastUpdated = DateTime.UtcNow
+            });
+            await context.SaveChangesAsync();
+
+            var result = await new PosBranchInventoryService(context)
+                .GetBranchInventoryAsync(StoreId, null, null, 1, 50);
+
+            Assert.True(result.IsSuccess);
+            var item = Assert.Single(result.Data!.Items);
+            Assert.Equal(canonical.StoreInventoryId, item.StoreInventoryId);
+            Assert.Null(item.LegacyRecipeId);
         }
 
         [Fact]

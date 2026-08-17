@@ -59,7 +59,7 @@ namespace CafeChain.Application.Services.POS
 
             var query = _context.StoreInventories
                 .AsNoTracking()
-                .Where(i => i.StoreId == storeId);
+                .Where(i => i.StoreId == storeId && !i.SupersededByStoreInventoryId.HasValue);
 
             var normalizedStockStatus = NormalizeStockStatus(stockStatus);
             if (!string.IsNullOrWhiteSpace(stockStatus) && normalizedStockStatus == null)

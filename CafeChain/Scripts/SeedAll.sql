@@ -6418,9 +6418,9 @@ BEGIN TRY
   THROW 52906,N'Không resolve đúng một active Recipe cho đủ 11 PreparedItem.',1;
 
  IF EXISTS(SELECT 1 FROM @PreparedInventory x JOIN dbo.StoreInventories si
- ON si.StoreInventoryId=x.StoreInventoryId OR(si.StoreId=1 AND si.RecipeId=x.RecipeId)
+ ON si.StoreInventoryId=x.StoreInventoryId OR(si.StoreId=1 AND si.PreparedItemId=x.PreparedItemId AND si.SupersededByStoreInventoryId IS NULL)
  WHERE si.StoreInventoryId<>x.StoreInventoryId OR si.StoreId<>1 OR si.IngredientId IS NOT NULL
- OR si.RecipeId<>x.RecipeId OR si.PreparedItemId<>x.PreparedItemId OR si.BtpIdentityState<>1
+ OR si.RecipeId IS NOT NULL OR si.PreparedItemId<>x.PreparedItemId OR si.BtpIdentityState<>1
  OR si.QuantitySemanticsStatus<>1 OR si.SupersededByStoreInventoryId IS NOT NULL
  OR si.QuantitySemanticsEvidenceType<>1 OR si.QuantitySemanticsEvidenceReference<>x.EvidenceReference
  OR si.QuantitySemanticsReviewedAt<>'2026-01-01'
@@ -6442,7 +6442,7 @@ BEGIN TRY
  BtpIdentityState,QuantitySemanticsStatus,SupersededByStoreInventoryId,
  QuantitySemanticsEvidenceType,QuantitySemanticsEvidenceReference,QuantitySemanticsReviewedAt,
  QuantitySemanticsReviewedByAccountId,AvailableQty,ReservedQty,MaxNegativeQty,MinStockLevel,LastUpdated)
- SELECT x.StoreInventoryId,1,NULL,x.RecipeId,x.PreparedItemId,1,1,NULL,1,x.EvidenceReference,
+ SELECT x.StoreInventoryId,1,NULL,NULL,x.PreparedItemId,1,1,NULL,1,x.EvidenceReference,
  '2026-01-01',@InventoryActorAccountId,x.OpeningQty,0,NULL,x.MinStockLevel,'2026-01-01'
  FROM @PreparedInventory x WHERE NOT EXISTS(SELECT 1 FROM dbo.StoreInventories si
  WHERE si.StoreInventoryId=x.StoreInventoryId);
@@ -11221,21 +11221,23 @@ END;
                                  AND uc.FromUnitId=rd.UnitId AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1 AND uc.FromQuantity>0 AND uc.ToQuantity>0)
             ) THROW 53435,N'DEMO_REORDER_V14: thiếu UnitConversion cho production recipe detail.',1;
 
-            /* Child PreparedItem requirement keeps the exact RecipeId+PreparedItem identity. */
+            /* Child PreparedItem stock is canonical; SourceRecipeId keeps exact formula evidence. */
             INSERT @RunDemand(StoreInventoryId,IngredientId,PreparedItemId,SourceRecipeId,Quantity)
             SELECT si.StoreInventoryId,NULL,cr.PreparedItemId,cr.RecipeId,CONVERT(decimal(18,3),rd.Quantity)
             FROM dbo.RecipeDetails rd
             JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId AND cr.PreparedItemId IS NOT NULL
             JOIN dbo.PreparedItems p ON p.PreparedItemId=cr.PreparedItemId AND p.Active=1
-            JOIN dbo.StoreInventories si ON si.StoreId=@CurrentProdStoreId AND si.RecipeId=cr.RecipeId
+            JOIN dbo.StoreInventories si ON si.StoreId=@CurrentProdStoreId
                  AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+                 AND si.SupersededByStoreInventoryId IS NULL
             WHERE rd.RecipeId=@CurrentProdRecipeId AND rd.ChildRecipeId IS NOT NULL AND rd.UnitId=p.BaseUnitId;
 
             IF EXISTS(
                 SELECT 1 FROM dbo.RecipeDetails rd
                 JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId
                 LEFT JOIN dbo.PreparedItems p ON p.PreparedItemId=cr.PreparedItemId
-                LEFT JOIN dbo.StoreInventories si ON si.StoreId=@CurrentProdStoreId AND si.RecipeId=cr.RecipeId AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+                LEFT JOIN dbo.StoreInventories si ON si.StoreId=@CurrentProdStoreId AND si.PreparedItemId=cr.PreparedItemId
+                     AND si.BtpIdentityState=1 AND si.SupersededByStoreInventoryId IS NULL
                 WHERE rd.RecipeId=@CurrentProdRecipeId AND rd.ChildRecipeId IS NOT NULL
                   AND (cr.PreparedItemId IS NULL OR p.PreparedItemId IS NULL OR rd.UnitId<>p.BaseUnitId OR si.StoreInventoryId IS NULL)
             ) THROW 53436,N'DEMO_REORDER_V14: child production BTP không có canonical Recipe+PreparedItem cost identity; không tự chuyển writer mode.',1;
@@ -11326,7 +11328,8 @@ END;
 
             SELECT @OutputInventoryId=StoreInventoryId,@OutputBefore=AvailableQty,@OutputMin=MinStockLevel
             FROM dbo.StoreInventories
-            WHERE StoreId=@CurrentProdStoreId AND RecipeId=@CurrentProdRecipeId AND PreparedItemId=@OutputPreparedItemId AND BtpIdentityState=1;
+            WHERE StoreId=@CurrentProdStoreId AND PreparedItemId=@OutputPreparedItemId
+              AND BtpIdentityState=1 AND SupersededByStoreInventoryId IS NULL;
             IF @OutputInventoryId IS NULL THROW 53442,N'DEMO_REORDER_V14: thiếu canonical output StoreInventory cho PreparedItem.',1;
 
             SET @OutputUnitCost=CONVERT(decimal(18,8),@RunInputCost/NULLIF(@OutputQty,0));
@@ -11848,8 +11851,8 @@ END;
         JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.ChildRecipeId IS NOT NULL
         JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId
         LEFT JOIN dbo.PreparedItems pi ON pi.PreparedItemId=cr.PreparedItemId
-        LEFT JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.RecipeId=cr.RecipeId
-             AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+        LEFT JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.PreparedItemId=cr.PreparedItemId
+             AND si.BtpIdentityState=1 AND si.SupersededByStoreInventoryId IS NULL
         WHERE o.Source=@SeedMarker
           AND (cr.PreparedItemId IS NULL OR pi.PreparedItemId IS NULL OR rd.UnitId<>pi.BaseUnitId OR si.StoreInventoryId IS NULL);
 
@@ -11860,8 +11863,8 @@ END;
         JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.ChildRecipeId IS NOT NULL
         JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId
         LEFT JOIN dbo.PreparedItems pi ON pi.PreparedItemId=cr.PreparedItemId
-        LEFT JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.RecipeId=cr.RecipeId
-             AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+        LEFT JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.PreparedItemId=cr.PreparedItemId
+             AND si.BtpIdentityState=1 AND si.SupersededByStoreInventoryId IS NULL
         WHERE o.Source=@SeedMarker
           AND (cr.PreparedItemId IS NULL OR pi.PreparedItemId IS NULL OR rd.UnitId<>pi.BaseUnitId OR si.StoreInventoryId IS NULL);
 
@@ -11879,7 +11882,7 @@ END;
         LEFT JOIN dbo.UnitConversions uc ON uc.IngredientId=i.IngredientId AND uc.FromUnitId=rd.UnitId AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1
         WHERE o.Source=@SeedMarker AND (rd.UnitId=i.BaseUnitId OR uc.UnitConversionId IS NOT NULL);
 
-        /* Drink child PreparedItems, preserving Recipe+PreparedItem identity. */
+        /* Drink child PreparedItems use canonical stock; SourceRecipeId preserves formula evidence. */
         INSERT @SalesDemand(StoreId,OrderId,OrderDetailId,OrderToppingId,StoreInventoryId,IngredientId,PreparedItemId,SourceRecipeId,Quantity,DemandAt)
         SELECT o.StoreId,o.OrderId,od.OrderDetailId,NULL,si.StoreInventoryId,NULL,cr.PreparedItemId,cr.RecipeId,
                CONVERT(decimal(18,3),rd.Quantity*od.Quantity),o.CreatedAt
@@ -11889,7 +11892,8 @@ END;
         JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.ChildRecipeId IS NOT NULL
         JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId AND cr.PreparedItemId IS NOT NULL
         JOIN dbo.PreparedItems p ON p.PreparedItemId=cr.PreparedItemId
-        JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.RecipeId=cr.RecipeId AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+        JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.PreparedItemId=cr.PreparedItemId
+             AND si.BtpIdentityState=1 AND si.SupersededByStoreInventoryId IS NULL
         WHERE o.Source=@SeedMarker AND rd.UnitId=p.BaseUnitId;
 
         /* Topping direct ingredients. */
@@ -11916,7 +11920,8 @@ END;
         JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.ChildRecipeId IS NOT NULL
         JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId AND cr.PreparedItemId IS NOT NULL
         JOIN dbo.PreparedItems p ON p.PreparedItemId=cr.PreparedItemId
-        JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.RecipeId=cr.RecipeId AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+        JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.PreparedItemId=cr.PreparedItemId
+             AND si.BtpIdentityState=1 AND si.SupersededByStoreInventoryId IS NULL
         WHERE o.Source=@SeedMarker AND rd.UnitId=p.BaseUnitId;
 
         /* Fail closed on any recipe conversion or child identity that could not be represented above. */
@@ -12260,8 +12265,8 @@ END;
         JOIN dbo.RecipeDetails rd ON rd.RecipeId=pr.RecipeId AND rd.ChildRecipeId IS NOT NULL
         JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId AND cr.PreparedItemId IS NOT NULL
         JOIN dbo.PreparedItems pi ON pi.PreparedItemId=cr.PreparedItemId
-        JOIN dbo.StoreInventories si ON si.StoreId=pr.StoreId AND si.RecipeId=cr.RecipeId
-             AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+        JOIN dbo.StoreInventories si ON si.StoreId=pr.StoreId AND si.PreparedItemId=cr.PreparedItemId
+             AND si.BtpIdentityState=1 AND si.SupersededByStoreInventoryId IS NULL
         WHERE pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%' AND rd.UnitId=pi.BaseUnitId
     )x
     GROUP BY x.ProductionRunId,x.StoreInventoryId,x.SourceRecipeId;
@@ -12283,8 +12288,8 @@ END;
         SELECT 1
         FROM dbo.ProductionRuns pr
         JOIN dbo.Recipes r ON r.RecipeId=pr.RecipeId
-        LEFT JOIN dbo.StoreInventories si ON si.StoreId=pr.StoreId AND si.RecipeId=r.RecipeId
-             AND si.PreparedItemId=r.PreparedItemId AND si.BtpIdentityState=1
+        LEFT JOIN dbo.StoreInventories si ON si.StoreId=pr.StoreId AND si.PreparedItemId=r.PreparedItemId
+             AND si.BtpIdentityState=1 AND si.SupersededByStoreInventoryId IS NULL
         LEFT JOIN dbo.InventoryTransactions t ON t.ProductionRunId=pr.ProductionRunId AND t.StoreInventoryId=si.StoreInventoryId AND t.[Type]=5
         LEFT JOIN dbo.InventoryCostLayers l ON l.SourceProductionRunId=pr.ProductionRunId
         WHERE pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%'
@@ -12321,7 +12326,8 @@ END;
     JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.ChildRecipeId IS NOT NULL
     JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId AND cr.PreparedItemId IS NOT NULL
     JOIN dbo.PreparedItems pi ON pi.PreparedItemId=cr.PreparedItemId
-    JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.RecipeId=cr.RecipeId AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+    JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.PreparedItemId=cr.PreparedItemId
+         AND si.BtpIdentityState=1 AND si.SupersededByStoreInventoryId IS NULL
     WHERE o.Source=@SeedMarker AND rd.UnitId=pi.BaseUnitId;
 
     INSERT @ExpectedSalesCheck
@@ -12346,7 +12352,8 @@ END;
     JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.ChildRecipeId IS NOT NULL
     JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId AND cr.PreparedItemId IS NOT NULL
     JOIN dbo.PreparedItems pi ON pi.PreparedItemId=cr.PreparedItemId
-    JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.RecipeId=cr.RecipeId AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+    JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.PreparedItemId=cr.PreparedItemId
+         AND si.BtpIdentityState=1 AND si.SupersededByStoreInventoryId IS NULL
     WHERE o.Source=@SeedMarker AND rd.UnitId=pi.BaseUnitId;
 
     IF EXISTS(
@@ -12539,7 +12546,8 @@ END;
               SELECT 1 FROM dbo.Recipes r JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.ChildRecipeId IS NOT NULL
               JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId
               LEFT JOIN dbo.PreparedItems pi ON pi.PreparedItemId=cr.PreparedItemId
-              LEFT JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.RecipeId=cr.RecipeId AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+              LEFT JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.PreparedItemId=cr.PreparedItemId
+                   AND si.BtpIdentityState=1 AND si.SupersededByStoreInventoryId IS NULL
               WHERE r.DrinkId=od.DrinkId AND r.SizeId=od.SizeId AND r.Active=1 AND r.Status=N'Active'
                 AND (cr.PreparedItemId IS NULL OR pi.PreparedItemId IS NULL OR rd.UnitId<>pi.BaseUnitId OR si.StoreInventoryId IS NULL)
           )
@@ -12555,8 +12563,8 @@ END;
               JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.ChildRecipeId IS NOT NULL
               JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId
               LEFT JOIN dbo.PreparedItems pi ON pi.PreparedItemId=cr.PreparedItemId
-              LEFT JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.RecipeId=cr.RecipeId
-                   AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+              LEFT JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.PreparedItemId=cr.PreparedItemId
+                   AND si.BtpIdentityState=1 AND si.SupersededByStoreInventoryId IS NULL
               WHERE r.ToppingId=ot.ToppingId AND r.Active=1 AND r.Status=N'Active'
                 AND (cr.PreparedItemId IS NULL OR pi.PreparedItemId IS NULL OR rd.UnitId<>pi.BaseUnitId OR si.StoreInventoryId IS NULL)
           )
