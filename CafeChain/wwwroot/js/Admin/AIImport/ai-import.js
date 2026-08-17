@@ -168,7 +168,7 @@
         byId('loadingPanel').hidden = !requestBusy;
         app.setAttribute('aria-busy', interactionBusy ? 'true' : 'false');
         byId('analyzeButton').disabled = interactionBusy || !(byId('excelFile').files?.length);
-        byId('confirmButton').disabled = interactionBusy || !ready || session?.confirmBlockedBySources === true;
+        byId('confirmButton').disabled = interactionBusy || !ready || session?.canConfirm !== true;
         byId('cancelButton').disabled = interactionBusy || !['READY_TO_PREVIEW', 'FAILED'].includes(session?.status);
         byId('reanalyzeButton').disabled = interactionBusy || !session;
         byId('saveMappingButton').disabled = interactionBusy || !ready;
@@ -229,6 +229,15 @@
     function errorMessage(error) {
         return error.message || 'Không thể thực hiện yêu cầu.';
     }
+    function uniqueIssues(issues) {
+        const values = new Map();
+        for (const issue of issues || []) {
+            const key = issue.issueKey || [issue.code, issue.field || '', issue.metadata?.referenceTarget || '',
+                issue.metadata?.matchedSupplierId || '', locatorLabel(issue.sourceLocator || issue.position, '')].join('|');
+            values.set(key, issue);
+        }
+        return [...values.values()];
+    }
     function escapeHtml(value) { const div = document.createElement('div'); div.textContent = value ?? ''; return div.innerHTML; }
     function displayValue(value) { return value === null || value === undefined || value === '' ? '—' : String(value); }
     function locatorLabel(locator, fallback = '') {
@@ -261,6 +270,8 @@
         if (fileInput) fileInput.value = '';
         byId('selectedFileName').textContent = '';
         byId('analyzeButton').disabled = true;
+        byId('uploadErrors').hidden = true;
+        byId('uploadErrors').innerHTML = '';
     }
     function closeSessionView() {
         state.sessionGeneration++;
@@ -317,7 +328,7 @@
         byId('sessionMeta').textContent = `Bản xem trước v${session.previewVersion} · ${modes || 'Đang xác định nguồn'} · hết hạn ${new Date(session.expiresAtUtc).toLocaleString('vi-VN')}`;
         byId('sessionStatus').textContent = statusLabels[session.status] || 'Chưa xác định';
         const ready = session.status === 'READY_TO_PREVIEW';
-        byId('confirmButton').disabled = !ready || session.confirmBlockedBySources;
+        byId('confirmButton').disabled = !ready || session.canConfirm !== true;
         byId('cancelButton').disabled = !['READY_TO_PREVIEW', 'FAILED'].includes(session.status);
         const summary = session.summary;
         const metrics = [['Tổng dòng', summary.totalRows], ['Hợp lệ', summary.valid], ['Cảnh báo', summary.warnings], ['Lỗi', summary.errors], ['Cần xem lại', summary.reviewRequired], ['Bỏ qua', summary.skipped]];
@@ -332,6 +343,12 @@
         const warningBox = byId('analysisWarnings');
         warningBox.hidden = analysisWarnings.length === 0;
         warningBox.innerHTML = analysisWarnings.map(x => `<div>${escapeHtml(x.message)}</div>`).join('');
+        const blockers = uniqueIssues(session.confirmBlockers || []);
+        const blockerBox = byId('confirmBlockers');
+        blockerBox.hidden = blockers.length === 0;
+        blockerBox.innerHTML = blockers.length
+            ? `<strong>Chưa thể xác nhận nhập</strong>${blockers.map(issue => `<div>${escapeHtml(issue.message)}</div>`).join('')}`
+            : '';
         const entityFilter = byId('entityFilter').value;
         const visibleGroups = session.groups.filter(group =>
             (!sourceFilter.value || String(group.sourceDocumentId) === sourceFilter.value)
@@ -440,10 +457,11 @@
     function renderRows(group) {
         const rows = group.items || [];
         byId('previewRows').innerHTML = rows.length ? rows.map(item => {
-            const confirmIssues = state.confirmErrors.get(item.itemId) || [];
+            const confirmIssues = uniqueIssues(state.confirmErrors.get(item.itemId) || []);
             const canonicalIssues = item.issues?.length ? item.issues : [...(item.errors || []), ...(item.warnings || [])];
-            const errors = [...canonicalIssues.filter(issue => issue.severity !== 'WARNING'), ...confirmIssues];
-            const warnings = canonicalIssues.filter(issue => issue.severity === 'WARNING');
+            const mergedIssues = uniqueIssues([...canonicalIssues, ...confirmIssues]);
+            const errors = mergedIssues.filter(issue => issue.severity !== 'WARNING');
+            const warnings = mergedIssues.filter(issue => issue.severity === 'WARNING');
             const issueMarkup = (issue, warning) => {
                 const severity = issue.severity || (warning ? 'WARNING' : 'ERROR');
                 const label = fieldDefinition(group.entityType, issue.field)
@@ -526,6 +544,8 @@
             files.forEach(file => form.append('Files', file));
             if (byId('entityHint').value) form.append('EntityHint', byId('entityHint').value);
             form.append('UseOcr', byId('useOcr').checked ? 'true' : 'false');
+            byId('uploadErrors').hidden = true;
+            byId('uploadErrors').innerHTML = '';
             busy(true);
             try {
                 state.session = await api('/api/ai-import/analyze', { method: 'POST', body: form });
@@ -536,7 +556,13 @@
                 render();
                 await showAlert('Đã phân tích xong. Hãy kiểm tra bản xem trước trước khi xác nhận nhập.', 'success', 'Phân tích thành công');
             } catch (error) {
-                await showAlert(errorMessage(error), 'error');
+                const details = uniqueIssues(error.details || []);
+                const uploadErrors = byId('uploadErrors');
+                uploadErrors.hidden = false;
+                uploadErrors.innerHTML = details.length
+                    ? details.map(detail => `<div><strong>${escapeHtml(detail.metadata?.fileName || 'Tệp đã chọn')}</strong><code>${escapeHtml(detail.code || error.code || '')}</code><span>${escapeHtml(detail.message || errorMessage(error))}</span></div>`).join('')
+                    : `<div><strong>Tệp đã chọn</strong><code>${escapeHtml(error.code || '')}</code><span>${escapeHtml(errorMessage(error))}</span></div>`;
+                uploadErrors.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
             } finally { busy(false); }
         });
     }
@@ -547,13 +573,15 @@
         return runMutation('save-mapping', async () => {
             const fields = entityFields[byId('groupEntity').value] || [];
             const mapping = Object.fromEntries(fields.map(field => [field, null]));
+            const ignoredSourceColumns = [];
             document.querySelectorAll('[data-source-column]').forEach(select => {
                 if (select.value) mapping[select.value] = select.dataset.sourceColumn;
+                else ignoredSourceColumns.push(select.dataset.sourceColumn);
             });
             const guard = sessionGuard();
             busy(true);
             try {
-                const session = await api(`/api/ai-import/${guard.id}/groups/${group.groupId}`, { method: 'PATCH', body: JSON.stringify({ expectedPreviewVersion: state.session.previewVersion, entityType: byId('groupEntity').value, mapping }) });
+                const session = await api(`/api/ai-import/${guard.id}/groups/${group.groupId}`, { method: 'PATCH', body: JSON.stringify({ expectedPreviewVersion: state.session.previewVersion, entityType: byId('groupEntity').value, mapping, ignoredSourceColumns }) });
                 if (!guardIsCurrent(guard)) return;
                 state.session = session;
                 clearMutationState();
@@ -573,6 +601,9 @@
             const mapping = Object.fromEntries(Object.entries(group.mapping || {})
                 .map(([field, mappedSource]) => [field, mappedSource === sourceKey && field !== targetField ? null : mappedSource]));
             mapping[targetField] = sourceKey;
+            const ignoredSourceColumns = (group.sourceColumns || [])
+                .filter(column => column.classification === 'IGNORED' && column.key !== sourceKey)
+                .map(column => column.key);
             busy(true);
             try {
                 const session = await api(`/api/ai-import/${guard.id}/groups/${group.groupId}`, {
@@ -580,7 +611,8 @@
                     body: JSON.stringify({
                         expectedPreviewVersion: state.session.previewVersion,
                         entityType: group.entityType,
-                        mapping
+                        mapping,
+                        ignoredSourceColumns
                     })
                 });
                 if (!guardIsCurrent(guard)) return;
@@ -726,7 +758,7 @@
         state.editingItem = item;
         byId('editEntityName').textContent = entityLabels[group.entityType] || 'Chưa xác định';
         byId('editRowNumber').textContent = item.sourceRow;
-        const serverErrors = [...((item.issues || item.errors || []).filter(issue => issue.severity !== 'WARNING')), ...(state.confirmErrors.get(item.itemId) || [])];
+        const serverErrors = uniqueIssues([...((item.issues || item.errors || []).filter(issue => issue.severity !== 'WARNING')), ...(state.confirmErrors.get(item.itemId) || [])]);
         byId('editFields').innerHTML = schema.sections.map(section => `<fieldset class="editor-section"><legend>${escapeHtml(section.title)}</legend>${section.note ? `<p>${escapeHtml(section.note)}</p>` : ''}<div class="editor-grid">${section.fields.map(field => editorFieldHtml(group.entityType, field, item.normalizedData?.[field.name], options, serverErrors)).join('')}</div></fieldset>`).join('');
         applyServerFieldErrors(group.entityType, serverErrors);
         const mappedHeaders = new Set(Object.values(group.mapping || {}).filter(Boolean));
@@ -750,9 +782,12 @@
         });
         byId('editSourceData').innerHTML = [...evidenceRows, ...supplementalRows].join('') || '<p>Không có dữ liệu ngoài ánh xạ.</p>';
         const hasWarnings = (item.warnings || []).length > 0;
-        const needsOverride = group.entityType === 'Supplier' && (item.warnings || []).some(x => x.code === 'NHÀ_CUNG_CẤP_GẦN_TRÙNG');
+        const supplierReview = group.entityType === 'Supplier' ? item.supplierDuplicateReview : null;
+        const needsOverride = supplierReview?.requiresReason === true;
         byId('warningSection').hidden = !hasWarnings;
-        byId('editWarningMessages').innerHTML = (item.warnings || []).map(issue => `<div class="edit-warning-message"><strong>${escapeHtml(issue.field ? fieldLabel(group.entityType, issue.field) : 'Cảnh báo')}</strong><span>${escapeHtml(issue.message)}</span></div>`).join('');
+        const regularWarnings = uniqueIssues(item.warnings || []).filter(issue => issue.code !== 'NHÀ_CUNG_CẤP_TƯƠNG_TỰ');
+        const supplierMatches = (supplierReview?.matches || []).map(match => `<div class="edit-warning-message supplier-match"><strong>${escapeHtml(`${match.code || 'Nhà cung cấp'} · ${match.name || ''}`)}</strong><span>Các tín hiệu trùng: ${escapeHtml((match.matchedSignals || []).join(', '))}</span></div>`).join('');
+        byId('editWarningMessages').innerHTML = `${regularWarnings.map(issue => `<div class="edit-warning-message"><strong>${escapeHtml(issue.field ? fieldLabel(group.entityType, issue.field) : 'Cảnh báo')}</strong><span>${escapeHtml(issue.message)}</span></div>`).join('')}${supplierMatches}`;
         byId('acknowledgeWarnings').checked = item.warningsAcknowledged;
         const reviewableIssues = (item.issues || []).filter(issue => issue.metadata?.resolution === 'MANUAL_REVIEW');
         byId('manualReviewRow').hidden = reviewableIssues.length === 0;
@@ -920,7 +955,10 @@
 
     async function handleMutationError(error) {
         await showAlert(errorMessage(error), 'error');
-        if (error.code === 'PREVIEW_ĐÃ_THAY_ĐỔI') await loadSession(state.session.sessionId);
+        if (error.code === 'PREVIEW_ĐÃ_THAY_ĐỔI') {
+            closeEditDialog();
+            await loadSession(state.session.sessionId);
+        }
     }
 
     async function history() {
@@ -936,6 +974,8 @@
     byId('chooseFileButton').addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', () => {
         const files = Array.from(fileInput.files || []);
+        byId('uploadErrors').hidden = true;
+        byId('uploadErrors').innerHTML = '';
         byId('selectedFileName').innerHTML = files.map(file => `<span>${escapeHtml(file.name)} · ${(file.size / 1024 / 1024).toFixed(2)} MiB</span>`).join('');
         syncBusyUi();
     });

@@ -1,6 +1,6 @@
 # AI Smart Import CafeChain — quy tắc nghiệp vụ
 
-> Cập nhật 16/08/2026: baseline chính thức là `20260815152712_InitialCreate`, đã gồm OCR runtime và multi-file. Forward migration `20260816170000_AddPreparedItemTargetStockLevel` chỉ bổ sung Target Stock cho kho, không đổi hợp đồng AI Import.
+> Cập nhật 17/08/2026: Analyze dùng fatal preflight nguyên tử trước phiên; duplicate skip dẫn xuất có thể phục hồi; Category cùng phiên được resolve trước Drink; Supplier soft duplicate cần acknowledgement + reason + warning token; eligibility Confirm do backend quyết định tập trung. Không phát sinh migration AI Import mới.
 
 ## 1. Mục tiêu và thuật ngữ
 
@@ -175,7 +175,7 @@ Output sai bị loại và phát sinh mã như `AI_JSON_KHÔNG_HỢP_LỆ`, `NGU
 
 Candidate confidence thấp có thể chuyển sang `VALID` sau xác nhận thủ công, nhưng chỉ khi schema validation không còn lỗi. Xác nhận thủ công không được miễn lỗi field, reference, duplicate, conflict, warning chưa xác nhận hoặc quyền Create. Các lần revalidate sau phải giữ kết quả xác nhận thủ công thay vì tự đưa candidate hợp lệ trở lại `REVIEW_REQUIRED` chỉ vì confidence nguồn không đổi.
 
-Chunk overlap không được tạo dữ liệu kép. Candidate cùng business key và cùng normalized payload được giữ nguồn đầu, nguồn sau chuyển `SKIP` với `TRÙNG_TRONG_FILE`; payload khác chuyển `REVIEW_REQUIRED` với `XUNG_ĐỘT_DỮ_LIỆU_TRONG_TÀI_LIỆU`.
+Chunk overlap không được tạo dữ liệu kép. Candidate cùng business key và cùng normalized payload được giữ nguồn đầu, nguồn sau có `Action=CREATE`, `Status=SKIPPED`, `skipOrigin=SYSTEM_DUPLICATE` với `TRÙNG_TRONG_FILE`; payload khác chuyển `REVIEW_REQUIRED` với `XUNG_ĐỘT_DỮ_LIỆU_TRONG_TÀI_LIỆU`. Khi payload/business key đổi, system skip phải được tính lại. Chỉ thao tác **Bỏ qua dòng** của người dùng mới dùng `Action=SKIP` và được giữ qua revalidation.
 
 ## 7. Security guard
 
@@ -205,7 +205,7 @@ Controller không hard-code 10 MB. Resource filter lấy giới hạn request t�
 
 ## 9. Preview, duplicate và state
 
-Validation dùng một hợp đồng chung cho cả Excel, DOCX và PDF: `Code`, `Message`, `Field?`, `Severity`, `SourceLocator?`, `Metadata?`. `Field` rỗng là lỗi cấp dòng; `Metadata.resolution` cho UI biết phải sửa field, remap group, xác nhận warning, review thủ công hay SKIP conflict. Status được giải quyết theo thứ tự `ERROR > REVIEW_REQUIRED > WARNING > VALID`; `SKIPPED` chỉ do action SKIP và `IMPORTED` chỉ xuất hiện sau Confirm.
+Validation dùng một hợp đồng chung cho cả Excel, DOCX và PDF: `IssueKey`, `Code`, `Message`, `Field?`, `Severity`, `SourceLocator?`, `Metadata?`. `IssueKey` định danh theo code, field, semantic target/match và locator để một vấn đề chỉ xuất hiện một lần. `Field` rỗng là lỗi cấp dòng; `Metadata.resolution` cho UI biết phải sửa field, remap group, xác nhận warning, review thủ công hay SKIP conflict. Status được giải quyết theo thứ tự `ERROR > REVIEW_REQUIRED > WARNING > VALID`; `SKIPPED` có thể là user skip hoặc system duplicate skip, còn `IMPORTED` chỉ xuất hiện sau Confirm.
 
 Cột nguồn được phân loại:
 
@@ -220,7 +220,7 @@ Header trùng giữ source key theo cột như `Tên [B]`, `Tên [D]`; backend k
 - `WARNING`: phải xác nhận cảnh báo.
 - `ERROR`: không Confirm được.
 - `REVIEW_REQUIRED`: mapping/conflict/confidence cần xử lý.
-- `SKIPPED`: không tạo.
+- `SKIPPED`: không tạo. `USER` giữ `Action=SKIP`; `SYSTEM_DUPLICATE` giữ `Action=CREATE` để payload unique có thể trở lại importable sau revalidation.
 - `IMPORTED`: đã tạo thành công.
 
 Mọi PATCH group/item và Reanalyze kiểm tra `expectedPreviewVersion`, revalidate và tăng `PreviewVersion`. Client stale nhận HTTP 409 `PREVIEW_ĐÃ_THAY_ĐỔI`.
@@ -273,7 +273,7 @@ Confirm còn kiểm tra quyền `Category.Create`, `Drink.Create`, `Size.Create`
 - Snapshot text chỉ tồn tại khi session còn cần reanalyze; bị xóa khi `COMPLETED`, `CANCELLED` hoặc `EXPIRED`.
 - Raw data/evidence không được ghi vào application log hoặc history response.
 
-Baseline thật là `20260815152712_InitialCreate`; baseline này đã có OCR snapshot cấp phiên, `ImportSourceDocuments` và liên kết nguồn của Group. Migration kế tiếp là `20260816170000_AddPreparedItemTargetStockLevel`, không phải migration AI Import.
+Baseline thật trong source hiện tại là `20260816101047_InitialCreate`; baseline squash này đã có OCR snapshot cấp phiên, `ImportSourceDocuments`, liên kết nguồn của Group và Target Stock. Đợt refactor này không sửa baseline, model snapshot hay tạo migration AI Import mới.
 
 Vì baseline đã được squash, database development/test cũ phải được tạo lại hoặc có migration chuyển tiếp riêng trước khi deploy. Không được giả định `database update` có thể nâng trực tiếp một database đã ghi migration ID cũ lên baseline mới, và không được tự động xóa database production.
 
@@ -281,7 +281,8 @@ Vì baseline đã được squash, database development/test cũ phải được
 
 - `sourceKey` là identity theo vị trí cột. `Name [B]` và `Name [C]` không được collapse thành `Name`.
 - `XUNG_ĐỘT_ÁNH_XẠ` mang `resolution=REMAP_GROUP`, `targetField` và `candidateSourceKeys`. Chọn nguồn áp dụng toàn Group/Region, tăng `PreviewVersion` và chỉ giải quyết conflict của target field đã chọn.
-- Cột không được chọn vẫn xuất hiện trong dữ liệu nguồn bổ sung. `CỘT_KHÔNG_XÁC_ĐỊNH` yêu cầu acknowledgement và không được ghi vào entity.
+- Cột chưa được ánh xạ và chưa có quyết định bỏ qua vẫn xuất hiện trong dữ liệu nguồn bổ sung; nếu có dữ liệu thì `CỘT_KHÔNG_XÁC_ĐỊNH` yêu cầu acknowledgement và không được ghi vào entity.
+- Khi người dùng lưu Group Mapping với lựa chọn **Bỏ qua cột này**, client phải gửi đúng `sourceKey` trong `IgnoredSourceColumns`. Backend phân loại cột thành `IGNORED`, lưu kết quả trong `SourceColumnsJson`, loại `CỘT_KHÔNG_XÁC_ĐỊNH` tương ứng khi revalidation và vẫn giữ raw value trong dữ liệu nguồn bổ sung. Một cột không được đồng thời ánh xạ và bỏ qua; `FORBIDDEN` không thể bị hạ thành `IGNORED`.
 - Cancel thành công đóng mọi dialog, xóa draft phía client, purge source snapshot và vô hiệu hóa response cũ. Cancel thất bại hoặc stale version phải giữ draft; Cancel lặp lại trên phiên đã `CANCELLED` là idempotent.
 - OCR có hai điều kiện: executable/model local đạt health `READY` và request chọn `UseOcr`. System Settings quản lý languages/DPI/timeout/resource limit và health nhưng không có switch bật/tắt toàn hệ thống. OCR không có API key, không gửi tài liệu ra cloud và không ghi ảnh/text/đường dẫn tạm vào log.
 - Health check chỉ `READY` khi chạy được Tesseract và đủ mọi model trong `OcrLanguages` (mặc định `vie+eng`). Fingerprint gồm provider/path/languages; trạng thái health của cấu hình cũ không được tái sử dụng sau khi cấu hình thay đổi.
@@ -289,8 +290,17 @@ Vì baseline đã được squash, database development/test cũ phải được
 - Stdout/stderr Tesseract phải được đọc UTF-8. Dòng OCR được khôi phục theo line metadata/offset TSV trước khi fallback theo hình học, tránh mojibake và tách sai nhãn tiếng Việt.
 - Timeout/cancel phải kết thúc cả process tree. Thư mục tạm riêng theo request luôn bị xóa trong `finally`.
 - Một `ImportSession` có nhiều `ImportSourceDocument`; mỗi Group giữ `ImportSourceDocumentId`. Guard chạy độc lập từng file rồi candidate hội tụ về validation/reference/duplicate/dependency toàn phiên.
-- File lỗi không bị silent-drop. Phiên vẫn hiển thị preview của file hợp lệ nhưng Confirm bị khóa cho tới khi nguồn lỗi được loại bỏ.
+- Analyze mới tiền kiểm toàn bộ batch trong memory trước mọi `ImportSession`/`ImportSourceDocument`. Một file fake, hỏng, encrypted, active content, ZIP/resource bomb, sai signature/format, vượt resource limit, thiếu OCR bắt buộc hoặc không tạo được candidate nào sau bước enrichment bắt buộc làm reject toàn request, trả file/code/message/fatal và không tạo session. File không bị silent-drop.
+- Chỉ lỗi business/candidate sau khi source an toàn (thiếu field, duplicate, reference, mapping, confidence) mới tạo Preview để sửa/review. Hidden sheet/row/column bị bỏ qua kèm warning và không biến workbook còn dữ liệu hợp lệ thành fatal.
+- Session lịch sử có source `FAILED/PROCESSING` vẫn bị central Confirm gate chặn để tương thích ngược; loại nguồn lỗi không còn là flow mặc định của Analyze mới.
 - Cùng business key/payload giữa file dùng `TRÙNG_TRONG_PHIÊN` và mặc định SKIP bản sau. Payload khác dùng `XUNG_ĐỘT_DỮ_LIỆU_GIỮA_CÁC_TỆP` và bắt buộc review.
+
+## 13. Pending dependency và central Confirm gate
+
+- Drink resolve Category độc lập từ Category active trong DB hoặc candidate Category importable ở bất kỳ sheet/file/order nào trong cùng session. Pending Category chỉ gồm `Action=CREATE` với final status `VALID/WARNING`; parent error, review chưa xử lý, user skip hoặc system skip không được làm reference.
+- ProductType luôn resolve riêng từ DB active; Smart Import không tạo ProductType. ProductType thiếu/inactive trả đúng một lỗi gắn field `ProductType`.
+- Item PATCH giữ business key và Category code/name cũ lẫn mới để revalidate cohort và Drink phụ thuộc trước khi tăng `PreviewVersion`.
+- Session response trả `CanConfirm` và `ConfirmBlockers`; frontend không tự suy đoán từ counter. Gate kiểm state/source, ít nhất một item importable, error/review/mapping/dependency, warning acknowledgement, Supplier reason/token, `AIImport.Confirm` và mọi quyền `*.Create`. Direct Confirm dùng cùng gate sau full DB-sensitive revalidation.
 
 ## 13. Runtime smoke test
 

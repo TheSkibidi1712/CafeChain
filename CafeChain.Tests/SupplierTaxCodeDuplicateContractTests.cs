@@ -160,10 +160,15 @@ public sealed class SupplierTaxCodeDuplicateContractTests : IntegrationTestBase
         var warning = Assert.IsType<AdminSupplierDuplicateWarningDTO>(warningError.DataPayload);
         request.DuplicateWarningId = warning.WarningId;
 
+        Assert.False(await service.IsDuplicateWarningValidAsync(request, 91));
+
         var reasonError = await Assert.ThrowsAsync<SupplierDomainException>(() => service.CreateAsync(request, 91));
         Assert.Equal(SupplierIdentityConstants.OverrideReasonRequired, reasonError.Code);
 
         request.DuplicateOverrideReason = "Hai pháp nhân khác nhau nhưng tên thương mại giống nhau";
+        Assert.True(await service.IsDuplicateWarningValidAsync(request, 91));
+        Assert.Equal(SupplierIdentityConstants.WarningPending,
+            (await context.SupplierDuplicateWarnings.SingleAsync(x => x.PublicId == warning.WarningId)).Status);
         var createdId = await service.CreateAsync(request, 91);
 
         Assert.True(createdId > 0);

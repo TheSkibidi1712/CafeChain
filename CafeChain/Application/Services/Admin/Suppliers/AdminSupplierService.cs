@@ -230,6 +230,27 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             return ToWarningDto(warning, matches);
         }
 
+        public async Task<bool> IsDuplicateWarningValidAsync(
+            AdminSupplierCreateDTO dto,
+            int actorStaffId = 0)
+        {
+            try
+            {
+                dto.Name = Normalize(dto.Name);
+                dto.TaxCode = SupplierTaxCodeNormalizer.Normalize(dto.TaxCode);
+                await EnsureTaxCodeAvailableAsync(dto.TaxCode);
+                var matches = await FindSoftDuplicateMatchesAsync(dto);
+                if (matches.Count == 0) return true;
+                if (!dto.DuplicateWarningId.HasValue) return false;
+                await ValidateWarningAsync(dto, actorStaffId, BuildPayloadHash(dto), matches);
+                return true;
+            }
+            catch (SupplierDomainException)
+            {
+                return false;
+            }
+        }
+
         public async Task<List<AdminSupplierDuplicateMatchDTO>> FindDuplicateMatchesAsync(
             AdminSupplierCreateDTO dto)
         {

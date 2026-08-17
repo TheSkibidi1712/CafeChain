@@ -1,5 +1,4 @@
 using System.Data;
-using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -102,30 +101,43 @@ public sealed class AIImportService : IAIImportService
     {
         var access = await RequireAsync(actor, PermissionConstants.AIImportUpload, PermissionConstants.AIImportAnalyze);
         if (access != null) return AIImportOperationResult<AIImportSessionDto>.Fail(403, "KHÔNG_CÓ_QUYỀN", access);
-        if (files.Count == 0 || files.All(file => file.Length <= 0))
+        if (files.Count == 0)
             return AIImportOperationResult<AIImportSessionDto>.Fail(400, "FILE_BẮT_BUỘC", "Vui lòng chọn ít nhất một tệp .xlsx, .docx hoặc .pdf.");
         if (files.Count > _options.MaxFilesPerSession)
             return AIImportOperationResult<AIImportSessionDto>.Fail(413, "VƯỢT_GIỚI_HẠN_SỐ_TỆP", $"Mỗi phiên chỉ nhận tối đa {_options.MaxFilesPerSession} tệp.");
         if (files.Sum(file => file.Length) > _options.MaxTotalUploadBytesPerSession)
             return AIImportOperationResult<AIImportSessionDto>.Fail(413, "VƯỢT_GIỚI_HẠN_PHIÊN_NHẬP", "Tổng dung lượng các tệp vượt giới hạn của một phiên.");
+        var uploadGuardFailures = new List<UploadGuardFailure>();
         foreach (var file in files)
         {
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
             if (extension == ".doc")
-                return AIImportOperationResult<AIImportSessionDto>.Fail(400, "ĐỊNH_DẠNG_DOC_CŨ_KHÔNG_HỖ_TRỢ", $"Tệp {Path.GetFileName(file.FileName)} dùng định dạng .doc cũ; vui lòng chuyển sang .docx.");
-            if (extension == ".docm" || !_options.AllowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
-                return AIImportOperationResult<AIImportSessionDto>.Fail(400, "ĐỊNH_DẠNG_KHÔNG_HỖ_TRỢ", $"Tệp {Path.GetFileName(file.FileName)} không thuộc định dạng được hỗ trợ.");
+                uploadGuardFailures.Add(UploadFailure(400, file.FileName, "ĐỊNH_DẠNG_DOC_CŨ_KHÔNG_HỖ_TRỢ",
+                    "Tệp dùng định dạng .doc cũ; vui lòng chuyển sang .docx."));
+            else if (extension == ".docm" || !_options.AllowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+                uploadGuardFailures.Add(UploadFailure(400, file.FileName, "ĐỊNH_DẠNG_KHÔNG_HỖ_TRỢ",
+                    "Tệp không thuộc định dạng được hỗ trợ."));
             if (file.Length <= 0 || file.Length > _options.MaxFileBytes)
-                return AIImportOperationResult<AIImportSessionDto>.Fail(413, "FILE_QUÁ_LỚN", $"Tệp {Path.GetFileName(file.FileName)} rỗng hoặc vượt giới hạn {_options.MaxFileBytes / 1024 / 1024} MB.");
+                uploadGuardFailures.Add(UploadFailure(413, file.FileName, "FILE_QUÁ_LỚN",
+                    $"Tệp rỗng hoặc vượt giới hạn {_options.MaxFileBytes / 1024 / 1024} MB."));
+        }
+        if (uploadGuardFailures.Count > 0)
+        {
+            var first = uploadGuardFailures[0];
+            return AIImportOperationResult<AIImportSessionDto>.Fail(first.StatusCode, first.Issue.Code,
+                first.Issue.Message, AIImportIssueIdentity.Deduplicate(uploadGuardFailures.Select(failure => failure.Issue)));
         }
         var ocrState = _ocrRuntimeSettings == null
             ? LegacyOcrState()
             : await _ocrRuntimeSettings.GetAsync(cancellationToken);
-        if (useOcr && !ocrState.EffectiveEnabled)
+        var pdfFiles = files.Where(file => string.Equals(Path.GetExtension(file.FileName), ".pdf", StringComparison.OrdinalIgnoreCase)).ToList();
+        if (useOcr && pdfFiles.Count > 0 && !ocrState.EffectiveEnabled)
         {
             var code = ocrState.InfrastructureConfigured ? "PDF_OCR_KHÔNG_KHẢ_DỤNG" : "OCR_CHƯA_ĐƯỢC_CẤU_HÌNH";
             return AIImportOperationResult<AIImportSessionDto>.Fail(409, code,
-                "Tesseract local chưa sẵn sàng. Hãy kiểm tra tại Cài đặt hệ thống.");
+                "Tesseract local chưa sẵn sàng. Hãy kiểm tra tại Cài đặt hệ thống.",
+                pdfFiles.Select(file => FileIssue(file.FileName, code,
+                    "Tệp PDF yêu cầu OCR nhưng Tesseract local chưa sẵn sàng.")).ToList());
         }
         var preparedFiles = new List<PreparedUpload>();
         foreach (var file in files)
@@ -134,7 +146,6 @@ public sealed class AIImportService : IAIImportService
             await file.CopyToAsync(stream, cancellationToken);
             preparedFiles.Add(new PreparedUpload(file, stream.ToArray()));
         }
-        var analysisTimer = Stopwatch.StartNew();
         var sourceFormat = preparedFiles.Count == 1
             ? AIImportSourceFormats.FromFileName(preparedFiles[0].File.FileName) ?? string.Empty
             : "MULTI";
@@ -168,16 +179,63 @@ public sealed class AIImportService : IAIImportService
                 CreatedAtUtc = DateTime.UtcNow
             });
         }
-        _db.ImportSessions.Add(session);
-        await _db.SaveChangesAsync(cancellationToken);
-        await TransitionAsync(session, AIImportSessionStatuses.Uploaded, AIImportSessionStatuses.Analyzing, actor, "ANALYZE_STARTED", cancellationToken);
-
         try
         {
             var sessionWarnings = new List<AIImportErrorDto>();
+            var fatalSourceErrors = new List<AIImportErrorDto>();
+            var preflightDocuments = new List<AIImportSourceDocument>(preparedFiles.Count);
             var totalCharacters = 0;
             var totalAiChunks = 0;
             var totalOcrPages = 0;
+
+            // Phase A: run the real parser/security guard for the whole batch before AI enrichment
+            // and before the detached session graph is attached to EF.
+            for (var index = 0; index < preparedFiles.Count; index++)
+            {
+                var prepared = preparedFiles[index];
+                var sourceDocument = session.SourceDocuments.Single(source => source.SortOrder == index);
+                try
+                {
+                    var preflight = await _pipeline.PreflightAsync(new AIImportSourceFile(
+                        prepared.File.FileName, prepared.Content, prepared.File.ContentType,
+                        session.EffectiveOcr, ocrState), entityHint, cancellationToken);
+                    NormalizeDocumentIssues(preflight);
+                    preflightDocuments.Add(preflight);
+                    var fatalErrors = preflight.Errors.Where(IsFatalSourceIssue).ToList();
+                    if (fatalErrors.Count == 0) continue;
+                    sourceDocument.Status = AIImportSourceDocumentStatuses.Failed;
+                    sourceDocument.ErrorCode = fatalErrors[0].Code;
+                    sourceDocument.ErrorMessage = fatalErrors[0].Message;
+                    fatalSourceErrors.AddRange(fatalErrors.Select(error =>
+                    {
+                        error.Metadata ??= new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                        error.Metadata["fatal"] = true;
+                        return WithSource(error, sourceDocument);
+                    }));
+                }
+                catch (Exception exception) when (exception is not OperationCanceledException)
+                {
+                    _logger.LogWarning(exception,
+                        "AI Smart Import source preflight failed. FileName={FileName} Format={Format}",
+                        sourceDocument.OriginalFileName, sourceDocument.SourceFormat);
+                    preflightDocuments.Add(new AIImportSourceDocument { SourceFormat = sourceDocument.SourceFormat });
+                    sourceDocument.Status = AIImportSourceDocumentStatuses.Failed;
+                    sourceDocument.ErrorCode = "PHÂN_TÍCH_TỆP_THẤT_BẠI";
+                    sourceDocument.ErrorMessage = "Không thể phân tích tài liệu nguồn này.";
+                    fatalSourceErrors.Add(WithSource(AIImportValidationContract.Issue(
+                        sourceDocument.ErrorCode, sourceDocument.ErrorMessage, AIImportIssueSeverities.Error,
+                        metadata: new Dictionary<string, object?> { ["fatal"] = true }), sourceDocument));
+                }
+            }
+
+            if (fatalSourceErrors.Count > 0)
+            {
+                var first = fatalSourceErrors[0];
+                return AIImportOperationResult<AIImportSessionDto>.Fail(
+                    400, first.Code, first.Message, AIImportIssueIdentity.Deduplicate(fatalSourceErrors));
+            }
+
+            // Phase B: only safe documents may reach AI enrichment/candidate projection.
             for (var index = 0; index < preparedFiles.Count; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -186,23 +244,23 @@ public sealed class AIImportService : IAIImportService
                 AIImportSourceDocument document;
                 try
                 {
-                    document = await _pipeline.AnalyzeAsync(new AIImportSourceFile(
-                        prepared.File.FileName, prepared.Content, prepared.File.ContentType,
-                        session.EffectiveOcr, ocrState), entityHint, cancellationToken);
+                    document = await _pipeline.AnalyzePreflightedAsync(
+                        preflightDocuments[index], entityHint, cancellationToken);
                 }
                 catch (Exception exception) when (exception is not OperationCanceledException)
                 {
                     _logger.LogWarning(exception,
-                        "AI Smart Import source analysis failed. SessionId={SessionId} SourceDocumentId={SourceDocumentId} Format={Format}",
-                        session.ImportSessionId, sourceDocument.ImportSourceDocumentId, sourceDocument.SourceFormat);
+                        "AI Smart Import pre-session source analysis failed. FileName={FileName} Format={Format}",
+                        sourceDocument.OriginalFileName, sourceDocument.SourceFormat);
                     sourceDocument.Status = AIImportSourceDocumentStatuses.Failed;
                     sourceDocument.ErrorCode = "PHÂN_TÍCH_TỆP_THẤT_BẠI";
                     sourceDocument.ErrorMessage = "Không thể phân tích tài liệu nguồn này.";
-                    sessionWarnings.Add(WithSource(new AIImportErrorDto
+                    fatalSourceErrors.Add(WithSource(new AIImportErrorDto
                     {
                         Code = sourceDocument.ErrorCode,
                         Message = sourceDocument.ErrorMessage,
-                        Severity = AIImportIssueSeverities.Error
+                        Severity = AIImportIssueSeverities.Error,
+                        Metadata = new Dictionary<string, object?> { ["fatal"] = true }
                     }, sourceDocument));
                     continue;
                 }
@@ -212,28 +270,57 @@ public sealed class AIImportService : IAIImportService
                 totalCharacters += document.ExtractedText.Length;
                 totalAiChunks += document.AiChunkCount;
                 totalOcrPages += document.OcrPageCount;
-                if (document.Errors.Count > 0)
+                var documentFatalErrors = document.Errors.Where(IsFatalSourceIssue).ToList();
+                if (documentFatalErrors.Count == 0
+                    && !document.Groups.SelectMany(group => group.Candidates).Any())
+                {
+                    var noCandidate = document.Errors.FirstOrDefault()
+                        ?? AIImportValidationContract.Issue("KHÔNG_TÌM_THẤY_DỮ_LIỆU",
+                            "Tệp không chứa bản ghi nghiệp vụ có thể phân tích.", AIImportIssueSeverities.Error);
+                    documentFatalErrors.Add(noCandidate);
+                }
+                if (documentFatalErrors.Count > 0)
                 {
                     sourceDocument.Status = AIImportSourceDocumentStatuses.Failed;
-                    sourceDocument.ErrorCode = document.Errors[0].Code;
-                    sourceDocument.ErrorMessage = document.Errors[0].Message;
-                    sessionWarnings.AddRange(document.Errors.Select(error => WithSource(error, sourceDocument)));
+                    sourceDocument.ErrorCode = documentFatalErrors[0].Code;
+                    sourceDocument.ErrorMessage = documentFatalErrors[0].Message;
+                    fatalSourceErrors.AddRange(documentFatalErrors.Select(error =>
+                    {
+                        error.Metadata ??= new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                        error.Metadata["fatal"] = true;
+                        return WithSource(error, sourceDocument);
+                    }));
                     continue;
                 }
                 sourceDocument.Status = AIImportSourceDocumentStatuses.Ready;
+                sessionWarnings.AddRange(document.Errors.Select(error => WithSource(error, sourceDocument)));
                 sessionWarnings.AddRange(document.Warnings.Select(warning => WithSource(warning, sourceDocument)));
                 if (document.UsedAI) session.ModelName = _ollamaModel;
                 foreach (var sourceGroup in document.Groups)
                     session.Groups.Add(CreatePersistentGroup(sourceGroup, sourceDocument));
             }
+
+            // Fatal source/security errors reject the whole request atomically. The graph above is
+            // intentionally still detached, therefore no ImportSession/SourceDocument orphan exists.
+            if (fatalSourceErrors.Count > 0)
+            {
+                var first = fatalSourceErrors[0];
+                return AIImportOperationResult<AIImportSessionDto>.Fail(
+                    400, first.Code, first.Message, AIImportIssueIdentity.Deduplicate(fatalSourceErrors));
+            }
             if (session.Groups.SelectMany(group => group.Items).Count() > _options.MaxTotalCandidatesPerSession
                 || totalCharacters > _options.MaxTotalExtractedCharactersPerSession
                 || totalAiChunks > _options.MaxTotalAIChunksPerSession
                 || totalOcrPages > _options.MaxTotalOcrPagesPerSession)
-                return await FailBatchLimitAsync(session, actor, cancellationToken);
+                return AIImportOperationResult<AIImportSessionDto>.Fail(413, "VƯỢT_GIỚI_HẠN_PHIÊN_NHẬP",
+                    "Tổng tài nguyên trích xuất của các tệp vượt giới hạn phiên nhập.");
             session.SourceMetadataJson = Serialize(new { sourceCount = session.SourceDocuments.Count, totalCharacters, totalAiChunks, totalOcrPages, requestedOcr = session.RequestedOcr, effectiveOcr = session.EffectiveOcr, ocrConfigVersion = session.OcrConfigVersion });
             session.AnalysisWarningsJson = Serialize(sessionWarnings);
-            await TransitionAsync(session, AIImportSessionStatuses.Analyzing, AIImportSessionStatuses.Validating, actor, "PARSING_COMPLETED", cancellationToken);
+
+            session.Status = AIImportSessionStatuses.Validating;
+            AddAudit(session, actor, "ANALYZE_STARTED", AIImportSessionStatuses.Uploaded, AIImportSessionStatuses.Analyzing);
+            AddAudit(session, actor, "PARSING_COMPLETED", AIImportSessionStatuses.Analyzing, AIImportSessionStatuses.Validating);
+            _db.ImportSessions.Add(session);
             await _db.SaveChangesAsync(cancellationToken);
             await ValidateSessionAsync(session, cancellationToken);
             session.PreviewVersion = 1;
@@ -246,7 +333,8 @@ public sealed class AIImportService : IAIImportService
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "AI Smart Import analyze failed. SessionId={SessionId}", session.ImportSessionId);
-            await FailAsync(session, "PHÂN_TÍCH_THẤT_BẠI", "Không thể hoàn tất phân tích tài liệu.", actor, cancellationToken);
+            if (session.ImportSessionId > 0)
+                await FailAsync(session, "PHÂN_TÍCH_THẤT_BẠI", "Không thể hoàn tất phân tích tài liệu.", actor, cancellationToken);
             return AIImportOperationResult<AIImportSessionDto>.Fail(500, "PHÂN_TÍCH_THẤT_BẠI", "Không thể hoàn tất phân tích tài liệu.");
         }
     }
@@ -424,11 +512,26 @@ public sealed class AIImportService : IAIImportService
         if (editable != null) return editable;
         var group = session.Groups.SingleOrDefault(x => x.ImportGroupId == groupId);
         if (group == null) return NotFound<AIImportSessionDto>();
+        var persistedSourceColumns = Deserialize<List<AIImportSourceColumn>>(group.SourceColumnsJson) ?? [];
+        var sourceColumnKeys = persistedSourceColumns.Select(column => column.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var ignoredSourceColumns = (request.IgnoredSourceColumns ?? [])
+            .Where(key => !string.IsNullOrWhiteSpace(key))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var mappedSourceColumns = request.Mapping.Values
+            .Where(key => !string.IsNullOrWhiteSpace(key))
+            .Select(key => key!)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (ignoredSourceColumns.Any(key => !sourceColumnKeys.Contains(key))
+            || ignoredSourceColumns.Any(mappedSourceColumns.Contains))
+            return AIImportOperationResult<AIImportSessionDto>.Fail(400, "MAPPING_KHÔNG_HỢP_LỆ",
+                "Cột nguồn bị bỏ qua không tồn tại hoặc đồng thời đang được ánh xạ.");
         var previousEntityType = group.EntityType;
         group.EntityType = request.EntityType;
         group.MappingJson = Serialize(request.Mapping);
         var sourceColumns = _schemas.ClassifyColumns(request.EntityType,
-            Deserialize<List<AIImportSourceColumn>>(group.SourceColumnsJson) ?? [], request.Mapping);
+            persistedSourceColumns, request.Mapping, ignoredSourceColumns);
         group.SourceColumnsJson = Serialize(sourceColumns);
         var groupIssues = (Deserialize<List<AIImportErrorDto>>(group.IssuesJson) ?? [])
             .Where(issue => !IsResolvedMappingConflict(issue, request.Mapping)).ToList();
@@ -475,15 +578,28 @@ public sealed class AIImportService : IAIImportService
         if (editable != null) return editable;
         var item = session.Groups.SelectMany(x => x.Items).SingleOrDefault(x => x.ImportItemId == itemId);
         if (item == null) return NotFound<AIImportSessionDto>();
-        var previousBusinessKey = AIImportBusinessKeys.Create(item.Group.EntityType,
-            Deserialize<Dictionary<string, string?>>(item.NormalizedDataJson) ?? new());
+        var previousValues = Deserialize<Dictionary<string, string?>>(item.NormalizedDataJson) ?? new();
+        var previousBusinessKey = AIImportBusinessKeys.Create(item.Group.EntityType, previousValues);
+        var previousReferenceTokens = item.Group.EntityType == AIImportEntityType.Category
+            ? new[] { previousValues.GetValueOrDefault("CategoryCode"), previousValues.GetValueOrDefault("Name") }
+                .Where(value => !string.IsNullOrWhiteSpace(value)).Select(value => value!).ToArray()
+            : Array.Empty<string>();
         AdminSupplierDuplicateWarningDTO? supplierWarning = null;
         if (request.Action == AIImportActions.Create
             && item.Group.EntityType == AIImportEntityType.Supplier
+            && request.WarningsAcknowledged
             && !string.IsNullOrWhiteSpace(request.DuplicateOverrideReason))
         {
             var normalized = _schemas.Normalize(AIImportEntityType.Supplier, request.Values);
-            supplierWarning = await _suppliers.PrepareDuplicateWarningAsync(SupplierDto(normalized), actor.StaffId);
+            try
+            {
+                supplierWarning = await _suppliers.PrepareDuplicateWarningAsync(SupplierDto(normalized), actor.StaffId);
+            }
+            catch (SupplierDomainException exception) when (exception.Code == SupplierIdentityConstants.TaxCodeDuplicate)
+            {
+                // The validation phase below returns the field-level hard duplicate. A reason can
+                // never mint a warning token for a duplicated tax code.
+            }
         }
         item.Action = request.Action;
         item.DuplicateOverrideReason = Clean(request.DuplicateOverrideReason);
@@ -491,6 +607,7 @@ public sealed class AIImportService : IAIImportService
         if (request.Action == AIImportActions.Skip)
         {
             ResetManualReview(item);
+            item.DuplicateOverrideReason = null;
             item.Status = AIImportItemStatuses.Skipped;
             item.ErrorsJson = "[]";
             item.WarningsJson = "[]";
@@ -529,7 +646,13 @@ public sealed class AIImportService : IAIImportService
             }
         }
         await ValidateSessionAsync(session, cancellationToken,
-            _mutationCoordinator.ItemScope(itemId, item.Group.EntityType, previousBusinessKey));
+            _mutationCoordinator.ItemScope(itemId, item.Group.EntityType, previousBusinessKey, previousReferenceTokens));
+        if (item.Group.EntityType == AIImportEntityType.Supplier
+            && AllIssues(item).All(issue => issue.Code != "NHÀ_CUNG_CẤP_GẦN_TRÙNG"))
+        {
+            item.SupplierDuplicateWarningId = null;
+            item.DuplicateOverrideReason = null;
+        }
         if (request.Action == AIImportActions.Create && request.ManualReviewConfirmed)
             item.ManualReviewPayloadHash = AIImportValidationContract.PayloadHash(item.NormalizedDataJson);
         _mutationCoordinator.AdvancePreview(session);
@@ -619,13 +742,13 @@ public sealed class AIImportService : IAIImportService
                     BuildBlockerDetails(session));
             }
 
-            var blockers = _confirmCoordinator.FindBlockers(session);
-            if (blockers.Count > 0)
+            var confirmBlockers = await EvaluateConfirmEligibilityAsync(session, actor, cancellationToken);
+            if (confirmBlockers.Count > 0)
             {
                 await transaction.RollbackAsync(cancellationToken);
                 return AIImportOperationResult<AIImportConfirmResultDto>.Fail(
-                    422, "PREVIEW_CHƯA_SẴN_SÀNG", "Còn lỗi, dòng cần xem lại hoặc cảnh báo chưa xác nhận.",
-                    BuildBlockerDetails(session));
+                    422, "PREVIEW_CHƯA_SẴN_SÀNG", "Phiên còn điều kiện chưa đáp ứng để xác nhận.",
+                    confirmBlockers);
             }
 
             var snapshot = ConfirmSnapshot(session);
@@ -668,12 +791,17 @@ public sealed class AIImportService : IAIImportService
 
             session = await OwnedSessionAsync(sessionId, actor, true, cancellationToken)
                 ?? throw new InvalidOperationException("Không thể tải lại phiên sau khi giữ quyền xử lý.");
-            var result = new AIImportConfirmResultDto { SessionId = sessionId, Status = AIImportSessionStatuses.Completed };
+            var result = new AIImportConfirmResultDto
+            {
+                SessionId = sessionId,
+                Status = AIImportSessionStatuses.Completed,
+                Skipped = session.Groups.SelectMany(group => group.Items)
+                    .Count(item => item.Status == AIImportItemStatuses.Skipped)
+            };
             foreach (var entry in _confirmCoordinator.BuildExecutionPlan(session))
             {
                 var group = entry.Group;
                 var item = entry.Item;
-                if (item.Action == AIImportActions.Skip) { result.Skipped++; continue; }
                 var values = Deserialize<Dictionary<string, string?>>(item.NormalizedDataJson) ?? new();
                 try
                 {
@@ -922,14 +1050,6 @@ public sealed class AIImportService : IAIImportService
     {
         var all = session.Groups.SelectMany(x => x.Items.Select(i => (Group: x, Item: i))).ToList();
         var affectedIds = _previewValidator.ResolveScope(all, scope ?? AIImportValidationScope.FullSession());
-        foreach (var automaticSkip in session.Groups.SelectMany(group => group.Items)
-                     .Where(item => affectedIds.Contains(item.ImportItemId))
-                     .Where(item => item.Action == AIImportActions.Skip
-                                    && AllIssues(item).Any(issue => issue.Code is "TRÙNG_TRONG_FILE" or "TRÙNG_TRONG_PHIÊN" or "ĐÃ_TỒN_TẠI")))
-        {
-            automaticSkip.Action = AIImportActions.Create;
-            automaticSkip.Status = AIImportItemStatuses.Valid;
-        }
         foreach (var (group, item) in all.Where(x => affectedIds.Contains(x.Item.ImportItemId) && x.Item.Action == AIImportActions.Create))
         {
             var values = Deserialize<Dictionary<string, string?>>(item.NormalizedDataJson) ?? new();
@@ -954,8 +1074,7 @@ public sealed class AIImportService : IAIImportService
             {
                 foreach (var duplicate in groupItems.Skip(1))
                 {
-                    duplicate.Item.Action = AIImportActions.Skip;
-                    duplicate.Item.Status = AIImportItemStatuses.Skipped;
+                    duplicate.Item.Action = AIImportActions.Create;
                     SetIssues(duplicate.Item, AllIssues(duplicate.Item).Concat(new[]
                     {
                         AIImportValidationContract.Issue(crossesFiles ? "TRÙNG_TRONG_PHIÊN" : "TRÙNG_TRONG_FILE",
@@ -964,8 +1083,14 @@ public sealed class AIImportService : IAIImportService
                                 : "Bản ghi trùng khóa nghiệp vụ và nội dung trong tài liệu nên được mặc định bỏ qua.",
                             AIImportIssueSeverities.Warning,
                             resolution: AIImportIssueResolutions.Acknowledge,
-                            metadata: new Dictionary<string, object?> { ["sourceDocumentIds"] = sourceIds })
+                            metadata: new Dictionary<string, object?>
+                            {
+                                ["sourceDocumentIds"] = sourceIds,
+                                ["skipOrigin"] = AIImportSkipOrigins.SystemDuplicate,
+                                ["businessKey"] = groupItems.Key.Key
+                            })
                     }), duplicate.Item.ManualReviewConfirmed);
+                    duplicate.Item.Status = AIImportItemStatuses.Skipped;
                 }
                 continue;
             }
@@ -1024,6 +1149,49 @@ public sealed class AIImportService : IAIImportService
         var allProductTypes = await _db.ProductTypes.AsNoTracking()
             .Where(x => productTypeInputs.Contains(x.Code) || productTypeInputs.Contains(x.Name))
             .Select(x => new { x.Code, x.Name, x.Active }).ToListAsync(cancellationToken);
+
+        // Duplicate state is derived before the pending-reference catalog is built. This prevents
+        // a skipped/error Category candidate from satisfying a Drink dependency.
+        foreach (var (group, item) in all.Where(x => affectedIds.Contains(x.Item.ImportItemId)
+                                                     && x.Item.Action == AIImportActions.Create
+                                                     && x.Item.Status is not AIImportItemStatuses.Error and not AIImportItemStatuses.ReviewRequired))
+        {
+            var values = Deserialize<Dictionary<string, string?>>(item.NormalizedDataJson) ?? new();
+            var duplicate = group.EntityType switch
+            {
+                AIImportEntityType.Category => categoryKeys.Any(x => Same(x.CategoryCode, values.GetValueOrDefault("CategoryCode")) || Same(x.Name, values.GetValueOrDefault("Name"))),
+                AIImportEntityType.Drink => drinkKeys.Any(x => Same(x.DrinkCode, values.GetValueOrDefault("DrinkCode")) || Same(x.Name, values.GetValueOrDefault("Name"))),
+                AIImportEntityType.Size => sizeKeys.Any(x => Same(x.SizeCode, values.GetValueOrDefault("SizeCode")) || Same(x.Name, values.GetValueOrDefault("Name"))),
+                AIImportEntityType.Ingredient => ingredientKeys.Any(x => Same(x.Code, values.GetValueOrDefault("Code")) || Same(x.Name, values.GetValueOrDefault("Name"))),
+                AIImportEntityType.Supplier => supplierKeys.Any(x => Same(x, values.GetValueOrDefault("TaxCode"))),
+                _ => false
+            };
+            if (!duplicate) continue;
+
+            if (group.EntityType == AIImportEntityType.Supplier)
+            {
+                AddIssue(item, AIImportValidationContract.Issue(
+                    "SUPPLIER_TAX_CODE_DUPLICATE",
+                    "Mã số thuế đã thuộc về một nhà cung cấp khác.",
+                    AIImportIssueSeverities.Error,
+                    field: "TaxCode",
+                    resolution: AIImportIssueResolutions.EditField,
+                    metadata: new Dictionary<string, object?> { ["referenceTarget"] = values.GetValueOrDefault("TaxCode") }));
+                continue;
+            }
+
+            SetIssues(item, AllIssues(item).Concat(new[]
+            {
+                AIImportValidationContract.Issue("ĐÃ_TỒN_TẠI", "Bản ghi đã tồn tại nên được mặc định bỏ qua.",
+                    AIImportIssueSeverities.Warning, resolution: AIImportIssueResolutions.Acknowledge,
+                    metadata: new Dictionary<string, object?>
+                    {
+                        ["skipOrigin"] = AIImportSkipOrigins.SystemDuplicate,
+                        ["businessKey"] = AIImportBusinessKeys.Create(group.EntityType, values)
+                    })
+            }), item.ManualReviewConfirmed);
+            item.Status = AIImportItemStatuses.Skipped;
+        }
         var activeCategories = activeCategoryKeys.Concat(session.Groups.Where(g => g.EntityType == AIImportEntityType.Category).SelectMany(g => g.Items)
             .Where(i => i.Action == AIImportActions.Create && i.Status is AIImportItemStatuses.Valid or AIImportItemStatuses.Warning)
             .Select(i => { var v = Deserialize<Dictionary<string, string?>>(i.NormalizedDataJson) ?? new(); return new { CategoryCode = v.GetValueOrDefault("CategoryCode") ?? "", Name = v.GetValueOrDefault("Name") ?? "" }; })).ToList();
@@ -1043,29 +1211,13 @@ public sealed class AIImportService : IAIImportService
                 .ToDictionary(entry => entry.ImportItemId, entry => entry.Matches);
         }
 
-        foreach (var (group, item) in all.Where(x => affectedIds.Contains(x.Item.ImportItemId) && x.Item.Action == AIImportActions.Create && x.Item.Status is not AIImportItemStatuses.Error and not AIImportItemStatuses.ReviewRequired))
+        foreach (var (group, item) in all.Where(x => affectedIds.Contains(x.Item.ImportItemId)
+                                                     && x.Item.Action == AIImportActions.Create
+                                                     && x.Item.Status is not AIImportItemStatuses.Error
+                                                         and not AIImportItemStatuses.ReviewRequired
+                                                         and not AIImportItemStatuses.Skipped))
         {
             var values = Deserialize<Dictionary<string, string?>>(item.NormalizedDataJson) ?? new();
-            var duplicate = group.EntityType switch
-            {
-                AIImportEntityType.Category => categoryKeys.Any(x => Same(x.CategoryCode, values.GetValueOrDefault("CategoryCode")) || Same(x.Name, values.GetValueOrDefault("Name"))),
-                AIImportEntityType.Drink => drinkKeys.Any(x => Same(x.DrinkCode, values.GetValueOrDefault("DrinkCode")) || Same(x.Name, values.GetValueOrDefault("Name"))),
-                AIImportEntityType.Size => sizeKeys.Any(x => Same(x.SizeCode, values.GetValueOrDefault("SizeCode")) || Same(x.Name, values.GetValueOrDefault("Name"))),
-                AIImportEntityType.Ingredient => ingredientKeys.Any(x => Same(x.Code, values.GetValueOrDefault("Code")) || Same(x.Name, values.GetValueOrDefault("Name"))),
-                AIImportEntityType.Supplier => supplierKeys.Any(x => Same(x, values.GetValueOrDefault("TaxCode"))),
-                _ => false
-            };
-            if (duplicate)
-            {
-                item.Action = AIImportActions.Skip;
-                item.Status = AIImportItemStatuses.Skipped;
-                SetIssues(item, AllIssues(item).Concat(new[]
-                {
-                    AIImportValidationContract.Issue("ĐÃ_TỒN_TẠI", "Bản ghi đã tồn tại nên được mặc định bỏ qua.",
-                        AIImportIssueSeverities.Warning, resolution: AIImportIssueResolutions.Acknowledge)
-                }), item.ManualReviewConfirmed);
-                continue;
-            }
             string? referenceError = null;
             if (group.EntityType == AIImportEntityType.Drink)
             {
@@ -1079,12 +1231,20 @@ public sealed class AIImportService : IAIImportService
                 var productType = AIImportReferenceResolver.Resolve(values.GetValueOrDefault("ProductType"),
                     allProductTypes.Where(value => value.Active), allProductTypes.Where(value => !value.Active),
                     value => value.Code, value => value.Name);
-                referenceError = ReferenceMessage("Danh mục", category.Status,
+                var categoryError = ReferenceMessage("Danh mục", category.Status,
                     "Danh mục không tồn tại hoặc không được tạo trong phiên.");
                 if (category.IsResolved) values["Category"] = category.Value!.CategoryCode;
-                referenceError ??= ReferenceMessage("Loại sản phẩm", productType.Status,
-                    "Loại sản phẩm không tồn tại.");
+                var productTypeInput = values.GetValueOrDefault("ProductType");
+                var productTypeError = productType.Status switch
+                {
+                    AIImportReferenceStatuses.Found => null,
+                    AIImportReferenceStatuses.Ambiguous => "Loại sản phẩm khớp nhiều bản ghi; hãy nhập code duy nhất.",
+                    _ => $"Loại sản phẩm \"{productTypeInput}\" không tồn tại hoặc không hoạt động."
+                };
                 if (productType.IsResolved) values["ProductType"] = productType.Value!.Code;
+
+                AddReferenceIssue(item, categoryError, "Category", values.GetValueOrDefault("Category"));
+                AddReferenceIssue(item, productTypeError, "ProductType", productTypeInput);
             }
             else if (group.EntityType == AIImportEntityType.Ingredient)
             {
@@ -1112,17 +1272,27 @@ public sealed class AIImportService : IAIImportService
                     var warnings = new List<AIImportErrorDto>
                     {
                         AIImportValidationContract.Issue("NHÀ_CUNG_CẤP_GẦN_TRÙNG",
-                            $"Có {matches.Count} nhà cung cấp tương tự. Nhập lý do nếu vẫn tạo.",
-                            item.SupplierDuplicateWarningId.HasValue && !string.IsNullOrWhiteSpace(item.DuplicateOverrideReason)
-                                ? AIImportIssueSeverities.Warning : AIImportIssueSeverities.Review,
-                            resolution: item.SupplierDuplicateWarningId.HasValue && !string.IsNullOrWhiteSpace(item.DuplicateOverrideReason)
-                                ? AIImportIssueResolutions.Acknowledge : AIImportIssueResolutions.EditField)
+                            $"Có {matches.Count} nhà cung cấp tương tự. Hãy xác nhận đã kiểm tra và nhập lý do nếu vẫn tạo.",
+                            AIImportIssueSeverities.Warning,
+                            resolution: AIImportIssueResolutions.Acknowledge,
+                            metadata: new Dictionary<string, object?>
+                            {
+                                ["requiresAcknowledgement"] = true,
+                                ["requiresReason"] = true
+                            })
                     };
                     warnings.AddRange(matches.Select(match => new AIImportErrorDto
                     {
                         Code = "NHÀ_CUNG_CẤP_TƯƠNG_TỰ",
                         Message = $"{match.Code} · {match.Name} · {string.Join(", ", match.MatchedSignals)}",
-                        Severity = AIImportIssueSeverities.Warning
+                        Severity = AIImportIssueSeverities.Warning,
+                        Metadata = new Dictionary<string, object?>
+                        {
+                            ["matchedSupplierId"] = match.SupplierId,
+                            ["matchedSupplierCode"] = match.Code,
+                            ["matchedSupplierName"] = match.Name,
+                            ["matchedSignals"] = match.MatchedSignals
+                        }
                     }));
                     SetIssues(item, AllIssues(item).Concat(warnings), item.ManualReviewConfirmed);
                 }
@@ -1146,7 +1316,11 @@ public sealed class AIImportService : IAIImportService
     private async Task<AIImportSessionDto> BuildSessionDtoAsync(int id, int? groupId, string? status, int page, int pageSize, AdminActorContext actor, CancellationToken cancellationToken)
     {
         (page, pageSize) = Page(page, pageSize);
-        var session = await _db.ImportSessions.AsNoTracking().Include(x => x.SourceDocuments).Include(x => x.Groups).SingleAsync(x => x.ImportSessionId == id && x.UploadedByAccountId == actor.AccountId, cancellationToken);
+        var session = await _db.ImportSessions.AsNoTracking()
+            .Include(x => x.SourceDocuments)
+            .Include(x => x.Groups).ThenInclude(group => group.Items)
+            .SingleAsync(x => x.ImportSessionId == id && x.UploadedByAccountId == actor.AccountId, cancellationToken);
+        var confirmBlockers = await EvaluateConfirmEligibilityAsync(session, actor, cancellationToken);
         var orderedGroups = session.Groups.OrderBy(x => x.DependencyOrder).ThenBy(x => x.ImportGroupId).ToList();
         var previewGroupId = groupId ?? orderedGroups.Select(x => (int?)x.ImportGroupId).FirstOrDefault();
         var itemQuery = _db.ImportItems.AsNoTracking().Where(x => x.Group.ImportSessionId == id);
@@ -1169,6 +1343,8 @@ public sealed class AIImportService : IAIImportService
             RequestedOcr = session.RequestedOcr, EffectiveOcr = session.EffectiveOcr,
             OcrConfigVersion = session.OcrConfigVersion,
             ConfirmBlockedBySources = session.SourceDocuments.Any(source => source.Status is AIImportSourceDocumentStatuses.Failed or AIImportSourceDocumentStatuses.Processing),
+            CanConfirm = confirmBlockers.Count == 0,
+            ConfirmBlockers = confirmBlockers,
             SourceDocuments = session.SourceDocuments.OrderBy(source => source.SortOrder).Select(source => new AIImportSourceDocumentDto
             {
                 SourceDocumentId = source.ImportSourceDocumentId,
@@ -1209,6 +1385,52 @@ public sealed class AIImportService : IAIImportService
             : x.Status == AIImportItemStatuses.Skipped ? 4 : 5)
         .ThenBy(x => x.SourceRow)
         .ThenBy(x => x.ImportItemId);
+
+    private async Task<List<AIImportErrorDto>> EvaluateConfirmEligibilityAsync(
+        ImportSession session,
+        AdminActorContext actor,
+        CancellationToken cancellationToken)
+    {
+        var blockers = _confirmCoordinator.EvaluateStructuralEligibility(session).ToList();
+
+        if (await RequireAsync(actor, PermissionConstants.AIImportConfirm) != null)
+            blockers.Add(AIImportValidationContract.Issue("KHÔNG_CÓ_QUYỀN_CONFIRM",
+                "Tài khoản không có quyền xác nhận nhập dữ liệu.", AIImportIssueSeverities.Error));
+
+        foreach (var permission in _confirmCoordinator.RequiredCreatePermissions(session))
+            if (await RequireAsync(actor, permission) != null)
+                blockers.Add(AIImportValidationContract.Issue("KHÔNG_CÓ_QUYỀN_TẠO_ENTITY",
+                    $"Tài khoản không có quyền {permission}.", AIImportIssueSeverities.Error,
+                    metadata: new Dictionary<string, object?> { ["referenceTarget"] = permission }));
+
+        var supplierItems = session.Groups
+            .Where(group => group.EntityType == AIImportEntityType.Supplier)
+            .SelectMany(group => group.Items)
+            .Where(item => item.Action == AIImportActions.Create
+                           && item.Status is AIImportItemStatuses.Valid or AIImportItemStatuses.Warning)
+            .Where(item => AllIssues(item).Any(issue => issue.Code == "NHÀ_CUNG_CẤP_GẦN_TRÙNG"))
+            .ToList();
+        foreach (var item in supplierItems)
+        {
+            var dto = SupplierDto(Deserialize<Dictionary<string, string?>>(item.NormalizedDataJson) ?? new());
+            dto.DuplicateWarningId = item.SupplierDuplicateWarningId;
+            dto.DuplicateOverrideReason = item.DuplicateOverrideReason;
+            if (!item.WarningsAcknowledged
+                || string.IsNullOrWhiteSpace(item.DuplicateOverrideReason)
+                || !await _suppliers.IsDuplicateWarningValidAsync(dto, actor.StaffId))
+                blockers.Add(AIImportValidationContract.Issue("SUPPLIER_DUPLICATE_WARNING_INVALID",
+                    "Cảnh báo nhà cung cấp tương tự chưa được xác nhận bằng lý do và token hợp lệ.",
+                    AIImportIssueSeverities.Error,
+                    metadata: new Dictionary<string, object?>
+                    {
+                        ["referenceTarget"] = item.ImportItemId,
+                        ["requiresAcknowledgement"] = true,
+                        ["requiresReason"] = true
+                    }));
+        }
+
+        return AIImportIssueIdentity.Deduplicate(blockers);
+    }
 
     private async Task<string?> RequireAsync(AdminActorContext actor, params string[] permissionCodes)
     {
@@ -1329,6 +1551,18 @@ public sealed class AIImportService : IAIImportService
         AIImportReferenceStatuses.Forbidden => $"{label} chứa định danh không được phép.",
         _ => notFoundMessage
     };
+    private static void AddReferenceIssue(ImportItem item, string? message, string field, string? target)
+    {
+        if (message == null) return;
+        var ambiguous = message.Contains("khớp nhiều", StringComparison.OrdinalIgnoreCase);
+        AddIssue(item, AIImportValidationContract.Issue(
+            ambiguous ? "REFERENCE_KHÔNG_DUY_NHẤT" : "REFERENCE_KHÔNG_HỢP_LỆ",
+            message,
+            ambiguous ? AIImportIssueSeverities.Review : AIImportIssueSeverities.Error,
+            field: field,
+            resolution: AIImportIssueResolutions.EditField,
+            metadata: new Dictionary<string, object?> { ["referenceTarget"] = target }));
+    }
     private static string CanonicalPayload(string json)
     {
         var values = Deserialize<Dictionary<string, string?>>(json) ?? new();
@@ -1339,21 +1573,16 @@ public sealed class AIImportService : IAIImportService
         .Concat(Deserialize<List<AIImportErrorDto>>(item.WarningsJson) ?? []).ToList();
     private static void SetIssues(ImportItem item, IEnumerable<AIImportErrorDto> issues, bool manualReviewConfirmed)
     {
-        var normalized = issues.GroupBy(issue => new { issue.Code, issue.Field, issue.Severity })
-            .Select(group => group.First()).ToList();
-        foreach (var issue in normalized)
-        {
-            issue.SourceLocator ??= issue.Position;
-            issue.Position ??= issue.SourceLocator;
-            issue.Metadata ??= new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-        }
+        var normalized = AIImportIssueIdentity.Deduplicate(issues);
         item.ErrorsJson = Serialize(normalized.Where(issue => issue.Severity is AIImportIssueSeverities.Error or AIImportIssueSeverities.Review));
         item.WarningsJson = Serialize(normalized.Where(issue => issue.Severity == AIImportIssueSeverities.Warning));
         item.Status = AIImportValidationContract.ResolveStatus(item.Status, item.Action, normalized, manualReviewConfirmed);
     }
     private static void AddIssue(ImportItem item, AIImportErrorDto issue)
     {
-        var issues = AllIssues(item).Where(existing => !(existing.Code == issue.Code && existing.Field == issue.Field)).ToList();
+        var issues = AllIssues(item);
+        issue.IssueKey = AIImportIssueIdentity.Key(issue);
+        issues.RemoveAll(existing => AIImportIssueIdentity.Key(existing) == issue.IssueKey);
         issues.Add(issue);
         SetIssues(item, issues, item.ManualReviewConfirmed);
     }
@@ -1386,6 +1615,35 @@ public sealed class AIImportService : IAIImportService
             error.SourceLocator ??= error.Position;
         }
     }
+    private static bool IsFatalSourceIssue(AIImportErrorDto issue)
+    {
+        var code = issue.Code ?? string.Empty;
+        return code is "FILE_BỊ_HỎNG" or "FILE_QUÁ_LỚN"
+            or "DỮ_LIỆU_VƯỢT_GIỚI_HẠN_MVP"
+            or "ĐỊNH_DẠNG_DOC_CŨ_KHÔNG_HỖ_TRỢ" or "ĐỊNH_DẠNG_KHÔNG_HỖ_TRỢ"
+            or "ĐỊNH_DẠNG_KHÔNG_KHỚP_NỘI_DUNG" or "NỘI_DUNG_CHỦ_ĐỘNG_KHÔNG_ĐƯỢC_HỖ_TRỢ"
+            or "PDF_CẦN_OCR" or "PDF_BỊ_HỎNG" or "PDF_CÓ_MẬT_KHẨU"
+            or "PDF_VƯỢT_GIỚI_HẠN" or "PDF_OCR_KHÔNG_KHẢ_DỤNG"
+            or "PDF_OCR_VƯỢT_GIỚI_HẠN" or "PDF_OCR_QUÁ_THỜI_GIAN"
+            or "OCR_CHƯA_ĐƯỢC_CẤU_HÌNH" or "OCR_OUTPUT_KHÔNG_HỢP_LỆ"
+            or "DOCX_BỊ_HỎNG" or "DOCX_CÓ_MẬT_KHẨU" or "DOCX_VƯỢT_GIỚI_HẠN"
+            or "DOCX_KHÔNG_CÓ_DỮ_LIỆU" or "CHUNK_VƯỢT_GIỚI_HẠN"
+            or "OLLAMA_OFFLINE" or "OLLAMA_TIMEOUT" or "AI_TRANSPORT_ERROR"
+            or "PHÂN_TÍCH_TỆP_THẤT_BẠI"
+            || code.Contains("MẬT_KHẨU", StringComparison.OrdinalIgnoreCase)
+            || code.Contains("ACTIVE_CONTENT", StringComparison.OrdinalIgnoreCase)
+            || code.Contains("LIÊN_KẾT_NGOÀI", StringComparison.OrdinalIgnoreCase)
+            || code.Contains("TỆP_NHÚNG", StringComparison.OrdinalIgnoreCase);
+    }
+    private static UploadGuardFailure UploadFailure(int statusCode, string fileName, string code, string message) =>
+        new(statusCode, FileIssue(fileName, code, message));
+    private static AIImportErrorDto FileIssue(string fileName, string code, string message) =>
+        AIImportValidationContract.Issue(code, message, AIImportIssueSeverities.Error,
+            metadata: new Dictionary<string, object?>
+            {
+                ["fileName"] = Path.GetFileName(fileName),
+                ["fatal"] = true
+            });
     private static AIImportErrorDto WithSource(AIImportErrorDto issue, ImportSourceDocument source)
     {
         issue.Metadata ??= new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
@@ -1441,6 +1699,12 @@ public sealed class AIImportService : IAIImportService
                 .Select(item => item.GetString()!).ToList();
         return value is IEnumerable<string> strings ? strings.ToList() : [];
     }
+    private static int IssueMetadataInt(AIImportErrorDto issue, string key)
+    {
+        if (!issue.Metadata.TryGetValue(key, out var value) || value == null) return 0;
+        if (value is JsonElement element && element.TryGetInt32(out var elementValue)) return elementValue;
+        return int.TryParse(Convert.ToString(value), out var parsed) ? parsed : 0;
+    }
     private static IEnumerable<AIImportErrorDto> BuildColumnIssues(
         IEnumerable<AIImportSourceColumn> columns,
         IReadOnlyDictionary<string, string?> raw)
@@ -1468,8 +1732,29 @@ public sealed class AIImportService : IAIImportService
     private static AIImportSummaryDto Summary(ImportSession x) => new() { TotalGroups = x.TotalGroups, TotalRows = x.TotalRows, Valid = x.ValidRows, Warnings = x.WarningRows, Errors = x.ErrorRows, ReviewRequired = x.ReviewRows, Skipped = x.SkippedRows };
     private static AIImportItemDto ItemDto(ImportItem x)
     {
-        var errors = Deserialize<List<AIImportErrorDto>>(x.ErrorsJson) ?? [];
-        var warnings = Deserialize<List<AIImportErrorDto>>(x.WarningsJson) ?? [];
+        var errors = AIImportIssueIdentity.Deduplicate(Deserialize<List<AIImportErrorDto>>(x.ErrorsJson) ?? []);
+        var warnings = AIImportIssueIdentity.Deduplicate(Deserialize<List<AIImportErrorDto>>(x.WarningsJson) ?? []);
+        var matchIssues = warnings.Where(issue => issue.Code == "NHÀ_CUNG_CẤP_TƯƠNG_TỰ").ToList();
+        var supplierReview = warnings.Any(issue => issue.Code == "NHÀ_CUNG_CẤP_GẦN_TRÙNG")
+            ? new AIImportSupplierDuplicateReviewDto
+            {
+                RequiresAcknowledgement = true,
+                RequiresReason = true,
+                Matches = matchIssues.Select(issue => new AIImportSupplierDuplicateMatchDto
+                {
+                    SupplierId = IssueMetadataInt(issue, "matchedSupplierId"),
+                    Code = IssueMetadataString(issue, "matchedSupplierCode") ?? string.Empty,
+                    Name = IssueMetadataString(issue, "matchedSupplierName") ?? string.Empty,
+                    MatchedSignals = IssueMetadataStrings(issue, "matchedSignals").ToList()
+                }).ToList()
+            }
+            : null;
+        var skipOrigin = x.Action == AIImportActions.Skip
+            ? AIImportSkipOrigins.User
+            : x.Status == AIImportItemStatuses.Skipped
+              && warnings.Any(issue => string.Equals(IssueMetadataString(issue, "skipOrigin"), AIImportSkipOrigins.SystemDuplicate, StringComparison.Ordinal))
+                ? AIImportSkipOrigins.SystemDuplicate
+                : null;
         return new AIImportItemDto
         {
             ItemId = x.ImportItemId, SourceRow = x.SourceRow,
@@ -1493,7 +1778,10 @@ public sealed class AIImportService : IAIImportService
             Issues = errors.Concat(warnings).ToList(), WarningsAcknowledged = x.WarningsAcknowledged,
             ManualReviewConfirmed = x.ManualReviewConfirmed,
             ManualReviewConfirmedAtUtc = x.ManualReviewConfirmedAtUtc,
-            DuplicateOverrideReason = x.DuplicateOverrideReason, ImportedEntityId = x.ImportedEntityId
+            DuplicateOverrideReason = x.DuplicateOverrideReason,
+            SkipOrigin = skipOrigin,
+            SupplierDuplicateReview = supplierReview,
+            ImportedEntityId = x.ImportedEntityId
         };
     }
     private static bool IsFooterRow(IReadOnlyDictionary<string, string?> raw)
@@ -1506,7 +1794,7 @@ public sealed class AIImportService : IAIImportService
                                      || first.StartsWith("ghichu", StringComparison.Ordinal)
                                      || first.StartsWith("note", StringComparison.Ordinal));
     }
-    private static void RefreshCounts(ImportSession x) { var items = x.Groups.SelectMany(g => g.Items).ToList(); x.TotalGroups = x.Groups.Count; x.TotalRows = items.Count; x.ValidRows = items.Count(i => i.Status == AIImportItemStatuses.Valid); x.WarningRows = items.Count(i => i.Status == AIImportItemStatuses.Warning); x.ErrorRows = items.Count(i => i.Status == AIImportItemStatuses.Error); x.ReviewRows = items.Count(i => i.Status == AIImportItemStatuses.ReviewRequired); x.SkippedRows = items.Count(i => i.Action == AIImportActions.Skip); }
+    private static void RefreshCounts(ImportSession x) { var items = x.Groups.SelectMany(g => g.Items).ToList(); x.TotalGroups = x.Groups.Count; x.TotalRows = items.Count; x.ValidRows = items.Count(i => i.Status == AIImportItemStatuses.Valid); x.WarningRows = items.Count(i => i.Status == AIImportItemStatuses.Warning); x.ErrorRows = items.Count(i => i.Status == AIImportItemStatuses.Error); x.ReviewRows = items.Count(i => i.Status == AIImportItemStatuses.ReviewRequired); x.SkippedRows = items.Count(i => i.Status == AIImportItemStatuses.Skipped); }
     private static ConfirmSnapshotItem[] ConfirmSnapshot(ImportSession session) => session.Groups
         .OrderBy(x => x.ImportGroupId).SelectMany(x => x.Items.OrderBy(i => i.ImportItemId))
         .Select(x => new ConfirmSnapshotItem(x.ImportItemId, x.Action, x.NormalizedDataJson, x.WarningsAcknowledged,
@@ -1632,6 +1920,7 @@ public sealed class AIImportService : IAIImportService
         Guid? SupplierDuplicateWarningId,
         string? DuplicateOverrideReason);
     private sealed record PreparedUpload(IFormFile File, byte[] Content);
+    private sealed record UploadGuardFailure(int StatusCode, AIImportErrorDto Issue);
     private sealed class AIImportRowException : Exception
     {
         public AIImportRowException(ImportGroup group, ImportItem item, Exception innerException)

@@ -103,16 +103,13 @@ public sealed class AIImportContractTests
     }
 
     [Fact]
-    public void Migration_history_uses_current_baseline_then_target_stock_forward_migration()
+    public void Migration_history_uses_current_squashed_baseline()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite("Data Source=:memory:").Options;
         using var context = new AppDbContext(options);
         var migrations = context.Database.GetMigrations().ToArray();
-        Assert.Equal([
-            "20260815152712_InitialCreate",
-            "20260816170000_AddPreparedItemTargetStockLevel"
-        ], migrations);
-        var baseline = Read("CafeChain", "Migrations", "20260815152712_InitialCreate.cs");
+        Assert.Equal(["20260816101047_InitialCreate"], migrations);
+        var baseline = Read("CafeChain", "Migrations", "20260816101047_InitialCreate.cs");
         Assert.Contains("name: \"ImportSessions\"", baseline, StringComparison.Ordinal);
         Assert.Contains("name: \"ImportSourceDocuments\"", baseline, StringComparison.Ordinal);
         Assert.Contains("CK_ImportSessions_Status", baseline, StringComparison.Ordinal);
@@ -122,9 +119,7 @@ public sealed class AIImportContractTests
         Assert.Contains("SourceColumnsJson = table.Column<string>", baseline, StringComparison.Ordinal);
         Assert.Contains("ExtractionVersion = table.Column<string>", baseline, StringComparison.Ordinal);
         Assert.Contains("FieldEvidenceJson = table.Column<string>", baseline, StringComparison.Ordinal);
-        var forward = Read("CafeChain", "Migrations", "20260816170000_AddPreparedItemTargetStockLevel.cs");
-        Assert.Contains("name: \"TargetStockLevel\"", forward, StringComparison.Ordinal);
-        Assert.DoesNotContain("CreateTable", forward, StringComparison.Ordinal);
+        Assert.Contains("TargetStockLevel = table.Column<decimal>", baseline, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -443,6 +438,8 @@ public sealed class AIImportContractTests
         Assert.Contains("data-source-column", script, StringComparison.Ordinal);
         Assert.Contains("data-target-field", script, StringComparison.Ordinal);
         Assert.Contains("mapping[select.value] = select.dataset.sourceColumn", script, StringComparison.Ordinal);
+        Assert.Contains("else ignoredSourceColumns.push(select.dataset.sourceColumn)", script, StringComparison.Ordinal);
+        Assert.Contains("mapping, ignoredSourceColumns", script, StringComparison.Ordinal);
         Assert.Contains("Bỏ qua cột này", script, StringComparison.Ordinal);
         Assert.Contains("Trường có thể ánh xạ", script, StringComparison.Ordinal);
         Assert.Contains("Hệ thống nhận diện nhưng bỏ qua", script, StringComparison.Ordinal);

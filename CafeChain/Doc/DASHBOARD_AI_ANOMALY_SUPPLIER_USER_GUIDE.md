@@ -1,6 +1,6 @@
 # Hướng dẫn sử dụng Dashboard, AI, tín hiệu vận hành, so sánh nhà cung cấp và AI Smart Import
 
-> Cập nhật AI Smart Import (16/08/2026): hỗ trợ chọn nguồn cho header trùng, Cancel an toàn, OCR Tesseract local UTF-8/TSV và nhiều tài liệu trong một phiên. Lựa chọn OCR theo từng lần import mặc định tắt; tài liệu OCR không rời khỏi máy chủ. Bộ runtime smoke 126 fixture được chạy bằng `scripts/run-ai-import-runtime-smoke.ps1`.
+> Cập nhật AI Smart Import (17/08/2026): file fatal bị chặn trước khi tạo phiên; Confirm theo quyết định backend; sửa duplicate có thể phục hồi system-skip; Category cùng phiên resolve cho Drink; Supplier gần trùng bắt buộc xác nhận và lý do server-side.
 
 > Cập nhật theo mã nguồn, AI skill/schema, giao diện Dashboard và `Scripts/SeedAll.sql` ngày 14/08/2026.
 
@@ -318,6 +318,8 @@ Nếu mapping của cả vùng sai, sửa mapping ở group rồi lưu; hệ th�
 5. Với Supplier gần trùng, đọc đúng bản ghi match, chọn xác nhận và nhập lý do override nếu form yêu cầu.
 6. Bấm **Lưu và kiểm tra lại**. Backend kiểm tra lại toàn bộ schema, reference, duplicate và quyền; client validation không phải kết quả cuối.
 
+TaxCode trùng là lỗi cứng: không nhập lý do để bỏ qua được. Với soft duplicate, modal liệt kê mã/tên Supplier hiện có và chỉ các tín hiệu thực sự trùng (tên, hotline, điện thoại/email đầu mối, địa chỉ). Bạn phải tick **Tôi đã kiểm tra và vẫn muốn tạo** và nhập lý do; backend mới cấp token cho đúng payload hiện tại. Sửa bất kỳ dữ liệu nhận diện nào làm xác nhận/token cũ hết hiệu lực.
+
 Modal dùng một vùng cuộn cho fields, cảnh báo và dữ liệu nguồn; header/footer luôn ở trong khung để các nút vẫn truy cập được trên desktop/mobile. SweetAlert thông báo save/skip hoặc lỗi API phải nằm phía trên modal.
 
 Đối với Category `Icon`:
@@ -400,7 +402,7 @@ Chủ doanh nghiệp mặc định xác nhận được cả năm entity. Kế t
 | `AI_CONFIDENCE_THẤP` | Đối chiếu evidence và lưu kiểm tra lại |
 | `AI_TRÍCH_XUẤT_KHÔNG_CÓ_BẰNG_CHỨNG` | Làm rõ cấu trúc tài liệu; output AI đã bị backend từ chối |
 | `CỘT_CẤM` | Xóa cột scope/DB ID/audit/SQL/command hoặc bỏ qua dòng |
-| `CỘT_KHÔNG_XÁC_ĐỊNH` | Mở dữ liệu bổ sung, xác nhận cột thực sự không cần nhập |
+| `CỘT_KHÔNG_XÁC_ĐỊNH` | Nếu cột cần nhập, ánh xạ đúng trường; nếu không cần, chọn **Bỏ qua cột này** và lưu ánh xạ để cảnh báo được tính lại |
 | `XUNG_ĐỘT_ÁNH_XẠ` | Chọn đúng source key theo vị trí cột; không để backend tự chọn |
 | `VÙNG_DỮ_LIỆU_CHỒNG_LẤN` | Tách bảng để một cell chỉ thuộc một region hoặc SKIP phần xung đột |
 | `REFERENCE_KHÔNG_DUY_NHẤT` | Chọn code duy nhất thay cho tên mơ hồ |
@@ -417,6 +419,10 @@ Không dùng thông báo lỗi để suy ra dữ liệu đã được tạo. Ch�
 Khi modal hiển thị checkbox **Tôi đã đối chiếu dữ liệu với bằng chứng nguồn**, hãy mở locator/evidence, kiểm tra đúng bản ghi rồi mới chọn checkbox và bấm **Lưu và kiểm tra lại**. Checkbox này chỉ xác nhận các review reason được phép; nó không xóa lỗi field, xung đột duplicate/reference, cảnh báo chưa xác nhận hay yêu cầu Supplier token.
 
 Sau khi lưu một dòng, hệ thống chỉ kiểm tra lại dòng đó, các dòng trùng business key và Drink phụ thuộc Category liên quan. Vì vậy các dòng không liên quan giữ nguyên trạng thái; nếu Category đổi code/name, hãy kiểm tra các Drink được hệ thống đưa về lỗi/review trong cùng preview mới.
+
+Nếu dòng bị hệ thống bỏ qua vì trùng rồi bạn sửa code/name thành unique, trạng thái có thể trở lại Hợp lệ/Cảnh báo. Dòng do chính bạn bấm **Bỏ qua dòng** vẫn giữ Bỏ qua cho tới khi bạn chủ động lưu lại với hành động tạo.
+
+Khi một file fake/hỏng/encrypted/không an toàn nằm trong batch, lỗi xuất hiện ngay dưới danh sách upload và không mở session rỗng; toàn batch bị từ chối. Hidden sheet chỉ bị bỏ qua, không làm hỏng workbook còn sheet hiển thị hợp lệ. Sau khi có Preview, hãy đọc vùng **Chưa thể xác nhận nhập**: nút Confirm chỉ bật khi backend trả `CanConfirm=true`, còn ít nhất một dòng sẽ tạo và mọi lỗi/review/dependency/warning/quyền đã hợp lệ.
 
 ## 7. Quản lý phân quyền
 
@@ -477,9 +483,9 @@ Mã xác thực dùng một lần và đăng ký thiết bị bán hàng là lu�
 
 1. Chọn nhiều file Excel, DOCX hoặc PDF trong cùng lần tải lên. Kiểm tra danh sách tên và dung lượng trước khi bấm **Phân tích**.
 2. Nếu cần PDF scan, bật **OCR cho PDF scan**. Nếu switch bị khóa, mở **Cài đặt hệ thống → OCR & nhận dạng tài liệu** hoặc liên hệ tài khoản có `Settings.Update`.
-3. Theo dõi thẻ trạng thái của từng file. File lỗi không làm mất preview file khác nhưng sẽ khóa **Xác nhận nhập**; có thể dùng **Loại nguồn**.
+3. Nếu một file sai định dạng, hỏng, không an toàn, vượt giới hạn, thiếu OCR bắt buộc hoặc không thể tạo candidate sau phân tích, hệ thống hiển thị tên file, mã lỗi và lý do ngay tại vùng upload. Toàn bộ lần Analyze bị từ chối và **không tạo phiên**; bỏ hoặc sửa file đó rồi Analyze lại. **Loại nguồn** chỉ áp dụng cho session lịch sử, không phải flow lỗi mặc định mới.
 4. Khi có `XUNG_ĐỘT_ÁNH_XẠ`, chọn source key cụ thể trong ánh xạ hoặc dùng nút chọn nguồn trong modal. Lựa chọn áp dụng toàn vùng.
-5. Kiểm tra warning cột không xác định rồi tick xác nhận; cột đó chỉ dùng đối chiếu và không được nhập.
+5. Với cột không xác định, ánh xạ nếu cần nhập; nếu không cần, chọn **Bỏ qua cột này** và lưu ánh xạ để backend ghi nhận `IGNORED`. Raw value vẫn chỉ dùng đối chiếu và không được nhập.
 6. Cancel thành công sẽ đóng mọi cửa sổ sửa và vô hiệu hóa preview. Nếu Cancel báo stale/fail, dữ liệu đang sửa vẫn còn để xử lý tiếp.
 
 | Tình huống | Xử lý |

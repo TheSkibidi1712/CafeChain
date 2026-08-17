@@ -23,6 +23,64 @@ public static class AIImportIssueResolutions
     public const string ReuploadOrSkip = "REUPLOAD_OR_SKIP";
 }
 
+public static class AIImportSkipOrigins
+{
+    public const string User = "USER";
+    public const string SystemDuplicate = "SYSTEM_DUPLICATE";
+}
+
+public static class AIImportIssueIdentity
+{
+    private static readonly string[] SemanticMetadataKeys =
+    [
+        "referenceTarget", "matchedSupplierId", "sourceColumn", "businessKey", "targetField",
+        "fileName", "sourceDocumentId"
+    ];
+
+    public static string Key(AIImportErrorDto issue)
+    {
+        issue.Metadata ??= new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        var locator = issue.SourceLocator ?? issue.Position;
+        var semantic = string.Join(';', SemanticMetadataKeys.Select(key =>
+            issue.Metadata.TryGetValue(key, out var value) ? $"{key}={Normalize(value)}" : string.Empty));
+        return string.Join('|', new[]
+        {
+            issue.Code.Trim().ToUpperInvariant(),
+            issue.Field?.Trim().ToUpperInvariant() ?? string.Empty,
+            semantic,
+            locator?.SourceFormat ?? string.Empty,
+            locator?.Sheet ?? string.Empty,
+            locator?.Region ?? string.Empty,
+            locator?.Row?.ToString() ?? string.Empty,
+            locator?.Column ?? string.Empty,
+            locator?.Page?.ToString() ?? string.Empty,
+            locator?.Block?.ToString() ?? string.Empty
+        });
+    }
+
+    public static List<AIImportErrorDto> Deduplicate(IEnumerable<AIImportErrorDto> issues)
+    {
+        var result = new Dictionary<string, AIImportErrorDto>(StringComparer.Ordinal);
+        foreach (var issue in issues)
+        {
+            issue.Metadata ??= new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+            issue.SourceLocator ??= issue.Position;
+            issue.Position ??= issue.SourceLocator;
+            issue.IssueKey = Key(issue);
+            result[issue.IssueKey] = issue;
+        }
+        return result.Values.ToList();
+    }
+
+    private static string Normalize(object? value) => value switch
+    {
+        null => string.Empty,
+        JsonElement element => element.ToString().Trim().ToUpperInvariant(),
+        IEnumerable<string> values => string.Join(',', values.OrderBy(item => item, StringComparer.OrdinalIgnoreCase)).ToUpperInvariant(),
+        _ => Convert.ToString(value)?.Trim().ToUpperInvariant() ?? string.Empty
+    };
+}
+
 public static class AIImportColumnClassifications
 {
     public const string Mapped = "MAPPED";
