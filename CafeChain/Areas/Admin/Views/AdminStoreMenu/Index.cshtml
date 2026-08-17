@@ -11,6 +11,7 @@
 <main class="sm-page ops-shell cc-warehouse-page" id="storeMenuApp"
       data-can-publish="@Model.CanPublish.ToString().ToLowerInvariant()"
       data-can-operate="@Model.CanOperate.ToString().ToLowerInvariant()"
+      data-can-provision="@Model.CanProvision.ToString().ToLowerInvariant()"
       data-can-override-price="@Model.CanOverridePrice.ToString().ToLowerInvariant()">
     @Html.AntiForgeryToken()
 
@@ -21,6 +22,13 @@
             <p class="ops-subtitle">Kiểm soát SKU, giá hiệu lực và khả năng phục vụ tại từng chi nhánh CafeChain.</p>
         </div>
         <div class="ops-actions">
+            @if (Model.CanProvision)
+            {
+                <button type="button" id="provisionStoreMenu" class="sm-link-button" title="Chuẩn bị các SKU mới ở trạng thái bản nháp">
+                    <i class="fas fa-arrows-rotate" aria-hidden="true"></i>
+                    Đồng bộ SKU mới
+                </button>
+            }
             <a class="sm-link-button" asp-area="Admin" asp-controller="AdminDrinkProfitability" asp-action="Index">
                 <i class="fas fa-chart-line" aria-hidden="true"></i>
                 Xem vốn &amp; lợi nhuận

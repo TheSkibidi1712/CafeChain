@@ -30,6 +30,7 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
                 {
                     storeDrink.StoreId,
                     storeDrink.StoreDrinkId,
+                    storeDrink.DrinkId,
                     storeDrink.Active,
                     drinkSize.DrinkSizeId,
                     DrinkName = storeDrink.Drink.Name,
@@ -52,6 +53,7 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
                 result.Add(new StoreMenuBackfillCandidateDto
                 {
                     StoreId = row.StoreId,
+                    DrinkId = row.DrinkId,
                     LegacyStoreDrinkId = row.StoreDrinkId,
                     DrinkSizeId = row.DrinkSizeId,
                     IsEnabled = row.Active,
@@ -61,6 +63,57 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
             }
 
             return result;
+        }
+
+        public async Task<IReadOnlyList<StoreMenuBackfillCandidateDto>> BuildStoreProvisioningPlanAsync(
+            int storeId,
+            CancellationToken cancellationToken = default)
+        {
+            var existingIds = await _context.StoreMenuItems.AsNoTracking()
+                .Where(x => x.StoreId == storeId)
+                .Select(x => x.DrinkSizeId)
+                .ToListAsync(cancellationToken);
+
+            var existing = existingIds.ToHashSet();
+            var legacyByDrink = await _context.StoreDrinks.AsNoTracking()
+                .Where(x => x.StoreId == storeId)
+                .ToDictionaryAsync(x => x.DrinkId, cancellationToken);
+            var startOrder = await _context.StoreMenuItems.AsNoTracking()
+                .Where(x => x.StoreId == storeId)
+                .Select(x => (int?)x.DisplayOrder)
+                .MaxAsync(cancellationToken) ?? -1;
+
+            var catalog = await _context.DrinkSizes.AsNoTracking()
+                .Where(x => x.Active
+                    && x.Drink.Active
+                    && x.Size.Active)
+                .OrderBy(x => x.Drink.Name)
+                .ThenBy(x => x.Size.Name)
+                .ThenBy(x => x.DrinkSizeId)
+                .Select(x => new
+                {
+                    x.DrinkId,
+                    x.DrinkSizeId
+                })
+                .ToListAsync(cancellationToken);
+
+            var nextOrder = startOrder + 1;
+            return catalog
+                .Where(x => !existing.Contains(x.DrinkSizeId))
+                .Select(x =>
+                {
+                    legacyByDrink.TryGetValue(x.DrinkId, out var legacy);
+                    return new StoreMenuBackfillCandidateDto
+                    {
+                        StoreId = storeId,
+                        DrinkId = x.DrinkId,
+                        LegacyStoreDrinkId = legacy?.StoreDrinkId,
+                        DrinkSizeId = x.DrinkSizeId,
+                        IsEnabled = false,
+                        DisplayOrder = nextOrder++
+                    };
+                })
+                .ToList();
         }
     }
 }
