@@ -203,7 +203,11 @@
     background: #ffffff;
     color: var(--cc-text-primary, #1f2937);
     box-shadow: 0 2px 6px rgba(111, 78, 55, 0.05);
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+        background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+        color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     user-select: none;
 }
 
@@ -544,10 +548,10 @@
 
 .reorder-actions-cell .reorder-action-button,
 .reorder-table td .reorder-action-button {
-    border-radius: var(--cc-radius-sm, 8px) !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
     gap: 8px !important;
     margin: 0 !important;
-    min-height: 36px;
+    min-height: 40px;
     padding: 7px 11px !important;
     width: 100% !important;
 }

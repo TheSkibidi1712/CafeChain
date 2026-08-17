@@ -1,5 +1,5 @@
 @{
-    ViewData["Title"] = "AI Smart Import";
+    ViewData["Title"] = "Nhập dữ liệu thông minh bằng AI";
 }
 
 @section Styles {
@@ -10,28 +10,29 @@
     <form id="antiForgeryForm" class="d-none">@Html.AntiForgeryToken()</form>
     <header class="ai-import-header">
         <div>
-            <p class="ai-import-eyebrow">Master data / Nhập thông minh</p>
-            <h1><i class="fa-solid fa-wand-magic-sparkles"></i> AI Smart Import</h1>
-            <p>Phân tích Excel, DOCX và PDF có lớp text; kiểm tra từng bản ghi trước khi nhập nguyên tử.</p>
+            <p class="ai-import-eyebrow">Dữ liệu nền / Nhập thông minh</p>
+            <h1><i class="fa-solid fa-wand-magic-sparkles"></i> Nhập dữ liệu thông minh bằng AI</h1>
+            <p>Phân tích XLSX, DOCX và PDF có lớp văn bản; kiểm tra từng bản ghi trước khi nhập trọn vẹn.</p>
         </div>
         <button type="button" class="btn-ai ghost" id="refreshHistoryButton"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</button>
     </header>
 
     <section class="ai-import-card upload-card" id="uploadPanel">
         <div class="drop-zone" id="dropZone">
-            <input type="file" id="excelFile" accept=".xlsx,.docx,.pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf" hidden />
+            <input type="file" id="excelFile" multiple accept=".xlsx,.docx,.pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf" hidden />
             <i class="fa-solid fa-file-arrow-up"></i>
-            <strong>Thả tệp .xlsx, .docx hoặc .pdf vào đây</strong>
-            <span>Tối đa 10 MiB · PDF scan/ảnh cần OCR và chưa được hỗ trợ</span>
+            <strong>Thả một hoặc nhiều tệp .xlsx, .docx hoặc .pdf vào đây</strong>
+            <span>Tối đa 10 tệp · 10 MiB/tệp · 50 MiB/phiên</span>
             <button type="button" class="btn-ai" id="chooseFileButton">Chọn tài liệu</button>
-            <small id="selectedFileName"></small>
+            <div id="selectedFileName" class="selected-files"></div>
         </div>
         <div class="upload-actions">
-            <label>Gợi ý entity
+            <label>Gợi ý loại dữ liệu
                 <select id="entityHint">
-                    <option value="">Tự động</option><option value="Category">Danh mục</option><option value="Drink">Đồ uống</option><option value="Size">Size</option><option value="Ingredient">Nguyên liệu</option><option value="Supplier">Nhà cung cấp</option>
+                    <option value="">Tự động</option><option value="Category">Danh mục</option><option value="Drink">Đồ uống</option><option value="Size">Kích cỡ</option><option value="Ingredient">Nguyên liệu</option><option value="Supplier">Nhà cung cấp</option>
                 </select>
             </label>
+            <label class="ocr-import-toggle" title="Đang kiểm tra cấu hình nhận dạng ký tự quang học (OCR)…"><input type="checkbox" id="useOcr" aria-label="Nhận dạng ký tự quang học cho PDF quét ảnh" disabled /> OCR cho PDF quét ảnh</label>
             <button type="button" class="btn-ai primary" id="analyzeButton" disabled><i class="fa-solid fa-magnifying-glass-chart"></i> Phân tích</button>
         </div>
     </section>
@@ -43,6 +44,7 @@
             <div><span id="sessionFile"></span><small id="sessionMeta"></small></div>
             <span class="status-pill" id="sessionStatus"></span>
             <div class="session-actions">
+                <button type="button" class="btn-ai ghost" id="closeSessionButton" title="Chỉ đóng phần hiển thị; phiên vẫn được giữ trong lịch sử">Đóng phiên</button>
                 <button type="button" class="btn-ai ghost" id="reanalyzeButton">Phân tích lại</button>
                 <button type="button" class="btn-ai danger" id="cancelButton">Hủy phiên</button>
                 <button type="button" class="btn-ai primary" id="confirmButton">Xác nhận nhập</button>
@@ -50,6 +52,7 @@
         </div>
 
         <div class="summary-grid" id="summaryGrid"></div>
+        <div class="source-documents" id="sourceDocuments"></div>
         <div class="ai-import-alert warning" id="analysisWarnings" hidden></div>
         <div class="workspace-grid">
             <aside class="ai-import-card group-list">
@@ -58,12 +61,17 @@
             </aside>
             <div class="ai-import-card preview-card">
                 <div class="preview-toolbar">
-                    <div><strong id="activeGroupTitle">Preview</strong><small id="activeGroupMeta"></small></div>
-                    <label>Trạng thái <select id="statusFilter"><option value="">Tất cả</option><option value="VALID">Hợp lệ</option><option value="WARNING">Cảnh báo</option><option value="ERROR">Lỗi</option><option value="REVIEW_REQUIRED">Cần xem lại</option><option value="SKIPPED">Bỏ qua</option><option value="IMPORTED">Đã nhập</option></select></label>
+                    <div><strong id="activeGroupTitle">Bản xem trước</strong><small id="activeGroupMeta"></small></div>
+                    <div>
+                        <label>Tệp nguồn <select id="sourceFilter"><option value="">Tất cả</option></select></label>
+                        <label>Loại dữ liệu <select id="entityFilter"><option value="">Tất cả</option><option value="Category">Danh mục</option><option value="Drink">Đồ uống</option><option value="Size">Kích cỡ</option><option value="Ingredient">Nguyên liệu</option><option value="Supplier">Nhà cung cấp</option></select></label>
+                        <label>Trạng thái <select id="statusFilter"><option value="">Tất cả</option><option value="VALID">Hợp lệ</option><option value="WARNING">Cảnh báo</option><option value="ERROR">Lỗi</option><option value="REVIEW_REQUIRED">Cần xem lại</option><option value="SKIPPED">Bỏ qua</option><option value="IMPORTED">Đã nhập</option></select></label>
+                    </div>
                 </div>
                 <details class="mapping-panel" open>
                     <summary>Loại dữ liệu và ánh xạ cột</summary>
-                    <div class="mapping-head"><select id="groupEntity"><option value="Category">Danh mục</option><option value="Drink">Đồ uống</option><option value="Size">Size</option><option value="Ingredient">Nguyên liệu</option><option value="Supplier">Nhà cung cấp</option></select><button type="button" class="btn-ai small" id="saveMappingButton">Lưu ánh xạ cột</button></div>
+                    <div class="mapping-head"><label><span>Loại dữ liệu</span><select id="groupEntity"><option value="Category">Danh mục</option><option value="Drink">Đồ uống</option><option value="Size">Kích cỡ</option><option value="Ingredient">Nguyên liệu</option><option value="Supplier">Nhà cung cấp</option></select></label><button type="button" class="btn-ai small" id="saveMappingButton">Lưu ánh xạ cột</button></div>
+                    <div class="mapping-column-head" aria-hidden="true"><span>Cột nguồn</span><span>Giá trị mẫu</span><span>Trạng thái</span><span>Trường đích</span></div>
                     <div id="mappingFields" class="mapping-fields"></div>
                 </details>
                 <div class="table-wrap"><table class="preview-table"><colgroup><col class="preview-col-row" /><col class="preview-col-status" /><col class="preview-col-data" /><col class="preview-col-issues" /><col class="preview-col-actions" /></colgroup><thead><tr><th>Vị trí nguồn</th><th>Trạng thái</th><th>Dữ liệu nghiệp vụ</th><th>Lỗi/cảnh báo</th><th>Thao tác</th></tr></thead><tbody id="previewRows"></tbody></table></div>
@@ -79,11 +87,11 @@
 
     <dialog id="editDialog" class="edit-dialog">
         <form method="dialog" id="editItemForm" novalidate>
-            <header><div><p class="edit-eyebrow" id="editEntityName"></p><strong>Sửa bản ghi nguồn <span id="editRowNumber"></span></strong><small>Kiểm tra theo cùng quy tắc với form tạo mới.</small></div><button value="cancel" class="icon-button" aria-label="Đóng">×</button></header>
+            <header><div><p class="edit-eyebrow" id="editEntityName"></p><strong>Sửa bản ghi nguồn <span id="editRowNumber"></span></strong><small>Kiểm tra theo cùng quy tắc với biểu mẫu tạo mới.</small></div><button value="cancel" class="icon-button" aria-label="Đóng">×</button></header>
             <div class="edit-dialog-body" id="editDialogBody">
                 <div class="edit-form-alert" id="editFormAlert" hidden></div>
                 <div id="editFields" class="edit-fields"></div>
-                <label class="check-row manual-review-row" id="manualReviewRow" hidden><input type="checkbox" id="manualReviewConfirmed" /> Tôi đã đối chiếu dữ liệu với bằng chứng nguồn và xác nhận kết quả review</label>
+                <label class="check-row manual-review-row" id="manualReviewRow" hidden><input type="checkbox" id="manualReviewConfirmed" /> Tôi đã đối chiếu từng trường cần xem lại với bằng chứng nguồn/OCR và xác nhận dữ liệu đúng</label>
                 <details class="edit-source-details"><summary>Dữ liệu nguồn bổ sung</summary><div id="editSourceData"></div></details>
                 <section class="edit-warning-section" id="warningSection">
                     <div class="edit-warning-messages" id="editWarningMessages"></div>

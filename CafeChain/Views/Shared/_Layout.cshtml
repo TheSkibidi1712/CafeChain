@@ -363,7 +363,11 @@
 
     <footer class="text-light mt-auto" style="background-color: var(--footer-bg); padding-top: 3rem;">
         <div class="container py-5">
-            @await Component.InvokeAsync("FooterMap")
+            @if (!string.Equals(currentController, "StaffHub", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(currentController, "Account", StringComparison.OrdinalIgnoreCase))
+            {
+                @await Component.InvokeAsync("FooterMap")
+            }
 
             <div class="row g-4">
                 <div class="col-lg-4 col-md-6">

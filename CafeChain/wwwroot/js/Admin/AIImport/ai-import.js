@@ -14,11 +14,12 @@
         editingItem: null,
         confirmKey: null,
         editorOptions: null,
-        confirmErrors: new Map()
+        confirmErrors: new Map(),
+        sessionGeneration: 0
     };
 
     const entityLabels = {
-        Category: 'Danh mục', Drink: 'Đồ uống', Size: 'Size', Ingredient: 'Nguyên liệu', Supplier: 'Nhà cung cấp', Unknown: 'Chưa xác định'
+        Category: 'Danh mục', Drink: 'Đồ uống', Size: 'Kích cỡ', Ingredient: 'Nguyên liệu', Supplier: 'Nhà cung cấp', Unknown: 'Chưa xác định'
     };
     const statusLabels = {
         VALID: 'Hợp lệ', WARNING: 'Cảnh báo', ERROR: 'Lỗi', REVIEW_REQUIRED: 'Cần xem lại', SKIPPED: 'Bỏ qua', IMPORTED: 'Đã nhập',
@@ -26,12 +27,40 @@
         COMPLETED: 'Hoàn tất', FAILED: 'Thất bại', CANCELLED: 'Đã hủy', EXPIRED: 'Đã hết hạn', UPLOADED: 'Đã tải lên'
     };
     const actionLabels = { CREATE: 'Tạo mới', SKIP: 'Bỏ qua' };
-    const formatLabels = { XLSX: 'Excel', DOCX: 'DOCX', PDF: 'PDF' };
-    const extractionModeLabels = {
-        XLSX_DETERMINISTIC: 'Excel xác định', XLSX_AI_MAPPING: 'Excel + AI mapping',
-        DOCX_TABLE_DETERMINISTIC: 'Bảng DOCX', DOCX_TEXT_DETERMINISTIC: 'Text DOCX', DOCX_AI_EXTRACTION: 'DOCX + AI',
-        PDF_TEXT_DETERMINISTIC: 'Text PDF', PDF_TEXT_AI_EXTRACTION: 'PDF + AI'
+    const formatLabels = { XLSX: 'Excel', DOCX: 'DOCX', PDF: 'PDF', MULTI: 'Nhiều tệp' };
+    const sourceDocumentStatusLabels = {
+        PROCESSING: 'Đang xử lý', READY: 'Sẵn sàng', FAILED: 'Không thành công', REMOVED: 'Đã loại khỏi phiên'
     };
+    const columnClassificationLabels = {
+        MAPPED: 'Đã ánh xạ',
+        IGNORED: 'Hệ thống nhận diện nhưng bỏ qua',
+        UNKNOWN: 'Chưa xác định',
+        FORBIDDEN: 'Không được phép nhập'
+    };
+    const columnClassificationDescriptions = {
+        MAPPED: 'Cột nguồn đang được nối với một trường dữ liệu nghiệp vụ.',
+        IGNORED: 'Cột thông tin phụ đã được nhận diện và mặc định không nhập.',
+        UNKNOWN: 'Hệ thống chưa xác định ý nghĩa nghiệp vụ của cột này.',
+        FORBIDDEN: 'Cột chứa định danh, phạm vi, quyền hoặc lệnh không được phép nhập.'
+    };
+    const sourceKindLabels = {
+        SOURCE: 'Nguồn', OCR: 'Nhận dạng ký tự', AI: 'AI', CELL: 'Ô dữ liệu', TEXT: 'Văn bản',
+        TEXT_LAYER: 'Lớp văn bản', AI_AFTER_TEXT: 'AI sau khi đọc văn bản',
+        AI_AFTER_OCR: 'AI sau khi nhận dạng ký tự'
+    };
+    const issueSeverityLabels = { ERROR: 'Lỗi', REVIEW: 'Cần xem lại', WARNING: 'Cảnh báo' };
+    const issueResolutionLabels = {
+        EDIT_FIELD: 'Sửa trường dữ liệu', REMAP_GROUP: 'Ánh xạ lại cột', ACKNOWLEDGE: 'Xác nhận cảnh báo',
+        MANUAL_REVIEW: 'Đối chiếu thủ công', SKIP_CONFLICT: 'Bỏ qua bản ghi xung đột', REUPLOAD_OR_SKIP: 'Tải lại hoặc bỏ qua'
+    };
+    const extractionModeLabels = {
+        XLSX_DETERMINISTIC: 'Excel theo quy tắc', XLSX_AI_MAPPING: 'Excel ánh xạ bằng AI',
+        DOCX_TABLE_DETERMINISTIC: 'Bảng DOCX theo quy tắc', DOCX_TEXT_DETERMINISTIC: 'Văn bản DOCX theo quy tắc', DOCX_AI_EXTRACTION: 'DOCX trích xuất bằng AI',
+        PDF_TEXT_DETERMINISTIC: 'Văn bản PDF theo quy tắc', PDF_TEXT_AI_EXTRACTION: 'Văn bản PDF trích xuất bằng AI',
+        PDF_OCR_DETERMINISTIC: 'PDF nhận dạng ký tự theo quy tắc', PDF_OCR_AI_EXTRACTION: 'PDF nhận dạng ký tự và trích xuất bằng AI',
+        PDF_MIXED_TEXT_OCR: 'PDF hỗn hợp văn bản và nhận dạng ký tự'
+    };
+    const extractionBadge = mode => mode?.includes('MIXED') ? 'HỖN HỢP' : mode?.includes('OCR') ? 'OCR' : 'VĂN BẢN';
     const iconCatalog = [
         ['☕', 'Cà phê'], ['🧋', 'Trà sữa'], ['🍵', 'Trà'], ['🥤', 'Nước uống'], ['🥛', 'Sữa'], ['🧃', 'Nước ép'],
         ['🍹', 'Nước trái cây'], ['🍸', 'Mocktail'], ['🍓', 'Dâu'], ['🍊', 'Cam'], ['🍋', 'Chanh'], ['🍎', 'Táo'],
@@ -59,11 +88,11 @@
             ] }]
         },
         Size: {
-            sections: [{ title: 'Thông tin Size', fields: [
-                { name: 'SizeCode', label: 'Mã Size', required: true, max: 20, code: true, placeholder: 'Ví dụ: M' },
-                { name: 'Name', label: 'Tên Size', required: true, max: 50, placeholder: 'Ví dụ: Vừa' },
-                { name: 'SizeType', label: 'Loại Size', required: true, type: 'select', options: [{ value: 'Cup', label: 'Ly' }, { value: 'Volume', label: 'Dung tích' }] },
-                { name: 'Description', label: 'Mô tả Size', max: 300, wide: true, placeholder: 'Ví dụ: Size vừa' }
+            sections: [{ title: 'Thông tin kích cỡ', fields: [
+                { name: 'SizeCode', label: 'Mã kích cỡ', required: true, max: 20, code: true, placeholder: 'Ví dụ: M' },
+                { name: 'Name', label: 'Tên kích cỡ', required: true, max: 50, placeholder: 'Ví dụ: Vừa' },
+                { name: 'SizeType', label: 'Loại kích cỡ', required: true, type: 'select', options: [{ value: 'Cup', label: 'Theo ly' }, { value: 'Volume', label: 'Theo dung tích' }] },
+                { name: 'Description', label: 'Mô tả kích cỡ', max: 300, wide: true, placeholder: 'Ví dụ: Kích cỡ vừa' }
             ] }]
         },
         Ingredient: {
@@ -96,7 +125,7 @@
 
     const entityFields = Object.fromEntries(Object.entries(editorSchemas).map(([entity, schema]) => [entity, schema.sections.flatMap(section => section.fields.map(field => field.name))]));
     const fieldDefinition = (entity, name) => editorSchemas[entity]?.sections.flatMap(x => x.fields).find(x => x.name === name);
-    const fieldLabel = (entity, name) => fieldDefinition(entity, name)?.label || name;
+    const fieldLabel = (entity, name) => fieldDefinition(entity, name)?.label || 'Trường dữ liệu';
 
     async function api(url, options = {}) {
         const headers = new Headers(options.headers || {});
@@ -163,7 +192,7 @@
     }
 
     function errorMessage(error) {
-        return `${error.code ? `${error.code}: ` : ''}${error.message}`;
+        return error.message || 'Không thể thực hiện yêu cầu.';
     }
     function escapeHtml(value) { const div = document.createElement('div'); div.textContent = value ?? ''; return div.innerHTML; }
     function displayValue(value) { return value === null || value === undefined || value === '' ? '—' : String(value); }
@@ -181,8 +210,44 @@
         if (dialog?.open) dialog.close();
         state.editingItem = null;
     }
+    function closeAllDialogs() {
+        closeEditDialog();
+        window.Swal?.close();
+        app.querySelectorAll('dialog[open]').forEach(dialog => dialog.close());
+    }
+    function resetSessionFilters() {
+        ['statusFilter', 'sourceFilter', 'entityFilter'].forEach(id => {
+            const input = byId(id);
+            if (input) input.value = '';
+        });
+    }
+    function resetSelectedFiles() {
+        const fileInput = byId('excelFile');
+        if (fileInput) fileInput.value = '';
+        byId('selectedFileName').textContent = '';
+        byId('analyzeButton').disabled = true;
+    }
+    function closeSessionView() {
+        state.sessionGeneration++;
+        closeAllDialogs();
+        byId('workspace').hidden = true;
+        byId('historyPanel').hidden = true;
+        state.session = null;
+        state.activeGroupId = null;
+        state.page = 1;
+        resetSessionFilters();
+        resetSelectedFiles();
+        clearMutationState();
+    }
+    function sessionGuard() {
+        return { id: state.session?.sessionId, generation: state.sessionGeneration };
+    }
+    function guardIsCurrent(guard) {
+        return guard.id === state.session?.sessionId && guard.generation === state.sessionGeneration;
+    }
 
     function closeImportWorkspace(result) {
+        state.sessionGeneration++;
         closeEditDialog();
         byId('workspace').hidden = true;
         byId('historyPanel').hidden = true;
@@ -190,10 +255,8 @@
         state.activeGroupId = null;
         state.page = 1;
 
-        const fileInput = byId('excelFile');
-        fileInput.value = '';
-        byId('selectedFileName').textContent = '';
-        byId('analyzeButton').disabled = true;
+        resetSessionFilters();
+        resetSelectedFiles();
 
         const app = byId('aiImportApp');
         const modal = app?.closest('.modal');
@@ -214,27 +277,43 @@
         const session = state.session;
         if (!session) return;
         byId('workspace').hidden = false;
-        byId('sessionFile').textContent = `#${session.sessionId} · [${formatLabels[session.sourceFormat] || session.sourceFormat}] ${session.fileName}`;
-        const modes = (session.extractionModes || []).map(mode => extractionModeLabels[mode] || mode).join(', ');
+        byId('sessionFile').textContent = `#${session.sessionId} · [${formatLabels[session.sourceFormat] || 'Tệp dữ liệu'}] ${session.fileName}`;
+        const modes = (session.extractionModes || []).map(mode => extractionModeLabels[mode] || 'Cách trích xuất chưa xác định').join(', ');
         byId('sessionMeta').textContent = `Bản xem trước v${session.previewVersion} · ${modes || 'Đang xác định nguồn'} · hết hạn ${new Date(session.expiresAtUtc).toLocaleString('vi-VN')}`;
-        byId('sessionStatus').textContent = statusLabels[session.status] || session.status;
+        byId('sessionStatus').textContent = statusLabels[session.status] || 'Chưa xác định';
         const ready = session.status === 'READY_TO_PREVIEW';
-        byId('confirmButton').disabled = !ready;
+        byId('confirmButton').disabled = !ready || session.confirmBlockedBySources;
         byId('cancelButton').disabled = !['READY_TO_PREVIEW', 'FAILED'].includes(session.status);
         const summary = session.summary;
         const metrics = [['Tổng dòng', summary.totalRows], ['Hợp lệ', summary.valid], ['Cảnh báo', summary.warnings], ['Lỗi', summary.errors], ['Cần xem lại', summary.reviewRequired], ['Bỏ qua', summary.skipped]];
         byId('summaryGrid').innerHTML = metrics.map(([label, count]) => `<div class="summary-tile"><strong>${count}</strong><span>${label}</span></div>`).join('');
+        byId('sourceDocuments').innerHTML = (session.sourceDocuments || []).map(source => `<div class="source-document status-${escapeHtml(source.status.toLowerCase())}"><strong>[${escapeHtml(formatLabels[source.sourceFormat] || 'Tệp dữ liệu')}] ${escapeHtml(source.fileName)}</strong><span class="row-status">${escapeHtml(sourceDocumentStatusLabels[source.status] || 'Chưa xác định')}</span><small>${source.errorCode ? `${escapeHtml(source.errorMessage || 'Tài liệu nguồn không thể xử lý.')}` : `${(source.fileSize / 1024 / 1024).toFixed(2)} MiB`}</small>${ready && source.status !== 'REMOVED' ? `<button type="button" class="btn-ai small danger remove-source" data-source-id="${source.sourceDocumentId}">Loại nguồn</button>` : ''}</div>`).join('');
+        const sourceFilter = byId('sourceFilter');
+        const selectedSource = sourceFilter.value;
+        const availableSources = (session.sourceDocuments || []).filter(source => source.status !== 'REMOVED');
+        sourceFilter.innerHTML = `<option value="">Tất cả</option>${availableSources.map(source => `<option value="${source.sourceDocumentId}">${escapeHtml(source.fileName)}</option>`).join('')}`;
+        sourceFilter.value = availableSources.some(source => String(source.sourceDocumentId) === selectedSource) ? selectedSource : '';
         const analysisWarnings = session.analysisWarnings || [];
         const warningBox = byId('analysisWarnings');
         warningBox.hidden = analysisWarnings.length === 0;
-        warningBox.innerHTML = analysisWarnings.map(x => `<div><strong>${escapeHtml(x.code)}</strong>: ${escapeHtml(x.message)}</div>`).join('');
-        byId('groupCount').textContent = session.groups.length;
-        if (!state.activeGroupId || !session.groups.some(x => x.groupId === state.activeGroupId)) state.activeGroupId = session.groups[0]?.groupId;
-        byId('groupTabs').innerHTML = session.groups.map(group => `<button type="button" class="group-tab ${group.groupId === state.activeGroupId ? 'active' : ''}" data-group-id="${group.groupId}"><strong>${escapeHtml(group.sourceLabel || group.sheetName)} · ${escapeHtml(entityLabels[group.entityType] || group.entityType)}</strong><small>${escapeHtml(locatorLabel(group.sourceLocator, group.regionAddress))} · ${(group.confidence * 100).toFixed(0)}%</small></button>`).join('');
+        warningBox.innerHTML = analysisWarnings.map(x => `<div>${escapeHtml(x.message)}</div>`).join('');
+        const entityFilter = byId('entityFilter').value;
+        const visibleGroups = session.groups.filter(group =>
+            (!sourceFilter.value || String(group.sourceDocumentId) === sourceFilter.value)
+            && (!entityFilter || group.entityType === entityFilter));
+        byId('groupCount').textContent = visibleGroups.length;
+        if (!state.activeGroupId || !visibleGroups.some(x => x.groupId === state.activeGroupId)) state.activeGroupId = visibleGroups[0]?.groupId;
+        byId('groupTabs').innerHTML = visibleGroups.map(group => `<button type="button" class="group-tab ${group.groupId === state.activeGroupId ? 'active' : ''}" data-group-id="${group.groupId}"><strong>${escapeHtml(group.sourceFileName || session.fileName)} · ${escapeHtml(group.sourceLabel || group.sheetName)} · ${escapeHtml(entityLabels[group.entityType] || 'Chưa xác định')}</strong><small>${escapeHtml(locatorLabel(group.sourceLocator, group.regionAddress))} · ${(group.confidence * 100).toFixed(0)}%</small></button>`).join('');
         const group = session.groups.find(x => x.groupId === state.activeGroupId);
-        if (!group) return;
+        if (!group) {
+            byId('activeGroupTitle').textContent = 'Không có vùng dữ liệu';
+            byId('activeGroupMeta').textContent = '';
+            byId('mappingFields').innerHTML = '';
+            byId('previewRows').innerHTML = '<tr><td colspan="5" class="empty-preview">Tệp nguồn này chưa có vùng dữ liệu hợp lệ.</td></tr>';
+            return;
+        }
         byId('activeGroupTitle').textContent = `${group.sourceLabel || group.sheetName} / ${locatorLabel(group.sourceLocator, group.regionAddress)}`;
-        byId('activeGroupMeta').textContent = `${extractionModeLabels[group.extractionMode] || group.extractionMode} · thứ tự phụ thuộc ${group.dependencyOrder}`;
+        byId('activeGroupMeta').textContent = `[${extractionBadge(group.extractionMode)}] ${extractionModeLabels[group.extractionMode] || 'Cách trích xuất chưa xác định'} · thứ tự phụ thuộc ${group.dependencyOrder}`;
         byId('groupEntity').value = group.entityType;
         renderMapping(group);
         renderRows(group);
@@ -246,7 +325,58 @@
     function renderMapping(group) {
         const fields = entityFields[group.entityType] || Object.keys(group.mapping || {});
         const columns = group.sourceColumns?.length ? group.sourceColumns : (group.sourceHeaders || []).map(header => ({ key: header, label: header, classification: 'UNKNOWN' }));
-        byId('mappingFields').innerHTML = fields.map(field => `<label><span>${escapeHtml(fieldLabel(group.entityType, field))}</span><select data-mapping-field="${escapeHtml(field)}"><option value="">— Không ánh xạ —</option>${columns.filter(column => column.classification !== 'FORBIDDEN').map(column => `<option value="${escapeHtml(column.key)}" ${group.mapping?.[field] === column.key ? 'selected' : ''}>${escapeHtml(column.label)}${column.key !== column.label ? ` · ${escapeHtml(column.key)}` : ''} · ${escapeHtml(column.classification)}</option>`).join('')}</select></label>`).join('');
+        const conflicts = new Map((group.issues || []).filter(issue => issue.code === 'XUNG_ĐỘT_ÁNH_XẠ')
+            .map(issue => [issue.metadata?.targetField || issue.field, issue]));
+        const conflictBySource = new Map();
+        for (const [targetField, conflict] of conflicts) {
+            for (const sourceKey of conflict.metadata?.candidateSourceKeys || []) conflictBySource.set(sourceKey, targetField);
+        }
+        const targetBySource = new Map(Object.entries(group.mapping || {})
+            .filter(([, sourceKey]) => sourceKey)
+            .map(([targetField, sourceKey]) => [sourceKey, targetField]));
+        const assignedTargets = new Map([...targetBySource].map(([sourceKey, targetField]) => [targetField, sourceKey]));
+        const samples = new Map(columns.map(column => [column.key, (group.items || [])
+            .map(item => item.rawData?.[column.key])
+            .find(value => value !== null && value !== undefined && value !== '')]));
+        const grouped = new Map(['MAPPED', 'IGNORED', 'UNKNOWN', 'FORBIDDEN'].map(classification => [classification, []]));
+
+        for (const column of columns) {
+            const currentTarget = targetBySource.get(column.key) || '';
+            const classification = currentTarget ? 'MAPPED' : (column.classification || 'UNKNOWN');
+            const forbidden = classification === 'FORBIDDEN';
+            const targetOptions = fields
+                .filter(field => !assignedTargets.has(field) || assignedTargets.get(field) === column.key)
+                .map(field => `<option value="${escapeHtml(field)}" ${currentTarget === field ? 'selected' : ''}>${escapeHtml(fieldLabel(group.entityType, field))}</option>`)
+                .join('');
+            const selector = forbidden
+                ? '<select disabled aria-label="Cột không được phép nhập"><option>Không thể ánh xạ cột này</option></select>'
+                : `<select data-source-column="${escapeHtml(column.key)}" data-target-field="${escapeHtml(currentTarget)}" aria-label="Chọn trường đích cho cột ${escapeHtml(column.label || column.key)}"><option value="">⊘ Bỏ qua cột này</option><optgroup label="Trường có thể ánh xạ">${targetOptions}</optgroup></select>`;
+            const conflictTarget = conflictBySource.get(column.key);
+            const conflictNote = conflictTarget
+                ? `<em class="mapping-required">Cần chọn nguồn cho ${escapeHtml(fieldLabel(group.entityType, conflictTarget))}</em>`
+                : '';
+            const reason = columnClassificationDescriptions[classification] || columnClassificationDescriptions.UNKNOWN;
+            grouped.get(classification)?.push(`<div class="mapping-row ${conflictTarget ? 'mapping-conflict' : ''}" data-column-classification="${escapeHtml(classification)}"><div class="mapping-source"><strong>${escapeHtml(column.label || column.key)}</strong>${column.key !== column.label ? `<small>Mã cột: ${escapeHtml(column.key)}</small>` : ''}${conflictNote}</div><div class="mapping-sample" title="${escapeHtml(displayValue(samples.get(column.key)))}">${escapeHtml(displayValue(samples.get(column.key)))}</div><div class="mapping-state"><span class="mapping-state-badge status-${escapeHtml(classification.toLowerCase())}">${escapeHtml(columnClassificationLabels[classification] || columnClassificationLabels.UNKNOWN)}</span><small>${escapeHtml(reason)}</small></div><div class="mapping-target">${selector}</div></div>`);
+        }
+
+        byId('mappingFields').innerHTML = [...grouped.entries()]
+            .filter(([, rows]) => rows.length)
+            .map(([classification, rows]) => `<section class="mapping-section"><h4>${escapeHtml(columnClassificationLabels[classification])}<span>${rows.length}</span></h4>${rows.join('')}</section>`)
+            .join('') || '<p class="mapping-empty">Không có cột nguồn để ánh xạ.</p>';
+        syncMappingTargetAvailability();
+    }
+
+    function syncMappingTargetAvailability() {
+        const selects = [...byId('mappingFields').querySelectorAll('[data-source-column]')];
+        const selectedTargets = new Map(selects.filter(select => select.value)
+            .map(select => [select.value, select.dataset.sourceColumn]));
+        for (const select of selects) {
+            for (const option of select.querySelectorAll('optgroup option')) {
+                option.disabled = selectedTargets.has(option.value)
+                    && selectedTargets.get(option.value) !== select.dataset.sourceColumn;
+            }
+            select.dataset.targetField = select.value;
+        }
     }
 
     function renderBusinessValues(group, item) {
@@ -255,7 +385,11 @@
             const sourceHeader = group.mapping?.[field];
             const raw = sourceHeader ? item.rawData?.[sourceHeader] : null;
             const normalized = item.normalizedData?.[field];
-            return `<div class="business-value"><strong>${escapeHtml(fieldLabel(group.entityType, field))}</strong><div><span class="value-caption">Nguồn</span><span class="value-clamp" title="${escapeHtml(displayValue(raw))}">${escapeHtml(displayValue(raw))}</span></div><i class="fa-solid fa-arrow-right" aria-hidden="true"></i><div><span class="value-caption">Chuẩn hóa</span><span class="value-clamp" title="${escapeHtml(displayValue(normalized))}">${escapeHtml(displayValue(normalized))}</span></div></div>`;
+            const fieldEvidence = item.fieldEvidence?.[field];
+            const evidenceMeta = fieldEvidence
+                ? `<small class="source-evidence">${escapeHtml(sourceKindLabels[fieldEvidence.sourceKind] || 'Nguồn')} · ${escapeHtml(locatorLabel(fieldEvidence.sourceLocator, ''))}${fieldEvidence.ocrConfidence == null ? '' : ` · OCR ${(fieldEvidence.ocrConfidence * 100).toFixed(0)}%`}${fieldEvidence.aiConfidence == null ? '' : ` · AI ${(fieldEvidence.aiConfidence * 100).toFixed(0)}%`} · Văn bản gốc: ${escapeHtml(fieldEvidence.rawText || '')}</small>`
+                : '';
+            return `<div class="business-value"><strong>${escapeHtml(fieldLabel(group.entityType, field))}</strong><div><span class="value-caption">Nguồn</span><span class="value-clamp" title="${escapeHtml(displayValue(raw))}">${escapeHtml(displayValue(raw))}</span></div><i class="fa-solid fa-arrow-right" aria-hidden="true"></i><div><span class="value-caption">Chuẩn hóa</span><span class="value-clamp" title="${escapeHtml(displayValue(normalized))}">${escapeHtml(displayValue(normalized))}</span></div>${evidenceMeta}</div>`;
         }).join('');
         const mappedHeaders = new Set(Object.values(group.mapping || {}).filter(Boolean));
         const supplemental = Object.entries(item.rawData || {}).filter(([key]) => !mappedHeaders.has(key));
@@ -275,13 +409,16 @@
             const warnings = canonicalIssues.filter(issue => issue.severity === 'WARNING');
             const issueMarkup = (issue, warning) => {
                 const severity = issue.severity || (warning ? 'WARNING' : 'ERROR');
-                const label = fieldLabel(group.entityType, issue.field) || issue.code || (warning ? 'Cảnh báo' : 'Lỗi');
+                const label = fieldDefinition(group.entityType, issue.field)
+                    ? fieldLabel(group.entityType, issue.field)
+                    : (warning ? 'Cảnh báo' : 'Lỗi');
                 const fieldControl = issue.field
                     ? `<button type="button" class="issue-field-link edit-row" data-item-id="${item.itemId}" data-focus-field="${escapeHtml(issue.field)}">${escapeHtml(label)}</button>`
                     : `<strong>${escapeHtml(label)}</strong>`;
                 const locator = locatorLabel(issue.sourceLocator || issue.position, '');
                 const resolution = issue.metadata?.resolution;
-                const metadata = [severity, locator, resolution].filter(Boolean).map(escapeHtml).join(' · ');
+                const metadata = [issueSeverityLabels[severity] || null, locator, issueResolutionLabels[resolution] || null]
+                    .filter(Boolean).map(escapeHtml).join(' · ');
                 return `<div class="issue ${warning ? 'warning' : ''}">${fieldControl}<span>${escapeHtml(issue.message)}</span>${metadata ? `<small>${metadata}</small>` : ''}</div>`;
             };
             const issues = [
@@ -289,31 +426,72 @@
                 ...warnings.map(x => issueMarkup(x, true))
             ].join('') || '<span class="no-issue">Không có lỗi</span>';
             const trace = locatorLabel(item.sourceLocator, Object.values(item.sourceTrace || {}).filter(Boolean).join(', ') || group.sourceLabel || group.sheetName);
-            const confidence = item.aiConfidence == null ? '' : `<small class="source-confidence">AI ${(item.aiConfidence * 100).toFixed(0)}%</small>`;
+            const confidenceParts = [
+                item.sourceConfidence == null ? null : `Nguồn ${(item.sourceConfidence * 100).toFixed(0)}%`,
+                item.layoutConfidence == null ? null : `Bố cục ${(item.layoutConfidence * 100).toFixed(0)}%`,
+                item.ocrConfidence == null ? null : `OCR ${(item.ocrConfidence * 100).toFixed(0)}%`,
+                item.aiConfidence == null ? null : `AI ${(item.aiConfidence * 100).toFixed(0)}%`
+            ].filter(Boolean);
+            const confidence = confidenceParts.length ? `<small class="source-confidence">${escapeHtml(confidenceParts.join(' · '))}</small>` : '';
             const evidence = item.evidenceSnippet ? `<small class="source-evidence" title="${escapeHtml(item.evidenceSnippet)}">${escapeHtml(item.evidenceSnippet)}</small>` : '';
             const effectiveStatus = confirmIssues.length ? 'ERROR' : item.status;
-            return `<tr class="preview-row status-${effectiveStatus.toLowerCase()}" data-item-row="${item.itemId}"><td><strong class="source-row-number">${escapeHtml(trace)}</strong>${confidence}${evidence}</td><td><span class="row-status status-${effectiveStatus.toLowerCase()}">${escapeHtml(statusLabels[effectiveStatus] || effectiveStatus)}</span><small class="action-label">${escapeHtml(actionLabels[item.action] || item.action)}</small></td><td>${renderBusinessValues(group, item)}</td><td class="issues-cell">${issues}</td><td><button type="button" class="btn-ai small edit-row" data-item-id="${item.itemId}">Sửa dòng</button></td></tr>`;
+            return `<tr class="preview-row status-${effectiveStatus.toLowerCase()}" data-item-row="${item.itemId}"><td><strong class="source-row-number">${escapeHtml(trace)}</strong>${confidence}${evidence}</td><td><span class="row-status status-${effectiveStatus.toLowerCase()}">${escapeHtml(statusLabels[effectiveStatus] || 'Chưa xác định')}</span><small class="action-label">${escapeHtml(actionLabels[item.action] || 'Chưa xác định')}</small></td><td>${renderBusinessValues(group, item)}</td><td class="issues-cell">${issues}</td><td><button type="button" class="btn-ai small edit-row" data-item-id="${item.itemId}">Sửa dòng</button></td></tr>`;
         }).join('') : '<tr><td colspan="5" class="empty-preview">Không có dòng phù hợp với bộ lọc.</td></tr>';
     }
 
-    async function loadSession(id, keepGroup = true) {
+    async function loadSession(id, keepGroup = true, generation = state.sessionGeneration) {
         const groupId = keepGroup ? state.activeGroupId : null;
         const params = new URLSearchParams({ page: state.page, pageSize: state.pageSize });
         if (groupId) params.set('groupId', groupId);
         if (byId('statusFilter').value) params.set('status', byId('statusFilter').value);
-        state.session = await api(`/api/ai-import/${id}?${params}`);
+        const session = await api(`/api/ai-import/${id}?${params}`);
+        if (generation !== state.sessionGeneration) return false;
+        state.session = session;
         render();
+        return true;
+    }
+
+    async function switchSession(id) {
+        const previous = {
+            session: state.session,
+            activeGroupId: state.activeGroupId,
+            page: state.page,
+            status: byId('statusFilter').value,
+            source: byId('sourceFilter').value,
+            entity: byId('entityFilter').value
+        };
+        const generation = ++state.sessionGeneration;
+        closeAllDialogs();
+        state.activeGroupId = null;
+        state.page = 1;
+        resetSessionFilters();
+        clearMutationState();
+        try {
+            return await loadSession(id, false, generation);
+        } catch (error) {
+            if (generation !== state.sessionGeneration) return false;
+            state.session = previous.session;
+            state.activeGroupId = previous.activeGroupId;
+            state.page = previous.page;
+            byId('statusFilter').value = previous.status;
+            byId('sourceFilter').value = previous.source;
+            byId('entityFilter').value = previous.entity;
+            if (state.session) render();
+            throw error;
+        }
     }
 
     async function analyze() {
-        const file = byId('excelFile').files[0];
-        if (!file) return;
+        const files = Array.from(byId('excelFile').files || []);
+        if (!files.length) return;
         const form = new FormData();
-        form.append('File', file);
+        files.forEach(file => form.append('Files', file));
         if (byId('entityHint').value) form.append('EntityHint', byId('entityHint').value);
+        form.append('UseOcr', byId('useOcr').checked ? 'true' : 'false');
         busy(true);
         try {
             state.session = await api('/api/ai-import/analyze', { method: 'POST', body: form });
+            state.sessionGeneration++;
             state.activeGroupId = state.session.groups[0]?.groupId;
             state.page = 1;
             clearMutationState();
@@ -327,14 +505,50 @@
     async function saveMapping() {
         const group = state.session.groups.find(x => x.groupId === state.activeGroupId);
         if (!group) return;
-        const mapping = {};
-        document.querySelectorAll('[data-mapping-field]').forEach(select => mapping[select.dataset.mappingField] = select.value || null);
+        const fields = entityFields[byId('groupEntity').value] || [];
+        const mapping = Object.fromEntries(fields.map(field => [field, null]));
+        document.querySelectorAll('[data-source-column]').forEach(select => {
+            if (select.value) mapping[select.value] = select.dataset.sourceColumn;
+        });
+        const guard = sessionGuard();
         busy(true);
         try {
-            state.session = await api(`/api/ai-import/${state.session.sessionId}/groups/${group.groupId}`, { method: 'PATCH', body: JSON.stringify({ expectedPreviewVersion: state.session.previewVersion, entityType: byId('groupEntity').value, mapping }) });
+            const session = await api(`/api/ai-import/${guard.id}/groups/${group.groupId}`, { method: 'PATCH', body: JSON.stringify({ expectedPreviewVersion: state.session.previewVersion, entityType: byId('groupEntity').value, mapping }) });
+            if (!guardIsCurrent(guard)) return;
+            state.session = session;
             clearMutationState();
             render();
             await showAlert('Đã lưu ánh xạ cột và kiểm tra lại toàn bộ vùng.', 'success');
+        } catch (error) { await handleMutationError(error); }
+        finally { busy(false); }
+    }
+
+    async function remapFromEditor(targetField, sourceKey) {
+        const group = state.session?.groups.find(x => x.groupId === state.activeGroupId);
+        const itemId = state.editingItem?.itemId;
+        if (!group || !targetField || !sourceKey) return;
+        const guard = sessionGuard();
+        const mapping = Object.fromEntries(Object.entries(group.mapping || {})
+            .map(([field, mappedSource]) => [field, mappedSource === sourceKey && field !== targetField ? null : mappedSource]));
+        mapping[targetField] = sourceKey;
+        busy(true);
+        try {
+            const session = await api(`/api/ai-import/${guard.id}/groups/${group.groupId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    expectedPreviewVersion: state.session.previewVersion,
+                    entityType: group.entityType,
+                    mapping
+                })
+            });
+            if (!guardIsCurrent(guard)) return;
+            state.session = session;
+            clearMutationState();
+            render();
+            const updatedGroup = state.session.groups.find(x => x.groupId === group.groupId);
+            const updatedItem = updatedGroup?.items.find(x => x.itemId === itemId);
+            if (updatedItem) renderEditor(updatedGroup, updatedItem, await ensureEditorOptions());
+            await showAlert(`Đã chọn ${sourceKey} làm nguồn cho ${fieldLabel(group.entityType, targetField)} trên toàn bộ vùng dữ liệu.`, 'success');
         } catch (error) { await handleMutationError(error); }
         finally { busy(false); }
     }
@@ -417,16 +631,16 @@
     function categoryIconError(value) {
         const icon = String(value || '').trim();
         if (!icon) return '';
-        if (/[<>&]/u.test(icon)) return 'Icon không được chứa HTML.';
+        if (/[<>&]/u.test(icon)) return 'Biểu tượng không được chứa HTML.';
         const segments = typeof Intl.Segmenter === 'function' ? Array.from(new Intl.Segmenter('vi', { granularity: 'grapheme' }).segment(icon), x => x.segment) : Array.from(icon);
         if (segments.length !== 1) return 'Chỉ được chọn một biểu tượng Unicode.';
         let hasSymbol = false;
         for (const character of icon) {
             if (/\p{S}/u.test(character)) hasSymbol = true;
-            else if (!/[\p{M}\u200D]/u.test(character)) return 'Icon phải là biểu tượng Unicode, không phải chữ hoặc số.';
+            else if (!/[\p{M}\u200D]/u.test(character)) return 'Biểu tượng phải là ký hiệu Unicode, không phải chữ hoặc số.';
         }
-        if (!hasSymbol) return 'Icon phải là một biểu tượng Unicode hợp lệ.';
-        return icon.length > 10 ? 'Icon tối đa 10 ký tự.' : '';
+        if (!hasSymbol) return 'Biểu tượng phải là một ký hiệu Unicode hợp lệ.';
+        return icon.length > 10 ? 'Biểu tượng tối đa 10 ký tự.' : '';
     }
 
     function initializeIconEditor() {
@@ -467,20 +681,37 @@
         const schema = editorSchemas[group.entityType];
         if (!schema) return;
         state.editingItem = item;
-        byId('editEntityName').textContent = entityLabels[group.entityType] || group.entityType;
+        byId('editEntityName').textContent = entityLabels[group.entityType] || 'Chưa xác định';
         byId('editRowNumber').textContent = item.sourceRow;
         const serverErrors = [...((item.issues || item.errors || []).filter(issue => issue.severity !== 'WARNING')), ...(state.confirmErrors.get(item.itemId) || [])];
         byId('editFields').innerHTML = schema.sections.map(section => `<fieldset class="editor-section"><legend>${escapeHtml(section.title)}</legend>${section.note ? `<p>${escapeHtml(section.note)}</p>` : ''}<div class="editor-grid">${section.fields.map(field => editorFieldHtml(group.entityType, field, item.normalizedData?.[field.name], options, serverErrors)).join('')}</div></fieldset>`).join('');
         applyServerFieldErrors(group.entityType, serverErrors);
         const mappedHeaders = new Set(Object.values(group.mapping || {}).filter(Boolean));
         const supplemental = Object.entries(item.rawData || {}).filter(([key]) => !mappedHeaders.has(key));
-        byId('editSourceData').innerHTML = supplemental.length ? supplemental.map(([key, value]) => `<div><b>${escapeHtml(key)}</b><span>${escapeHtml(displayValue(value))}</span></div>`).join('') : '<p>Không có dữ liệu ngoài ánh xạ.</p>';
+        const evidenceRows = Object.entries(item.fieldEvidence || {}).map(([field, evidence]) => `<div><b>${escapeHtml(fieldLabel(group.entityType, field))} · ${escapeHtml(sourceKindLabels[evidence.sourceKind] || 'Nguồn')}</b><span>${escapeHtml(locatorLabel(evidence.sourceLocator, ''))}${evidence.ocrConfidence == null ? '' : ` · OCR ${(evidence.ocrConfidence * 100).toFixed(0)}%`}${evidence.aiConfidence == null ? '' : ` · AI ${(evidence.aiConfidence * 100).toFixed(0)}%`}<br>${escapeHtml(evidence.rawText || '')}</span></div>`);
+        const mappingConflicts = (group.issues || []).filter(issue => issue.code === 'XUNG_ĐỘT_ÁNH_XẠ');
+        const choices = new Map();
+        for (const issue of mappingConflicts) {
+            const targetField = issue.metadata?.targetField || issue.field;
+            for (const sourceKey of issue.metadata?.candidateSourceKeys || [])
+                choices.set(sourceKey, targetField);
+        }
+        const columnMap = new Map((group.sourceColumns || []).map(column => [column.key, column]));
+        const supplementalRows = supplemental.map(([key, value]) => {
+            const targetField = choices.get(key);
+            const column = columnMap.get(key);
+            const action = targetField
+                ? `<button type="button" class="btn-ai small source-mapping-choice" data-source-key="${escapeHtml(key)}" data-target-field="${escapeHtml(targetField)}">Chọn làm nguồn cho “${escapeHtml(fieldLabel(group.entityType, targetField))}”</button><small>Lựa chọn này áp dụng cho toàn bộ vùng dữ liệu hiện tại.</small>`
+                : '';
+            return `<div><b>${escapeHtml(column?.label || key)}${key !== column?.label ? ` · ${escapeHtml(key)}` : ''}</b><span>${escapeHtml(displayValue(value))}${action}</span></div>`;
+        });
+        byId('editSourceData').innerHTML = [...evidenceRows, ...supplementalRows].join('') || '<p>Không có dữ liệu ngoài ánh xạ.</p>';
         const hasWarnings = (item.warnings || []).length > 0;
         const needsOverride = group.entityType === 'Supplier' && (item.warnings || []).some(x => x.code === 'NHÀ_CUNG_CẤP_GẦN_TRÙNG');
         byId('warningSection').hidden = !hasWarnings;
-        byId('editWarningMessages').innerHTML = (item.warnings || []).map(issue => `<div class="edit-warning-message"><strong>${escapeHtml(issue.code || 'Cảnh báo')}</strong><span>${escapeHtml(issue.message)}</span></div>`).join('');
+        byId('editWarningMessages').innerHTML = (item.warnings || []).map(issue => `<div class="edit-warning-message"><strong>${escapeHtml(issue.field ? fieldLabel(group.entityType, issue.field) : 'Cảnh báo')}</strong><span>${escapeHtml(issue.message)}</span></div>`).join('');
         byId('acknowledgeWarnings').checked = item.warningsAcknowledged;
-        const reviewableIssues = (item.issues || []).filter(issue => issue.severity === 'REVIEW' && issue.metadata?.resolution === 'MANUAL_REVIEW');
+        const reviewableIssues = (item.issues || []).filter(issue => issue.metadata?.resolution === 'MANUAL_REVIEW');
         byId('manualReviewRow').hidden = reviewableIssues.length === 0;
         byId('manualReviewConfirmed').checked = item.manualReviewConfirmed === true;
         byId('overrideReason').value = item.duplicateOverrideReason || '';
@@ -552,9 +783,11 @@
         const group = state.session.groups.find(x => x.groupId === state.activeGroupId);
         const item = group?.items.find(x => x.itemId === itemId);
         if (!item) return;
+        const guard = sessionGuard();
         busy(true);
         try {
             const options = await ensureEditorOptions();
+            if (!guardIsCurrent(guard) || state.session.status !== 'READY_TO_PREVIEW') return;
             renderEditor(group, item, options);
             byId('editDialog').showModal();
             requestAnimationFrame(() => {
@@ -573,9 +806,12 @@
         if (action === 'CREATE' && !validateEditor(true)) return;
         const values = {};
         document.querySelectorAll('[data-edit-field]').forEach(input => values[input.dataset.editField] = input.value);
+        const guard = sessionGuard();
         busy(true);
         try {
-            state.session = await api(`/api/ai-import/${state.session.sessionId}/items/${item.itemId}`, { method: 'PATCH', body: JSON.stringify({ expectedPreviewVersion: state.session.previewVersion, action, values, warningsAcknowledged: byId('acknowledgeWarnings').checked, manualReviewConfirmed: action === 'CREATE' && byId('manualReviewConfirmed').checked, duplicateOverrideReason: byId('overrideReason').value }) });
+            const session = await api(`/api/ai-import/${guard.id}/items/${item.itemId}`, { method: 'PATCH', body: JSON.stringify({ expectedPreviewVersion: state.session.previewVersion, action, values, warningsAcknowledged: byId('acknowledgeWarnings').checked, manualReviewConfirmed: action === 'CREATE' && byId('manualReviewConfirmed').checked, duplicateOverrideReason: byId('overrideReason').value }) });
+            if (!guardIsCurrent(guard)) return;
+            state.session = session;
             clearMutationState();
             const group = state.session.groups.find(x => x.groupId === state.activeGroupId);
             const updatedItem = group?.items.find(x => x.itemId === item.itemId);
@@ -612,6 +848,8 @@
         if (targetGroup) state.activeGroupId = targetGroup.groupId;
         state.page = 1;
         byId('statusFilter').value = '';
+        byId('sourceFilter').value = '';
+        byId('entityFilter').value = '';
         await loadSession(state.session.sessionId);
         requestAnimationFrame(() => document.querySelector(`[data-item-row="${first.itemId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
     }
@@ -640,46 +878,137 @@
     async function history() {
         try {
             const data = await api('/api/ai-import/history?page=1&pageSize=30');
-            byId('historyRows').innerHTML = data.items.map(x => `<button type="button" class="history-row group-tab" data-history-id="${x.sessionId}"><strong>#${x.sessionId} · [${escapeHtml(formatLabels[x.sourceFormat] || x.sourceFormat)}] ${escapeHtml(x.fileName)}</strong><span class="row-status">${escapeHtml(statusLabels[x.status] || x.status)}</span><small>${new Date(x.createdAtUtc).toLocaleString('vi-VN')} · ${x.importedRows}/${x.totalRows} đã nhập</small></button>`).join('') || '<p>Chưa có phiên.</p>';
+            byId('historyRows').innerHTML = data.items.map(x => `<button type="button" class="history-row group-tab" data-history-id="${x.sessionId}"><strong>#${x.sessionId} · [${escapeHtml(formatLabels[x.sourceFormat] || 'Tệp dữ liệu')}] ${escapeHtml(x.fileName)}</strong><span class="row-status">${escapeHtml(statusLabels[x.status] || 'Chưa xác định')}</span><small>${new Date(x.createdAtUtc).toLocaleString('vi-VN')} · ${x.importedRows}/${x.totalRows} đã nhập</small></button>`).join('') || '<p>Chưa có phiên.</p>';
             byId('historyPanel').hidden = false;
         } catch (error) { await showAlert(error.message, 'error'); }
     }
 
     const fileInput = byId('excelFile');
     byId('chooseFileButton').addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', () => { const file = fileInput.files[0]; byId('selectedFileName').textContent = file?.name || ''; byId('analyzeButton').disabled = !file; });
+    fileInput.addEventListener('change', () => {
+        const files = Array.from(fileInput.files || []);
+        byId('selectedFileName').innerHTML = files.map(file => `<span>${escapeHtml(file.name)} · ${(file.size / 1024 / 1024).toFixed(2)} MiB</span>`).join('');
+        byId('analyzeButton').disabled = files.length === 0;
+    });
     const drop = byId('dropZone');
     ['dragenter', 'dragover'].forEach(name => drop.addEventListener(name, event => { event.preventDefault(); drop.classList.add('dragging'); }));
     ['dragleave', 'drop'].forEach(name => drop.addEventListener(name, event => { event.preventDefault(); drop.classList.remove('dragging'); }));
-    drop.addEventListener('drop', event => { if (event.dataTransfer.files.length) { const transfer = new DataTransfer(); transfer.items.add(event.dataTransfer.files[0]); fileInput.files = transfer.files; fileInput.dispatchEvent(new Event('change')); } });
+    drop.addEventListener('drop', event => { if (event.dataTransfer.files.length) { const transfer = new DataTransfer(); Array.from(event.dataTransfer.files).forEach(file => transfer.items.add(file)); fileInput.files = transfer.files; fileInput.dispatchEvent(new Event('change')); } });
     byId('analyzeButton').addEventListener('click', analyze);
     byId('saveMappingButton').addEventListener('click', saveMapping);
     byId('confirmButton').addEventListener('click', confirmSession);
+    byId('closeSessionButton').addEventListener('click', closeSessionView);
     byId('reanalyzeButton').addEventListener('click', async () => { busy(true); try { state.session = await api(`/api/ai-import/${state.session.sessionId}/reanalyze`, { method: 'POST', body: JSON.stringify({ expectedPreviewVersion: state.session.previewVersion }) }); clearMutationState(); render(); await showAlert('Đã phân tích lại và cập nhật bản xem trước.', 'success', 'Phân tích thành công'); } catch (error) { await handleMutationError(error); } finally { busy(false); } });
     byId('cancelButton').addEventListener('click', async () => {
         if (!await confirmAction('Hủy phiên', 'Dữ liệu bản xem trước của phiên này sẽ không thể tiếp tục nhập.', 'Hủy phiên')) return;
         busy(true);
         try {
             state.session = await api(`/api/ai-import/${state.session.sessionId}/cancel`, { method: 'POST', body: JSON.stringify({ expectedPreviewVersion: state.session.previewVersion }) });
-            closeEditDialog();
+            state.sessionGeneration++;
+            closeAllDialogs();
+            state.editingItem = null;
+            clearMutationState();
             render();
             await showAlert('Đã hủy phiên nhập dữ liệu.', 'success');
         } catch (error) { await handleMutationError(error); }
         finally { busy(false); }
     });
     byId('groupEntity').addEventListener('change', () => { const group = state.session.groups.find(x => x.groupId === state.activeGroupId); group.entityType = byId('groupEntity').value; renderMapping(group); });
+    byId('mappingFields').addEventListener('change', event => {
+        if (!event.target.matches('[data-source-column]')) return;
+        syncMappingTargetAvailability();
+    });
     byId('groupTabs').addEventListener('click', async event => { const button = event.target.closest('[data-group-id]'); if (!button) return; state.activeGroupId = Number(button.dataset.groupId); state.page = 1; await loadSession(state.session.sessionId); });
     byId('previewRows').addEventListener('click', event => { const button = event.target.closest('.edit-row'); if (button) openEditor(Number(button.dataset.itemId), button.dataset.focusField); });
+    byId('sourceDocuments').addEventListener('click', async event => {
+        const button = event.target.closest('.remove-source');
+        if (!button || !state.session) return;
+        if (!await confirmAction('Loại tài liệu nguồn', 'Toàn bộ vùng và bản ghi dự kiến thuộc tài liệu này sẽ bị loại khỏi phiên.', 'Loại nguồn')) return;
+        const guard = sessionGuard();
+        busy(true);
+        try {
+            const session = await api(`/api/ai-import/${guard.id}/sources/${button.dataset.sourceId}?expectedPreviewVersion=${state.session.previewVersion}`, { method: 'DELETE' });
+            if (!guardIsCurrent(guard)) return;
+            state.session = session;
+            state.activeGroupId = session.groups[0]?.groupId;
+            clearMutationState();
+            render();
+        } catch (error) { await handleMutationError(error); }
+        finally { busy(false); }
+    });
     byId('saveItemButton').addEventListener('click', () => saveItem('CREATE'));
     byId('skipItemButton').addEventListener('click', () => saveItem('SKIP'));
     byId('acknowledgeWarnings').addEventListener('change', () => validateEditor(false));
     byId('manualReviewConfirmed').addEventListener('change', () => validateEditor(false));
     byId('overrideReason').addEventListener('input', () => validateEditor(false));
+    byId('editSourceData').addEventListener('click', event => {
+        const button = event.target.closest('[data-source-key][data-target-field]');
+        if (button) remapFromEditor(button.dataset.targetField, button.dataset.sourceKey);
+    });
     byId('editDialog').addEventListener('close', () => { state.editingItem = null; });
     byId('statusFilter').addEventListener('change', async () => { if (!state.session) return; state.page = 1; await loadSession(state.session.sessionId); });
+    byId('sourceFilter').addEventListener('change', async () => {
+        if (!state.session) return;
+        const sourceId = byId('sourceFilter').value;
+        const entityType = byId('entityFilter').value;
+        state.activeGroupId = state.session.groups.find(group =>
+            (!sourceId || String(group.sourceDocumentId) === sourceId)
+            && (!entityType || group.entityType === entityType))?.groupId;
+        state.page = 1;
+        await loadSession(state.session.sessionId);
+    });
+    byId('entityFilter').addEventListener('change', async () => {
+        if (!state.session) return;
+        const sourceId = byId('sourceFilter').value;
+        const entityType = byId('entityFilter').value;
+        state.activeGroupId = state.session.groups.find(group =>
+            (!sourceId || String(group.sourceDocumentId) === sourceId)
+            && (!entityType || group.entityType === entityType))?.groupId;
+        state.page = 1;
+        await loadSession(state.session.sessionId);
+    });
     byId('previousPage').addEventListener('click', async () => { state.page--; await loadSession(state.session.sessionId); });
     byId('nextPage').addEventListener('click', async () => { state.page++; await loadSession(state.session.sessionId); });
     byId('refreshHistoryButton').addEventListener('click', history);
     byId('closeHistoryButton').addEventListener('click', () => byId('historyPanel').hidden = true);
-    byId('historyRows').addEventListener('click', async event => { const row = event.target.closest('[data-history-id]'); if (!row) return; state.activeGroupId = null; state.page = 1; clearMutationState(); await loadSession(Number(row.dataset.historyId), false); byId('historyPanel').hidden = true; });
+    byId('historyRows').addEventListener('click', async event => {
+        const row = event.target.closest('[data-history-id]');
+        if (!row) return;
+        busy(true);
+        try {
+            if (await switchSession(Number(row.dataset.historyId))) byId('historyPanel').hidden = true;
+        } catch (error) {
+            await showAlert(errorMessage(error), 'error');
+        } finally {
+            busy(false);
+        }
+    });
+
+    let ocrCapabilityRequestVersion = 0;
+    async function refreshOcrCapability() {
+        const requestVersion = ++ocrCapabilityRequestVersion;
+        const toggle = byId('useOcr');
+        try {
+            const capability = await api('/api/ai-import/ocr-capability');
+            if (requestVersion !== ocrCapabilityRequestVersion) return;
+            const ready = capability.effectiveEnabled === true;
+            toggle.disabled = !ready;
+            if (!ready) toggle.checked = false;
+            const status = ready
+                ? `${capability.provider} · ${capability.providerVersion || 'Tesseract'} · ${capability.languages} sẵn sàng`
+                : capability.healthMessage || 'Tesseract local chưa sẵn sàng.';
+            toggle.title = status;
+            toggle.closest('label')?.setAttribute('title', status);
+        } catch (error) {
+            if (requestVersion !== ocrCapabilityRequestVersion) return;
+            toggle.disabled = true;
+            toggle.checked = false;
+            const status = errorMessage(error);
+            toggle.title = status;
+            toggle.closest('label')?.setAttribute('title', status);
+        }
+    }
+
+    void refreshOcrCapability();
+    window.addEventListener('focus', refreshOcrCapability);
 })();

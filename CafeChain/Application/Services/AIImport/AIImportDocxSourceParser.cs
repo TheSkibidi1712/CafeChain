@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml;
+using System.Xml.Linq;
 using CafeChain.Application.DTOs.AIImport;
 using CafeChain.Application.Options;
 using CafeChain.Models.AIImport;
@@ -55,22 +56,21 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
             {
                 result.Errors.Add(Error(
                     "NỘI_DUNG_CHỦ_ĐỘNG_KHÔNG_ĐƯỢC_HỖ_TRỢ",
-                    "DOCX chứa field command hoặc nội dung liên kết động không được hỗ trợ."));
+                    "DOCX chứa lệnh trường hoặc nội dung liên kết động không được hỗ trợ."));
                 return Task.FromResult(result);
             }
-            var hasTrackedChanges = body.Descendants<InsertedRun>().Any()
-                                    || body.Descendants<DeletedRun>().Any();
+            var hasTrackedChanges = HasTrackedChanges(body);
             if (hasTrackedChanges)
             {
                 result.Warnings.Add(new AIImportErrorDto
                 {
                     Code = "DOCX_TRACK_CHANGE_CẦN_XEM_LẠI",
-                    Message = "DOCX có Track Changes chưa được chấp nhận; mọi bản ghi trích xuất phải được xem lại."
+                    Message = "DOCX có nội dung theo dõi thay đổi chưa được chấp nhận; mọi bản ghi trích xuất phải được xem lại."
                 });
             }
 
             var paragraphs = body.Descendants<Paragraph>().ToList();
-            var tables = body.Descendants<Table>().ToList();
+            var tables = body.Descendants<Table>().Where(table => !table.Ancestors<Table>().Any()).ToList();
             if (paragraphs.Count > _options.DocxMaxParagraphs || tables.Count > _options.DocxMaxTables)
             {
                 result.Errors.Add(Error("DOCX_VƯỢT_GIỚI_HẠN", "Cấu trúc DOCX vượt giới hạn đã cấu hình."));
@@ -85,7 +85,38 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
             }
 
             result.ExtractedText = string.Join(Environment.NewLine,
-                body.Descendants<Paragraph>().Select(paragraph => paragraph.InnerText.Trim()).Where(text => text.Length > 0));
+                body.Descendants<Paragraph>()
+                    .Where(paragraph => !paragraph.Ancestors<Table>().Any())
+                    .Select(RevisionAwareText)
+                    .Where(text => text.Length > 0));
+            var blockOrdinal = 0;
+            var paragraphOrdinal = 0;
+            var sectionOrdinal = 1;
+            var textOffset = 0;
+            foreach (var paragraph in body.ChildElements.OfType<Paragraph>())
+            {
+                paragraphOrdinal++;
+                var text = RevisionAwareText(paragraph);
+                if (text.Length > 0)
+                {
+                    var start = result.ExtractedText.IndexOf(text, textOffset, StringComparison.Ordinal);
+                    if (start < 0) start = textOffset;
+                    result.Blocks.Add(new AIImportSemanticBlock
+                    {
+                        Ordinal = ++blockOrdinal,
+                        Kind = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value?.StartsWith("Heading", StringComparison.OrdinalIgnoreCase) == true
+                            ? "HEADING" : "PARAGRAPH_GROUP",
+                        Text = text,
+                        Locator = new AIImportSourceLocator
+                        {
+                            SourceFormat = SourceFormat, Section = sectionOrdinal, Paragraph = paragraphOrdinal,
+                            TextStart = start, TextEnd = start + text.Length
+                        }
+                    });
+                    textOffset = start + text.Length;
+                }
+                if (paragraph.ParagraphProperties?.SectionProperties != null) sectionOrdinal++;
+            }
 
             ExtractTables(tables, entityHint, result, hasTrackedChanges, cancellationToken);
             ExtractKeyValueRecords(body, entityHint, result, hasTrackedChanges, cancellationToken);
@@ -187,10 +218,12 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
         {
             cancellationToken.ThrowIfCancellationRequested();
             var sectionNumber = SectionNumber(tables[tableIndex]);
-            var rows = tables[tableIndex].Elements<TableRow>().ToList();
-            var hasMergedCells = tables[tableIndex].Descendants<GridSpan>()
-                                     .Any(span => span.Val?.Value is > 1)
-                                 || tables[tableIndex].Descendants<VerticalMerge>().Any();
+            var table = tables[tableIndex];
+            var rows = table.Elements<TableRow>().ToList();
+            var logicalRows = BuildLogicalRows(rows);
+            var hasAmbiguousMergedCells = logicalRows.SelectMany(row => row.Values).Any(cell => cell.Ambiguous);
+            var tableHasTrackedChanges = HasTrackedChanges(table);
+            var hasNestedTable = table.Descendants<Table>().Any();
             totalRows += rows.Count;
             totalCells += rows.Sum(row => row.Elements<TableCell>().Count());
             if (totalRows > _options.DocxMaxTableRows || totalCells > _options.DocxMaxCells)
@@ -200,15 +233,17 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
             }
             if (rows.Count < 2) continue;
 
-            var headers = rows[0].Elements<TableCell>().Select(CellText).ToList();
+            var logicalColumnCount = logicalRows.Count == 0 ? 0 : logicalRows.Max(row => row.Keys.DefaultIfEmpty(0).Max());
+            var headers = Enumerable.Range(1, logicalColumnCount)
+                .Select(column => logicalRows[0].GetValueOrDefault(column)?.Text ?? string.Empty).ToList();
             if (headers.All(string.IsNullOrWhiteSpace)) continue;
             var detected = _schemas.Detect(headers, $"Bảng {tableIndex + 1}", entityHint);
             var headerColumns = AIImportSourceColumnBuilder.Build(headers);
             var mapping = AIImportSourceColumnBuilder.RebindMapping(detected.Mapping, headerColumns);
-            var confidence = hasMergedCells || hasTrackedChanges
+            var confidence = hasAmbiguousMergedCells || tableHasTrackedChanges || hasNestedTable
                 ? Math.Min(detected.Confidence, Math.Max(0m, _options.ReviewConfidenceThreshold - 0.01m))
                 : detected.Confidence;
-            if (hasMergedCells)
+            if (hasAmbiguousMergedCells)
             {
                 result.Warnings.Add(new AIImportErrorDto
                 {
@@ -222,6 +257,7 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
                 SourceLabel = $"Bảng {tableIndex + 1}",
                 SourceLocator = new AIImportSourceLocator { SourceFormat = SourceFormat, Section = sectionNumber, Table = tableIndex + 1, TableRow = 1 },
                 ExtractionMode = AIImportExtractionModes.DocxTableDeterministic,
+                SourceRegionId = $"DOCX:S{sectionNumber}:T{tableIndex + 1}",
                 HeaderOrdinal = 1,
                 EntityType = detected.EntityType,
                 Mapping = mapping,
@@ -237,31 +273,37 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
                             TableRow = 1, TableColumn = column.Index + 1
                         }
                     }), mapping),
-                Confidence = confidence
+                Confidence = confidence,
+                LayoutConfidence = hasAmbiguousMergedCells || hasNestedTable ? 0.65m : 0.95m
             };
-            if (hasMergedCells)
+            if (hasAmbiguousMergedCells)
                 group.Issues.Add(ReviewIssue("DOCX_Ô_GỘP_CẦN_XEM_LẠI",
                     "Bảng DOCX có ô gộp; cần đối chiếu từng trường với nguồn.", group.SourceLocator));
-            if (hasTrackedChanges)
+            if (tableHasTrackedChanges)
                 group.Issues.Add(ReviewIssue("DOCX_TRACK_CHANGE_CẦN_XEM_LẠI",
-                    "DOCX có Track Changes chưa được chấp nhận; cần đối chiếu từng trường với nguồn.", group.SourceLocator));
+                    "DOCX có nội dung theo dõi thay đổi chưa được chấp nhận; cần đối chiếu từng trường với nguồn.", group.SourceLocator));
+            if (hasNestedTable)
+                group.Issues.Add(AIImportValidationContract.Issue("KHÔNG_XÁC_ĐỊNH_RANH_GIỚI_BẢN_GHI",
+                    "Bảng có bảng lồng; nội dung bảng lồng không được nhập chung với ô cha.",
+                    AIImportIssueSeverities.Review,
+                    locator: Position(group.SourceLocator), resolution: AIImportIssueResolutions.ReuploadOrSkip));
             for (var rowIndex = 1; rowIndex < rows.Count; rowIndex++)
             {
-                var values = rows[rowIndex].Elements<TableCell>().Select(CellText).ToList();
                 var raw = headerColumns.ToDictionary(column => column.Key,
-                    column => values.ElementAtOrDefault(column.Index), StringComparer.OrdinalIgnoreCase);
+                    column => logicalRows[rowIndex].GetValueOrDefault(column.Index + 1)?.Text, StringComparer.OrdinalIgnoreCase);
                 if (raw.Values.All(string.IsNullOrWhiteSpace)) continue;
                 var locator = new AIImportSourceLocator { SourceFormat = SourceFormat, Section = sectionNumber, Table = tableIndex + 1, TableRow = rowIndex + 1 };
                 var trace = headerColumns.Select(column => new
                     {
                         Header = column.Key,
+                        Cell = logicalRows[rowIndex].GetValueOrDefault(column.Index + 1),
                         Locator = new AIImportSourceLocator
                         {
                             SourceFormat = SourceFormat,
                             Section = sectionNumber,
                             Table = tableIndex + 1,
-                            TableRow = rowIndex + 1,
-                            TableColumn = column.Index + 1
+                            TableRow = logicalRows[rowIndex].GetValueOrDefault(column.Index + 1)?.OriginRow ?? rowIndex + 1,
+                            TableColumn = logicalRows[rowIndex].GetValueOrDefault(column.Index + 1)?.OriginColumn ?? column.Index + 1
                         }
                     })
                     .Where(value => value.Header.Length > 0)
@@ -304,15 +346,17 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
                 SourceLabel = sourceLabel,
                 SourceLocator = locator,
                 ExtractionMode = AIImportExtractionModes.DocxTextDeterministic,
+                SourceRegionId = $"DOCX:S{firstSection}:P{firstParagraph}",
                 HeaderOrdinal = firstParagraph,
                 EntityType = detected.EntityType,
                 Mapping = detected.Mapping,
                 SourceHeaders = record.Keys.ToList(),
-                Confidence = confidence
+                Confidence = confidence,
+                LayoutConfidence = 0.90m
             };
             if (hasTrackedChanges)
                 group.Issues.Add(ReviewIssue("DOCX_TRACK_CHANGE_CẦN_XEM_LẠI",
-                    "DOCX có Track Changes chưa được chấp nhận; cần đối chiếu từng trường với nguồn.", locator));
+                    "DOCX có nội dung theo dõi thay đổi chưa được chấp nhận; cần đối chiếu từng trường với nguồn.", locator));
             var candidate = Candidate(++ordinal, new Dictionary<string, string?>(record, StringComparer.OrdinalIgnoreCase), detected.Mapping, locator,
                 AIImportExtractionModes.DocxTextDeterministic, confidence, string.Join(Environment.NewLine, evidence),
                 new Dictionary<string, string?>(sourceTrace, StringComparer.OrdinalIgnoreCase));
@@ -330,7 +374,7 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
             if (element is not Paragraph paragraph) continue;
             paragraphIndex++;
             var sectionNumber = SectionNumber(paragraph);
-            var text = paragraph.InnerText.Trim();
+            var text = RevisionAwareText(paragraph);
             if (string.IsNullOrWhiteSpace(text)) { Flush(); continue; }
             var match = KeyValuePattern().Match(text);
             if (!match.Success)
@@ -357,6 +401,7 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
                 Paragraph = paragraphIndex
             });
             evidence.Add(text);
+            if (HasTrackedChanges(paragraph)) hasTrackedChanges = true;
         }
         Flush();
     }
@@ -372,6 +417,7 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
         Dictionary<string, string?>? sourceTrace = null)
     {
         var trace = sourceTrace ?? raw.Keys.ToDictionary(key => key, _ => (string?)JsonSerializer.Serialize(locator), StringComparer.OrdinalIgnoreCase);
+        var snippet = evidence ?? string.Join(" | ", raw.Select(pair => $"{pair.Key}: {pair.Value}"));
         return new AIImportSourceCandidate
         {
             SortOrder = sortOrder,
@@ -380,8 +426,18 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
                 pair => string.IsNullOrWhiteSpace(pair.Value) ? null : raw.GetValueOrDefault(pair.Value), StringComparer.OrdinalIgnoreCase),
             SourceTrace = trace,
             SourceLocator = locator,
-            EvidenceSnippet = evidence ?? string.Join(" | ", raw.Select(pair => $"{pair.Key}: {pair.Value}")),
-            Confidence = confidence
+            EvidenceSnippet = snippet,
+            Confidence = confidence,
+            LayoutConfidence = mode == AIImportExtractionModes.DocxTableDeterministic
+                ? Math.Min(0.95m, confidence) : Math.Min(0.90m, confidence),
+            FieldEvidence = mapping.Where(pair => !string.IsNullOrWhiteSpace(pair.Value))
+                .ToDictionary(pair => pair.Key, pair => new AIImportFieldEvidence
+                {
+                    SourceKind = AIImportSourceKinds.TextLayer,
+                    Locator = locator,
+                    RawText = snippet,
+                    NormalizedValue = raw.GetValueOrDefault(pair.Value!)
+                }, StringComparer.OrdinalIgnoreCase)
         };
     }
 
@@ -406,12 +462,87 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
                     resolution: AIImportIssueResolutions.ReuploadOrSkip));
             else if (column.Classification == AIImportColumnClassifications.Unknown)
                 candidate.Issues.Add(AIImportValidationContract.Issue("CỘT_KHÔNG_XÁC_ĐỊNH",
-                    $"Cột '{column.Label}' không thuộc ImportSchema và sẽ bị bỏ qua.", AIImportIssueSeverities.Warning,
+                    $"Cột '{column.Label}' không thuộc danh sách trường được phép nhập và sẽ bị bỏ qua.", AIImportIssueSeverities.Warning,
                     resolution: AIImportIssueResolutions.Acknowledge));
         }
     }
 
-    private static string CellText(TableCell cell) => string.Join(" ", cell.Descendants<Text>().Select(text => text.Text)).Trim();
+    private static string CellText(TableCell cell) => string.Join(" ", cell.Descendants<Text>()
+        .Where(text => !text.Ancestors<Table>().Any(table => !ReferenceEquals(table, cell.Ancestors<Table>().FirstOrDefault())))
+        .Where(text => !text.Ancestors<OpenXmlElement>().Any(IsDeletedRevision))
+        .Select(text => text.Text)).Trim();
+
+    private static string RevisionAwareText(OpenXmlElement element)
+    {
+        // Some producers emit moveFrom/moveTo as generic OpenXml elements. Reading the XML by local name
+        // keeps the accepted move target while still excluding deleted/moved-from content.
+        try
+        {
+            var root = XElement.Parse(element.OuterXml, LoadOptions.PreserveWhitespace);
+            return string.Join(" ", root.Descendants()
+                .Where(node => node.Name.LocalName == "t"
+                               && !node.Ancestors().Any(ancestor =>
+                                   ancestor.Name.LocalName is "del" or "moveFrom"))
+                .Select(node => node.Value.Trim())
+                .Where(text => text.Length > 0)).Trim();
+        }
+        catch (XmlException)
+        {
+            return string.Join(" ", element.Descendants<Text>()
+                .Where(text => !text.Ancestors<OpenXmlElement>().Any(IsDeletedRevision))
+                .Select(text => text.Text.Trim()).Where(text => text.Length > 0)).Trim();
+        }
+    }
+
+    private static bool HasTrackedChanges(OpenXmlElement element) => element.Descendants<OpenXmlElement>().Any(value =>
+        value.LocalName is "ins" or "del" or "moveFrom" or "moveTo");
+
+    private static bool IsDeletedRevision(OpenXmlElement element) => element.LocalName is "del" or "moveFrom";
+
+    private static List<Dictionary<int, LogicalCell>> BuildLogicalRows(IReadOnlyList<TableRow> rows)
+    {
+        var result = new List<Dictionary<int, LogicalCell>>(rows.Count);
+        var vertical = new Dictionary<int, LogicalCell>();
+        for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
+        {
+            var logical = new Dictionary<int, LogicalCell>();
+            var logicalColumn = 1;
+            var physicalColumn = 0;
+            foreach (var cell in rows[rowIndex].Elements<TableCell>())
+            {
+                physicalColumn++;
+                var span = Math.Max(1, cell.TableCellProperties?.GridSpan?.Val?.Value ?? 1);
+                var merge = cell.TableCellProperties?.VerticalMerge;
+                var isContinue = merge != null && merge.Val?.Value != MergedCellValues.Restart;
+                var text = CellText(cell);
+                for (var offset = 0; offset < span; offset++)
+                {
+                    var column = logicalColumn + offset;
+                    if (isContinue && vertical.TryGetValue(column, out var origin))
+                    {
+                        logical[column] = origin with { IsMerged = true };
+                        continue;
+                    }
+
+                    var value = new LogicalCell(offset == 0 ? text : string.Empty, rowIndex + 1, physicalColumn,
+                        rowIndex + 1, physicalColumn, span > 1 || merge != null,
+                        (span > 1 && text.Length > 0) || merge?.Val?.Value == MergedCellValues.Restart);
+                    logical[column] = value;
+                    if (merge?.Val?.Value == MergedCellValues.Restart) vertical[column] = value;
+                    else if (merge == null) vertical.Remove(column);
+                }
+                logicalColumn += span;
+            }
+            result.Add(logical);
+        }
+        return result;
+    }
+
+    private static AIImportPositionDto Position(AIImportSourceLocator locator) => new()
+    {
+        SourceFormat = locator.SourceFormat, Section = locator.Section, Paragraph = locator.Paragraph,
+        Table = locator.Table, TableRow = locator.TableRow, TableColumn = locator.TableColumn
+    };
 
     private static int SectionNumber(OpenXmlElement element)
     {
@@ -435,4 +566,13 @@ public sealed partial class AIImportDocxSourceParser : IAIImportSourceParser
 
     [GeneratedRegex(@"^\s*([^:\t]{2,100})\s*[:\t]\s*(.+?)\s*$", RegexOptions.CultureInvariant)]
     private static partial Regex KeyValuePattern();
+
+    private sealed record LogicalCell(
+        string Text,
+        int Row,
+        int Column,
+        int OriginRow,
+        int OriginColumn,
+        bool IsMerged,
+        bool Ambiguous);
 }

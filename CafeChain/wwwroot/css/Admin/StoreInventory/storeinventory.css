@@ -304,10 +304,11 @@
 
 .pagination { margin-top: 15px; }
 .page-btn {
-    min-width: 34px;
-    padding: 6px 10px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 8px 12px;
     border: 1px solid var(--cc-border);
-    border-radius: 6px;
+    border-radius: var(--cc-radius-control, 10px);
     background: var(--cc-surface);
     color: var(--cc-text-secondary);
     font-weight: 600;

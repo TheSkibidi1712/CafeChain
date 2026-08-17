@@ -47,6 +47,7 @@ public sealed class AIImportExcelSourceParser(
             var mapping = splitCategoryDrink
                 ? drinkMapping
                 : AIImportSourceColumnBuilder.RebindMapping(analysis.Mapping, headerColumns);
+            var detectedMapping = splitCategoryDrink ? drinkDetection.Mapping : analysis.Mapping;
             var sourceColumns = headerColumns.Select(column => new AIImportSourceColumn
             {
                 Key = column.Key,
@@ -77,24 +78,46 @@ public sealed class AIImportExcelSourceParser(
                 ExtractionMode = analysis.UsedAI
                     ? AIImportExtractionModes.XlsxAiMapping
                     : AIImportExtractionModes.XlsxDeterministic,
+                SourceRegionId = $"XLSX:{region.SheetName}:{region.Address}",
+                BoundingRange = region.Address,
+                HeaderRange = $"{AIImportRegionData.ColumnName(region.MinColumn)}{analysis.HeaderRow}:{AIImportRegionData.ColumnName(region.MaxColumn)}{analysis.HeaderRow}",
+                DataRange = analysis.HeaderRow < region.MaxRow
+                    ? $"{AIImportRegionData.ColumnName(region.MinColumn)}{analysis.HeaderRow + 1}:{AIImportRegionData.ColumnName(region.MaxColumn)}{region.MaxRow}"
+                    : null,
                 HeaderOrdinal = analysis.HeaderRow,
                 EntityType = entityType,
                 Mapping = mapping,
                 SourceHeaders = headerColumns.Select(column => column.Key).ToList(),
                 SourceColumns = sourceColumns,
-                Confidence = analysis.Confidence
+                Confidence = analysis.Confidence,
+                LayoutConfidence = region.Issues.Count == 0 ? 1m : 0.75m
             };
 
             var duplicateLabels = headerColumns.GroupBy(column => column.Label, StringComparer.OrdinalIgnoreCase)
-                .Where(columns => columns.Count() > 1).Select(columns => columns.Key).ToList();
-            foreach (var label in duplicateLabels)
-                group.Issues.Add(AIImportValidationContract.Issue(
-                    "XUNG_ĐỘT_ÁNH_XẠ",
-                    $"Header '{label}' xuất hiện nhiều lần; cần chọn cột nguồn cụ thể.",
-                    AIImportIssueSeverities.Review,
-                    locator: Position(group.SourceLocator),
-                    resolution: AIImportIssueResolutions.RemapGroup,
-                    metadata: new Dictionary<string, object?> { ["sourceHeader"] = label }));
+                .Where(columns => columns.Count() > 1).ToList();
+            foreach (var duplicate in duplicateLabels)
+            {
+                var candidateSourceKeys = duplicate.Select(column => column.Key).ToArray();
+                var targetFields = detectedMapping
+                    .Where(pair => string.Equals(pair.Value, duplicate.Key, StringComparison.OrdinalIgnoreCase))
+                    .Select(pair => pair.Key)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                foreach (var targetField in targetFields)
+                    group.Issues.Add(AIImportValidationContract.Issue(
+                        "XUNG_ĐỘT_ÁNH_XẠ",
+                        $"Header '{duplicate.Key}' xuất hiện nhiều lần; cần chọn cột nguồn cụ thể cho '{targetField}'.",
+                        AIImportIssueSeverities.Review,
+                        field: targetField,
+                        locator: Position(group.SourceLocator),
+                        resolution: AIImportIssueResolutions.RemapGroup,
+                        metadata: new Dictionary<string, object?>
+                        {
+                            ["sourceHeader"] = duplicate.Key,
+                            ["targetField"] = targetField,
+                            ["candidateSourceKeys"] = candidateSourceKeys
+                        }));
+            }
             group.Issues.AddRange(region.Issues);
 
             foreach (var rowNumber in Enumerable.Range(
@@ -102,12 +125,14 @@ public sealed class AIImportExcelSourceParser(
                          Math.Max(0, region.MaxRow - analysis.HeaderRow)))
             {
                 var (raw, trace) = ReadNamedRow(region, rowNumber, headerColumns);
-                if (raw.Values.All(string.IsNullOrWhiteSpace) || IsFooterRow(raw)) continue;
+                if (raw.Values.All(string.IsNullOrWhiteSpace) || IsFooterRow(raw)
+                    || IsRepeatedHeader(raw, headerColumns)) continue;
+                var mapped = ApplyMapping(raw, mapping);
                 var candidate = new AIImportSourceCandidate
                 {
                     SortOrder = rowNumber,
                     RawData = raw,
-                    MappedData = ApplyMapping(raw, mapping),
+                    MappedData = mapped,
                     SourceTrace = trace,
                     SourceLocator = new AIImportSourceLocator
                     {
@@ -118,6 +143,7 @@ public sealed class AIImportExcelSourceParser(
                     },
                     EvidenceSnippet = string.Join(" | ", raw.Select(pair => $"{pair.Key}: {pair.Value}")),
                     Confidence = analysis.Confidence,
+                    LayoutConfidence = group.LayoutConfidence,
                     AiConfidence = analysis.UsedAI ? analysis.Confidence : null,
                     AIErrorCode = analysis.AIErrorCode
                 };
@@ -132,16 +158,21 @@ public sealed class AIImportExcelSourceParser(
                             metadata: new Dictionary<string, object?> { ["sourceColumn"] = column.Key }));
                     else if (column.Classification == AIImportColumnClassifications.Unknown)
                         candidate.Issues.Add(AIImportValidationContract.Issue(
-                            "CỘT_KHÔNG_XÁC_ĐỊNH", $"Cột '{column.Label}' không thuộc ImportSchema và sẽ bị bỏ qua.",
+                            "CỘT_KHÔNG_XÁC_ĐỊNH", $"Cột '{column.Label}' không thuộc danh sách trường được phép nhập và sẽ bị bỏ qua.",
                             AIImportIssueSeverities.Warning, locator: Position(column.SourceLocator),
                             resolution: AIImportIssueResolutions.Acknowledge,
                             metadata: new Dictionary<string, object?> { ["sourceColumn"] = column.Key }));
                 }
                 group.Candidates.Add(candidate);
             }
-            result.Groups.Add(group);
             if (splitCategoryDrink)
-                result.Groups.Add(BuildCategoryGroup(group, headerColumns, categoryMapping, categoryDetection.Confidence));
+            {
+                var categoryGroup = BuildCategoryGroup(group, headerColumns, categoryMapping, categoryDetection.Confidence);
+                group.Candidates.RemoveAll(candidate => !HasRequiredPayload(AIImportEntityType.Drink, candidate.MappedData));
+                if (group.Candidates.Count > 0) result.Groups.Add(group);
+                if (categoryGroup.Candidates.Count > 0) result.Groups.Add(categoryGroup);
+            }
+            else result.Groups.Add(group);
         }
 
         return result;
@@ -202,24 +233,32 @@ public sealed class AIImportExcelSourceParser(
             SourceLabel = $"{drinkGroup.SourceLabel} · Danh mục",
             SourceLocator = drinkGroup.SourceLocator,
             ExtractionMode = drinkGroup.ExtractionMode,
+            SourceRegionId = $"{drinkGroup.SourceRegionId}:CATEGORY",
+            BoundingRange = drinkGroup.BoundingRange,
+            HeaderRange = drinkGroup.HeaderRange,
+            DataRange = drinkGroup.DataRange,
             HeaderOrdinal = drinkGroup.HeaderOrdinal,
             EntityType = AIImportEntityType.Category,
             Mapping = categoryMapping,
             SourceHeaders = headerColumns.Select(column => column.Key).ToList(),
             SourceColumns = columns,
-            Confidence = confidence
+            Confidence = confidence,
+            LayoutConfidence = drinkGroup.LayoutConfidence
         };
         foreach (var source in drinkGroup.Candidates)
         {
+            var mapped = ApplyMapping(source.RawData, categoryMapping);
+            if (!HasRequiredPayload(AIImportEntityType.Category, mapped)) continue;
             var candidate = new AIImportSourceCandidate
             {
                 SortOrder = source.SortOrder,
                 RawData = source.RawData,
-                MappedData = ApplyMapping(source.RawData, categoryMapping),
+                MappedData = mapped,
                 SourceTrace = source.SourceTrace,
                 SourceLocator = source.SourceLocator,
                 EvidenceSnippet = source.EvidenceSnippet,
-                Confidence = confidence
+                Confidence = confidence,
+                LayoutConfidence = source.LayoutConfidence
             };
             foreach (var issue in source.Issues.Where(issue => issue.Code is "VÙNG_DỮ_LIỆU_CHỒNG_LẤN" or "XUNG_ĐỘT_ÁNH_XẠ"))
                 candidate.Issues.Add(issue);
@@ -253,5 +292,19 @@ public sealed class AIImportExcelSourceParser(
                                      || first.StartsWith("total", StringComparison.Ordinal)
                                      || first.StartsWith("ghichu", StringComparison.Ordinal)
                                      || first.StartsWith("note", StringComparison.Ordinal));
+    }
+
+    private bool HasRequiredPayload(AIImportEntityType entity, IReadOnlyDictionary<string, string?> mapped) =>
+        schemas.Get(entity).RequiredFields.All(field => mapped.TryGetValue(field, out var value)
+                                                        && !string.IsNullOrWhiteSpace(value));
+
+    private static bool IsRepeatedHeader(
+        IReadOnlyDictionary<string, string?> raw,
+        IReadOnlyList<(int Index, string Key, string Label)> columns)
+    {
+        var populated = columns.Where(column => !string.IsNullOrWhiteSpace(raw.GetValueOrDefault(column.Key))).ToList();
+        return populated.Count >= 2 && populated.All(column =>
+            string.Equals(AIImportSchemaRegistry.Key(raw.GetValueOrDefault(column.Key)!),
+                AIImportSchemaRegistry.Key(column.Label), StringComparison.Ordinal));
     }
 }

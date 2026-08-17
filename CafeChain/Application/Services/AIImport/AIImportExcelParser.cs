@@ -338,7 +338,7 @@ public sealed partial class AIImportExcelParser : IAIImportExcelParser
             var maxColumn = component.Max(x => x.Column);
             if (maxRow <= minRow || maxColumn <= minColumn) continue;
             var logicalRegions = SplitLogicalRegions(sheetName, cells, minRow, maxRow, minColumn, maxColumn);
-            result.AddRange(logicalRegions.Count > 0 ? logicalRegions : [new AIImportRegionData
+            var baseRegions = logicalRegions.Count > 0 ? logicalRegions : [new AIImportRegionData
             {
                 SheetName = sheetName,
                 MinRow = minRow,
@@ -348,10 +348,78 @@ public sealed partial class AIImportExcelParser : IAIImportExcelParser
                 Cells = cells.Where(x => x.Key.Row >= minRow && x.Key.Row <= maxRow
                                          && x.Key.Column >= minColumn && x.Key.Column <= maxColumn)
                     .ToDictionary(x => x.Key, x => x.Value)
-            }]);
+            }];
+            foreach (var region in baseRegions)
+            {
+                var horizontal = SplitHorizontalRegions(region);
+                result.AddRange(horizontal.Count > 0 ? horizontal : [region]);
+            }
         }
         return result.OrderBy(x => x.MinRow).ThenBy(x => x.MinColumn).ToList();
     }
+
+    private List<AIImportRegionData> SplitHorizontalRegions(AIImportRegionData region)
+    {
+        var header = Enumerable.Range(region.MinRow, region.MaxRow - region.MinRow + 1)
+            .Select(row => new
+            {
+                Row = row,
+                Detection = _schemas.Detect(Enumerable.Range(region.MinColumn, region.MaxColumn - region.MinColumn + 1)
+                    .Select(column => region.Cells.GetValueOrDefault((row, column))), region.SheetName)
+            })
+            .OrderByDescending(candidate => candidate.Detection.Confidence)
+            .ThenBy(candidate => candidate.Row)
+            .FirstOrDefault(candidate => candidate.Detection.EntityType != AIImportEntityType.Unknown);
+        if (header == null) return [];
+
+        var boundaries = new List<int>();
+        var segmentStart = region.MinColumn;
+        for (var column = segmentStart + 1; column <= region.MaxColumn; column++)
+        {
+            var label = region.Cells.GetValueOrDefault((header.Row, column));
+            if (string.IsNullOrWhiteSpace(label)) continue;
+            var repeatsEarlierHeader = Enumerable.Range(segmentStart, column - segmentStart)
+                .Any(previous => string.Equals(region.Cells.GetValueOrDefault((header.Row, previous))?.Trim(),
+                    label.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (!repeatsEarlierHeader) continue;
+
+            var left = _schemas.Detect(Enumerable.Range(segmentStart, column - segmentStart)
+                .Select(current => region.Cells.GetValueOrDefault((header.Row, current))), region.SheetName);
+            var right = _schemas.Detect(Enumerable.Range(column, region.MaxColumn - column + 1)
+                .Select(current => region.Cells.GetValueOrDefault((header.Row, current))), region.SheetName);
+            if (!HasAllRequiredFields(left) || !HasAllRequiredFields(right)) continue;
+            boundaries.Add(column);
+            segmentStart = column;
+        }
+        if (boundaries.Count == 0) return [];
+
+        var starts = new[] { region.MinColumn }.Concat(boundaries).ToArray();
+        var regions = new List<AIImportRegionData>(starts.Length);
+        for (var index = 0; index < starts.Length; index++)
+        {
+            var startColumn = starts[index];
+            var endColumn = index + 1 < starts.Length ? starts[index + 1] - 1 : region.MaxColumn;
+            var split = new AIImportRegionData
+            {
+                SheetName = region.SheetName,
+                MinRow = region.MinRow,
+                MaxRow = region.MaxRow,
+                MinColumn = startColumn,
+                MaxColumn = endColumn,
+                Cells = region.Cells.Where(cell => cell.Key.Column >= startColumn && cell.Key.Column <= endColumn)
+                    .ToDictionary(cell => cell.Key, cell => cell.Value)
+            };
+            split.Issues.AddRange(region.Issues);
+            regions.Add(split);
+        }
+        return regions;
+    }
+
+    private bool HasAllRequiredFields(
+        (AIImportEntityType EntityType, Dictionary<string, string?> Mapping, decimal Confidence) detection) =>
+        detection.EntityType != AIImportEntityType.Unknown
+        && _schemas.Get(detection.EntityType).RequiredFields.All(field =>
+            detection.Mapping.TryGetValue(field, out var source) && !string.IsNullOrWhiteSpace(source));
 
     private List<AIImportRegionData> SplitLogicalRegions(
         string sheetName,

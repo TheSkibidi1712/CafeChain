@@ -30,8 +30,17 @@ public sealed class AIImportController : Controller
     [ValidateAntiForgeryToken]
     [RequirePermission(PermissionConstants.AIImportUpload)]
     [AIImportRequestSizeLimit]
-    public async Task<IActionResult> Analyze([FromForm] AIImportAnalyzeRequest request, CancellationToken cancellationToken) =>
-        Result(await _service.AnalyzeAsync(request.File, request.EntityHint, _actorContext.Get(User), cancellationToken));
+    public async Task<IActionResult> Analyze([FromForm] AIImportAnalyzeRequest request, CancellationToken cancellationToken)
+    {
+        var files = request.Files.Where(file => file != null).ToList();
+        if (request.File != null && files.All(file => !ReferenceEquals(file, request.File))) files.Insert(0, request.File);
+        return Result(await _service.AnalyzeAsync(files, request.EntityHint, request.UseOcr, _actorContext.Get(User), cancellationToken));
+    }
+
+    [HttpGet("/api/ai-import/ocr-capability")]
+    [RequirePermission(PermissionConstants.AIImportView)]
+    public async Task<IActionResult> OcrCapability(CancellationToken cancellationToken) =>
+        Result(await _service.GetOcrCapabilityAsync(_actorContext.Get(User), cancellationToken));
 
     [HttpPost("/api/ai-import/{id:int}/reanalyze")]
     [ValidateAntiForgeryToken]
@@ -72,6 +81,12 @@ public sealed class AIImportController : Controller
     [RequirePermission(PermissionConstants.AIImportCancel)]
     public async Task<IActionResult> Cancel(int id, [FromBody] AIImportCancelRequest request, CancellationToken cancellationToken) =>
         Result(await _service.CancelAsync(id, request, _actorContext.Get(User), cancellationToken));
+
+    [HttpDelete("/api/ai-import/{id:int}/sources/{sourceDocumentId:int}")]
+    [ValidateAntiForgeryToken]
+    [RequirePermission(PermissionConstants.AIImportAnalyze)]
+    public async Task<IActionResult> RemoveSource(int id, int sourceDocumentId, int expectedPreviewVersion, CancellationToken cancellationToken) =>
+        Result(await _service.RemoveSourceAsync(id, sourceDocumentId, expectedPreviewVersion, _actorContext.Get(User), cancellationToken));
 
     [HttpGet("/api/ai-import/history")]
     [RequirePermission(PermissionConstants.AIImportHistory)]

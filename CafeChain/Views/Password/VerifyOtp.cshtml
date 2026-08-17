@@ -987,39 +987,7 @@
             updateClock();
             setInterval(updateClock, 1000);
 
-            // ===== 2. INTERACTIVE MOUSE PARALLAX BACKDROP SPOTLIGHT =====
-            $(document).on('mousemove', function (e) {
-                const x = (e.clientX / window.innerWidth) * 100;
-                const y = (e.clientY / window.innerHeight) * 100;
-                document.documentElement.style.setProperty('--mouse-x', x + '%');
-                document.documentElement.style.setProperty('--mouse-y', y + '%');
-            });
-
-            // ===== 3. INTERACTIVE 3D PARALLAX TILT & GLARE EFFECT ON AUTH CARD =====
-            const authCard = document.getElementById('authCard');
-            if (authCard && window.innerWidth > 992) {
-                $(document).on('mousemove', function (e) {
-                    const rect = authCard.getBoundingClientRect();
-                    const cardX = e.clientX - rect.left;
-                    const cardY = e.clientY - rect.top;
-
-                    if (cardX >= 0 && cardX <= rect.width && cardY >= 0 && cardY <= rect.height) {
-                        const rotateX = ((cardY - rect.height / 2) / (rect.height / 2)) * -5;
-                        const rotateY = ((cardX - rect.width / 2) / (rect.width / 2)) * 5;
-
-                        authCard.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
-                        authCard.style.boxShadow = '0 50px 90px -20px rgba(0, 0, 0, 0.9)';
-                        
-                        document.documentElement.style.setProperty('--glare-x', (cardX / rect.width * 100) + '%');
-                        document.documentElement.style.setProperty('--glare-y', (cardY / rect.height * 100) + '%');
-                    } else {
-                        authCard.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0)';
-                        authCard.style.boxShadow = '';
-                    }
-                });
-            }
-
-            // ===== 4. CANVAS GOLDEN CREMA BOKEH PARTICLES =====
+            // ===== 2. CANVAS GOLDEN CREMA BOKEH PARTICLES =====
             const canvas = document.getElementById('particleCanvas');
             if (canvas) {
                 const ctx = canvas.getContext('2d');

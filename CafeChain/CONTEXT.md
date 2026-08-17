@@ -71,3 +71,19 @@ _Avoid_: Warning acknowledgement, save row
 **Business Key**:
 Định danh nghiệp vụ chuẩn hóa dùng để phát hiện trùng trước Confirm. Supplier chỉ dùng TaxCode làm hard Business Key; tín hiệu tên, điện thoại, email và địa chỉ là soft duplicate.
 _Avoid_: Database ID, primary key
+
+**OCR Snapshot**:
+Bản chụp dữ liệu OCR tối thiểu nằm trong `SourceSnapshotJson`, gồm page/block/word/span/polygon/confidence và metadata provider/version; không chứa PDF binary hoặc ảnh render. Khi còn snapshot, Reanalyze chỉ chạy lại semantic extraction và không gọi OCR provider.
+_Avoid_: Scanned file, rendered page, OCR binary
+
+**Field Provenance**:
+Nguồn gốc cấp trường của AI Import Candidate, giữ riêng source kind (`TEXT_LAYER`, `OCR`, `AI_AFTER_TEXT`, `AI_AFTER_OCR`), locator, raw evidence, normalized value và OCR/AI confidence. Provenance không phải một final confidence tổng hợp.
+_Avoid_: Source trace string, final confidence, combined score
+
+**Import Source Document**:
+Một tài liệu `.xlsx`, `.docx` hoặc `.pdf` thuộc AI Import Session. Mỗi nguồn có trạng thái, lỗi, snapshot và thứ tự riêng; Group luôn truy ngược được nguồn để duplicate/reference có thể đánh giá xuyên file mà không mất provenance.
+_Avoid_: Uploaded file blob, merged document, virtual file
+
+**Effective OCR**:
+Trạng thái OCR thực sự được phép cho một AI Import Session: Tesseract executable và model local đã health-check `READY` AND request chọn `UseOcr`. System Settings chỉ quản lý tham số và health, không có switch bật/tắt toàn hệ thống; OCR không gửi tài liệu ra cloud và không dùng khóa API.
+_Avoid_: OcrEnabled boolean, system OCR switch state

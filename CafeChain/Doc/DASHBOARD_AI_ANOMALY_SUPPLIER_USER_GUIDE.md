@@ -1,5 +1,7 @@
 # Hướng dẫn sử dụng Dashboard, AI, tín hiệu vận hành, so sánh nhà cung cấp và AI Smart Import
 
+> Cập nhật AI Smart Import (16/08/2026): hỗ trợ chọn nguồn cho header trùng, Cancel an toàn, OCR Tesseract local UTF-8/TSV và nhiều tài liệu trong một phiên. Lựa chọn OCR theo từng lần import mặc định tắt; tài liệu OCR không rời khỏi máy chủ. Bộ runtime smoke 126 fixture được chạy bằng `scripts/run-ai-import-runtime-smoke.ps1`.
+
 > Cập nhật theo mã nguồn, AI skill/schema, giao diện Dashboard và `Scripts/SeedAll.sql` ngày 14/08/2026.
 
 Tài liệu này dành cho người sử dụng và người quản trị phân quyền. Tên mã quyền được giữ trong dấu `` ` `` để quản trị viên có thể đối chiếu cấu hình; giao diện nghiệp vụ phải hiển thị nội dung tiếng Việt.
@@ -225,11 +227,11 @@ AI Smart Import dùng để tạo mới master data toàn hệ thống từ:
 
 - Excel `.xlsx`;
 - Word `.docx` OpenXML;
-- PDF có lớp text, có thể chọn/copy nội dung.
+- PDF có lớp text; PDF scan/image hoặc mixed khi OCR đã được cấu hình.
 
 Chỉ tạo được Category, Drink, Size, Ingredient và Supplier. Không dùng Smart Import để cập nhật/xóa dữ liệu cũ, nhập Topping, Unit, ProductType, BOM/công thức, giá/ảnh đồ uống hoặc chứng từ mua/kho.
 
-Không upload `.doc`, `.docm`, PDF scan/image-only, file có mật khẩu, macro, nội dung nhúng hoặc liên kết/hành động ngoài. OCR/Vision chưa được hỗ trợ.
+Không upload `.doc`, `.docm`, file có mật khẩu, macro, nội dung nhúng hoặc liên kết/hành động ngoài. PDF scan chỉ hoạt động khi quản trị viên đã cài Tesseract/model local, health check `READY` và người dùng chọn OCR cho lần import.
 
 ### 6.2 Chuẩn bị file
 
@@ -253,9 +255,10 @@ File tối đa 10 MiB. Để giảm review và tăng độ chính xác:
 
 #### PDF
 
-- Kiểm tra có thể bôi đen/copy text trước khi upload.
+- PDF text được đọc tại chỗ và không gọi OCR. PDF scan/mixed chỉ rasterize các trang cần OCR và chạy Tesseract ngay trên máy chủ khi tính năng được bật.
 - Bảng nên có header và cột thẳng hàng.
-- PDF scan, ảnh chụp hoặc trang có vùng ảnh đáng kể nhưng không chứng minh đọc đủ sẽ trả `PDF_CẦN_OCR`; hãy OCR bằng công cụ tin cậy rồi xuất lại PDF searchable text.
+- Nếu nhận `PDF_CẦN_OCR`, lần phân tích chưa chọn OCR: bật **OCR cho PDF scan** hoặc xuất lại PDF searchable text.
+- Preview có badge `TEXT`, `OCR` hoặc `MIXED`; mở sửa dòng để xem page, raw evidence, bbox/polygon và confidence OCR/AI của từng field. `OCR_CONFIDENCE_THẤP` phải đối chiếu rồi tick xác nhận manual review riêng, không thay thế cảnh báo trùng Supplier.
 - Không nhúng attachment, JavaScript, Launch hoặc URI action.
 
 Header khuyến nghị:
@@ -374,7 +377,7 @@ Chủ doanh nghiệp mặc định xác nhận được cả năm entity. Kế t
 
 - **Hủy phiên** chỉ áp dụng cho phiên thuộc tài khoản hiện tại và ở trạng thái cho phép hủy.
 - **Lịch sử** chỉ hiển thị session của account hiện tại, format và extraction mode; không trả raw document/evidence đầy đủ.
-- Snapshot text bị xóa khi phiên hoàn tất, hủy hoặc hết hạn; thời hạn mặc định là 24 giờ.
+- Snapshot text/OCR (không có binary hoặc ảnh render) bị xóa khi phiên hoàn tất, hủy hoặc hết hạn; thời hạn mặc định là 24 giờ. Reanalyze khi snapshot còn không gọi OCR lại.
 
 ### 6.8 Lỗi Smart Import thường gặp
 
@@ -386,7 +389,13 @@ Chủ doanh nghiệp mặc định xác nhận được cả năm entity. Kế t
 | File có mật khẩu | Gỡ password/encryption trước khi upload |
 | `NỘI_DUNG_CHỦ_ĐỘNG_KHÔNG_ĐƯỢC_HỖ_TRỢ` | Loại macro, OLE, attachment, external link/action |
 | DOCX/PDF vượt giới hạn | Chia file hoặc giảm số trang/bảng/ảnh/resource |
-| `PDF_CẦN_OCR` | Chuyển thành PDF searchable text; hệ thống chưa hỗ trợ OCR |
+| `PDF_CẦN_OCR` | Bật OCR cho lần import hoặc chuyển thành PDF searchable text |
+| `OCR_CHƯA_ĐƯỢC_CẤU_HÌNH` | Cài Tesseract, tải đủ model `vie`/`eng`, rồi bấm kiểm tra OCR trong System Settings |
+| `PDF_OCR_KHÔNG_KHẢ_DỤNG` | Kiểm tra executable, Visual C++ Runtime và model Tesseract local |
+| `PDF_OCR_QUÁ_THỜI_GIAN` | Chia nhỏ PDF, giảm DPI/số trang hoặc tăng timeout hợp lý |
+| `PDF_OCR_VƯỢT_GIỚI_HẠN` | Giảm số trang/kích thước; hệ thống không cắt âm thầm |
+| `OCR_OUTPUT_KHÔNG_HỢP_LỆ` | Provider thiếu page/word/evidence hợp lệ; thử lại hoặc upload nguồn khác |
+| `OCR_CONFIDENCE_THẤP` | Đối chiếu raw OCR theo field rồi xác nhận manual review |
 | Ô gộp/Track Changes cần xem lại | Bỏ merge, Accept Changes rồi upload lại hoặc review thủ công |
 | `AI_CONFIDENCE_THẤP` | Đối chiếu evidence và lưu kiểm tra lại |
 | `AI_TRÍCH_XUẤT_KHÔNG_CÓ_BẰNG_CHỨNG` | Làm rõ cấu trúc tài liệu; output AI đã bị backend từ chối |
@@ -463,3 +472,20 @@ Không cấp quyền kinh doanh rộng cho Quản trị hệ thống chỉ vì t
 - [Hướng dẫn triển khai và sử dụng AI Smart Import chuyên sâu](./AI_SMART_IMPORT_IMPLEMENTATION_AND_USER_GUIDE.md)
 
 Mã xác thực dùng một lần và đăng ký thiết bị bán hàng là luồng POS riêng. Không tìm mã xác thực hoặc nút xác nhận thiết bị trong Dashboard/AI.
+
+## 10. Sử dụng AI Smart Import mới
+
+1. Chọn nhiều file Excel, DOCX hoặc PDF trong cùng lần tải lên. Kiểm tra danh sách tên và dung lượng trước khi bấm **Phân tích**.
+2. Nếu cần PDF scan, bật **OCR cho PDF scan**. Nếu switch bị khóa, mở **Cài đặt hệ thống → OCR & nhận dạng tài liệu** hoặc liên hệ tài khoản có `Settings.Update`.
+3. Theo dõi thẻ trạng thái của từng file. File lỗi không làm mất preview file khác nhưng sẽ khóa **Xác nhận nhập**; có thể dùng **Loại nguồn**.
+4. Khi có `XUNG_ĐỘT_ÁNH_XẠ`, chọn source key cụ thể trong ánh xạ hoặc dùng nút chọn nguồn trong modal. Lựa chọn áp dụng toàn vùng.
+5. Kiểm tra warning cột không xác định rồi tick xác nhận; cột đó chỉ dùng đối chiếu và không được nhập.
+6. Cancel thành công sẽ đóng mọi cửa sổ sửa và vô hiệu hóa preview. Nếu Cancel báo stale/fail, dữ liệu đang sửa vẫn còn để xử lý tiếp.
+
+| Tình huống | Xử lý |
+|---|---|
+| `PDF_CẦN_OCR` | Bật OCR cho lần phân tích hoặc tải PDF có lớp chữ |
+| `OCR_CHƯA_ĐƯỢC_CẤU_HÌNH` | Cài executable và model `vie+eng` bằng script setup, rồi kiểm tra OCR |
+| `PDF_OCR_KHÔNG_KHẢ_DỤNG` | Kiểm tra Tesseract local tại tab OCR; không Confirm bằng cách bỏ qua lỗi |
+| `XUNG_ĐỘT_DỮ_LIỆU_GIỮA_CÁC_TỆP` | Đối chiếu filename/locator và chỉ giữ một candidate đúng |
+| Nguồn ở trạng thái `FAILED` | Loại nguồn hoặc tải lại/phân tích trong phiên mới |

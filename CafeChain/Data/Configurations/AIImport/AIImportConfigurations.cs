@@ -21,14 +21,39 @@ public sealed class ImportSessionConfiguration : IEntityTypeConfiguration<Import
         entity.Property(x => x.ModelName).HasMaxLength(150);
         entity.Property(x => x.PromptVersion).IsRequired().HasMaxLength(50);
         entity.Property(x => x.SchemaVersion).IsRequired().HasMaxLength(50);
+        entity.Property(x => x.ExtractionVersion).IsRequired().HasMaxLength(50)
+            .HasDefaultValue("ai-import-extraction-v2");
         entity.Property(x => x.FailureCode).HasMaxLength(100);
         entity.Property(x => x.FailureMessage).HasMaxLength(1000);
         entity.Property(x => x.AnalysisWarningsJson).IsRequired().HasColumnType("nvarchar(max)");
+        entity.Property(x => x.OcrConfigVersion).IsRequired().HasMaxLength(100);
         entity.Property(x => x.ResultJson).HasColumnType("nvarchar(max)");
         entity.Property(x => x.RowVersion).IsRowVersion();
         entity.HasIndex(x => new { x.UploadedByAccountId, x.CreatedAtUtc });
         entity.HasIndex(x => new { x.Status, x.ExpiresAtUtc });
         entity.HasIndex(x => x.FileHash);
+    }
+}
+
+public sealed class ImportSourceDocumentConfiguration : IEntityTypeConfiguration<ImportSourceDocument>
+{
+    public void Configure(EntityTypeBuilder<ImportSourceDocument> entity)
+    {
+        entity.ToTable("ImportSourceDocuments", table => table.HasCheckConstraint(
+            "CK_ImportSourceDocuments_Status", "[Status] IN ('PROCESSING','READY','FAILED','REMOVED')"));
+        entity.HasKey(x => x.ImportSourceDocumentId);
+        entity.Property(x => x.OriginalFileName).IsRequired().HasMaxLength(260);
+        entity.Property(x => x.FileHash).IsRequired().HasMaxLength(64);
+        entity.Property(x => x.SourceFormat).IsRequired().HasMaxLength(10);
+        entity.Property(x => x.SourceMetadataJson).IsRequired().HasColumnType("nvarchar(max)");
+        entity.Property(x => x.SourceSnapshotJson).HasColumnType("nvarchar(max)");
+        entity.Property(x => x.Status).IsRequired().HasMaxLength(20);
+        entity.Property(x => x.ErrorCode).HasMaxLength(100);
+        entity.Property(x => x.ErrorMessage).HasMaxLength(1000);
+        entity.HasIndex(x => new { x.ImportSessionId, x.SortOrder }).IsUnique();
+        entity.HasIndex(x => x.FileHash);
+        entity.HasOne(x => x.Session).WithMany(x => x.SourceDocuments).HasForeignKey(x => x.ImportSessionId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 
@@ -49,10 +74,13 @@ public sealed class ImportGroupConfiguration : IEntityTypeConfiguration<ImportGr
         entity.Property(x => x.SourceColumnsJson).IsRequired().HasColumnType("nvarchar(max)");
         entity.Property(x => x.IssuesJson).IsRequired().HasColumnType("nvarchar(max)");
         entity.Property(x => x.Confidence).HasPrecision(5, 4);
+        entity.Property(x => x.LayoutConfidence).HasPrecision(5, 4);
         entity.Property(x => x.Status).IsRequired().HasMaxLength(30);
         entity.HasIndex(x => new { x.ImportSessionId, x.SheetName });
         entity.HasOne(x => x.Session).WithMany(x => x.Groups).HasForeignKey(x => x.ImportSessionId)
             .OnDelete(DeleteBehavior.Cascade);
+        entity.HasOne(x => x.SourceDocument).WithMany(x => x.Groups).HasForeignKey(x => x.ImportSourceDocumentId)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }
 
@@ -79,6 +107,8 @@ public sealed class ImportItemConfiguration : IEntityTypeConfiguration<ImportIte
         entity.Property(x => x.Confidence).HasPrecision(5, 4);
         entity.Property(x => x.AiConfidence).HasPrecision(5, 4);
         entity.Property(x => x.OcrConfidence).HasPrecision(5, 4);
+        entity.Property(x => x.LayoutConfidence).HasPrecision(5, 4);
+        entity.Property(x => x.FieldEvidenceJson).IsRequired().HasDefaultValue("{}");
         entity.Property(x => x.DuplicateOverrideReason).HasMaxLength(500);
         entity.Property(x => x.ManualReviewPayloadHash).HasMaxLength(64);
         entity.HasIndex(x => new { x.ImportGroupId, x.SourceRow });
@@ -101,6 +131,12 @@ public sealed class ImportAuditConfiguration : IEntityTypeConfiguration<ImportAu
         entity.Property(x => x.ModelName).HasMaxLength(150);
         entity.Property(x => x.PromptVersion).IsRequired().HasMaxLength(50);
         entity.Property(x => x.SchemaVersion).IsRequired().HasMaxLength(50);
+        entity.Property(x => x.ExtractionVersion).IsRequired().HasMaxLength(50)
+            .HasDefaultValue("ai-import-extraction-v2");
+        entity.Property(x => x.OcrProvider).HasMaxLength(100);
+        entity.Property(x => x.OcrProviderVersion).HasMaxLength(50);
+        entity.Property(x => x.OcrExtractionVersion).HasMaxLength(50);
+        entity.Property(x => x.OcrConfidenceSummaryJson).HasColumnType("nvarchar(max)");
         entity.Property(x => x.IdempotencyKeyHash).HasMaxLength(64);
         entity.Property(x => x.ResultSummaryJson).HasColumnType("nvarchar(max)");
         entity.Property(x => x.ErrorCode).HasMaxLength(100);

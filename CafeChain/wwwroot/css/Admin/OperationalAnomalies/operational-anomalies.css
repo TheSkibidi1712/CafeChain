@@ -96,10 +96,10 @@
 .anomalies-page .anomaly-badge-warning { border: 1px solid #D7B69C; background: var(--cc-warning-bg, #FBF3EA); color: var(--cc-warning, #99623B); }
 
 .anomalies-page .cc-btn-outline {
-    min-height: 36px;
-    padding: 6px 12px;
+    min-height: 40px;
+    padding: 8px 14px;
     border: 1px solid var(--cc-border-strong, #D8C5B6);
-    border-radius: 8px;
+    border-radius: var(--cc-radius-control, 10px);
     background: var(--cc-surface, #FFFDFB);
     color: var(--cc-brown-700, #5C3F2B);
     font-size: 12.5px;
