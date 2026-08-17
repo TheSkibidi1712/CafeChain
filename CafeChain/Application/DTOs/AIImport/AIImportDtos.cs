@@ -44,6 +44,7 @@ public sealed class AIImportGroupPatchRequest
     public int ExpectedPreviewVersion { get; set; }
     public AIImportEntityType EntityType { get; set; }
     public Dictionary<string, string?> Mapping { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public List<string> IgnoredSourceColumns { get; set; } = [];
 }
 
 public sealed class AIImportItemPatchRequest
@@ -100,6 +101,7 @@ public sealed class AIImportFieldEvidenceDto
 
 public sealed class AIImportErrorDto
 {
+    public string IssueKey { get; set; } = string.Empty;
     public int? ItemId { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
@@ -170,6 +172,8 @@ public sealed class AIImportSessionDto
     public bool EffectiveOcr { get; set; }
     public string OcrConfigVersion { get; set; } = string.Empty;
     public bool ConfirmBlockedBySources { get; set; }
+    public bool CanConfirm { get; set; }
+    public List<AIImportErrorDto> ConfirmBlockers { get; set; } = new();
     public AIImportPageDto Page { get; set; } = new();
 }
 
@@ -234,7 +238,24 @@ public sealed class AIImportItemDto
     public bool ManualReviewConfirmed { get; set; }
     public DateTime? ManualReviewConfirmedAtUtc { get; set; }
     public string? DuplicateOverrideReason { get; set; }
+    public string? SkipOrigin { get; set; }
+    public AIImportSupplierDuplicateReviewDto? SupplierDuplicateReview { get; set; }
     public int? ImportedEntityId { get; set; }
+}
+
+public sealed class AIImportSupplierDuplicateReviewDto
+{
+    public bool RequiresAcknowledgement { get; set; }
+    public bool RequiresReason { get; set; }
+    public List<AIImportSupplierDuplicateMatchDto> Matches { get; set; } = new();
+}
+
+public sealed class AIImportSupplierDuplicateMatchDto
+{
+    public int SupplierId { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public List<string> MatchedSignals { get; set; } = new();
 }
 
 public sealed class AIImportPageDto

@@ -35,7 +35,8 @@ public interface IAIImportSchemaRegistry
     List<AIImportSourceColumn> ClassifyColumns(
         AIImportEntityType entityType,
         IEnumerable<AIImportSourceColumn> columns,
-        IReadOnlyDictionary<string, string?> mapping);
+        IReadOnlyDictionary<string, string?> mapping,
+        IReadOnlyCollection<string>? ignoredSourceColumns = null);
 }
 
 public sealed partial class AIImportSchemaRegistry : IAIImportSchemaRegistry
@@ -141,10 +142,13 @@ public sealed partial class AIImportSchemaRegistry : IAIImportSchemaRegistry
     public List<AIImportSourceColumn> ClassifyColumns(
         AIImportEntityType entityType,
         IEnumerable<AIImportSourceColumn> columns,
-        IReadOnlyDictionary<string, string?> mapping)
+        IReadOnlyDictionary<string, string?> mapping,
+        IReadOnlyCollection<string>? ignoredSourceColumns = null)
     {
         var mapped = mapping.Where(pair => !string.IsNullOrWhiteSpace(pair.Value))
             .ToDictionary(pair => pair.Value!, pair => pair.Key, StringComparer.OrdinalIgnoreCase);
+        var explicitlyIgnored = (ignoredSourceColumns ?? [])
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         return columns.Select(column =>
         {
             if (mapped.TryGetValue(column.Key, out var target))
@@ -156,16 +160,25 @@ public sealed partial class AIImportSchemaRegistry : IAIImportSchemaRegistry
             else if (IsForbiddenHeader(column.Label))
             {
                 column.Classification = AIImportColumnClassifications.Forbidden;
+                column.TargetField = null;
                 column.Reason = "Cột định danh, phạm vi, quyền hoặc lệnh không được phép nhập.";
+            }
+            else if (explicitlyIgnored.Contains(column.Key))
+            {
+                column.Classification = AIImportColumnClassifications.Ignored;
+                column.TargetField = null;
+                column.Reason = "Người dùng đã xác nhận bỏ qua cột nguồn này.";
             }
             else if (IsKnownIgnoredHeader(column.Label))
             {
                 column.Classification = AIImportColumnClassifications.Ignored;
+                column.TargetField = null;
                 column.Reason = "Cột thông tin phụ đã được hệ thống nhận diện nhưng không thuộc danh sách trường được phép nhập.";
             }
             else
             {
                 column.Classification = AIImportColumnClassifications.Unknown;
+                column.TargetField = null;
                 column.Reason = "Hệ thống chưa xác định ý nghĩa nghiệp vụ của cột.";
             }
             return column;

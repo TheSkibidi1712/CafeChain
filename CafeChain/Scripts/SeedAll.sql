@@ -1,6 +1,9 @@
 /* Run against the database selected by the caller/SSMS connection.
    Never silently switch to a similarly named production database, and never
    allow demo/default seed data to be written to a SQL Server system database. */
+USE CafeChain
+GO
+
 SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO

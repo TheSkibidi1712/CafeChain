@@ -319,6 +319,22 @@ textarea:focus {
     color: var(--cc-danger, #991b1b);
 }
 
+.upload-errors {
+    margin-top: 1rem;
+}
+
+.upload-errors>div {
+    display: grid;
+    grid-template-columns: minmax(180px, auto) auto 1fr;
+    gap: .5rem 1rem;
+    align-items: baseline;
+}
+
+.upload-errors code {
+    color: inherit;
+    font-size: .75rem;
+}
+
 .ai-import-alert.success {
     background: var(--cc-success-bg, #edf6f2);
     border-color: var(--cc-success-border, #bbdccd);
@@ -1257,11 +1273,6 @@ th {
     background: rgba(32, 24, 18, 0.55);
 }
 
-.edit-dialog.has-swal {
-    overflow: visible;
-}
-
-.edit-dialog>.swal2-container,
 body>.swal2-container,
 .swal2-container {
     position: fixed;
@@ -1331,7 +1342,7 @@ body>.swal2-container,
 .edit-dialog-body {
     flex: 1 1 auto;
     min-height: 0;
-    overflow-y: auto;
+    overflow-y:auto;
     overscroll-behavior: contain;
     scrollbar-gutter: stable;
 }

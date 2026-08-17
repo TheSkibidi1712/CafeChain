@@ -35,6 +35,7 @@
             <label class="ocr-import-toggle" title="Đang kiểm tra cấu hình nhận dạng ký tự quang học (OCR)…"><input type="checkbox" id="useOcr" aria-label="Nhận dạng ký tự quang học cho PDF quét ảnh" disabled /> OCR cho PDF quét ảnh</label>
             <button type="button" class="btn-ai primary" id="analyzeButton" disabled><i class="fa-solid fa-magnifying-glass-chart"></i> Phân tích</button>
         </div>
+        <div class="ai-import-alert error upload-errors" id="uploadErrors" hidden></div>
     </section>
 
     <div class="ai-import-loading" id="loadingPanel" hidden><span></span><p>Đang xử lý dữ liệu…</p></div>
@@ -54,6 +55,7 @@
         <div class="summary-grid" id="summaryGrid"></div>
         <div class="source-documents" id="sourceDocuments"></div>
         <div class="ai-import-alert warning" id="analysisWarnings" hidden></div>
+        <div class="ai-import-alert error" id="confirmBlockers" hidden></div>
         <div class="workspace-grid">
             <aside class="ai-import-card group-list">
                 <div class="card-title"><strong>Nguồn / vùng</strong><span id="groupCount"></span></div>
@@ -95,7 +97,7 @@
                 <details class="edit-source-details"><summary>Dữ liệu nguồn bổ sung</summary><div id="editSourceData"></div></details>
                 <section class="edit-warning-section" id="warningSection">
                     <div class="edit-warning-messages" id="editWarningMessages"></div>
-                    <label class="check-row"><input type="checkbox" id="acknowledgeWarnings" /> Tôi đã kiểm tra và xác nhận cảnh báo</label>
+                    <label class="check-row"><input type="checkbox" id="acknowledgeWarnings" /> Tôi đã kiểm tra và vẫn muốn tạo bản ghi này</label>
                     <label id="overrideReasonGroup"><span>Lý do vẫn tạo nhà cung cấp gần trùng <em>*</em></span><textarea id="overrideReason" maxlength="500" rows="3" placeholder="Nêu rõ lý do vẫn tạo nhà cung cấp này"></textarea><small class="field-error" data-field-error="DuplicateOverrideReason"></small></label>
                 </section>
             </div>

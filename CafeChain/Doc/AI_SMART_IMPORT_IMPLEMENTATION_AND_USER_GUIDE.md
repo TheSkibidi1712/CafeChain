@@ -1,6 +1,6 @@
 # AI Smart Import CafeChain — hướng dẫn triển khai và sử dụng
 
-> Cập nhật 16/08/2026: migration history forward-only là `20260815152712_InitialCreate` → `20260816170000_AddPreparedItemTargetStockLevel`. OCR/multi-file đã nằm trong baseline; OCR dùng Tesseract local và không dùng cloud/khóa API.
+> Cập nhật 17/08/2026: Analyze đã chuyển fatal source guard trước persistence, Preview có `CanConfirm`/`ConfirmBlockers`, Supplier duplicate review có match/signals có cấu trúc và duplicate skip dẫn xuất được phục hồi sau edit. Không có migration AI Import mới.
 
 ## 1. Capability hiện tại
 
@@ -33,7 +33,7 @@ Không hỗ trợ `.doc`, `.docm`, file có mật khẩu, active content, OCR cl
 | Preview UI | Group/item edit, badge TEXT/OCR/MIXED, confidence và field provenance | Đã triển khai | Không lưu image overlay |
 | Persistence/audit/retention | OCR snapshot tối thiểu, version/provider/usage audit, purge terminal state | Đã triển khai | Không lưu binary/rendered image |
 
-Baseline `20260815152712_InitialCreate` không được sửa sau khi chốt. Mọi thay đổi schema tiếp theo phải đi bằng forward migration mới.
+Baseline squash `20260816101047_InitialCreate` không được sửa sau khi chốt. Mọi thay đổi schema tiếp theo phải đi bằng forward migration mới.
 
 Interface chính `IAIImportDocumentPipeline` che toàn bộ việc chọn format, parser và AI fallback khỏi `AIImportService`.
 
@@ -52,8 +52,8 @@ Dependency PDF text được pin `PdfPig 0.1.15`; trang scan được rasterize 
 
 Filesystem có đúng hai migration theo thứ tự:
 
-1. `20260815152712_InitialCreate` — baseline đã squash, gồm validation state, OCR runtime/traceability, `ImportSourceDocuments` và multi-file.
-2. `20260816170000_AddPreparedItemTargetStockLevel` — forward migration cho Target Stock của kho; không thay đổi schema AI Import.
+1. `20260816101047_InitialCreate` — baseline hiện có trong source, gồm validation state, OCR runtime/traceability, `ImportSourceDocuments`, multi-file và Target Stock.
+2. Đợt refactor hiện tại không tạo migration mới; nếu cần schema mới về sau phải dùng forward migration.
 
 Baseline này tạo toàn bộ schema AI Import, bao gồm:
 
@@ -308,7 +308,7 @@ Reanalyze nhận `expectedPreviewVersion` bắt buộc và claim trạng thái `
 - `AIImportEntityCreator` build DTO rồi gọi năm CRUD service; coordinator không tự `DbContext.Add` entity nghiệp vụ.
 - Parser adapter chỉ tạo source document/group/candidate và issue nguồn; database-sensitive validation chạy ở preview và chạy lại khi Confirm.
 
-Migration áp dụng theo thứ tự `20260815152712_InitialCreate`, rồi `20260816170000_AddPreparedItemTargetStockLevel`; không chỉnh sửa baseline.
+Migration hiện hành là `20260816101047_InitialCreate`; không chỉnh sửa baseline. Database disposable lệch history cần được tạo lại hoặc nâng cấp có kiểm soát, không tự động xóa production database.
 
 Locator có field tùy format: sheet/region/row/column; section/paragraph/table/tableRow/tableColumn; page/block/boundingBox/textStart/textEnd.
 
@@ -326,7 +326,7 @@ Locator có field tùy format: sheet/region/row/column; section/paragraph/table/
 | `THỨ_TỰ_ĐỌC_PDF_KHÔNG_RÕ` | Xuất lại PDF một cột/bảng rõ hoặc dùng nguồn XLSX/DOCX |
 | `KHÔNG_XÁC_ĐỊNH_RANH_GIỚI_BẢN_GHI` | Tách record bằng heading/paragraph trống hoặc một hàng cho mỗi record |
 | `CỘT_CẤM` | Xóa StoreId/BranchId/DB ID/audit/SQL/command khỏi file hoặc SKIP dòng |
-| `CỘT_KHÔNG_XÁC_ĐỊNH` | Kiểm tra cột bị bỏ qua và acknowledge warning nếu đúng |
+| `CỘT_KHÔNG_XÁC_ĐỊNH` | Ánh xạ cột nếu cần nhập; nếu không cần, chọn **Bỏ qua cột này** rồi lưu ánh xạ để backend ghi nhận `IGNORED` |
 | `XUNG_ĐỘT_ÁNH_XẠ` | Chọn source key cụ thể khi header/alias trùng |
 | `REFERENCE_KHÔNG_DUY_NHẤT` | Dùng code duy nhất thay vì tên mơ hồ |
 | `PDF_CẦN_OCR` | Lần import chưa chọn OCR; chọn OCR cho PDF scan hoặc chuyển sang PDF searchable text |
@@ -367,7 +367,7 @@ Kết quả runtime smoke ngày 16/08/2026 (xem `AI_SMART_IMPORT_RUNTIME_SMOKE_R
 - build ứng dụng/test project: `0 error`; warning nullable/obsolete hiện hữu ngoài phạm vi vẫn còn nên không ghi clean-warning;
 - 126/126 fixture deterministic/offline PASS; AI Import non-SQL PASS 231/231;
 - 20/20 PDF scan chạy Tesseract native PASS theo manifest; narrative fallback chạy Ollama `qwen3:4b` PASS;
-- migration contract PASS với baseline `20260815152712_InitialCreate` và forward migration `20260816170000_AddPreparedItemTargetStockLevel`;
+- migration contract kiểm tra đúng baseline squash `20260816101047_InitialCreate` có AI Import và Target Stock;
 - SQL Server migration/session/Confirm PASS 6/6 trên database GUID tạm; database được xóa sau test;
 - trạng thái scoped AI Import PASS. Full repository suite đạt 2543/2587 và còn 44 regression debt ngoài phạm vi AI Import; report giữ trạng thái tổng `FAILED` để không che các lỗi này;
 - rendered UI runtime chưa được đánh dấu PASS vì phiên kiểm thử không có Browser backend; ứng dụng/database cô lập đã khởi động thành công rồi được dọn sau lần thử, còn view/JavaScript contracts nằm trong tầng non-SQL;
@@ -389,6 +389,8 @@ Với SQL integration, cấu hình `CAFECHAIN_TEST_SQLSERVER_CONNECTION_STRING` 
 
 Khi thấy badge **Cần chọn nguồn**, chọn đúng `Name [B]`, `Name [C]` hoặc source key tương ứng trong phần ánh xạ. Trong modal sửa dòng có nút **Chọn làm nguồn cho…** cạnh từng lựa chọn; thao tác này cập nhật toàn vùng, không chỉ dòng đang mở. Sau PATCH thành công, preview được tải lại với version mới.
 
+Với cột nguồn còn lại không dùng, chọn **Bỏ qua cột này** và bấm **Lưu ánh xạ cột**. Request gửi danh sách `IgnoredSourceColumns`; backend kiểm tra source key không đồng thời nằm trong Mapping, chuyển classification sang `IGNORED` và tính lại issue/counter từ snapshot mới. Sửa giá trị chuẩn hóa trong modal không thay thế quyết định này vì raw source column và business field là hai lớp dữ liệu khác nhau.
+
 ### Cấu hình OCR
 
 Mở **Cài đặt hệ thống → OCR & nhận dạng tài liệu** (`?tab=ocr`). Màn hình chỉ hiển thị provider local, phiên bản Tesseract, languages và trạng thái executable/model. Lưu trạng thái bật, languages, confidence, DPI và resource/timeout limits độc lập với tab âm kho. Dùng **Kiểm tra OCR** để cập nhật trạng thái `READY`, `NOT_CONFIGURED`, `STALE` hoặc `UNAVAILABLE`.
@@ -397,7 +399,13 @@ Tại AI Smart Import, switch **OCR cho PDF scan** mặc định OFF và chỉ b
 
 ### Một phiên nhiều file
 
-Chọn hoặc kéo thả tối đa 10 file `.xlsx`, `.docx`, `.pdf`; giới hạn mặc định là 10 MiB/file và 50 MiB/phiên. Preview hiển thị trạng thái từng nguồn và filename trên mỗi Group. Nếu một nguồn lỗi, Confirm bị khóa nhưng dữ liệu hợp lệ vẫn được xem; dùng **Loại nguồn** để bỏ toàn bộ Group/candidate của file lỗi. Confirm còn lại vẫn nguyên tử toàn phiên.
+Chọn hoặc kéo thả tối đa 10 file `.xlsx`, `.docx`, `.pdf`; giới hạn mặc định là 10 MiB/file và 50 MiB/phiên. Backend phân tích/tiền kiểm toàn batch trong memory trước khi tạo phiên. Nếu một file fatal (signature/format giả, OpenXML/PDF/DOCX hỏng, encrypted, active content, compression/resource bomb, vượt resource limit, OCR bắt buộc không khả dụng hoặc hoàn tất enrichment mà vẫn không có candidate), Analyze trả lỗi ngay tại vùng upload theo file/code/message và **không tạo ImportSession hay SourceDocument cho cả batch**. Bỏ hoặc sửa file lỗi rồi Analyze lại.
+
+File an toàn nhưng có lỗi nghiệp vụ vẫn tạo Preview. Hidden sheet được bỏ qua kèm warning; missing field, duplicate, reference, mapping và confidence được sửa/review trong phiên. Nút Confirm chỉ theo `CanConfirm` của backend và hiển thị `ConfirmBlockers`; counter không quyết định eligibility.
+
+Khi sửa dòng duplicate: `USER_SKIP` (`Action=SKIP`) không tự mở lại, còn `SYSTEM_DUPLICATE_SKIP` (`Action=CREATE`, `Status=SKIPPED`) được recompute theo business key/payload cũ và mới. Category code/name cũ và mới kéo theo revalidation Drink. Category importable ở sheet/file khác có thể trở thành `PENDING_IN_SESSION`; ProductType vẫn bắt buộc tồn tại active trong DB.
+
+Modal Supplier phân biệt TaxCode hard duplicate (field error, không có override) với soft match Name/phone/email/address. Soft match hiển thị Supplier match và đúng matched signals, yêu cầu checkbox + reason tối đa 500 ký tự; backend mint/validate token gắn actor, normalized payload, reason, fingerprint và expiry. Sửa payload làm token cũ stale; token chỉ consumed khi CRUD Create thành công.
 
 ### Cancel an toàn
 

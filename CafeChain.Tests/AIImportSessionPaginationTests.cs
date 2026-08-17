@@ -16,6 +16,8 @@ using CafeChain.Infrastructure.Configurations;
 using CafeChain.Models.AIImport;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 
 namespace CafeChain.Tests;
@@ -68,6 +70,8 @@ public sealed class AIImportSessionPaginationTests : IntegrationTestBase
         Assert.Equal(2, result.Data.Page.TotalPages);
         Assert.Equal(10, result.Data.Groups[0].Items.Count);
         Assert.Empty(result.Data.Groups[1].Items);
+        Assert.True(result.Data.CanConfirm);
+        Assert.Empty(result.Data.ConfirmBlockers);
     }
 
     [Fact]
@@ -124,6 +128,151 @@ public sealed class AIImportSessionPaginationTests : IntegrationTestBase
         Assert.Equal(0, result.Data.Page.TotalItems);
         Assert.Equal(1, result.Data.Page.TotalPages);
         Assert.Empty(result.Data.Groups);
+        Assert.False(result.Data.CanConfirm);
+        Assert.Contains(result.Data.ConfirmBlockers,
+            blocker => blocker.Code == "KHÔNG_CÓ_DỮ_LIỆU_HỢP_LỆ_ĐỂ_NHẬP");
+    }
+
+    [Fact]
+    public async Task Fatal_source_error_rejects_whole_batch_without_persisting_session_or_source()
+    {
+        await using var context = CreateDbContext();
+        var pipeline = new Mock<IAIImportDocumentPipeline>();
+        pipeline.Setup(service => service.PreflightAsync(
+                It.Is<AIImportSourceFile>(file => file.FileName == "valid.xlsx"),
+                null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AIImportSourceDocument { SourceFormat = AIImportSourceFormats.Xlsx });
+        pipeline.Setup(service => service.PreflightAsync(
+                It.Is<AIImportSourceFile>(file => file.FileName == "fake.xlsx"),
+                null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AIImportSourceDocument
+            {
+                SourceFormat = AIImportSourceFormats.Xlsx,
+                Errors =
+                {
+                    AIImportValidationContract.Issue("FILE_BỊ_HỎNG",
+                        "Tệp không phải gói OpenXML .xlsx hợp lệ.", AIImportIssueSeverities.Error)
+                }
+            });
+
+        var result = await CreateService(context, pipeline.Object).AnalyzeAsync(
+            [Upload("valid.xlsx"), Upload("fake.xlsx")], null, false, Actor, CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal("FILE_BỊ_HỎNG", result.ErrorCode);
+        Assert.Contains(result.Details, issue => issue.Metadata.TryGetValue("fileName", out var name)
+                                                && Convert.ToString(name) == "fake.xlsx"
+                                                && issue.Metadata.TryGetValue("fatal", out var fatal)
+                                                && Convert.ToBoolean(fatal));
+        Assert.Equal(0, await context.ImportSessions.CountAsync());
+        Assert.Equal(0, await context.ImportSourceDocuments.CountAsync());
+    }
+
+    [Theory]
+    [InlineData("DOCX_BỊ_HỎNG")]
+    [InlineData("DOCX_VƯỢT_GIỚI_HẠN")]
+    [InlineData("DỮ_LIỆU_VƯỢT_GIỚI_HẠN_MVP")]
+    [InlineData("OCR_OUTPUT_KHÔNG_HỢP_LỆ")]
+    public async Task Hard_document_error_is_reported_per_file_and_never_creates_session(string errorCode)
+    {
+        await using var context = CreateDbContext();
+        var pipeline = new Mock<IAIImportDocumentPipeline>();
+        pipeline.Setup(service => service.PreflightAsync(
+                It.IsAny<AIImportSourceFile>(), null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AIImportSourceDocument
+            {
+                SourceFormat = AIImportSourceFormats.Docx,
+                Errors =
+                {
+                    AIImportValidationContract.Issue(errorCode,
+                        "Tệp nguồn không đạt điều kiện phân tích.", AIImportIssueSeverities.Error)
+                }
+            });
+
+        var result = await CreateService(context, pipeline.Object).AnalyzeAsync(
+            [Upload("invalid.docx")], null, false, Actor, CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal(errorCode, result.ErrorCode);
+        Assert.Contains(result.Details, issue => Convert.ToString(issue.Metadata["fileName"]) == "invalid.docx"
+                                                && Convert.ToBoolean(issue.Metadata["fatal"]));
+        Assert.Equal(0, await context.ImportSessions.CountAsync());
+        Assert.Equal(0, await context.ImportSourceDocuments.CountAsync());
+        pipeline.Verify(service => service.AnalyzePreflightedAsync(
+            It.IsAny<AIImportSourceDocument>(), It.IsAny<AIImportEntityType?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Document_without_any_candidate_after_analysis_is_rejected_before_session_persistence()
+    {
+        await using var context = CreateDbContext();
+        var document = new AIImportSourceDocument { SourceFormat = AIImportSourceFormats.Xlsx };
+        var pipeline = new Mock<IAIImportDocumentPipeline>();
+        pipeline.Setup(service => service.PreflightAsync(
+                It.IsAny<AIImportSourceFile>(), null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(document);
+        pipeline.Setup(service => service.AnalyzePreflightedAsync(
+                document, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(document);
+
+        var result = await CreateService(context, pipeline.Object).AnalyzeAsync(
+            [Upload("empty-data.xlsx")], null, false, Actor, CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal("KHÔNG_TÌM_THẤY_DỮ_LIỆU", result.ErrorCode);
+        Assert.Contains(result.Details, issue => Convert.ToString(issue.Metadata["fileName"]) == "empty-data.xlsx"
+                                                && Convert.ToBoolean(issue.Metadata["fatal"]));
+        Assert.Equal(0, await context.ImportSessions.CountAsync());
+        Assert.Equal(0, await context.ImportSourceDocuments.CountAsync());
+    }
+
+    [Fact]
+    public async Task Empty_uploaded_file_returns_file_detail_without_calling_pipeline_or_creating_session()
+    {
+        await using var context = CreateDbContext();
+        var pipeline = new Mock<IAIImportDocumentPipeline>(MockBehavior.Strict);
+
+        var result = await CreateService(context, pipeline.Object).AnalyzeAsync(
+            [Upload("empty.xlsx", [])], null, false, Actor, CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal("FILE_QUÁ_LỚN", result.ErrorCode);
+        Assert.Contains(result.Details, issue => Convert.ToString(issue.Metadata["fileName"]) == "empty.xlsx"
+                                                && Convert.ToBoolean(issue.Metadata["fatal"]));
+        Assert.Equal(0, await context.ImportSessions.CountAsync());
+        Assert.Equal(0, await context.ImportSourceDocuments.CountAsync());
+    }
+
+    [Theory]
+    [InlineData("E42_fake_xlsx_contains_pdf.xlsx", "FILE_BỊ_HỎNG")]
+    [InlineData("E40_suspicious_compression_ratio.xlsx", "FILE_QUÁ_LỚN")]
+    public async Task Real_fatal_excel_fixture_returns_file_error_without_persisting_import_graph(
+        string fileName,
+        string expectedCode)
+    {
+        await using var context = CreateDbContext();
+        var options = Options.Create(new AIImportOptions());
+        var schemas = new AIImportSchemaRegistry();
+        var pipeline = new AIImportDocumentPipeline(
+        [
+            new AIImportExcelSourceParser(
+                new AIImportExcelParser(options),
+                Mock.Of<IAIImportRegionAnalyzer>(),
+                schemas)
+        ]);
+        var path = Path.Combine(RepositoryRoot(), "CafeChain.Tests", "Fixtures", "AIImport", "01_EXCEL", fileName);
+
+        var result = await CreateService(context, pipeline).AnalyzeAsync(
+            [Upload(fileName, await File.ReadAllBytesAsync(path))], null, false, Actor, CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal(expectedCode, result.ErrorCode);
+        Assert.Contains(result.Details, issue => Convert.ToString(issue.Metadata["fileName"]) == fileName
+                                                && Convert.ToBoolean(issue.Metadata["fatal"]));
+        Assert.Equal(0, await context.ImportSessions.CountAsync());
+        Assert.Equal(0, await context.ImportSourceDocuments.CountAsync());
+        Assert.Equal(0, await context.ImportGroups.CountAsync());
+        Assert.Equal(0, await context.ImportItems.CountAsync());
     }
 
     private static ImportSession Session(params ImportGroup[] groups) => new()
@@ -165,7 +314,22 @@ public sealed class AIImportSessionPaginationTests : IntegrationTestBase
         }).ToList()
     };
 
-    private static AIImportService CreateService(AppDbContext context)
+    private static IFormFile Upload(string fileName, byte[]? content = null)
+    {
+        content ??= [1, 2, 3, 4];
+        return new FormFile(new MemoryStream(content), 0, content.Length, "Files", fileName)
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = Path.GetExtension(fileName).ToLowerInvariant() switch
+            {
+                ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ".pdf" => "application/pdf",
+                _ => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            }
+        };
+    }
+
+    private static AIImportService CreateService(AppDbContext context, IAIImportDocumentPipeline? pipeline = null)
     {
         var permissions = new Mock<IAdminPermissionService>();
         permissions.Setup(service => service.HasPermissionAsync(Actor.AccountId, It.IsAny<string>(), null))
@@ -184,7 +348,7 @@ public sealed class AIImportSessionPaginationTests : IntegrationTestBase
         var entityRegistry = new AIImportEntityRegistry();
         return new AIImportService(
             context,
-            Mock.Of<IAIImportDocumentPipeline>(),
+            pipeline ?? Mock.Of<IAIImportDocumentPipeline>(),
             Mock.Of<IAIImportRegionAnalyzer>(),
             schemas,
             Mock.Of<IRequestDeduplicationService>(),
@@ -208,5 +372,13 @@ public sealed class AIImportSessionPaginationTests : IntegrationTestBase
             new AIImportPreviewMutationCoordinator(),
             new AIImportConfirmCoordinator(entityRegistry),
             new AIImportSessionQuery());
+    }
+
+    private static string RepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, ".git")))
+            directory = directory.Parent;
+        return directory?.FullName ?? throw new DirectoryNotFoundException("Không tìm thấy repository root.");
     }
 }
