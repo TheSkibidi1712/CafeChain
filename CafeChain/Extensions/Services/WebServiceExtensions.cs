@@ -11,6 +11,7 @@ namespace CafeChain.Extensions.Services
                 .AddControllersWithViews()
                 .AddJsonOptions(options =>
                 {
+                    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
                     options.JsonSerializerOptions.Converters.Add(
                         new JsonStringEnumConverter()
                     );
