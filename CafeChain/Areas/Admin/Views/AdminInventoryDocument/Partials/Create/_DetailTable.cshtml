@@ -34,17 +34,62 @@
         Model.Type == InventoryDocumentType.STOCK_TAKE;
 
     ViewData["HideMoneyColumns"] = hideMoneyColumns;
-    ViewData["ShowVarianceColumn"] = showVarianceColumn;
 }
+<style>
+    /* Expand Action Column to fit text on a single line and allow perfect centering of the button */
+    body.admin-premium-shell .inventory-create-table :is(th, td).create-col-action {
+        width: 100px !important;
+        text-align: center !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    body.admin-premium-shell .inventory-create-table th {
+        text-align: center !important;
+        vertical-align: middle !important;
+    }
+    
+    body.admin-premium-shell .inventory-create-table td {
+        text-align: center !important;
+        vertical-align: middle !important;
+    }
+    
+    body.admin-premium-shell .inventory-create-table td.create-col-index {
+        text-align: center !important;
+    }
+    
+    body.admin-premium-shell .inventory-create-table td :is(input, select) {
+        text-align: center !important;
+        text-align-last: center !important;
+        margin: 0 auto !important;
+    }
+    
+    body.admin-premium-shell .inventory-create-table .ingredient-row-meta {
+        justify-content: center !important;
+        text-align: center !important;
+    }
+
+    body.admin-premium-shell .inventory-create-table td.create-col-action .create-remove-row-btn {
+        margin: 0 auto !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+</style>
 
 <section class="create-section create-detail-section">
 
     <div class="create-section-header">
-        <div>
-            <span class="create-section-eyebrow">
-                Bước 2 · Chi tiết nguyên liệu
+        <div class="create-section-header-title-wrap">
+            <span class="create-summary-icon">
+                <i class="fas fa-clipboard-list"></i>
             </span>
-            <h5>Danh sách nguyên liệu</h5>
+            <div>
+                <span class="create-section-eyebrow">
+                    Bước 2 · Chi tiết nguyên liệu
+                </span>
+                <h5>Danh sách nguyên liệu</h5>
+            </div>
         </div>
 
         <button type="button"
@@ -77,12 +122,12 @@
                     <th class="create-col-moq" id="quantityReferenceHeader">@referenceHeader</th>
                     <th class="create-col-variance @(showVarianceColumn ? "" : "d-none")">Chênh lệch</th>
                     <th class="create-col-total @(hideMoneyColumns ? "d-none" : "")">Thành tiền</th>
-                    <th class="create-col-action"></th>
+                    <th class="create-col-action text-center">Thao tác</th>
                 </tr>
             </thead>
 
             <tbody id="ingredientTableBody">
-                <partial name="Partials/Create/_IngredientRow" />
+                <partial name="Partials/Create/_IngredientRow" view-data="ViewData" />
             </tbody>
 
         </table>
@@ -90,7 +135,7 @@
     </div>
 
     <template id="ingredientRowTemplate">
-        <partial name="Partials/Create/_IngredientRow" />
+        <partial name="Partials/Create/_IngredientRow" view-data="ViewData" />
     </template>
 
 </section>

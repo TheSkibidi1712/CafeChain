@@ -3,8 +3,8 @@
     --cc-refresh-espresso: #2b1b16;
     --cc-refresh-espresso-2: #3a241c;
     --cc-refresh-caramel: #b77945;
-    --cc-refresh-canvas: #f3f0eb;
-    --cc-refresh-surface: #fffdf9;
+    --cc-refresh-canvas: #f7f4f0;
+    --cc-refresh-surface: #f7f4f0;
     --cc-refresh-line: #ded5cc;
     --cc-refresh-ink: #211a17;
     --cc-refresh-muted: #70645d;
@@ -142,6 +142,7 @@
 
 .admin-premium-shell .main-content {
     margin-left: 272px;
+    padding: 16px 20px 32px !important;
 }
 
 .admin-premium-shell .sidebar .collapsing {
@@ -156,28 +157,45 @@
 }
 
 .admin-premium-refresh .topbar {
-    min-height: 76px;
-    padding: 14px clamp(20px, 3vw, 42px);
-    background: rgba(243, 240, 235, .96) !important;
+    min-height: 60px;
+    padding: 10px clamp(16px, 2.5vw, 32px) !important;
+    background: rgba(247, 244, 240, .96) !important;
     border-bottom: 1px solid var(--cc-refresh-line) !important;
     box-shadow: none !important;
 }
 
 .admin-premium-refresh .topbar-user {
-    min-height: 44px;
-    padding: 5px 12px 5px 6px;
+    min-height: 38px;
+    padding: 4px 10px 4px 6px;
     border: 1px solid #cdbeb3 !important;
-    border-radius: 12px !important;
+    border-radius: 10px !important;
     background: var(--cc-refresh-surface) !important;
     color: var(--cc-refresh-ink) !important;
 }
 
-.admin-premium-refresh .admin-page-body {
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) {
     box-sizing: border-box;
     width: min(100%, 1680px);
     margin: 0 auto;
-    padding: 28px clamp(20px, 3vw, 44px) 56px;
+    padding: 0 !important;
     color: var(--cc-refresh-ink);
+}
+
+/* Unified module layout wrappers to match Dashboard size and shell exactly */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
+    .analytics-page, .category-page, .pf-page, .rb-page, .po-page,
+    .admin-wo-page, .perm-page, .supplier-page, .staff-page, .staff-shift-page,
+    .ops-shell, .cc-warehouse-page, .category-form-page, .drink-page, .ops-page,
+    .notification-page, .purchase-advice-page, .purchase-order-page, .reorder-page,
+    .restock-page, .store-menu-page, .voucher-page, .wheel-page, .workshift-page
+) {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: auto !important;
+    background: transparent !important;
+    box-shadow: none !important;
 }
 
 /* Wide Supplier data remains scrollable inside its own table shell, never at page level. */
@@ -185,31 +203,20 @@
     overflow-x: clip;
 }
 
-.admin-premium-refresh .admin-page-body :is(
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
     .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
     .ops-page-header, .notification-page-header, .category-page-header,
-    .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section
+    .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
+    .pf-header, .sm-header, .ops-header, .sales-history-header
 ) {
+    position: relative !important;
     min-height: 132px !important;
-    padding: 28px 30px !important;
+    padding: 24px 30px !important;
     border: 1px solid var(--cc-refresh-line) !important;
     border-left: 5px solid var(--cc-refresh-espresso) !important;
     border-radius: 18px !important;
-    background: var(--cc-refresh-surface) !important;
-    box-shadow: 0 14px 34px rgba(57, 38, 29, .07) !important;
-}
-
-.admin-premium-refresh .admin-page-body :is(
-    .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
-    .ops-page-header, .notification-page-header, .category-page-header,
-    .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section
-)::before,
-.admin-premium-refresh .admin-page-body :is(
-    .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
-    .ops-page-header, .notification-page-header, .category-page-header,
-    .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section
-)::after {
-    display: none !important;
+    background: radial-gradient(circle at 92% 4%, rgba(201, 158, 125, 0.12), transparent 280px), linear-gradient(135deg, #fffdfb 0%, #faf6f2 54%, #f7f4f0 100%) !important;
+    box-shadow: 0 10px 28px rgba(57, 38, 29, .05) !important;
 }
 
 .admin-premium-refresh .admin-page-body :is(h1, .page-title, .category-page-title, .drink-page-title) {
@@ -231,7 +238,7 @@
 .admin-premium-refresh .admin-page-body :is(input, select, textarea, .form-control, .form-select, .select2-selection) {
     border-color: #d5c8be !important;
     border-radius: 10px !important;
-    background-color: #fffefa !important;
+    background-color: #f7f4f0 !important;
 }
 
 /* Consistent accessible targets without changing form or workflow hooks. */
@@ -267,7 +274,7 @@
 .admin-premium-refresh .admin-page-body :is(.table, table) thead th {
     height: 48px;
     color: #4b3024 !important;
-    background: #f4eee8 !important;
+    background: #f0ebe5 !important;
     border-color: #ddcfc4 !important;
     font-size: 11px !important;
     letter-spacing: .045em;
@@ -275,12 +282,12 @@
 
 .admin-premium-refresh .admin-page-body :is(.table, table) tbody td {
     border-color: #e6ddd5 !important;
-    background: rgba(255, 253, 249, .72);
+    background: #f7f4f0 !important;
     vertical-align: middle;
 }
 
 .admin-premium-refresh .admin-page-body :is(.table, table) tbody tr:hover td {
-    background: #faf4ed !important;
+    background: #f0ebe5 !important;
 }
 
 .admin-premium-refresh .admin-page-body :is(
@@ -310,7 +317,7 @@
     border-radius: 10px !important;
     border-color: #d8c9bf !important;
     color: #513428;
-    background: #fffdf9;
+    background: #f7f4f0;
 }
 
 .admin-premium-refresh .admin-page-body .pagination .active > .page-link {
@@ -345,7 +352,8 @@
     .admin-premium-refresh .admin-page-body :is(
         .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
         .ops-page-header, .notification-page-header, .category-page-header,
-        .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section
+        .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
+        .pf-header, .sm-header, .ops-header
     ) {
         min-height: 0 !important;
         padding: 22px 20px !important;
@@ -362,3 +370,1527 @@
         animation-iteration-count: 1 !important;
     }
 }
+
+/* Global Compactness Override Contract (All Modules & Sub-forms) - Excludes AI Smart Import */
+
+/* 1. Global Table Padding Reduction & Alignment */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.table, table, .production-data-table) :is(thead th, tbody td) {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+    text-align: center; /* Default centering; allows text-align utility classes or .pf-number to override */
+    vertical-align: middle !important;
+}
+
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.table, table, .production-data-table) td :is(.d-flex, .flex-row, .production-row-actions) {
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+/* 2. Global Card Spacing & Inner Paddings */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
+    .card, .content-card, .table-card, .filter-card, .filter-section,
+    .table-container, .summary-card, .kpi-card, .stats-card, .rb-card, .po-main-card,
+    .history-card, .admin-wo-card, .perm-panel, .cc-warehouse-panel, .ops-panel,
+    .pa-panel, .ice-panel, .category-card, .drink-card
+) {
+    margin-bottom: 12px !important;
+    padding: 12px !important;
+}
+
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
+    .card-body, .rb-card-body, .card-content, .panel-body
+) {
+    padding: 0 !important;
+}
+
+/* Filter Card Layout & Spacing */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(form.production-filter-card, form.filter-card, .rb-list-filters) {
+    padding: 8px 12px !important;
+    gap: 0.5rem !important;
+    margin-bottom: 12px !important;
+}
+
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) .production-section-header,
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) .production-filter-card__heading {
+    margin-bottom: 6px !important;
+}
+
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) .production-list-section {
+    margin-top: 12px !important;
+}
+
+/* 3. Global Form Inputs & Labels Spacing (Add/Edit/Delete Forms) */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.form-group, .mb-3, .row.g-3 > div) {
+    margin-bottom: 12px !important;
+}
+
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(label, .form-label) {
+    margin-bottom: 5px !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+}
+
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(input, select, textarea, .form-control, .form-select) {
+    min-height: 38px !important;
+    height: 38px !important;
+    font-size: 13.5px !important;
+    padding: 6px 12px !important;
+}
+
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) textarea {
+    min-height: 80px !important;
+    height: auto !important;
+}
+
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(button, a.btn, [role="button"]):not(.btn-close):not(.action-btn) {
+    min-height: 38px !important;
+    height: 38px !important;
+    font-size: 13.5px !important;
+    padding: 0 16px !important;
+}
+
+/* 4. Global Modals Spacing (Forms in Modals) */
+.admin-premium-refresh:not(:has(.ai-import-page)) :is(.modal-header, .modal-footer) {
+    padding: 14px 20px !important;
+}
+
+.admin-premium-refresh:not(:has(.ai-import-page)) .modal-body {
+    padding: 18px 20px !important;
+}
+
+.admin-premium-refresh:not(:has(.ai-import-page)) .rb-modal-section {
+    padding: 10px 0 !important;
+    margin-bottom: 10px !important;
+    border-bottom: 1px solid var(--cc-refresh-line) !important;
+}
+
+.admin-premium-refresh:not(:has(.ai-import-page)) .rb-modal-section:last-child {
+    border-bottom: none !important;
+    margin-bottom: 0 !important;
+}
+
+.admin-premium-refresh:not(:has(.ai-import-page)) .rb-modal-section-heading {
+    margin-bottom: 8px !important;
+    gap: 8px !important;
+}
+
+.admin-premium-refresh:not(:has(.ai-import-page)) .rb-modal-section-heading span {
+    font-size: 11.5px !important;
+}
+
+/* ====================================================================
+   MASTER BACKGROUND OVERRIDE — Single cream #f7f4f0 everywhere
+   Covers: page body, main-content, cards, panels, form controls,
+   modals, tables, filters, hero headers, subforms, etc.
+   Strictly excludes AI Smart Import (.ai-import-page).
+   ==================================================================== */
+
+/* 1. Layout shells */
+body:not(:has(.ai-import-page)),
+.main-content:not(:has(.ai-import-page)),
+.admin-page-body:not(:has(.ai-import-page)),
+.admin-premium-refresh:not(:has(.ai-import-page)),
+.admin-premium-shell:not(:has(.ai-import-page)) {
+    background: #f7f4f0 !important;
+    background-color: #f7f4f0 !important;
+}
+
+/* 2. All cards, panels, containers */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
+    .card, .content-card, .table-card, .filter-card, .filter-section,
+    .table-container, .summary-card, .kpi-card, .stats-card,
+    .rb-card, .po-main-card, .history-card, .admin-wo-card,
+    .perm-panel, .cc-warehouse-panel, .ops-panel, .pa-panel, .ice-panel,
+    .category-card, .drink-card,
+    .supplier-page-header, .supplier-metrics, .supplier-subform,
+    .supplier-stack-item, .supplier-duplicate-item, .supplier-empty-inline,
+    .supplier-toast, .supplier-detail-header, .supplier-tabs,
+    .card-body, .rb-card-body, .card-content, .panel-body
+) {
+    background: #f7f4f0 !important;
+    background-color: #f7f4f0 !important;
+}
+
+/* 3. Modal and Offcanvas backgrounds */
+.admin-premium-refresh:not(:has(.ai-import-page)) :is(
+    .modal-content, .modal-body, .modal-footer,
+    .offcanvas, .offcanvas-body, .offcanvas-footer,
+    .sm-drawer, .pf-drawer, .swal2-popup
+) {
+    background: #f7f4f0 !important;
+    background-color: #f7f4f0 !important;
+}
+
+/* 4. Form controls — inputs, selects, textareas */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
+    input, select, textarea,
+    .form-control, .form-select,
+    .select2-selection, .select2-container--default .select2-selection--single,
+    .select2-dropdown
+) {
+    background: #f7f4f0 !important;
+    background-color: #f7f4f0 !important;
+}
+
+/* 5. Table cells */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.table, table) tbody td {
+    background: #f7f4f0 !important;
+    background-color: #f7f4f0 !important;
+}
+
+/* 6. Page hero / header sections */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
+    .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
+    .ops-page-header, .notification-page-header, .category-page-header,
+    .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
+    .pf-header, .sm-header, .ops-header, .sales-history-header,
+    .cc-page-header
+) {
+    background: radial-gradient(circle at 92% 4%, rgba(201, 158, 125, 0.12), transparent 280px), linear-gradient(135deg, #fffdfb 0%, #faf6f2 54%, #f7f4f0 100%) !important;
+}
+
+/* 7. Buttons — outline/light variants */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
+    .btn-outline-secondary, .btn-light, .btn-secondary,
+    .swal2-cancel, .btn-swal-cancel
+) {
+    background: #f7f4f0 !important;
+    background-color: #f7f4f0 !important;
+}
+
+/* 8. Pagination */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) .pagination .page-link:not(.active > .page-link) {
+    background: #f7f4f0 !important;
+    background-color: #f7f4f0 !important;
+}
+
+/* 9. Workshift approvals */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
+    .workshift-approval-card, .workshift-section, .workshift-item
+) {
+    background: #f7f4f0 !important;
+    background-color: #f7f4f0 !important;
+}
+
+/* ====================================================================
+   UNIFIED MODULE HEADER DESIGN — Sync all headers to Dashboard style
+   All module hero/header sections get the same compact, flat cream
+   design as the Dashboard's .analytics-header.
+   Excludes AI Smart Import (.ai-import-page).
+   ==================================================================== */
+
+/* 10. Unified header — base layout (all header types) */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
+    .cc-page-hero, .cc-page-header, .analytics-header,
+    .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
+    .ops-page-header, .notification-page-header, .category-page-header,
+    .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
+    .pf-header, .sm-header, .ops-header, .sales-history-header,
+    .cc-warehouse-header, .inventory-header, .reorder-header,
+    .notification-header, .drink-form-heading
+) {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 20px !important;
+    min-height: 132px !important;
+    padding: 24px 30px !important;
+    margin-bottom: 24px !important;
+    border: 1px solid var(--cc-border, #E9DED4) !important;
+    border-left: 5px solid var(--cc-refresh-espresso, #2b1b16) !important;
+    border-radius: 18px !important;
+    background: radial-gradient(circle at 92% 4%, rgba(201, 158, 125, 0.12), transparent 280px), linear-gradient(135deg, #fffdfb 0%, #faf6f2 54%, #f7f4f0 100%) !important;
+    box-shadow: 0 10px 28px rgba(57, 38, 29, .05) !important;
+    overflow: hidden !important;
+}
+
+/* 11. Unified header — title typography */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
+    h1, .page-title, .category-page-title, .drink-page-title, 
+    .rb-page-title, .po-page-title, .cc-page-title, .ops-title,
+    .cc-page-hero h1, .analytics-header h1, .admin-page-header h1,
+    .page-header h1, .cc-warehouse-header h1, .pf-header h1,
+    .sm-header h1, .ops-header h1, .sales-history-header h1,
+    .drink-form-heading h1
+) {
+    margin-top: 6px !important;
+    margin-bottom: 4px !important;
+    font-size: clamp(20px, 2.2vw, 24px) !important;
+    font-weight: 850 !important;
+    line-height: 1.2 !important;
+    letter-spacing: -.03em !important;
+    color: var(--cc-text, #201812) !important;
+}
+
+/* 12. Unified header — description */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
+    .cc-page-hero, .cc-page-header, .analytics-header,
+    .admin-page-header, .page-header, .cc-warehouse-header, .drink-form-heading
+) p {
+    margin: 0 !important;
+    font-size: 13px !important;
+    color: var(--cc-text-secondary, #66584F) !important;
+    line-height: 1.55 !important;
+}
+
+/* 13. Unified header — eyebrow / kicker */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
+    .cc-page-hero__eyebrow, .analytics-eyebrow, .cc-page-kicker, .drink-eyebrow
+) {
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 5px 10px !important;
+    border: 1px solid var(--cc-border-strong, #D8C5B6) !important;
+    border-radius: 999px !important;
+    background: #fffdfb !important;
+    font-size: 11px !important;
+    font-weight: 850 !important;
+    text-transform: uppercase !important;
+    letter-spacing: .09em !important;
+    color: var(--cc-warning, #99623B) !important;
+}
+
+/* 14. Unified header — icon */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) .cc-page-hero__icon {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 16px !important;
+}
+
+/* 15. Unified header — title row */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) .cc-page-hero__title-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+/* 16. Unified header — actions */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
+    .cc-page-hero__actions, .analytics-header__actions
+) {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+}
+
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
+    .cc-page-hero__action, .analytics-button
+) {
+    min-height: 38px !important;
+    height: 38px !important;
+    padding: 0 16px !important;
+    font-size: 13px !important;
+    border-radius: 10px !important;
+}
+
+/* 17. Unified header — breadcrumbs */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) .cc-page-hero__breadcrumbs {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    margin-top: 6px !important;
+    font-size: 12px !important;
+}
+
+/* 18. Direct aggressive layout reset to override later-loaded stylesheets and unify widths */
+body:not(:has(.ai-import-page)) :is(
+    .analytics-page, .category-page, .pf-page, .rb-page, .po-page,
+    .admin-wo-page, .perm-page, .supplier-page, .staff-page, .staff-shift-page,
+    .ops-shell, .cc-warehouse-page, .category-form-page, .drink-page, .ops-page,
+    .notification-page, .purchase-advice-page, .purchase-order-page, .reorder-page,
+    .restock-page, .store-menu-page, .voucher-page, .wheel-page, .workshift-page
+) {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: auto !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+/* 19. Unified search input boxes — position icons/buttons at the right end to prevent overlap */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
+    .category-search-field, .drink-search-box, .catalog-search-box,
+    .sm-search-box, .ops-search-field, .inventory-search-field, .search-box
+) {
+    position: relative !important;
+}
+
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
+    .category-search-field, .drink-search-box, .catalog-search-box,
+    .sm-search-box, .ops-search-field, .inventory-search-field, .search-box
+) input {
+    padding-left: 14px !important;
+    padding-right: 42px !important;
+}
+
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
+    .category-search-field, .drink-search-box, .catalog-search-box,
+    .sm-search-box, .ops-search-field, .inventory-search-field, .search-box
+) :is(
+    i, .fa-search, .bi-search, button,
+    .category-search-btn, .drink-search-btn, .catalog-search-button,
+    .search-btn, .ops-search-icon, .inventory-search-icon
+) {
+    position: absolute !important;
+    right: 14px !important;
+    left: auto !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    margin: 0 !important;
+    pointer-events: auto !important;
+    background: transparent !important;
+}
+
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
+    .category-search-field, .drink-search-box, .catalog-search-box,
+    .sm-search-box, .ops-search-field, .inventory-search-field, .search-box
+) :is(
+    button, .category-search-btn, .drink-search-btn, .catalog-search-button, .search-btn
+):hover {
+    transform: translateY(-50%) scale(1.1) !important;
+}
+
+/* 20. Concentric circle outline decoration for Create Drink page header */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) .drink-form-heading::before,
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) .drink-form-heading::after {
+    position: absolute !important;
+    z-index: 1 !important;
+    border-radius: 50% !important;
+    content: "" !important;
+    pointer-events: none !important;
+    display: block !important;
+}
+
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) .drink-form-heading::before {
+    width: 250px !important;
+    height: 250px !important;
+    top: -145px !important;
+    right: 95px !important;
+    border: 28px solid rgba(223, 197, 177, 0.14) !important;
+}
+
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) .drink-form-heading::after {
+    width: 160px !important;
+    height: 160px !important;
+    right: -34px !important;
+    bottom: -110px !important;
+    border: 22px solid rgba(201, 158, 125, 0.11) !important;
+}
+
+/* Ensure headings text are positioned on top of the circles */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) .drink-form-heading > * {
+    position: relative !important;
+    z-index: 2 !important;
+}
+
+/* Force drink form headings to stack vertically and left-align instead of splitting horizontally */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) .drink-form-heading {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    gap: 4px !important;
+}
+
+/* 21. Premium Offcanvas & Modal form field layouts to prevent text-overlap, add breathing room, and ensure uniform full width (excluding checkbox/radio toggle switches & custom card options) */
+body.admin-premium-shell :is(.offcanvas-body, .sm-drawer-body, .pf-drawer-body, .modal-body) :is(
+    label:not(.inventory-export-option):not(.create-purpose-card):not(.negative-stock-mode-card), 
+    input:not([type="checkbox"]):not([type="radio"]), textarea, select,
+    .sm-control, .ops-input, .ops-select, .ops-textarea,
+    #storeMenuPriceFields, #storeMenuOrderFields
+) {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+
+body.admin-premium-shell :is(.offcanvas-body, .sm-drawer-body, .pf-drawer-body, .modal-body) label:not(.inventory-export-option):not(.create-purpose-card):not(.negative-stock-mode-card) {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    margin-bottom: 16px !important;
+}
+
+body.admin-premium-shell :is(.offcanvas-body, .sm-drawer-body, .pf-drawer-body, .modal-body) label:not(.inventory-export-option):not(.create-purpose-card):not(.negative-stock-mode-card) > span:first-child {
+
+    display: block !important;
+    margin-bottom: 6px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: var(--cc-text-secondary, #66584F) !important;
+    line-height: 1.4 !important;
+}
+
+body.admin-premium-shell :is(.offcanvas-body, .sm-drawer-body, .pf-drawer-body, .modal-body) .sm-field-note {
+    margin-top: -12px !important;
+    margin-bottom: 16px !important;
+    font-size: 11.5px !important;
+    color: var(--cc-text-muted, #8c7b70) !important;
+}
+
+/* 22. Creative focus state — completely remove outer outlines/shadows with high specificity to override later-loaded css files */
+body.admin-premium-shell :is(
+    input, select, textarea,
+    .form-control, .form-select,
+    .sm-control, .ops-input, .ops-select, .ops-textarea,
+    .select2-selection, .select2-container--default .select2-selection--single
+):focus,
+body.admin-premium-shell :is(
+    input, select, textarea,
+    .form-control, .form-select,
+    .sm-control, .ops-input, .ops-select, .ops-textarea,
+    .select2-selection, .select2-container--default .select2-selection--single
+):focus-visible {
+    outline: none !important;
+    outline-offset: 0 !important;
+    box-shadow: none !important;
+    border: 1.5px solid var(--cc-brown-600, #70482F) !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+}
+
+/* Make the label text light up and become bold when the child input/textarea is focused */
+body.admin-premium-shell label:has(:is(input, select, textarea):focus) > span:first-child {
+    color: var(--cc-brown-900, #3D2418) !important;
+    font-weight: 850 !important;
+    letter-spacing: 0.01em !important;
+    text-shadow: 0 0 1px rgba(112, 72, 47, 0.1);
+    transition: color 0.2s ease, font-weight 0.2s ease;
+}
+
+/* 23. Aggressive layout alignment — ensure textareas have auto height/min-height 80px, while inputs are uniformly 38px */
+body.admin-premium-shell :is(
+    textarea,
+    textarea.sm-control,
+    textarea.ops-textarea,
+    .sm-control[rows]
+) {
+    min-height: 80px !important;
+    height: auto !important;
+}
+
+body.admin-premium-shell :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+    select,
+    .form-control:not(textarea),
+    .form-select,
+    .sm-control:not(textarea),
+    .ops-input:not(textarea)
+) {
+    height: 38px !important;
+    min-height: 38px !important;
+}
+
+/* 24. Force production BOM page container to stretch to full width, overriding max-width: 1560px and custom paddings */
+body.admin-premium-shell :is(.production-bom-page, .production-bom-shell) {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: auto !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+/* 25. Align Recipe (BOM) page hero styling and layout alignment with other modules */
+body.admin-premium-shell .production-bom-page .cc-page-hero {
+    background: radial-gradient(circle at 92% 4%, rgba(201, 158, 125, 0.14), transparent 280px),
+                linear-gradient(135deg, #fffdfb 0%, #faf6f2 54%, #f7f4f0 100%) !important;
+    border: 1px solid var(--cc-border, #E9DED4) !important;
+    border-left: 5px solid var(--cc-refresh-espresso-2, #5c3f2b) !important;
+    border-radius: var(--cc-radius-header, 20px) !important;
+    box-shadow: var(--cc-shadow-md, 0 8px 24px rgba(32, 24, 18, 0.08)) !important;
+    padding: 24px 30px !important;
+    margin-bottom: 24px !important;
+    overflow: hidden !important;
+}
+
+/* Hide the overlapping sharp brown accent bar on the left edge of Recipe heroes */
+body.admin-premium-shell .production-bom-page .cc-page-hero__accent {
+    display: none !important;
+}
+
+/* Hide the extra clashing circle background decorations from Recipe stylesheet */
+body.admin-premium-shell .production-bom-page .cc-page-hero::before,
+body.admin-premium-shell .production-bom-page .cc-page-hero::after {
+    display: none !important;
+}
+
+/* Force hero icons to be centered blocks with safe margins to prevent overlapping title text */
+body.admin-premium-shell :is(.cc-page-hero, .cc-page-header) .cc-page-hero__icon {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    margin-right: 12px !important;
+    position: relative !important;
+    vertical-align: middle !important;
+    color: var(--cc-refresh-espresso-2, #5c3f2b) !important;
+}
+
+/* 26. Align "Kiểm tra và lưu" sidebar card height with main form layout (only on desktop two-column view) */
+@media (min-width: 1200px) {
+    body.admin-premium-shell .production-bom-page .production-form-grid {
+        align-items: stretch !important;
+    }
+
+    body.admin-premium-shell .production-bom-page .production-form-sidebar {
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100% !important;
+        min-height: 100% !important;
+    }
+
+    body.admin-premium-shell .production-bom-page .production-review-summary {
+        flex: 1 1 auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100% !important;
+        min-height: 100% !important;
+    }
+
+    body.admin-premium-shell .production-bom-page .production-review-summary .card-body {
+        flex: 1 1 auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100% !important;
+    }
+
+    body.admin-premium-shell .production-bom-page .production-form-actions {
+        margin-top: auto !important;
+        padding-top: 16px !important;
+    }
+}
+
+/* 27. Premium Modal & Section Heading UI Refinement */
+body.admin-premium-shell :is(.rb-modal, .modal-content) .modal-header .btn-close {
+    background-size: 12px !important;
+    opacity: 0.65 !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+body.admin-premium-shell :is(.rb-modal, .modal-content) .modal-header .btn-close:hover {
+    opacity: 1 !important;
+    transform: rotate(90deg) !important;
+}
+
+/* Circular background badge styling for modal sub-section icons */
+body.admin-premium-shell .rb-modal-section-heading {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    border-bottom: 1px solid var(--cc-border, #e9ded4) !important;
+    padding-bottom: 12px !important;
+    margin-bottom: 16px !important;
+}
+
+body.admin-premium-shell .rb-modal-section-heading i {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    border-radius: 50% !important;
+    background: #faf6f2 !important; /* Soft cream background */
+    color: var(--cc-brown-600, #70482f) !important;
+    font-size: 13px !important;
+    border: 1px solid var(--cc-border, #e9ded4) !important;
+    box-shadow: inset 0 1px 2px rgba(112, 72, 47, 0.04) !important;
+}
+
+/* Style for custom brown switch */
+body.admin-premium-shell .rb-brown-switch .form-check-input {
+    cursor: pointer !important;
+    width: 38px !important;
+    height: 20px !important;
+    margin-top: 0.15em !important;
+    border: 1.5px solid var(--cc-border-strong, #d8c5b6) !important;
+    border-radius: 20px !important;
+    background-color: var(--cc-surface-muted, #fbf7f2) !important;
+    transition: all 0.2s ease !important;
+}
+
+body.admin-premium-shell .rb-brown-switch .form-check-input:focus {
+    border-color: var(--cc-brown-600, #70482F) !important;
+    box-shadow: 0 0 0 3px rgba(112, 72, 47, 0.15) !important;
+    outline: none !important;
+}
+
+body.admin-premium-shell .rb-brown-switch .form-check-input:checked {
+    background-color: var(--cc-brown-600, #70482F) !important;
+    border-color: var(--cc-brown-600, #70482F) !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e") !important;
+}
+
+/* Footer buttons alignment overrides */
+body.admin-premium-shell .modal-footer .btn-rb-ghost {
+    background: #fffdfb !important;
+    border: 1px solid var(--cc-border-strong, #d8c5b6) !important;
+    color: var(--cc-brown-700, #3d2418) !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+    font-weight: 750 !important;
+    font-size: 13.5px !important;
+    height: 38px !important;
+    padding: 0 16px !important;
+    transition: all 0.2s ease !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+body.admin-premium-shell .modal-footer .btn-rb-ghost:hover {
+    background: #fcf9f5 !important;
+    color: var(--cc-brown-900, #201812) !important;
+}
+
+body.admin-premium-shell .modal-footer .btn-rb-save {
+    background: var(--cc-brown-600, #70482f) !important;
+    border: 1px solid var(--cc-brown-600, #70482f) !important;
+    color: #ffffff !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+    font-weight: 750 !important;
+    font-size: 13.5px !important;
+    height: 38px !important;
+    padding: 0 16px !important;
+    transition: all 0.2s ease !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+body.admin-premium-shell .modal-footer .btn-rb-save:hover {
+    background: var(--cc-brown-700, #5c3f2b) !important;
+    border-color: var(--cc-brown-700, #5c3f2b) !important;
+    box-shadow: 0 4px 12px rgba(112, 72, 47, 0.2) !important;
+}
+
+/* 28. Extra Modal Form Elements Refinements */
+/* Uniform inputs, selects, textareas inside modals when not focused */
+body.admin-premium-shell :is(.rb-modal, .modal-content) :is(
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea,
+    .form-control,
+    .form-select
+) {
+    border: 1.5px solid var(--cc-border-strong, #D8C5B6) !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+    background-color: #ffffff !important;
+    color: var(--cc-text, #201812) !important;
+    font-size: 13.5px !important;
+    padding: 6px 12px !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+/* Clean dashed divider separating the toggle switch in modals */
+body.admin-premium-shell #pi-active-wrap {
+    border-top: 1px dashed var(--cc-border, #e9ded4) !important;
+    margin-top: 18px !important;
+    padding-top: 14px !important;
+    width: 100% !important;
+}
+
+/* Align switch vertically centered with its label */
+body.admin-premium-shell .rb-brown-switch {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin: 0 !important;
+}
+
+body.admin-premium-shell .rb-brown-switch .form-check-label {
+    margin: 0 !important;
+    font-size: 13.5px !important;
+    font-weight: 700 !important;
+    color: var(--cc-text, #201812) !important;
+    cursor: pointer !important;
+}
+
+/* Red asterisk styling inside modals */
+body.admin-premium-shell :is(.rb-modal, .modal-content) .text-danger {
+    color: #b42318 !important;
+    font-weight: 700 !important;
+}
+
+/* Helper text / form help text inside modals */
+body.admin-premium-shell :is(.rb-modal, .modal-content) :is(.form-text, .form-help, .sm-field-note) {
+    margin-top: 5px !important;
+    font-size: 11.5px !important;
+    color: var(--cc-text-muted, #8c7b70) !important;
+    line-height: 1.4 !important;
+}
+
+/* 29. Unify Modal padding and align form grids inside cards */
+body.admin-premium-shell :is(.rb-modal, .modal-content) {
+    border-radius: 18px !important;
+}
+
+body.admin-premium-shell :is(.rb-modal, .modal-content) .modal-header {
+    padding: 20px 24px !important;
+}
+
+body.admin-premium-shell :is(.rb-modal, .modal-content) .modal-body {
+    padding: 22px 24px !important;
+}
+
+body.admin-premium-shell :is(.rb-modal, .modal-content) .modal-footer {
+    padding: 16px 24px !important;
+}
+
+/* Refine prepared-item section card padding */
+body.admin-premium-shell .rb-modal-section {
+    padding: 20px 24px !important;
+    border-radius: 14px !important;
+    margin-bottom: 18px !important;
+}
+
+/* Force rows inside cards to have no negative margins, keeping inputs safely inside card padding */
+body.admin-premium-shell .rb-modal-section .row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    row-gap: 12px !important;
+}
+
+/* Add clean spacing inside input columns to prevent touching borders */
+body.admin-premium-shell .rb-modal-section .row > [class*="col-"] {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+}
+
+/* 30. Move search magnifying glass icon to the end (right side) of search bars to prevent overlapping text */
+body.admin-premium-shell :is(
+    .uc-search-control,
+    .ingredient-search-control,
+    .supplier-search-control,
+    .sm-search-box,
+    .inventory-search-field,
+    .roster-filter-field--search,
+    .filter-search,
+    .ni-search-wrap,
+    .perm-search,
+    .ops-search-field,
+    .search-box,
+    .drink-search-box
+) {
+    position: relative !important;
+}
+
+body.admin-premium-shell :is(
+    .uc-search-control,
+    .ingredient-search-control,
+    .supplier-search-control,
+    .sm-search-box,
+    .inventory-search-field,
+    .roster-filter-field--search,
+    .filter-search,
+    .ni-search-wrap,
+    .perm-search,
+    .ops-search-field,
+    .search-box,
+    .drink-search-box
+) :is(i, .fa-search, .fa-magnifying-glass, svg) {
+    position: absolute !important;
+    right: 14px !important;
+    left: auto !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    z-index: 5 !important;
+    pointer-events: none !important;
+    color: var(--cc-text-muted, #8c7b70) !important;
+}
+
+body.admin-premium-shell :is(
+    .uc-search-control,
+    .ingredient-search-control,
+    .supplier-search-control,
+    .sm-search-box,
+    .inventory-search-field,
+    .roster-filter-field--search,
+    .filter-search,
+    .ni-search-wrap,
+    .perm-search,
+    .ops-search-field,
+    .search-box,
+    .drink-search-box
+) :is(input, .form-control) {
+    padding-left: 14px !important;
+    padding-right: 38px !important;
+}
+
+
+/* 31. Standardize and align Supplier and Ingredient filter elements (inputs, selects, buttons) to the same height and vertical line */
+body.admin-premium-shell :is(.supplier-filter-grid, .ingredient-filter-grid) {
+    align-items: end !important;
+}
+
+/* 31. Standardize and align Supplier and Ingredient filter elements to the premium 38px height standard (High Specificity Overrides) */
+body.admin-premium-shell .supplier-page .supplier-filter-grid {
+    align-items: end !important;
+}
+
+body.admin-premium-shell .ingredient-page .ingredient-filter-grid {
+    align-items: end !important;
+}
+
+body.admin-premium-shell :is(.supplier-page, .ingredient-page) :is(
+    .supplier-search-control,
+    .supplier-search-control input,
+    .supplier-filter-field select,
+    .supplier-filter-actions,
+    .supplier-filter-actions .supplier-btn,
+    .supplier-filter-actions :is(a, button),
+    .ingredient-search-control,
+    .ingredient-search-control input,
+    .ingredient-filter-field select,
+    .ingredient-filter-actions,
+    .ingredient-filter-actions .ingredient-btn,
+    .ingredient-filter-actions :is(a, button)
+) {
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    box-sizing: border-box !important;
+}
+
+/* Ensure inner inputs and select boxes inside the wrapper elements have correct padding and line-height */
+body.admin-premium-shell :is(.supplier-page, .ingredient-page) :is(
+    .supplier-search-control input,
+    .supplier-filter-field select,
+    .ingredient-search-control input,
+    .ingredient-filter-field select
+) {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+    padding-left: 14px !important;
+    padding-right: 38px !important;
+    line-height: 24px !important;
+}
+
+/* Center text and icons inside action buttons perfectly at 38px height */
+body.admin-premium-shell :is(.supplier-page, .ingredient-page) :is(
+    .supplier-filter-actions .supplier-btn,
+    .supplier-filter-actions :is(a, button),
+    .ingredient-filter-actions .ingredient-btn,
+    .ingredient-filter-actions :is(a, button)
+) {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    line-height: 1 !important;
+}
+
+/* 32. Design and align Export and Create Document custom selection cards (PDF, Word, Purpose, Negative Stock) */
+@media (min-width: 576px) {
+    body.admin-premium-shell #exportModal .modal-dialog {
+        max-width: 620px !important;
+        width: 620px !important;
+    }
+}
+
+body.admin-premium-shell .inventory-export-lead {
+    font-size: 14.5px !important;
+    color: var(--cc-text-secondary, #66584F) !important;
+    margin-bottom: 20px !important;
+}
+
+body.admin-premium-shell :is(.inventory-export-option, .create-purpose-card, .negative-stock-mode-card) {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 14px !important;
+    padding: 18px 24px !important;
+    border: 1px solid var(--cc-border-strong, #d8c5b6) !important;
+    border-radius: var(--cc-radius-md, 14px) !important;
+    border-left: 1px solid var(--cc-border-strong, #d8c5b6) !important;
+    background: var(--cc-surface-muted, #fbf7f2) !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    position: relative !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+}
+
+body.admin-premium-shell :is(.inventory-export-option, .create-purpose-card, .negative-stock-mode-card)::before {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 0 !important;
+    background-color: var(--cc-brown-600, #70482f) !important;
+    transition: width 0.15s ease !important;
+    z-index: 10 !important;
+}
+
+body.admin-premium-shell :is(.inventory-export-option, .create-purpose-card, .negative-stock-mode-card):has(input:checked)::before {
+    width: 6px !important;
+}
+
+body.admin-premium-shell :is(.inventory-export-option, .create-purpose-card, .negative-stock-mode-card):hover {
+    border-color: var(--cc-brown-500, #8b6247) !important;
+    background: var(--cc-surface-active, #f4e9df) !important;
+}
+
+body.admin-premium-shell :is(.inventory-export-option, .create-purpose-card, .negative-stock-mode-card):has(input:checked) {
+    border: 1px solid var(--cc-border-strong, #d8c5b6) !important;
+    background: var(--cc-warning-bg, #fcf4e8) !important;
+    box-shadow: 0 4px 14px rgba(112, 72, 47, 0.12) !important;
+    border-top-left-radius: var(--cc-radius-md, 14px) !important;
+    border-bottom-left-radius: var(--cc-radius-md, 14px) !important;
+}
+
+/* Custom caramel/espresso radio dots inside select cards */
+body.admin-premium-shell :is(.inventory-export-option, .create-purpose-card, .negative-stock-mode-card) :is(.form-check-input, .create-purpose-input, .negative-stock-mode-input) {
+    cursor: pointer !important;
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    border: 1.5px solid var(--cc-border-strong, #d8c5b6) !important;
+    border-radius: 50% !important;
+    background-color: #ffffff !important;
+    transition: all 0.2s ease !important;
+    margin: 0 !important;
+    flex: 0 0 18px !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    position: relative !important;
+    display: inline-block !important;
+}
+
+body.admin-premium-shell :is(.inventory-export-option, .create-purpose-card, .negative-stock-mode-card) :is(.form-check-input:checked, .create-purpose-input:checked, .negative-stock-mode-input:checked) {
+    background-color: var(--cc-brown-600, #70482f) !important;
+    border-color: var(--cc-brown-600, #70482f) !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='2.5' fill='%23fff'/%3e%3c/svg%3e") !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+}
+
+/* Text and hierarchy inside selection cards */
+body.admin-premium-shell :is(.inventory-export-option, .create-purpose-card, .negative-stock-mode-card) :is(.inventory-export-option-copy, span:not(.create-purpose-dot):not(.negative-stock-mode-dot)) {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    text-align: left !important;
+    flex: 1 !important;
+}
+
+body.admin-premium-shell :is(.inventory-export-option, .create-purpose-card, .negative-stock-mode-card) :is(strong, .inventory-export-option-heading) {
+    font-size: 15.5px !important;
+    font-weight: 800 !important;
+    color: var(--cc-brown-900, #3d2418) !important;
+    margin: 0 !important;
+    line-height: 1.35 !important;
+}
+
+body.admin-premium-shell :is(.inventory-export-option, .create-purpose-card, .negative-stock-mode-card) small {
+    font-size: 13px !important;
+    color: var(--cc-text-muted, #8c7b70) !important;
+    margin-top: 5px !important;
+    line-height: 1.35 !important;
+}
+
+/* 33. Align ingredient row metadata horizontally to reduce row height and prevent vertical bloat */
+body.admin-premium-shell .ingredient-row-meta {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 12px !important;
+    margin-top: 6px !important;
+    font-size: 11.5px !important;
+    color: var(--cc-text-muted, #8c7b70) !important;
+}
+
+body.admin-premium-shell .ingredient-row-meta span {
+    display: inline-flex !important;
+    align-items: center !important;
+    white-space: nowrap !important;
+    position: relative !important;
+}
+
+body.admin-premium-shell .ingredient-row-meta span:not(:first-child)::before {
+    content: "•" !important;
+    margin-right: 12px !important;
+    color: var(--cc-border-strong, #d8c5b6) !important;
+    font-weight: normal !important;
+}
+
+/* 34. Uniform input elements inside the Detail table rows for neat alignment */
+body.admin-premium-shell :is(.inventory-create-table, .create-table-wrap) :is(input, select, .form-control, .form-select) {
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    border: 1px solid var(--cc-border-strong, #D8C5B6) !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+    font-size: 13px !important;
+    box-sizing: border-box !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+}
+
+/* 35. Redesign PDF & Word file type logos to be premium modern gradient badges */
+body.admin-premium-shell .inventory-export-option-icon {
+    display: grid !important;
+    place-items: center !important;
+    width: 46px !important;
+    height: 46px !important;
+    min-width: 46px !important;
+    border-radius: 12px !important;
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border: none !important;
+}
+
+body.admin-premium-shell .inventory-export-option-icon i {
+    font-size: 20px !important;
+    color: #ffffff !important;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15)) !important;
+}
+
+/* PDF Badge - Warm vibrant Red gradient */
+body.admin-premium-shell .inventory-export-option-icon:has(.fa-file-pdf) {
+    background: linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%) !important;
+    box-shadow: 0 4px 12px rgba(201, 42, 42, 0.25) !important;
+}
+
+body.admin-premium-shell .inventory-export-option:hover .inventory-export-option-icon:has(.fa-file-pdf),
+body.admin-premium-shell .inventory-export-option:has(input:checked) .inventory-export-option-icon:has(.fa-file-pdf) {
+    transform: scale(1.08) translateY(-2px) !important;
+    box-shadow: 0 8px 20px rgba(201, 42, 42, 0.4) !important;
+}
+
+/* Word Badge - Rich Azure Blue gradient */
+body.admin-premium-shell .inventory-export-option-icon:has(.fa-file-word) {
+    background: linear-gradient(135deg, #4dabf7 0%, #1c7ed6 100%) !important;
+    box-shadow: 0 4px 12px rgba(28, 126, 214, 0.25) !important;
+}
+
+body.admin-premium-shell .inventory-export-option:hover .inventory-export-option-icon:has(.fa-file-word),
+body.admin-premium-shell .inventory-export-option:has(input:checked) .inventory-export-option-icon:has(.fa-file-word) {
+    transform: scale(1.08) translateY(-2px) !important;
+    box-shadow: 0 8px 20px rgba(28, 126, 214, 0.4) !important;
+}
+
+/* Modal header icon - Warm Coffee/Espresso gradient badge */
+body.admin-premium-shell .inventory-export-title > span {
+    background: linear-gradient(135deg, var(--cc-brown-600, #70482f) 0%, var(--cc-brown-800, #3d2418) 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 6px 16px rgba(112, 72, 47, 0.25) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 36. Sidebar Logo Icon styling with gold-brown gradient and rotation hover micro-animation */
+body.admin-premium-shell .logo-icon {
+    background: linear-gradient(135deg, #a97750 0%, #70482f 50%, #3d2418 100%) !important;
+    color: #ffffff !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 12px rgba(112, 72, 47, 0.3) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+body.admin-premium-shell .logo-wrap:hover .logo-icon {
+    transform: rotate(15deg) scale(1.08) !important;
+    box-shadow: 0 6px 18px rgba(112, 72, 47, 0.45) !important;
+}
+
+/* 37. Standardize Step 1 and Step 2 headers to match Step 3 design (align icons next to titles) */
+body.admin-premium-shell .create-section-header-title-wrap {
+    display: flex !important;
+    align-items: center !important;
+    gap: 14px !important;
+}
+
+body.admin-premium-shell .create-section-header-title-wrap .create-summary-icon {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 42px !important;
+    height: 42px !important;
+    flex: 0 0 42px !important;
+    border-radius: 12px !important;
+    background: #ffffff !important;
+    border: 1px solid var(--cc-border-strong, #d8c5b6) !important;
+    box-shadow: 0 2px 8px rgba(32, 24, 18, 0.07) !important;
+    color: var(--cc-caramel-500, #c67a45) !important;
+    font-size: 18px !important;
+}
+
+/* 38. Prevent text wrapping in Step 1 & 2 headers, and compact the "Thêm nguyên liệu" button */
+body.admin-premium-shell :is(.create-section-eyebrow, .create-section-header-title-wrap h5, .create-summary-strip-head span, .create-summary-strip-head strong) {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+}
+
+body.admin-premium-shell .create-section-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 16px !important;
+    width: 100% !important;
+}
+
+body.admin-premium-shell .create-section-header-title-wrap {
+    flex-shrink: 1 !important;
+    min-width: 0 !important;
+}
+
+body.admin-premium-shell .create-add-row-btn {
+    flex-shrink: 0 !important;
+    height: 36px !important;
+    padding: 0 14px !important;
+    font-size: 12.5px !important;
+    white-space: nowrap !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+}
+
+/* 39. Tidy up and compact the Transfer page header (shrink heights and paddings, style icons and links) */
+body.admin-premium-shell .transfer-header {
+    min-height: 96px !important;
+    padding: 16px 24px !important;
+    margin-bottom: 18px !important;
+}
+
+body.admin-premium-shell .transfer-breadcrumb {
+    font-size: 11.5px !important;
+    margin-bottom: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+body.admin-premium-shell .transfer-breadcrumb i {
+    font-size: 9px !important;
+}
+
+body.admin-premium-shell .transfer-title-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+}
+
+body.admin-premium-shell .transfer-icon {
+    display: grid !important;
+    place-items: center !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    border-radius: 10px !important;
+    background: linear-gradient(135deg, var(--cc-brown-600, #70482f) 0%, var(--cc-brown-800, #3d2418) 100%) !important;
+    color: #ffffff !important;
+    font-size: 15px !important;
+    border: none !important;
+    box-shadow: 0 4px 10px rgba(112, 72, 47, 0.2) !important;
+}
+
+body.admin-premium-shell .transfer-header h1 {
+    font-size: 19px !important;
+    font-weight: 800 !important;
+    color: var(--cc-brown-900, #3d2418) !important;
+    margin: 0 !important;
+    line-height: 1.2 !important;
+}
+
+body.admin-premium-shell .transfer-subtitle {
+    font-size: 12.5px !important;
+    color: var(--cc-text-muted, #8c7b70) !important;
+    margin: 3px 0 0 !important;
+    line-height: 1.3 !important;
+}
+
+body.admin-premium-shell .transfer-status-pill {
+    background-color: var(--cc-warning-bg, #fcf4e8) !important;
+    border: 1.5px solid var(--cc-brown-600, #70482f) !important;
+    color: var(--cc-brown-600, #70482f) !important;
+    font-weight: 800 !important;
+    padding: 3px 12px !important;
+    font-size: 11px !important;
+    border-radius: 99px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    align-self: flex-end !important;
+    transform: translateY(3px) !important;
+    margin-bottom: 0 !important;
+}
+
+body.admin-premium-shell .transfer-back-link {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    height: 36px !important;
+    padding: 0 14px !important;
+    font-size: 12.5px !important;
+    font-weight: 750 !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+    border: 1px solid var(--cc-border-strong, #d8c5b6) !important;
+    background: #ffffff !important;
+    color: var(--cc-brown-600, #70482f) !important;
+    box-shadow: 0 2px 6px rgba(32, 24, 18, 0.04) !important;
+    transition: all 0.2s ease !important;
+    white-space: nowrap !important;
+}
+
+body.admin-premium-shell .transfer-back-link:hover {
+    border-color: var(--cc-brown-500, #8b6247) !important;
+    background: var(--cc-surface-active, #f4e9df) !important;
+    color: var(--cc-brown-800, #3d2418) !important;
+}
+
+/* 41. Fix add row button layout in Step 2: override general 100% width and margins when child of header */
+body.admin-premium-shell .create-section-header .create-add-row-btn {
+    width: auto !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* 42. Center align all columns except the 2nd (Nguyên liệu) in the inventory document create table */
+body.admin-premium-shell .inventory-create-table :is(th, td).create-col-index,
+body.admin-premium-shell .inventory-create-table :is(th, td).create-col-unit,
+body.admin-premium-shell .inventory-create-table :is(th, td).create-col-qty,
+body.admin-premium-shell .inventory-create-table :is(th, td).create-col-price,
+body.admin-premium-shell .inventory-create-table :is(th, td).create-col-moq,
+body.admin-premium-shell .inventory-create-table :is(th, td).create-col-variance,
+body.admin-premium-shell .inventory-create-table :is(th, td).create-col-total,
+body.admin-premium-shell .inventory-create-table :is(th, td).create-col-action {
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+body.admin-premium-shell .inventory-create-table td :is(input, select) {
+    text-align: center !important;
+    text-align-last: center !important;
+    margin: 0 auto !important;
+}
+
+/* 43. Redesign staff list items in Permission view to make them roomier and more comfortable */
+body.admin-premium-shell .perm-staff-list {
+    padding: 16px !important;
+}
+
+body.admin-premium-shell .perm-staff-item {
+    padding: 18px 22px !important;
+    margin-bottom: 12px !important;
+    border-radius: 12px !important;
+    border: 1px solid var(--cc-border-strong, #d8c5b6) !important;
+    background: #ffffff !important;
+    box-shadow: 0 2px 6px rgba(32, 24, 18, 0.04) !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+body.admin-premium-shell .perm-staff-item:hover {
+    background: var(--cc-surface-active, #f4e9df) !important;
+    border-color: var(--cc-brown-500, #8b6247) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 14px rgba(112, 72, 47, 0.12) !important;
+}
+
+body.admin-premium-shell .perm-staff-item.is-active {
+    background: var(--cc-warning-bg, #fcf4e8) !important;
+    border-color: var(--cc-brown-600, #70482f) !important;
+    box-shadow: 0 4px 14px rgba(112, 72, 47, 0.15) !important;
+    border-left: 5px solid var(--cc-brown-600, #70482f) !important;
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+}
+
+body.admin-premium-shell .perm-staff-copy {
+    gap: 6px !important;
+}
+
+body.admin-premium-shell .perm-staff-item .perm-name {
+    font-size: 14.5px !important;
+    font-weight: 800 !important;
+    color: var(--cc-brown-900, #3d2418) !important;
+}
+
+body.admin-premium-shell .perm-staff-item .perm-subtext {
+    font-size: 12.5px !important;
+    color: var(--cc-text-muted, #8c7b70) !important;
+}
+
+/* 44. Standardize Staff search filter panel (align heights to 38px and place search icon on the right) */
+body.admin-premium-shell .staff-filter-panel .input-group {
+    position: relative !important;
+    height: 38px !important;
+    display: flex !important;
+}
+
+body.admin-premium-shell .staff-filter-panel .form-control {
+    height: 38px !important;
+    padding-left: 14px !important;
+    padding-right: 38px !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+    border-left: 1px solid var(--cc-border-strong, #d8c5b6) !important;
+    border-top-left-radius: var(--cc-radius-control, 10px) !important;
+    border-bottom-left-radius: var(--cc-radius-control, 10px) !important;
+}
+
+body.admin-premium-shell .staff-filter-panel .input-group-text {
+    position: absolute !important;
+    right: 14px !important;
+    left: auto !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    z-index: 5 !important;
+    pointer-events: none !important;
+    color: var(--cc-text-muted, #8c7b70) !important;
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+}
+
+body.admin-premium-shell .staff-filter-panel .form-select {
+    height: 38px !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+}
+
+body.admin-premium-shell .staff-filter-panel .btn {
+    height: 38px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+}
+
+/* 45. Fix form labels to keep required asterisks inline and prevent misalignment */
+body.admin-premium-shell .form-label {
+    display: inline-flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    margin-bottom: 7px !important;
+    vertical-align: middle !important;
+}
+
+body.admin-premium-shell .form-label span.text-danger {
+    display: inline !important;
+    margin-left: 0 !important;
+}
+
+/* 46. Ultra-premium embedded password toggle button style inside input groups */
+body.admin-premium-shell .input-group:has(input[type="password"]) {
+    position: relative !important;
+}
+
+body.admin-premium-shell .input-group:has(input[type="password"]) input[type="password"],
+body.admin-premium-shell .input-group:has(input[type="password"]) input[type="text"] {
+    padding-right: 44px !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+}
+
+body.admin-premium-shell .input-group:has(input[type="password"]) button:has(:is(.fa-eye, .fa-eye-slash)) {
+    position: absolute !important;
+    right: 1px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    height: calc(100% - 2px) !important;
+    width: 42px !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: var(--cc-text-muted, #8c7b70) !important;
+    z-index: 5 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-top-right-radius: var(--cc-radius-control, 10px) !important;
+    border-bottom-right-radius: var(--cc-radius-control, 10px) !important;
+    transition: color 0.16s ease !important;
+}
+
+body.admin-premium-shell .input-group:has(input[type="password"]) button:has(:is(.fa-eye, .fa-eye-slash)):hover {
+    color: var(--cc-brown-600, #70482f) !important;
+    background: transparent !important;
+}
+
+/* 47. Fix Operational Ice buttons size disparity (A tag vs Button tag heights) by increasing specificity */
+body.admin-premium-shell .admin-page-body :is(button, a).ice-btn,
+body.admin-premium-shell .admin-page-body .ice-state-actions :is(.ice-btn, button, a) {
+    min-height: 44px !important;
+    height: 44px !important;
+    padding: 10px 22px !important;
+    font-size: 13.5px !important;
+    font-weight: 750 !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    line-height: 1.2 !important;
+}
+
+
+/* 48. Fix Ingredient modal header text and close button colors to be black for readability */
+body.admin-premium-shell #ingredientModal .modal-header :is(h5, #modalTitle, .close-btn) {
+    color: #000000 !important;
+    opacity: 1 !important;
+}
+
+/* 49. Center align all columns in Recipe Health table */
+body.admin-premium-shell .rb-health-table :is(th, td) {
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+body.admin-premium-shell .rb-health-table td > * {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    justify-content: center !important;
+}
+
+/* Format bullet lists inside the centered columns to stay centered as a block but text left-aligned */
+body.admin-premium-shell .rb-health-table td ul {
+    display: inline-block !important;
+    text-align: left !important;
+    margin: 0 auto !important;
+    padding-left: 20px !important;
+}
+
+/* 50. Keep section heading title and subtitle next to the logo icon (fix space-between push) */
+body.admin-premium-shell .recipe-workspace__section-heading.bom-section-heading {
+    justify-content: flex-start !important;
+    gap: 12px !important;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

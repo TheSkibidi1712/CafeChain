@@ -27,61 +27,68 @@
     @if (TempData["SuccessMessage"] != null) { <div class="ops-notice ops-notice-success" role="status">@TempData["SuccessMessage"]</div> }
     @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMessage"]</div> }
 
-    @if (stores.Count > 1)
-    {
-        <form method="get" class="ops-filterbar cc-warehouse-filter" aria-label="Lọc đơn đặt hàng theo chi nhánh">
-            <input type="hidden" name="status" value="@statusFilter" />
-            <div class="ops-filter-group">
-                <label class="ops-form-label mb-0" for="purchaseOrderStoreId">Chi nhánh</label>
-                <select id="purchaseOrderStoreId" name="storeId" class="ops-select" onchange="this.form.submit()">
-                    @foreach (var store in stores)
-                    {
-                        <option value="@store.StoreId" selected="@(store.StoreId == selectedStoreId)">@store.StoreName</option>
-                    }
-                </select>
-            </div>
-            <noscript><button type="submit" class="ops-btn">Áp dụng</button></noscript>
-        </form>
-    }
+    <!-- Main Module Panel -->
+    <section class="po-panel">
+        @if (stores.Count > 1)
+        {
+            <form method="get" class="po-filter-toolbar cc-warehouse-filter" aria-label="Lọc đơn đặt hàng theo chi nhánh">
+                <input type="hidden" name="status" value="@statusFilter" />
+                <div class="po-filter-grid">
+                    <div class="po-field">
+                        <label class="ops-form-label mb-0" for="purchaseOrderStoreId">Chi nhánh</label>
+                        <select id="purchaseOrderStoreId" name="storeId" class="po-select" onchange="this.form.submit()">
+                            @foreach (var store in stores)
+                            {
+                                <option value="@store.StoreId" selected="@(store.StoreId == selectedStoreId)">@store.StoreName</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <noscript><button type="submit" class="ops-btn">Áp dụng</button></noscript>
+            </form>
+        }
 
-    @if (Model.Count == 0)
-    {
-        <section class="ops-empty cc-warehouse-empty" aria-labelledby="purchaseOrderEmptyTitle" role="status">
-            <span class="ops-empty-icon"><i class="fa-solid fa-file-circle-plus" aria-hidden="true"></i></span>
-            <h2 id="purchaseOrderEmptyTitle" class="ops-empty-title">Chưa có đơn đặt hàng</h2>
-            <p class="ops-empty-copy">Tạo đơn từ nhu cầu mua đã được xét nguồn cung, hoặc lập đơn mua chủ động khi bạn có đủ quyền và thông tin nhà cung cấp.</p>
-            <div class="ops-empty-actions">
-                <a class="ops-btn" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-storeId="@selectedStoreId">Xem yêu cầu bổ sung</a>
-                @if (canCreate)
-                {
-                    <a class="ops-btn ops-btn-primary" asp-action="Create">Tạo đơn đặt hàng</a>
-                }
+        @if (Model.Count == 0)
+        {
+            <div class="po-empty-wrap">
+                <section class="ops-empty cc-warehouse-empty" aria-labelledby="purchaseOrderEmptyTitle" role="status">
+                    <span class="ops-empty-icon"><i class="fa-solid fa-file-circle-plus" aria-hidden="true"></i></span>
+                    <h2 id="purchaseOrderEmptyTitle" class="ops-empty-title">Chưa có đơn đặt hàng</h2>
+                    <p class="ops-empty-copy">Tạo đơn từ nhu cầu mua đã được xét nguồn cung, hoặc lập đơn mua chủ động khi bạn có đủ quyền và thông tin nhà cung cấp.</p>
+                    <div class="ops-empty-actions">
+                        <a class="ops-btn" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-storeId="@selectedStoreId">Xem yêu cầu bổ sung</a>
+                        @if (canCreate)
+                        {
+                            <a class="ops-btn ops-btn-primary" asp-action="Create">Tạo đơn đặt hàng</a>
+                        }
+                    </div>
+                </section>
             </div>
-        </section>
-    }
-    else
-    {
-        <section class="ops-table-wrap cc-warehouse-table-shell" aria-label="Danh sách đơn đặt hàng">
-            <div class="ops-table-scroll">
-                <table class="ops-table ops-po-table">
-                    <thead><tr><th class="text-center">Mã đơn</th><th class="text-center">Chi nhánh</th><th class="text-center">Nhà cung cấp</th><th class="text-center">Ngày đặt</th><th class="text-center">Trạng thái</th><th class="number text-center">Giá trị</th><th class="text-center">Thao tác</th></tr></thead>
-                    <tbody>
-                    @foreach (var item in Model)
-                    {
-                        var orderStatus = AdminStatusDisplay.PurchaseOrder(item.Status);
-                        <tr>
-                            <td class="text-center"><strong>@item.Code</strong></td>
-                            <td class="text-center">@item.StoreName</td>
-                            <td class="text-center">@item.SupplierName</td>
-                            <td class="text-center">@AdminStatusDisplay.Date(item.OrderDate.ToLocalTime())</td>
-                            <td class="text-center"><span class="ops-badge @orderStatus.CssClass">@orderStatus.Label</span></td>
-                            <td class="number text-center">@AdminStatusDisplay.Currency(item.TotalAmount)</td>
-                            <td class="text-center"><a class="ops-btn" asp-action="Details" asp-route-id="@item.PurchaseOrderId">Chi tiết <i class="fa-solid fa-chevron-right" aria-hidden="true"></i></a></td>
-                        </tr>
-                    }
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    }
+        }
+        else
+        {
+            <section class="po-table-wrap cc-warehouse-table-shell" aria-label="Danh sách đơn đặt hàng">
+                <div class="ops-table-scroll">
+                    <table class="ops-table ops-po-table">
+                        <thead><tr><th class="text-center">Mã đơn</th><th class="text-center">Chi nhánh</th><th class="text-center">Nhà cung cấp</th><th class="text-center">Ngày đặt</th><th class="text-center">Trạng thái</th><th class="number text-center">Giá trị</th><th class="text-center">Thao tác</th></tr></thead>
+                        <tbody>
+                        @foreach (var item in Model)
+                        {
+                            var orderStatus = AdminStatusDisplay.PurchaseOrder(item.Status);
+                            <tr>
+                                <td class="text-center"><strong>@item.Code</strong></td>
+                                <td class="text-center">@item.StoreName</td>
+                                <td class="text-center">@item.SupplierName</td>
+                                <td class="text-center">@AdminStatusDisplay.Date(item.OrderDate.ToLocalTime())</td>
+                                <td class="text-center"><span class="ops-badge @orderStatus.CssClass">@orderStatus.Label</span></td>
+                                <td class="number text-center">@AdminStatusDisplay.Currency(item.TotalAmount)</td>
+                                <td class="text-center"><a class="ops-btn" asp-action="Details" asp-route-id="@item.PurchaseOrderId">Chi tiết <i class="fa-solid fa-chevron-right" aria-hidden="true"></i></a></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        }
+    </section>
 </main>

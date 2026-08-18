@@ -416,7 +416,7 @@ textarea.form-control,
 .rb-page #bomTable :is(.bom-col-type, .rb-col-kind) { width: 110px; }
 .rb-page #bomTable :is(.bom-col-component, .rb-col-name) { min-width: 200px; }
 .rb-page #bomTable .bom-col-quantity { width: 115px; white-space: nowrap !important; }
-.rb-page #bomTable .bom-col-unit { width: 100px; white-space: nowrap !important; }
+.rb-page #bomTable .bom-col-unit { width: 125px; white-space: nowrap !important; }
 .rb-page #bomTable .bom-col-cost { width: 130px; white-space: nowrap !important; }
 .rb-page #bomTable .bom-col-status { width: 150px; white-space: nowrap !important; }
 .rb-page #bomTable .bom-col-action { width: 110px; white-space: nowrap !important; }
@@ -675,6 +675,14 @@ textarea.form-control,
     height: 36px;
     padding: 2px 8px;
     border-radius: var(--cc-radius-sm, 8px);
+}
+
+.rb-page .select2-container .select2-selection--single .select2-selection__rendered {
+    text-align: center !important;
+    padding-left: 36px !important;
+    padding-right: 36px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
 }
 
 /* ==========================================================================

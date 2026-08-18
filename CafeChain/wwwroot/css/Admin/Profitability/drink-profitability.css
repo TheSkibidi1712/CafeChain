@@ -21,7 +21,7 @@
 /* Base Workspace Layout */
 .pf-page {
     width: calc(100% - 24px);
-    max-width: 1540px;
+
     min-height: calc(100vh - 84px);
     margin: 0 auto;
     border-radius: var(--cc-radius-modal, 18px);
@@ -158,7 +158,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 18px;
-    max-width: 1540px;
+
     margin: 0 auto 12px;
 }
 
@@ -220,7 +220,7 @@
     border-radius: var(--cc-radius-lg, 16px);
     padding: 18px 20px;
     box-shadow: var(--cc-shadow-sm, 0 4px 10px rgba(32, 24, 18, 0.06));
-    max-width: 1540px;
+
 }
 
 .pf-filter-band label,
@@ -323,7 +323,7 @@ textarea.pf-control {
     border-left: 4px solid var(--cc-brown-600, #70482f);
     border-radius: 0 var(--cc-radius-sm, 8px) var(--cc-radius-sm, 8px) 0;
     font-size: 13px;
-    max-width: 1540px;
+
 }
 
 .pf-meta {
@@ -333,7 +333,7 @@ textarea.pf-control {
     margin-top: 14px;
     border: 0;
     background: transparent;
-    max-width: 1540px;
+
 }
 
 .pf-meta > div {
@@ -371,7 +371,7 @@ textarea.pf-control {
     box-shadow: var(--cc-shadow-sm, 0 4px 10px rgba(32, 24, 18, 0.06));
     padding: 20px;
     overflow: hidden;
-    max-width: 1540px;
+
 }
 
 .pf-table-wrap {
