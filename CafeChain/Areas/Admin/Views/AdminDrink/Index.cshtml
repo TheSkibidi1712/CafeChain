@@ -378,10 +378,16 @@
                         </div>
                     </div>
 
-                    <input type="file"
-                           class="form-control drink-image-file-input"
-                           id="uploadImageInput"
-                           accept=".jpg,.jpeg,.png" />
+                    <div class="drink-image-file-custom">
+                        <input type="file"
+                               class="drink-image-file-input-hidden"
+                               id="uploadImageInput"
+                               accept=".jpg,.jpeg,.png" />
+                        <label for="uploadImageInput" class="btn drink-image-file-label">
+                            <i class="fas fa-folder-open me-1"></i> Chọn ảnh
+                        </label>
+                        <span class="drink-image-file-name" id="uploadFileName">Chưa chọn file nào</span>
+                    </div>
 
                     <div class="drink-image-upload-actions">
                         <div class="form-check form-switch mb-0">

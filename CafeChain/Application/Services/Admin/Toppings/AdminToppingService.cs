@@ -1,4 +1,4 @@
-﻿using CafeChain.Application.Constants.Cloudinaries;
+using CafeChain.Application.Constants.Cloudinaries;
 using CafeChain.Application.DTOs.Admin.Toppings;
 using CafeChain.Application.Interfaces.Admin.Toppings;
 using CafeChain.Application.Interfaces.Cloudinaries;
@@ -192,9 +192,6 @@ namespace CafeChain.Application.Services.Admin.Toppings
 
             if (dto.Price <= 0)
                 throw new Exception("Giá phải lớn hơn 0");
-
-            if (dto.ToppingId == 0 && dto.ImageFile == null)
-                throw new Exception("Vui lòng chọn ảnh topping");
         }
     }
 }

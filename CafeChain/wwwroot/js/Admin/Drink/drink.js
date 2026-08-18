@@ -493,6 +493,11 @@ $(document).ready(function () {
             bootstrap.Modal.getOrCreateInstance(imageManagerElement).show();
         });
 
+        $(document).on('change', '#uploadImageInput', function () {
+            const fileName = this.files && this.files[0] ? this.files[0].name : 'Chưa chọn file nào';
+            $('#uploadFileName').text(fileName);
+        });
+
         $(document).on('click', '.btn-manage-images', function () {
             const drinkId = $(this).data('id');
             const drinkName = $(this).data('name');
@@ -837,6 +842,7 @@ $(document).ready(function () {
 
     function resetUploadControls() {
         $('#uploadImageInput').val('');
+        $('#uploadFileName').text('Chưa chọn file nào');
         $('#uploadDefaultSwitch').prop('checked', false);
     }
 

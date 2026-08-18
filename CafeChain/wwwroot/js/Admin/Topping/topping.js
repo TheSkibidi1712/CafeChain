@@ -194,16 +194,18 @@ document.addEventListener('DOMContentLoaded', function initFullToppingAiSuggesti
             },
             fileNamePrefix: option => option.fields?.toppingCode || 'topping_ai',
             invalidateElements: () => [idea, generationMode, name, code, price],
-            willOverwrite: () => Boolean(name.value.trim() || code.value.trim() || price.value || imageInput.files.length),
+            willOverwrite: () => Boolean(name.value.trim() || code.value.trim() || price.value || imageInput?.files?.length),
             apply: async (option, file) => {
                 const value = option.fields || {};
                 name.value = value.name || '';
                 code.value = value.toppingCode || '';
                 price.value = value.price || '';
-                const transfer = new DataTransfer();
-                transfer.items.add(file);
-                imageInput.files = transfer.files;
-                previewCreateImage({ target: imageInput });
+                if (imageInput && file) {
+                    const transfer = new DataTransfer();
+                    transfer.items.add(file);
+                    imageInput.files = transfer.files;
+                    previewCreateImage({ target: imageInput });
+                }
                 return true;
             }
         });
@@ -366,76 +368,116 @@ function validateImageFile(
 }
 
 // =====================================================
-// CREATE IMAGE PREVIEW
+// FILE SIZE FORMATTER
 // =====================================================
 
-function previewCreateImage(event) {
+function formatFileSize(bytes) {
+    if (!bytes || bytes === 0) return "0 KB";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+}
 
-    const file =
-        event.target.files[0];
+// =====================================================
+// CREATE IMAGE PREVIEW & UPLOAD HANDLER
+// =====================================================
 
-    if (!validateImageFile(file, true)) {
-
+function displayCreateImageFile(file) {
+    if (!file) {
         removeCreateImage();
-
         return;
     }
+    if (!validateImageFile(file, false)) {
+        removeCreateImage();
+        return;
+    }
+    const preview = document.getElementById("create-preview");
+    const previewWrap = document.getElementById("create-file-preview-container");
+    const statusText = document.getElementById("create-file-status-text");
 
-    const preview =
-        document.getElementById(
-            "create-preview"
-        );
-
-    const removeBtn =
-        document.getElementById(
-            "create-remove-btn"
-        );
+    if (statusText) {
+        statusText.textContent = `${file.name} (${formatFileSize(file.size)})`;
+        statusText.classList.add("text-success", "fw-bold");
+    }
 
     const reader = new FileReader();
-
     reader.onload = function (e) {
-
-        preview.src = e.target.result;
-
-        preview.classList.remove(
-            "d-none"
-        );
-
-        removeBtn.classList.remove(
-            "d-none"
-        );
+        if (preview) {
+            preview.src = e.target.result;
+        }
+        if (previewWrap) previewWrap.classList.remove("d-none");
     };
-
     reader.readAsDataURL(file);
 }
-function removeCreateImage() {
 
-    const input =
-        document.getElementById(
-            "create-image-input"
-        );
+function previewCreateImage(event) {
+    const file = event?.target?.files?.[0];
+    if (file) {
+        displayCreateImageFile(file);
+    }
+}
 
-    const preview =
-        document.getElementById(
-            "create-preview"
-        );
+function removeCreateImage(event) {
+    if (event && typeof event.stopPropagation === 'function') {
+        event.stopPropagation();
+    }
+    const input = document.getElementById("create-image-input");
+    const preview = document.getElementById("create-preview");
+    const previewWrap = document.getElementById("create-file-preview-container");
+    const statusText = document.getElementById("create-file-status-text");
 
-    const removeBtn =
-        document.getElementById(
-            "create-remove-btn"
-        );
+    if (input) input.value = "";
+    if (preview) preview.src = "";
+    if (statusText) {
+        statusText.textContent = "Chưa chọn file nào";
+        statusText.classList.remove("text-success", "fw-bold");
+    }
+    if (previewWrap) previewWrap.classList.add("d-none");
+}
 
-    input.value = "";
+function initCreateToppingDropzone() {
+    const box = document.getElementById("createToppingUploadBox");
+    const input = document.getElementById("create-image-input");
+    if (!box || !input) return;
 
-    preview.src = "";
+    // Standard input change
+    input.addEventListener("change", function () {
+        if (this.files && this.files.length > 0) {
+            displayCreateImageFile(this.files[0]);
+        }
+    });
 
-    preview.classList.add(
-        "d-none"
-    );
+    // Drag & Drop events on the upload box
+    ["dragenter", "dragover"].forEach(eventName => {
+        box.addEventListener(eventName, function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            box.classList.add("is-dragover");
+        }, false);
+    });
 
-    removeBtn.classList.add(
-        "d-none"
-    );
+    ["dragleave", "dragend", "drop"].forEach(eventName => {
+        box.addEventListener(eventName, function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            box.classList.remove("is-dragover");
+        }, false);
+    });
+
+    box.addEventListener("drop", function (e) {
+        const dt = e.dataTransfer;
+        const files = dt ? dt.files : null;
+        if (files && files.length > 0) {
+            const file = files[0];
+            if (validateImageFile(file, false)) {
+                const transfer = new DataTransfer();
+                transfer.items.add(file);
+                input.files = transfer.files;
+                displayCreateImageFile(file);
+            }
+        }
+    }, false);
 }
 
 // =====================================================
@@ -447,11 +489,24 @@ function previewEditImage(event) {
     const file =
         event.target.files[0];
 
+    const fileNameSpan =
+        document.getElementById("edit-image-file-name");
+
     if (!validateImageFile(file)) {
 
         event.target.value = "";
 
+        if (fileNameSpan) {
+            fileNameSpan.textContent = "Chưa chọn tệp nào";
+            fileNameSpan.title = "Chưa chọn tệp nào";
+        }
+
         return;
+    }
+
+    if (fileNameSpan && file) {
+        fileNameSpan.textContent = file.name;
+        fileNameSpan.title = file.name;
     }
 
     const reader =
@@ -476,6 +531,14 @@ function removeEditImage() {
         );
 
     input.value = "";
+
+    const fileNameSpan =
+        document.getElementById("edit-image-file-name");
+
+    if (fileNameSpan) {
+        fileNameSpan.textContent = "Chưa chọn tệp nào";
+        fileNameSpan.title = "Chưa chọn tệp nào";
+    }
 
     const preview =
         document.getElementById(
@@ -512,6 +575,12 @@ function openEditModal(id, code, name, price, imageUrl)
     preview.setAttribute("data-original", image);
 
     document.getElementById("edit-image-input").value = "";
+
+    const fileNameSpan = document.getElementById("edit-image-file-name");
+    if (fileNameSpan) {
+        fileNameSpan.textContent = "Chưa chọn tệp nào";
+        fileNameSpan.title = "Chưa chọn tệp nào";
+    }
 }
 
 // =====================================================
@@ -521,6 +590,8 @@ function openEditModal(id, code, name, price, imageUrl)
 document.addEventListener(
     "DOMContentLoaded",
     () => {
+
+        initCreateToppingDropzone();
 
         document
             .querySelectorAll(
@@ -593,21 +664,19 @@ document.addEventListener(
                             '[name="Price"]'
                         ).value;
 
-                    const file =
+                    const fileInput =
                         document
                             .getElementById(
                                 "create-image-input"
-                            )
-                            .files[0];
+                            );
+
+                    const file = fileInput?.files?.[0];
 
                     if (
                         !validateCode(code) ||
                         !validateName(name) ||
                         !validatePrice(price) ||
-                        !validateImageFile(
-                            file,
-                            true
-                        )
+                        (file && !validateImageFile(file, false))
                     ) {
                         this.querySelector(":invalid, [name='ToppingCode'], [name='Name'], [name='Price']")?.focus();
                         return;
