@@ -500,6 +500,27 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
     }
 
     [Fact]
+    public async Task ProcurementReceipt_PostsOnlyInventoryAcceptedQuantity()
+    {
+        using var context = CreateDbContext();
+        var request = await SeedFoundationAsync(context, 10m);
+        var (order, line) = await SeedSentOrderAsync(context, request, 10m);
+        var receiptLine = await SeedReceiptLineAsync(context, line, request, 10m, 1m, "R178-PROCUREMENT-ACCEPTED");
+        receiptLine.InventoryPostingBaseQuantity = 9m;
+        await context.SaveChangesAsync();
+
+        var service = CreateService(context);
+        var posted = await service.RegisterReceiptPostingAsync(receiptLine.BranchReceipt, receiptLine, StaffId);
+        var detail = await service.GetDetailAsync(
+            order.PurchaseOrderId, StaffId, new[] { RoleConstants.AccountantWarehouse });
+
+        Assert.True(posted.IsSuccess, posted.Message);
+        Assert.True(detail.IsSuccess, detail.Message);
+        Assert.Equal(9m, detail.Data!.Lines.Single().AcceptedBaseQuantity);
+        Assert.Equal(1m, detail.Data.Lines.Single().RemainingBaseQuantity);
+    }
+
+    [Fact]
     public async Task CloseRemaining_RequiresOwnerAndReason_WritesAuditWithoutInventoryOrFulfillment()
     {
         using var context = CreateDbContext();
