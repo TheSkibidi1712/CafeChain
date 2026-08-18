@@ -244,11 +244,12 @@
                     data-recipeid="@item.Id"
                     data-picode="@(item.PreparedItemCode ?? "")"
                     data-piname="@(item.PreparedItemName ?? "")"
-                    data-basecost="0"
-                    data-costcomplete="0"
+                    data-basecost="@item.BaseCost"
+                    data-costcomplete="@(item.CostComplete ? "1" : "0")"
                     data-costmessage="@(item.CostMessage ?? "")"
                     data-unitid="@item.UnitId"
-                    data-unitname="@item.UnitName">[REC#@item.Id] @item.Name</option>
+                    data-unitname="@item.UnitName"
+                    data-baseunitcode="@item.UnitName">[REC#@item.Id] @item.Name</option>
         }
     </optgroup>
 </select>
