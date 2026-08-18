@@ -14,6 +14,7 @@ using CafeChain.Helpers;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.PreparedItems;
+using CafeChain.Models.Inventories.Suppliers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -138,6 +139,89 @@ namespace CafeChain.Tests.POS
             Assert.Contains("confirmButton: 'rb-confirm-primary'", view, StringComparison.Ordinal);
             Assert.Contains("if (!answer.isConfirmed) return;", view, StringComparison.Ordinal);
             Assert.Contains("Model.CanWrite", view, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public async Task SubRecipeOptions_ExposeCompleteServerEstimatedCost_InPreparedItemBaseUnit()
+        {
+            using var context = CreateDbContext();
+            var millilitre = context.Units.First(x => x.UnitCode == "ml");
+            var ingredient = new Ingredient
+            {
+                IngredientId = 1461,
+                Code = "ING-146",
+                Name = "Nước đường",
+                BaseUnitId = millilitre.UnitId,
+                Active = true
+            };
+            var preparedItem = new PreparedItem
+            {
+                PreparedItemId = 1461,
+                Code = "BTP-146",
+                Name = "Syrup 146",
+                BaseUnitId = millilitre.UnitId,
+                Active = true
+            };
+            context.Ingredients.Add(ingredient);
+            context.PreparedItems.Add(preparedItem);
+            context.IngredientSuppliers.Add(new IngredientSupplier
+            {
+                IngredientSupplierId = 1461,
+                IngredientId = ingredient.IngredientId,
+                SupplierId = 1461,
+                UnitId = millilitre.UnitId,
+                PackageQuantity = 1000m,
+                CurrentPrice = 20000m,
+                IsPrimary = true,
+                Active = true
+            });
+            context.Recipes.Add(new Recipe
+            {
+                RecipeId = 1461,
+                RecipeCode = "REC-BTP-146",
+                Name = "Syrup 146",
+                PreparedItemId = preparedItem.PreparedItemId,
+                OutputQuantity = 1000m,
+                OutputUnitId = millilitre.UnitId,
+                Active = true,
+                Status = "Active",
+                RecipeDetails = new List<RecipeDetail>
+                {
+                    new()
+                    {
+                        IngredientId = ingredient.IngredientId,
+                        Quantity = 1000m,
+                        UnitId = millilitre.UnitId
+                    }
+                }
+            });
+            await context.SaveChangesAsync();
+
+            var options = await CreateQueryService(context).GetFormOptionsAsync();
+            var child = Assert.Single(options.SubRecipes.Where(x => x.Id == 1461));
+
+            Assert.True(child.CostComplete);
+            Assert.Equal(20m, child.BaseCost);
+            Assert.Equal(millilitre.UnitId, child.UnitId);
+            Assert.Equal("ml", child.UnitName);
+            Assert.Null(child.CostMessage);
+        }
+
+        [Fact]
+        public void RecipeForms_RenderChildCostMetadata_FromServerOption()
+        {
+            var root = FindRepoRoot();
+            var create = File.ReadAllText(Path.Combine(
+                root, "CafeChain", "Areas", "Admin", "Views", "AdminRecipe", "Create.cshtml"));
+            var edit = File.ReadAllText(Path.Combine(
+                root, "CafeChain", "Areas", "Admin", "Views", "AdminRecipe", "Edit.cshtml"));
+
+            foreach (var view in new[] { create, edit })
+            {
+                Assert.Contains("data-basecost=\"@item.BaseCost\"", view, StringComparison.Ordinal);
+                Assert.Contains("data-costcomplete=\"@(item.CostComplete ? \"1\" : \"0\")\"", view, StringComparison.Ordinal);
+                Assert.Contains("data-baseunitcode=\"@item.UnitName\"", view, StringComparison.Ordinal);
+            }
         }
 
         private static AdminRecipeQueryService CreateQueryService(CafeChain.Data.AppDbContext context)

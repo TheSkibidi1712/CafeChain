@@ -993,9 +993,10 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 .Select(result => result.Recipe!.RecipeId)
                 .ToArray();
 
-            options.SubRecipes = await _context.Recipes
+            var currentPreparedRecipes = await _context.Recipes
                 .AsNoTracking()
                 .Include(x => x.PreparedItem)
+                    .ThenInclude(item => item!.BaseUnit)
                 .Include(x => x.OutputUnit)
                 .Where(x => currentPreparedRecipeIds.Contains(x.RecipeId)
                     && x.PreparedItemId.HasValue
@@ -1007,23 +1008,47 @@ namespace CafeChain.Application.Services.Admin.Recipes
                     && x.OutputUnit != null
                     && x.OutputUnit.Active)
                 .OrderBy(x => x.Name)
-                .Select(x => new RecipeBomChildRecipeOptionVM
-                {
-                    Id = x.RecipeId,
-                    Name = x.Name ?? "",
-                    RecipeCode = x.RecipeCode,
-                    PreparedItemId = x.PreparedItemId,
-                    PreparedItemCode = x.PreparedItem != null ? x.PreparedItem.Code : null,
-                    PreparedItemName = x.PreparedItem != null ? x.PreparedItem.Name : null,
-                    OutputQuantity = x.OutputQuantity,
-                    OutputUnitCode = x.OutputUnit != null ? x.OutputUnit.UnitCode : null,
-                    BaseCost = 0m,
-                    CostComplete = false,
-                    UnitId = x.OutputUnitId ?? 0,
-                    UnitName = x.OutputUnit != null ? x.OutputUnit.UnitCode : "",
-                    CostMessage = "BTP con: pin phiên bản Recipe — EstimateBomCost trên server"
-                })
                 .ToListAsync();
+            var currentPreparedCosts = await _estimatedBomCost.CalculateRecipesEstimatedCostAsync(
+                currentPreparedRecipes.Select(recipe => recipe.RecipeId));
+
+            foreach (var recipe in currentPreparedRecipes)
+            {
+                var cost = currentPreparedCosts[recipe.RecipeId];
+                var normalizedOutput = await _outputNormalizer.NormalizeAsync(
+                    recipe.PreparedItemId!.Value,
+                    recipe.OutputQuantity!.Value,
+                    recipe.OutputUnitId!.Value);
+                var costComplete = cost.IsComplete
+                    && cost.TotalCost.HasValue
+                    && normalizedOutput.IsSuccess
+                    && normalizedOutput.Data != null
+                    && normalizedOutput.Data.NormalizedQuantityInBase > 0;
+                var costMessage = costComplete
+                    ? null
+                    : normalizedOutput.IsSuccess
+                        ? cost.Issues.FirstOrDefault()?.Message ?? "Chưa đủ dữ liệu giá vốn BTP."
+                        : normalizedOutput.Message ?? "Không thể chuẩn hóa sản lượng đầu ra BTP.";
+
+                options.SubRecipes.Add(new RecipeBomChildRecipeOptionVM
+                {
+                    Id = recipe.RecipeId,
+                    Name = recipe.Name ?? "",
+                    RecipeCode = recipe.RecipeCode,
+                    PreparedItemId = recipe.PreparedItemId,
+                    PreparedItemCode = recipe.PreparedItem?.Code,
+                    PreparedItemName = recipe.PreparedItem?.Name,
+                    OutputQuantity = recipe.OutputQuantity,
+                    OutputUnitCode = recipe.OutputUnit?.UnitCode,
+                    BaseCost = costComplete
+                        ? cost.TotalCost!.Value / normalizedOutput.Data!.NormalizedQuantityInBase
+                        : 0m,
+                    CostComplete = costComplete,
+                    UnitId = recipe.PreparedItem!.BaseUnitId,
+                    UnitName = FormatUnitLabel(recipe.PreparedItem.BaseUnit?.UnitCode),
+                    CostMessage = costMessage
+                });
+            }
 
             options.Drinks = await _context.Drinks
                 .AsNoTracking()
