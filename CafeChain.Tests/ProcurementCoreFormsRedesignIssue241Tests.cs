@@ -66,6 +66,17 @@ public sealed class ProcurementCoreFormsRedesignIssue241Tests
     }
 
     [Fact]
+    public void PackagedReceiptDraft_MakesPackageCountingExplicit()
+    {
+        var view = Read("CafeChain/Areas/Admin/Views/AdminBranchReceipts/PurchaseOrderDraft.cshtml");
+
+        Assert.Contains("Số gói thực giao", view);
+        Assert.Contains("Số gói từ chối", view);
+        Assert.Contains("Số gói chấp nhận dự kiến", view);
+        Assert.Contains("mỗi gói =", view);
+    }
+
+    [Fact]
     public void PurchaseOrderAndStockAlert_DangerActionsAreSeparated()
     {
         var purchaseOrder = Read("CafeChain/Areas/Admin/Views/AdminPurchaseOrders/Details.cshtml");

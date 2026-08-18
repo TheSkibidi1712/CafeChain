@@ -36,7 +36,9 @@ namespace CafeChain.Extensions.Services
                     options.SlidingExpiration = true;
 
                     options.Cookie.HttpOnly = true;
-                    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                    options.Cookie.SecurePolicy = environment.IsDevelopment()
+                        ? CookieSecurePolicy.SameAsRequest
+                        : CookieSecurePolicy.Always;
                     options.Cookie.SameSite = SameSiteMode.Lax;
 
                     options.Events = new CookieAuthenticationEvents

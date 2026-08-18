@@ -7,6 +7,7 @@
     const permissions = {
         publish: app.dataset.canPublish === 'true',
         operate: app.dataset.canOperate === 'true',
+        provision: app.dataset.canProvision === 'true',
         override: app.dataset.canOverridePrice === 'true'
     };
     const token = app.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
@@ -16,6 +17,7 @@
         configured: document.getElementById('configuredStatusFilter'),
         operational: document.getElementById('operationalStatusFilter'),
         refresh: document.getElementById('refreshStoreMenu'),
+        provision: document.getElementById('provisionStoreMenu'),
         retry: document.getElementById('retryStoreMenu'),
         summary: document.getElementById('storeMenuSummary'),
         loading: document.getElementById('storeMenuLoading'),
@@ -128,6 +130,22 @@
             setMainState('error', error.message);
         } finally {
             loading = false;
+        }
+    }
+
+    async function provisionMissing() {
+        if (!permissions.provision || !els.store?.value || !els.provision) return;
+        els.provision.disabled = true;
+        try {
+            const payload = await request(`/Admin/AdminStoreMenu/ProvisionMissing?storeId=${encodeURIComponent(els.store.value)}`, {
+                method: 'POST'
+            });
+            showToast(payload.message || 'Đã đồng bộ SKU mới vào menu cửa hàng.');
+            await loadRows();
+        } catch (error) {
+            showToast(error.message);
+        } finally {
+            els.provision.disabled = false;
         }
     }
 
@@ -293,6 +311,7 @@
 
     els.store?.addEventListener('change', loadRows);
     els.refresh?.addEventListener('click', loadRows);
+    els.provision?.addEventListener('click', provisionMissing);
     els.retry?.addEventListener('click', loadRows);
     els.search?.addEventListener('input', applyFilters);
     els.configured?.addEventListener('change', applyFilters);
