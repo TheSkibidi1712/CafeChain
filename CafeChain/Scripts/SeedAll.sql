@@ -9063,13 +9063,13 @@ BEGIN TRY
   RoleKey nvarchar(10) NOT NULL PRIMARY KEY,
   ExpectedCount int NOT NULL
  );
- INSERT #ExpectedRoleCounts VALUES
+  INSERT #ExpectedRoleCounts VALUES
   (N'CDN',187),
   (N'QLV',100),
   (N'QLCN',138),
   (N'NVBH',12),
-  (N'KTK',124),
-  (N'CT',36);
+  (N'KTK',122),
+  (N'CT',35);
 
  INSERT #ExpectedRoleCounts(RoleKey,ExpectedCount)
  SELECT N'QTHT',COUNT(*)
