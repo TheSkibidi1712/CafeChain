@@ -43,6 +43,27 @@
             window.bootstrap.Tab.getOrCreateInstance(negativeTabButton).show();
         }
 
+        const updateDropdownTriggerUI = (dropdownWrap, value) => {
+            const trigger = dropdownWrap.querySelector(".ni-dropdown-trigger");
+            const label = trigger?.querySelector(".ni-dropdown-selected-label");
+            const items = dropdownWrap.querySelectorAll(".ni-dropdown-item");
+
+            items.forEach((item) => {
+                const isActive = item.dataset.value === value;
+                item.classList.toggle("active", isActive);
+            });
+
+            if (label) {
+                if (value === "BLOCKED") {
+                    label.innerHTML = '<i class="fas fa-lock me-1 text-danger"></i><span>Chặn</span>';
+                } else if (value === "CUSTOM") {
+                    label.innerHTML = '<i class="fas fa-sliders me-1 text-amber"></i><span>Hạn mức riêng</span>';
+                } else {
+                    label.innerHTML = '<i class="fas fa-circle-check me-1 text-success"></i><span>Theo mặc định</span>';
+                }
+            }
+        };
+
         const syncCustomLimit = (modeSelect) => {
             const row = modeSelect.closest("tr");
             const input = row?.querySelector(".negative-custom-limit");
@@ -53,6 +74,23 @@
 
         document.querySelectorAll(".negative-limit-mode").forEach((select) => {
             select.addEventListener("change", () => syncCustomLimit(select));
+        });
+
+        document.addEventListener("click", (event) => {
+            const itemBtn = event.target.closest(".ni-dropdown-item");
+            if (!itemBtn) return;
+
+            const wrap = itemBtn.closest(".ni-custom-dropdown-wrap");
+            if (!wrap) return;
+
+            const select = wrap.querySelector(".negative-limit-mode");
+            const value = itemBtn.dataset.value;
+
+            if (select && value) {
+                select.value = value;
+                updateDropdownTriggerUI(wrap, value);
+                select.dispatchEvent(new Event("change", { bubbles: true }));
+            }
         });
 
         const formatQuantity = (value) => Number(value || 0).toLocaleString("vi-VN", {
