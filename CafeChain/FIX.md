@@ -1,1201 +1,1550 @@
-# TASK: CHUẨN HÓA SEED DATA UNIT / INGREDIENT / SUPPLIER PACKAGE TRONG SEEDALL
+# PROMPT REFACTOR AI SMART IMPORT — DUPLICATE RECOVERY, SAME-SESSION DEPENDENCY, PREFLIGHT VÀ CONFIRM GATE
 
-Bạn hãy đọc, phân tích cấu trúc project hiện tại và chỉnh sửa **SeedData trong `SeedAll`** để chuẩn hóa dữ liệu liên quan đến:
+## 0. VAI TRÒ
 
-* Unit
-* Ingredient
-* Ingredient Base Unit
-* Physical Unit Conversion
-* Ingredient Unit Conversion nếu project thực sự sử dụng
-* Supplier
-* SupplierPackage
-* SupplierPackage ContentUnit
-* SupplierPackage PackageQuantity
-* Các dữ liệu demo liên quan đến procurement
+Bạn là **Senior Backend Engineer + Software Architect** phụ trách tiếp tục refactor module **AI Smart Import CafeChain**.
 
-Mục tiêu là đảm bảo SeedData phản ánh đúng nghiệp vụ tồn kho, tiêu hao nguyên liệu và nhập hàng từ nhà cung cấp.
+Đây là dự án đã qua nhiều đợt refactor. **Không xây lại module từ đầu, không tạo pipeline import thứ hai và không refactor mù chỉ để code đẹp hơn.**
+
+Trước khi sửa code, hãy đọc trực tiếp toàn bộ source hiện tại liên quan AI Smart Import, đặc biệt:
+
+```text
+AIImportController
+AIImportService
+IAIImportDocumentPipeline
+AIImportExcelSourceParser
+AIImportDocxSourceParser
+AIImportPdfSourceParser
+AIImportDocumentAiExtractor
+
+AIImportCandidateValidator
+AIImportReferenceResolver
+AIImportBusinessKeys
+AIImportEntityRegistry
+AIImportPreviewValidator
+AIImportResolutionEngine
+
+AIImportAnalysisCoordinator
+AIImportPreviewMutationCoordinator
+AIImportConfirmCoordinator
+AIImportSessionQuery
+AIImportEntityCreator
+
+ImportSession
+ImportSourceDocument
+ImportGroup
+ImportItem
+ImportAudit
+
+AdminSupplierService
+AdminCategoryService
+AdminDrinkService
+AdminSizeService
+AdminIngredientService
+
+AI Import View
+JavaScript/TypeScript của Preview
+Modal sửa dòng
+UI ánh xạ cột
+UI multi-file
+Analyze/Reanalyze/Confirm/Cancel handlers
+AIImportOptions
+RBAC
+EF model/migration
+AI Import tests
+```
+
+Tài liệu nghiệp vụ hiện tại:
+
+```text
+AI_SMART_IMPORT_BUSINESS_RULES
+```
+
+là **baseline nghiệp vụ mới nhất**.
+
+Các prompt refactor cũ chỉ dùng để hiểu lịch sử thiết kế và invariant đã chốt.
+
+Nếu source hiện tại khác tài liệu nghiệp vụ, phải xác định rõ đó là bug implementation hay tài liệu chưa cập nhật.
+
+**Các yêu cầu mới trong prompt này được ưu tiên cao hơn rule cũ nếu có xung đột.**
+
+Đặc biệt, yêu cầu mới:
+
+```text
+File lỗi nghiêm trọng / sai định dạng / không an toàn
+→ KHÔNG tạo ImportSession
+```
+
+sẽ thay thế behavior cũ:
+
+```text
+File lỗi
+→ vẫn mở session
+→ preview file hợp lệ
+→ khóa Confirm
+```
+
+đối với các lỗi có thể phát hiện trong preflight trước phiên.
 
 ---
 
-# I. PHẠM VI THỰC HIỆN
+# 1. INVARIANT KHÔNG ĐƯỢC PHÁ
 
-Chỉ được chỉnh sửa:
-
-* `SeedAll`
-* Các method/helper seed được `SeedAll` trực tiếp sử dụng nếu cần thiết.
-* Seed/demo-data liên quan đến:
-
-  * Unit
-  * Ingredient
-  * Supplier
-  * SupplierPackage
-  * UnitConversion
-  * IngredientUnitConversion
-
-Nếu project chia SeedAll thành nhiều method như:
-
-```csharp
-SeedUnits(...)
-SeedIngredients(...)
-SeedSuppliers(...)
-SeedSupplierPackages(...)
-SeedUnitConversions(...)
-```
-
-thì được phép chỉnh sửa các method đó để dữ liệu cuối cùng đúng nghiệp vụ.
-
-## TUYỆT ĐỐI KHÔNG:
-
-* Không tạo Migration mới.
-* Không sửa Migration cũ.
-* Không rewrite Migration history.
-* Không sửa Entity Configuration.
-* Không sửa `IEntityTypeConfiguration<T>`.
-* Không sửa Fluent API configuration.
-* Không sửa database schema.
-* Không thêm/xóa column.
-* Không thay đổi relationship trong EF Configuration.
-* Không refactor domain/business logic ngoài scope.
-* Không sửa Controller/API chỉ để phù hợp với SeedData.
-* Không sửa Service/Repository nếu vấn đề chỉ nằm ở dữ liệu seed.
-* Không reset database chỉ để seed lại dữ liệu.
-* Không thay đổi contract hiện tại của Entity nếu không thực sự bắt buộc.
-
-Nếu phát hiện schema/configuration hiện tại không hỗ trợ nghiệp vụ, **không tự ý sửa**.
-
-Hãy báo:
+Giữ nguyên pipeline nghiệp vụ:
 
 ```text
-SCHEMA_OR_CONFIGURATION_REVIEW_REQUIRED
+File nguồn
+→ Security / Format Preflight
+→ Source Document
+→ Group / Region
+→ Candidate
+→ Normalize
+→ Validation
+→ Reference
+→ Duplicate / Conflict
+→ Dependency
+→ Preview
+→ User Review / Edit / Skip
+→ Confirm
+→ Full Revalidation
+→ Idempotency
+→ Serializable Transaction
+→ Existing CRUD Service
+→ Database
 ```
 
-và mô tả vấn đề.
+Nguyên tắc:
+
+```text
+AI phân tích.
+Parser/OCR trích xuất.
+Backend quyết định.
+Người dùng xác nhận.
+Database chỉ thay đổi sau Confirm.
+```
+
+Không được:
+
+```text
+AI → DB
+Parser → DB
+OCR → DB
+Preview → DB
+PATCH item → Create entity
+```
+
+Chỉ hỗ trợ CREATE:
+
+```text
+Category
+Drink
+Size
+Ingredient
+Supplier
+```
+
+Không tự mở rộng:
+
+```text
+UPDATE
+UPSERT
+DELETE
+Topping
+Drink Price
+Drink Image
+Unit creation
+ProductType creation
+BOM/Recipe
+Purchase/Order
+```
+
+Confirm tiếp tục dùng các CRUD service hiện hữu làm source of truth.
+
+Giữ nguyên:
+
+```text
+PreviewVersion
+expectedPreviewVersion
+RBAC
+session ownership
+StoreId = 0
+IRequestDeduplicationService
+conditional state transition
+Serializable transaction
+Category → Drink dependency
+Supplier warning token
+audit/retention
+```
+
+Không được sửa migration cũ chỉ để tiện refactor. Nếu thực sự cần persistence mới thì tạo forward migration phù hợp; trước tiên ưu tiên giải pháp không cần thay schema.
+
+**TEST luôn thực hiện cuối cùng. Không sửa test trước để ép code pass.**
 
 ---
 
-# II. NGUYÊN TẮC THIẾT KẾ SEED DATA
+# 2. PHASE 0 — SOURCE AUDIT TRƯỚC KHI SỬA
 
-SeedData phải phân biệt rõ 3 khái niệm:
+Trước khi implement, hãy kiểm tra source thực tế và trả báo cáo ngắn:
 
 ```text
-1. Ingredient Base Unit
-2. Physical Unit Conversion
-3. Supplier Package
+Component
+Responsibility hiện tại
+Rule nghiệp vụ đang giữ
+Bug có thể gây ra
+Có cần sửa?
 ```
 
-Không được trộn ba khái niệm này với nhau.
+Phải truy nguyên chính xác root cause của các case sau, không sửa bằng workaround phía UI nếu lỗi nằm ở backend:
+
+```text
+1. Supplier soft duplicate không có lý do override.
+2. Category cùng session không resolve đúng cho Drink.
+3. Một validation issue bị render lặp nhiều lần.
+4. Record duplicate đã sửa thành unique nhưng vẫn SKIPPED.
+5. File invalid vẫn tạo/open ImportSession.
+6. Confirm button không phản ánh blocker thật.
+7. Summary counter không cập nhật đúng sau PATCH.
+```
+
+Sau khi xác định root cause mới bắt đầu implement.
 
 ---
 
-# III. CHUẨN HÓA INGREDIENT.BASEUNITID
+# 3. P0 — SỬA SUPPLIER SOFT DUPLICATE VÀ LÝ DO TẠO MỚI
 
-Mỗi Ingredient phải có một `BaseUnitId` phản ánh đúng đơn vị tồn kho/tiêu hao cơ sở.
-
-Quy tắc mặc định:
-
-## 1. Nguyên liệu theo khối lượng
-
-Base Unit:
+Case test chính:
 
 ```text
-g
+E06_all_entities_separate_sheets.xlsx
 ```
+
+Hiện tại khi Supplier có dữ liệu tương tự Supplier đã tồn tại, UI hiển thị cảnh báo và checkbox xác nhận nhưng không có nơi nhập lý do tại sao vẫn muốn tạo Supplier mới.
+
+Đây là bug.
+
+## 3.1. Phân biệt hard duplicate và soft duplicate
+
+Supplier:
+
+```text
+TaxCode
+→ HARD DUPLICATE
+
+Name
+PrimaryPhone / Hotline
+PrimaryContactPhone
+PrimaryContactEmail
+Address
+→ SOFT DUPLICATE theo policy hiện tại
+```
+
+Hard duplicate TaxCode:
+
+```text
+ERROR
+→ không cho override bằng lý do
+→ user phải sửa dữ liệu hoặc bỏ qua dòng
+```
+
+Soft duplicate:
+
+```text
+WARNING
+→ user được phép tiếp tục tạo
+→ nhưng phải xác nhận đã kiểm tra
+→ nhập lý do tạo mới
+→ backend cấp/xác thực warning token theo policy AdminSupplierService
+```
+
+Không biến soft duplicate thành ERROR chỉ để dễ xử lý.
+
+Không bypass `AdminSupplierService`.
+
+## 3.2. Modal Supplier
+
+Khi server phát hiện Supplier soft duplicate, modal phải hiển thị rõ:
+
+```text
+Cảnh báo
+
+Bản ghi tương tự:
+<Code/Name Supplier hiện có>
+
+Các tín hiệu trùng:
+- Tên
+- Hotline
+- Email
+- Số điện thoại liên hệ
+- Địa chỉ
+...
+chỉ hiển thị signal thực tế match
+
+[ ] Tôi đã kiểm tra và vẫn muốn tạo nhà cung cấp mới
+
+Lý do tạo mới *
+[ textarea/input ]
+```
+
+Lý do phải được trim và validate theo policy/backend hiện có.
+
+Không tự phát minh max length khác CRUD/service nếu source hiện tại chưa quy định.
+
+Nếu business policy hiện tại chỉ yêu cầu non-empty thì dùng đúng policy đó.
+
+Nút:
+
+```text
+Lưu và kiểm tra lại
+```
+
+không được giải quyết Supplier warning chỉ bằng checkbox phía client.
+
+Server vẫn là source of truth.
+
+## 3.3. Warning token
+
+Supplier warning phải tiếp tục đảm bảo:
+
+```text
+actor
+normalized payload
+reason
+expiry
+warning token
+```
+
+Token phải gắn với payload hiện tại.
+
+Nếu user sửa bất kỳ field nào có ảnh hưởng tới soft duplicate:
+
+```text
+Name
+Phone
+Email
+Address
+Contact...
+```
+
+thì warning acknowledgement/token cũ phải được coi là stale và duplicate phải được tính lại.
+
+Không reuse token của payload cũ.
+
+Nếu sau khi sửa không còn soft duplicate:
+
+```text
+warning biến mất
+reason không còn required
+old token invalid
+```
+
+## 3.4. Không tạo warning trùng
+
+Một Supplier chỉ được render một warning logic cho cùng một matched Supplier/matched signal set.
+
+Không được để:
+
+```text
+Cùng một warning
+Cùng một field
+Cùng một matched Supplier
+```
+
+xuất hiện lặp hai lần trong modal hoặc Preview.
+
+---
+
+# 4. P0 — SAME-SESSION CATEGORY → DRINK PHẢI RESOLVE ĐÚNG
+
+Case chính:
+
+```text
+E06_all_entities_separate_sheets.xlsx
+```
+
+Workbook có nhiều entity.
 
 Ví dụ:
 
-* Coffee Bean
-* Coffee Powder
-* Matcha Powder
-* Cocoa Powder
-* Sugar nếu tồn/tiêu hao theo khối lượng
-* Các powder/solid ingredient khác
+```text
+Category:
+CategoryCode = CAT_TEA
+
+Drink:
+DrinkCode = DR_TEA
+Category = CAT_TEA
+ProductType = DRINK
+```
+
+Category `CAT_TEA` chưa có trong DB nhưng có Category candidate hợp lệ trong cùng ImportSession.
+
+Drink phải resolve Category này thành:
+
+```text
+PENDING_IN_SESSION
+```
+
+hoặc state tương đương đang dùng trong source.
+
+Không được báo:
+
+```text
+Danh mục không tồn tại
+```
+
+chỉ vì Category chưa được ghi DB.
+
+## 4.1. Dependency phải chạy toàn session
+
+Reference resolver không được chỉ query Database.
+
+Phải có khả năng resolve:
+
+```text
+Existing active DB Category
+hoặc
+Pending Category candidate trong cùng session
+```
+
+Candidate có thể nằm:
+
+```text
+sheet khác
+region khác
+file khác
+xuất hiện trước Drink
+xuất hiện sau Drink
+```
+
+Upload/source order không được ảnh hưởng dependency.
+
+Không fake CategoryId.
+
+Confirm phải:
+
+```text
+Create Category
+→ nhận ID thật từ CRUD service
+→ map dependency
+→ Create Drink
+```
+
+## 4.2. Category pending chỉ hợp lệ khi candidate cha có khả năng được import
+
+Không coi Category pending là reference hợp lệ nếu Category candidate đang:
+
+```text
+ERROR
+REVIEW_REQUIRED chưa xử lý
+USER_SKIPPED
+hard duplicate không giải quyết được
+```
+
+Nếu trạng thái Category thay đổi, tất cả Drink liên quan phải được scoped revalidation.
 
 Ví dụ:
 
 ```text
-Coffee
-BaseUnit = g
+Category CAT_TEA VALID
+Drink → PENDING_IN_SESSION
+
+user sửa Category CAT_TEA → CAT_COFFEE
+
+→ revalidate Drink đang tham chiếu CAT_TEA
+→ nếu không còn Category DB/session phù hợp
+→ Drink trở thành lỗi reference
 ```
 
-Không dùng:
+## 4.3. ProductType là dependency riêng
+
+Không đánh đồng:
 
 ```text
-kg
-pack
-bag
-box
+Category
+và
+ProductType
 ```
 
-làm BaseUnit nếu nguyên liệu thực tế được tồn và tiêu hao theo gram.
+`ProductType` vẫn phải resolve vào ProductType active đã có trong hệ thống.
+
+Smart Import không tạo ProductType.
+
+Nếu:
+
+```text
+Category CAT_TEA
+```
+
+resolve thành công trong cùng session nhưng:
+
+```text
+ProductType = DRINK
+```
+
+không tồn tại/không active trong DB, thì chỉ báo lỗi ProductType.
+
+UI phải hiển thị chính xác:
+
+```text
+Loại sản phẩm "DRINK" không tồn tại hoặc không hoạt động.
+```
+
+Không được báo lỗi Category nếu Category thực tế đã resolve.
+
+## 4.4. Deduplicate ValidationIssue
+
+Ảnh hiện tại có trường hợp cùng lỗi:
+
+```text
+Loại sản phẩm không tồn tại.
+```
+
+xuất hiện hai lần.
+
+Phải kiểm tra toàn pipeline xem issue bị thêm ở:
+
+```text
+Candidate validation
+Reference resolver
+Preview validator
+Resolution engine
+UI aggregation
+```
+
+hay nhiều layer cùng append một lỗi.
+
+Không sửa bằng cách chỉ `Distinct()` message string ở JavaScript.
+
+Phải deduplicate ở domain/result aggregation dựa trên identity phù hợp, ví dụ:
+
+```text
+Code
+Field
+Target/reference
+SourceLocator hoặc semantic identity cần thiết
+```
+
+Frontend vẫn có thể defensive-deduplicate nhưng backend phải trả contract sạch.
+
+Một lỗi nghiệp vụ logic chỉ hiển thị một lần.
 
 ---
 
-## 2. Nguyên liệu theo thể tích
+# 5. P0 — SỬA BUG EDIT DUPLICATE NHƯNG VẪN SKIPPED
 
-Base Unit:
+Case ảnh 3, 4, 5, 6:
 
 ```text
-ml
+Candidate ban đầu trùng bản ghi hiện có
+→ hệ thống đánh dấu bỏ qua
+
+User mở "Sửa dòng"
+→ đổi CategoryCode/Name thành dữ liệu mới không còn trùng
+→ Lưu và kiểm tra lại
+
+Hiện tại:
+→ candidate vẫn SKIPPED
+→ duplicate warning/error cũ vẫn còn
+→ Confirm chỉ tạo được 1 record
 ```
 
-Ví dụ:
+Behavior này sai.
 
-* Milk
-* Syrup
-* Sauce dạng lỏng
-* Juice
-* Liquid concentrate
-* Các liquid ingredient khác
+## 5.1. Phân biệt USER SKIP và SYSTEM AUTO-SKIP
 
-Ví dụ:
+Không được coi mọi `SKIPPED` là trạng thái vĩnh viễn.
+
+Phải phân biệt về mặt domain:
 
 ```text
-Milk
-BaseUnit = ml
-
-Vanilla Syrup
-BaseUnit = ml
+USER_SKIP
+SYSTEM_DUPLICATE_SKIP
 ```
 
-Không dùng:
+Tên field/model cụ thể phải theo convention source hiện tại; không bắt buộc tạo DB column nếu không cần.
+
+`USER_SKIP`:
 
 ```text
-L
-Bottle
-Can
-Pack
+do user chủ động bấm "Bỏ qua dòng"
+→ giữ nguyên qua revalidation
+→ chỉ thay đổi khi user chủ động khôi phục/unskip nếu UI hỗ trợ
 ```
 
-làm BaseUnit nếu hệ thống tồn/tiêu hao nguyên liệu theo ml.
-
----
-
-## 3. Vật tư đếm từng cái
-
-Base Unit:
+`SYSTEM_DUPLICATE_SKIP`:
 
 ```text
-pcs
+do engine tự xác định same key + same payload
+→ derived state
+→ phải tính lại khi payload/business key thay đổi
 ```
 
-Áp dụng cho những vật tư thực tế tồn kho/tiêu hao từng đơn vị:
+Không để auto-skip cũ khóa candidate vĩnh viễn.
 
-* Cup
-* Cup Lid
-* Straw
-* Spoon
-* Fork
-* Bag
-* Napkin nếu quản lý từng cái
-* Các disposable item tương tự
+## 5.2. Item PATCH phải revalidation theo business key cũ và mới
 
-Ví dụ:
+Khi user bấm:
 
 ```text
-Plastic Cup
-BaseUnit = pcs
-
-Cup Lid
-BaseUnit = pcs
-
-Straw
-BaseUnit = pcs
+Lưu và kiểm tra lại
 ```
 
-Không sử dụng:
+flow phải là:
 
 ```text
-Pack
-Carton
-Box
-Bottle
-Can
+expectedPreviewVersion check
+→ capture old normalized payload
+→ capture old business key
+→ apply new normalized values
+→ calculate new business key
+→ invalidate derived duplicate state cũ
+→ invalidate stale validation issues
+→ invalidate stale manual confirmation nếu payload liên quan thay đổi
+→ invalidate Supplier token nếu payload Supplier thay đổi
+→ revalidate edited item
+→ revalidate cohort của old business key
+→ revalidate cohort của new business key
+→ revalidate dependent Drink/Category nếu liên quan
+→ resolve status lại từ đầu
+→ PreviewVersion++
+→ refresh Preview
 ```
 
-làm BaseUnit chỉ vì vật tư được mua theo dạng đóng gói đó.
-
----
-
-# IV. XỬ LÝ INGREDIENT CÓ SEMANTICS KHÔNG RÕ
-
-Không được tự suy đoán một Ingredient nếu không đủ thông tin để xác định:
+Nếu dữ liệu mới không còn duplicate và không còn blocker:
 
 ```text
-g
-ml
-pcs
-```
-
-Ví dụ một record có tên hoặc mô tả không đủ để biết:
-
-* tồn theo cái;
-* tồn theo chai;
-* tồn theo ml;
-* hay tồn theo gram.
-
-Trong trường hợp đó:
-
-* Không tự sửa sai semantics.
-* Giữ dữ liệu an toàn nhất theo convention hiện tại.
-* Ghi nhận record cần review.
-
-Cuối task báo:
-
-```text
-NEEDS_REVIEW:
-- IngredientId:
-- IngredientName:
-- CurrentBaseUnit:
-- Reason:
-```
-
----
-
-# V. PHYSICAL UNIT CONVERSION
-
-Physical Unit Conversion chỉ được dùng cho các quan hệ đo lường vật lý có semantics ổn định.
-
-Ví dụ hợp lệ:
-
-```text
-1 kg = 1000 g
-1 L = 1000 ml
-```
-
-Có thể có các conversion vật lý tương đương khác nếu project hiện tại đã định nghĩa rõ.
-
-Các conversion này có thể nằm trong:
-
-```text
-PhysicalUnitConversion
-```
-
-hoặc entity tương đương của project.
-
-## Không được tạo global conversion cho package unit
-
-Tuyệt đối không tạo:
-
-```text
-1 carton = 1000 pcs
-1 pack = 100 pcs
-1 box = 50 pcs
-1 bottle = 750 ml
-1 can = 330 ml
-```
-
-dưới dạng global physical conversion.
-
-Bởi vì:
-
-```text
-carton
-pack
-box
-bottle
-can
-```
-
-là hình thức đóng gói.
-
-Số lượng chứa bên trong phụ thuộc:
-
-* Ingredient
-* Product
-* Supplier
-* Package specification
-
-và không phải universal physical conversion.
-
----
-
-# VI. INGREDIENT UNIT CONVERSION
-
-Nếu project có `IngredientUnitConversion`, chỉ seed conversion khi nó thực sự cần cho nghiệp vụ đo lường Ingredient.
-
-Ví dụ có thể hợp lệ:
-
-```text
-kg -> g
-L -> ml
-```
-
-nếu Ingredient thực sự hỗ trợ nhập/hiển thị ở các unit đó.
-
-Không được tự tạo conversion:
-
-```text
-pack -> pcs
-carton -> pcs
-box -> pcs
-bottle -> ml
-can -> ml
-```
-
-chỉ vì các Unit này tồn tại trong bảng Unit.
-
-Việc một Unit tồn tại trong danh mục:
-
-```text
-Unit
-```
-
-không đồng nghĩa Unit đó phải có conversion.
-
----
-
-# VII. THIẾT KẾ SUPPLIER PACKAGE
-
-`SupplierPackage` phải đại diện cho:
-
-> Quy cách một Ingredient được mua từ một Supplier.
-
-Ví dụ:
-
-```text
-Supplier: ABC
-Ingredient: Cup Lid
-Package: Bag
-Quantity: 100 pcs
-Price: 50,000
+SYSTEM_DUPLICATE_SKIP
+→ VALID
 ```
 
 hoặc:
 
 ```text
-Supplier: XYZ
-Ingredient: Coffee
-Package: Bag
-Quantity: 1 kg
-Price: 250,000
+WARNING
+REVIEW_REQUIRED
 ```
 
-Tuy nhiên dữ liệu lưu trong seed phải được normalize về `Ingredient.BaseUnit`.
+theo validation thật hiện tại.
+
+Không giữ `SKIPPED` chỉ vì trước PATCH item từng trùng.
+
+## 5.3. Hard duplicate phải được tính lại toàn bộ
+
+Ví dụ Category:
+
+```text
+CategoryCode = CAT_TEA_2
+Name = Trà trái cây
+```
+
+trùng DB.
+
+User sửa thành:
+
+```text
+CategoryCode = CAT_TEA_221
+Name = Trà trái cây mới
+```
+
+Nếu cả Code và Name đều không còn duplicate:
+
+```text
+duplicate issue phải biến mất
+candidate không còn auto-skip
+candidate phải trở thành importable
+```
+
+Nếu Code mới unique nhưng Name vẫn trùng:
+
+```text
+vẫn báo đúng duplicate Name
+```
+
+Không cache kết quả duplicate cũ theo ItemId.
+
+## 5.4. UI sau Save
+
+Sau PATCH thành công phải sử dụng response mới từ server làm source of truth.
+
+Phải cập nhật:
+
+```text
+Status
+Issues
+Warnings
+Normalized values
+Counters:
+Tổng dòng
+Hợp lệ
+Cảnh báo
+Lỗi
+Cần xem lại
+Bỏ qua
+PreviewVersion
+CanConfirm
+```
+
+Không chỉ thay text trong modal rồi giữ state Preview cũ.
+
+Nếu sau Save vẫn còn lỗi:
+
+```text
+giữ modal mở
+focus lỗi đầu tiên
+render lỗi mới nhất từ server
+```
+
+Nếu đã hợp lệ:
+
+```text
+có thể đóng modal theo UX hiện tại
+refresh dòng và summary
+```
+
+Không tự gửi `action=SKIP` khi user chỉ chỉnh sửa field.
+
+Nút **Bỏ qua dòng** phải là action riêng biệt.
 
 ---
 
-# VIII. CONTENTUNITID CỦA SUPPLIERPACKAGE
+# 6. P0 — FILE INVALID PHẢI BỊ CHẶN TRƯỚC KHI TẠO SESSION
 
-Đối với các demo SeedData mục tiêu:
+Đây là thay đổi nghiệp vụ mới và **override behavior multi-file cũ**.
 
-```text
-SupplierPackage.ContentUnitId
-=
-Ingredient.BaseUnitId
-```
-
-Đây phải là convention mặc định khi tạo SupplierPackage seed.
-
-Không seed package theo kiểu:
+Case:
 
 ```text
-Coffee BaseUnit = g
-
-SupplierPackage:
-ContentUnit = kg
-PackageQuantity = 1
+E42_fake_xlsx_contains_pdf.xlsx
 ```
 
-Thay vào đó normalize thành:
+Hiện tại:
 
 ```text
-Coffee BaseUnit = g
-
-SupplierPackage:
-ContentUnit = g
-PackageQuantity = 1000
+Analyze
+→ tạo/open session
+→ UI hiện "Tệp không phải gói OpenXML .xlsx hợp lệ."
+→ session rỗng vẫn tồn tại
 ```
 
----
+Sai.
 
-# IX. PACKAGEQUANTITY PHẢI NORMALIZE VỀ BASE UNIT
-
-`PackageQuantity` phải thể hiện tổng lượng Ingredient có trong một package mua hàng, tính theo `Ingredient.BaseUnit`.
-
-## Ví dụ 1 — Cup Lid
+Case:
 
 ```text
-Ingredient:
-Cup Lid
-BaseUnit = pcs
-
-Supplier package:
-1 bag = 100 lids
+E40_suspicious_compression_ratio.xlsx
 ```
 
-Seed:
+Hiện tại:
 
 ```text
-ContentUnitId = pcs
-PackageQuantity = 100
+Analyze
+→ session đã được tạo
+→ sau đó mới báo "Tệp Excel có tỷ lệ nén không an toàn."
 ```
 
----
+Sai.
 
-## Ví dụ 2 — Cup
+## 6.1. Thêm Pre-Session Preflight
+
+Analyze phải chia thành hai tầng:
 
 ```text
-Ingredient:
-Cup
-BaseUnit = pcs
-
-Supplier package:
-1 carton = 1000 cups
+PHASE A — PREFLIGHT KHÔNG SIDE EFFECT
+PHASE B — CREATE SESSION + ANALYZE
 ```
 
-Seed:
+PHASE A phải hoàn thành trước khi persist ImportSession.
+
+Phải kiểm tra tối thiểu theo format hiện tại:
 
 ```text
-ContentUnitId = pcs
-PackageQuantity = 1000
+extension
+Content-Type
+file signature
+file size
+aggregate batch size
+OpenXML package hợp lệ
+XLSX thật
+DOCX thật
+PDF signature
+password/encryption
+macro/active content
+OLE/embedded binary
+external relationship nguy hiểm
+PDF JavaScript/Launch/URI/embedded file
+expanded size
+compression ratio
+resource count
+các AIImportOptions limits liên quan
+minimal parseability
+OCR capability nếu source bắt buộc OCR cho request hiện tại
 ```
 
-Không tạo:
+Không chạy AI trước security guard.
+
+Không tạo DB record trong preflight.
+
+## 6.2. Fatal preflight failure
+
+Nếu một file fail fatal preflight:
 
 ```text
-carton -> 1000 pcs
+→ dừng Analyze
+→ trả typed error
+→ KHÔNG tạo ImportSession
+→ KHÔNG tạo ImportSourceDocument
+→ KHÔNG tạo ImportGroup
+→ KHÔNG tạo ImportItem
+→ KHÔNG tạo Preview
+→ KHÔNG chuyển UI sang màn hình phiên
 ```
 
-trong PhysicalUnitConversion.
-
----
-
-## Ví dụ 3 — Coffee
-
-```text
-Ingredient:
-Coffee
-BaseUnit = g
-
-Supplier package:
-1 bag = 1 kg
-```
-
-Normalize:
-
-```text
-ContentUnitId = g
-PackageQuantity = 1000
-```
-
-Không seed:
-
-```text
-ContentUnitId = kg
-PackageQuantity = 1
-```
-
-cho demo package mục tiêu nếu convention mới yêu cầu ContentUnit mặc định theo BaseUnit.
-
----
-
-## Ví dụ 4 — Syrup
-
-```text
-Ingredient:
-Vanilla Syrup
-BaseUnit = ml
-
-Supplier package:
-1 bottle = 750 ml
-```
-
-Seed:
-
-```text
-ContentUnitId = ml
-PackageQuantity = 750
-```
-
-Không tạo global conversion:
-
-```text
-1 bottle = 750 ml
-```
-
----
-
-## Ví dụ 5 — Milk
-
-Ví dụ nhà cung cấp bán:
-
-```text
-1 carton = 12 hộp
-mỗi hộp = 1 L
-```
-
-Nếu SupplierPackage đại diện cho toàn bộ carton được mua:
-
-```text
-BaseUnit = ml
-PackageQuantity = 12000
-ContentUnitId = ml
-```
-
-Nếu SupplierPackage của project đại diện cho từng hộp 1 L:
-
-```text
-BaseUnit = ml
-PackageQuantity = 1000
-ContentUnitId = ml
-```
-
-Hãy inspect semantics của SupplierPackage hiện tại trước khi quyết định.
-
-Không tự suy đoán package hierarchy nếu code hiện tại không thể hiện rõ.
-
----
-
-# X. PACKAGE UNIT KHÔNG PHẢI BASE UNIT
-
-Các Unit như:
-
-```text
-Pack
-Carton
-Box
-Bottle
-Can
-Bag
-```
-
-có thể tiếp tục tồn tại trong danh mục `Unit` nếu project cần.
-
-Nhưng không được mặc định sử dụng chúng làm `Ingredient.BaseUnit`.
+UI chỉ hiển thị lỗi tại khu vực file upload.
 
 Ví dụ:
 
-SAI:
-
 ```text
-Cup:
-BaseUnit = Carton
+E42_fake_xlsx_contains_pdf.xlsx
+Tệp không phải gói OpenXML .xlsx hợp lệ.
+
+E40_suspicious_compression_ratio.xlsx
+Tệp Excel có tỷ lệ nén không an toàn.
 ```
 
-ĐÚNG:
+Giữ tên error code hiện tại nếu backend đã có typed code.
+
+Không tạo code mới chỉ để đổi wording.
+
+## 6.3. Multi-file phải preflight atomic
+
+Nếu upload:
 
 ```text
-Cup:
-BaseUnit = pcs
+File A hợp lệ
+File B hợp lệ
+File C hỏng
 ```
 
-SupplierPackage mới thể hiện:
+thì:
 
 ```text
-1 carton chứa 1000 pcs
+Preflight A
+Preflight B
+Preflight C → FAIL
+
+→ không tạo ImportSession cho cả batch
 ```
+
+UI phải chỉ rõ:
+
+```text
+File C
+ErrorCode
+Message
+```
+
+User có thể bỏ File C khỏi danh sách và Analyze lại.
+
+Không silently drop File C.
+
+Không tạo session chứa A/B rồi giấu C.
+
+Đây là behavior mới thay thế rule multi-file cũ đối với **fatal source error**.
+
+## 6.4. Phân biệt file error với business validation
+
+Các lỗi sau là source/preflight blocker:
+
+```text
+fake file
+invalid OpenXML
+corrupt file
+password/encrypted
+unsafe compression
+unsupported active content
+security guard fail
+resource bomb
+unsupported file format
+provider bắt buộc nhưng không khả dụng để phân tích source hiện tại
+```
+
+Các lỗi dữ liệu như:
+
+```text
+missing required field
+duplicate record
+reference không tồn tại
+mapping ambiguity
+low confidence
+Supplier soft duplicate
+unknown column
+```
+
+không phải file-corruption error.
+
+Các lỗi nghiệp vụ này vẫn cần tạo Preview để user sửa/xác nhận.
 
 ---
 
-# XI. PROCUREMENT READINESS
+# 7. P0 — CENTRAL CONFIRM GATE
 
-Một `SupplierPackage` chỉ được seed:
+Không để frontend tự suy đoán có được Confirm hay không chỉ dựa vào counters.
 
-```text
-IsActive = true
-```
-
-khi package có thể thực sự sử dụng cho nghiệp vụ procurement.
-
-Phải kiểm tra tối thiểu:
+Backend phải có một nguồn quyết định duy nhất, ví dụ:
 
 ```text
-Ingredient != null
-Supplier != null
-PackageQuantity > 0
-ContentUnitId != null
-Price hợp lệ
-Supplier scope hợp lệ
-Store scope hợp lệ nếu model yêu cầu
+CanConfirm
+ConfirmBlockers[]
 ```
 
-Ngoài ra:
+Tên implementation theo convention source hiện tại.
+
+Session query/Preview response nên cung cấp đủ dữ liệu để UI render chính xác.
+
+## 7.1. Confirm chỉ được enable khi
+
+Logic tổng quát:
 
 ```text
-ContentUnitId
+Session == READY_TO_PREVIEW
+
+AND PreviewVersion hiện tại hợp lệ
+
+AND có ít nhất 1 item thực sự sẽ được Create
+
+AND không có fatal SourceDocument
+
+AND không có ERROR
+
+AND không có REVIEW_REQUIRED chưa xử lý
+
+AND không còn unresolved mapping/conflict
+
+AND mọi WARNING yêu cầu acknowledgement đã được xác nhận
+
+AND Supplier warning token/reason còn hợp lệ
+
+AND dependency graph resolve được
+
+AND actor có AIImport.Confirm
+
+AND actor có *.Create của tất cả entity sẽ được tạo
+
+AND session chưa Cancelled/Expired/Failed/Importing/Completed
 ```
 
-phải tương thích với:
+Nếu tất cả item đều `SKIPPED`:
 
 ```text
-Ingredient.BaseUnitId
+CanConfirm = false
+Reason = Không có dữ liệu hợp lệ để nhập.
 ```
 
-Với demo seed được normalize trong task này, ưu tiên:
+## 7.2. SKIPPED không mặc định là blocker
 
-```text
-SupplierPackage.ContentUnitId
-==
-Ingredient.BaseUnitId
-```
+Một item được user/system bỏ qua sẽ không được Create.
 
-Không seed:
+Nếu session vẫn còn item importable khác thì `SKIPPED` tự nó không chặn Confirm.
 
-```text
-IsActive = true
-```
-
-cho package thiếu dữ liệu bắt buộc.
-
-Nếu cần giữ record demo chưa hoàn chỉnh thì:
-
-```text
-IsActive = false
-```
-
-hoặc xử lý theo convention hiện tại của project.
-
-Không thay đổi business rule/service để ép package đó trở thành hợp lệ.
-
----
-
-# XII. THỨ TỰ SEED
-
-Kiểm tra dependency và tổ chức SeedAll theo thứ tự hợp lý.
-
-Ưu tiên:
-
-```text
-1. Units
-2. Physical Unit Conversions
-3. Suppliers
-4. Ingredients
-5. Ingredient Unit Conversions
-6. Supplier Packages
-7. Các demo data phụ thuộc tiếp theo
-```
-
-Mục tiêu là khi seed SupplierPackage thì đã xác định được:
-
-```text
-Ingredient
-Ingredient.BaseUnitId
-Supplier
-ContentUnit
-```
-
-Không hard-code GUID một cách không cần thiết nếu project đã có helper để resolve seeded entity.
-
-Nếu project hiện tại dùng deterministic ID thì tiếp tục theo convention hiện tại.
-
----
-
-# XIII. IDEMPOTENCY / RERUN-SAFE
-
-Toàn bộ SeedAll phải có khả năng chạy lại.
-
-Không được tạo duplicate:
-
-```text
-Unit
-PhysicalUnitConversion
-IngredientUnitConversion
-SupplierPackage
-```
-
-Cần inspect cách project đang xác định uniqueness.
+Nhưng hệ thống phải chắc chắn skip đó hợp lệ và không phá dependency.
 
 Ví dụ:
 
-Unit:
+```text
+Category bị skip
+Drink phụ thuộc Category đó
+```
+
+thì Drink phải được revalidate.
+
+Không được Confirm Drink với dependency giả.
+
+## 7.3. File/source blocker
+
+Nếu vì backward compatibility hoặc session cũ vẫn tồn tại `ImportSourceDocument` ở trạng thái:
+
+```text
+FAILED
+REJECTED
+UNSUPPORTED
+FATAL_ERROR
+```
+
+hoặc tương đương:
+
+```text
+CanConfirm = false
+```
+
+Frontend khóa nút:
+
+```text
+Xác nhận nhập
+```
+
+và hiển thị nguyên nhân.
+
+Backend vẫn phải từ chối Confirm nếu client gọi API thủ công.
+
+Không dựa vào HTML `disabled`.
+
+## 7.4. Warning không phải blocker vĩnh viễn
+
+Ví dụ sheet ẩn:
+
+```text
+Trang tính "Ẩn" đang ẩn nên không được nhập.
+```
+
+Theo nghiệp vụ hiện tại, sheet/dòng/cột ẩn được bỏ qua.
+
+Do đó không được coi toàn workbook là file hỏng chỉ vì có sheet ẩn.
+
+Nếu workbook còn candidate hợp lệ:
+
+```text
+sheet ẩn → bỏ qua
+sheet hiển thị → tiếp tục xử lý
+```
+
+Confirm chỉ bị khóa nếu warning đó theo business rule hiện tại thực sự yêu cầu acknowledgement/blocker.
+
+Không biến tất cả warning thành ERROR.
+
+---
+
+# 8. P1 — CHUẨN HÓA MODAL SỬA DÒNG
+
+Kiểm tra lại modal cho cả năm entity.
+
+## 8.1. Server validation là source of truth
+
+ValidationResult tiếp tục dùng contract hiện tại:
 
 ```text
 Code
-Name
+Message
+Field?
+Severity
+SourceLocator?
+Metadata?
 ```
 
-Ingredient:
+Field error:
 
 ```text
+gắn đúng input
+input invalid
+message ngay gần field
+```
+
+Row error:
+
+```text
+hiển thị vùng tổng hợp đầu modal
+không gắn giả vào field
+```
+
+Warning:
+
+```text
+hiển thị riêng
+không dùng style ERROR
+```
+
+## 8.2. Không xóa lỗi server quá sớm
+
+Khi mở modal:
+
+```text
+server field errors phải còn hiển thị
+```
+
+Client validation lần đầu không được xóa chúng.
+
+Chỉ khi user thực sự thay đổi field tương ứng mới có thể clear visual state cũ.
+
+Sau PATCH:
+
+```text
+response server mới
+→ thay thế validation state cũ
+```
+
+## 8.3. Supplier
+
+Modal Supplier phải hỗ trợ:
+
+```text
+matched Supplier
+matched signals
+warning checkbox
+reason override
+warning token state
+```
+
+Nếu hard duplicate TaxCode:
+
+```text
+không hiện UI override giả
+```
+
+## 8.4. Modal layout
+
+Giữ:
+
+```text
+Header cố định
+Footer/action cố định
+Body cuộn
+```
+
+Trong body gồm:
+
+```text
+Field nghiệp vụ
+Field error
+Row issue
+Warning
+Dữ liệu nguồn bổ sung
+Evidence/Source trace
+```
+
+Không để button Save/Skip bị trôi khỏi màn hình.
+
+SweetAlert2 phải nằm trên native dialog nếu được gọi trong lúc modal đang mở.
+
+## 8.5. Save state
+
+Khi đang Save:
+
+```text
+disable Save
+disable Skip nếu gây race
+show loading
+không double click
+```
+
+Stale:
+
+```text
+409 PREVIEW_ĐÃ_THAY_ĐỔI
+→ dừng loading
+→ refresh Preview
+→ không giữ state giả phía client
+→ thông báo dữ liệu đã thay đổi
+```
+
+---
+
+# 9. P1 — ISSUE AGGREGATION VÀ COUNTER
+
+Kiểm tra lại cách tính:
+
+```text
+Tổng dòng
+Hợp lệ
+Cảnh báo
+Lỗi
+Cần xem lại
+Bỏ qua
+```
+
+Counter phải được tính từ Preview state mới nhất của backend.
+
+Không increment/decrement thủ công ở JavaScript theo action vừa bấm nếu server đã trả snapshot mới.
+
+Sau:
+
+```text
+Edit item
+Skip item
+Unskip nếu có
+Remap group
+Acknowledge warning
+Supplier override
+Manual review
+Reanalyze
+```
+
+phải refresh state/counters.
+
+Một Item chỉ thuộc đúng trạng thái cuối cùng tại một thời điểm.
+
+Không được vừa:
+
+```text
+SKIPPED
+```
+
+lại vừa được tính:
+
+```text
+VALID
+```
+
+trong summary.
+
+---
+
+# 10. P1 — SCOPED REVALIDATION
+
+Không revalidate toàn session cho mọi keystroke/PATCH nếu không cần.
+
+Item PATCH:
+
+```text
+edited item
+old business-key cohort
+new business-key cohort
+affected reference/dependencies
+Drink liên quan tới Category cũ/mới
+```
+
+Group PATCH:
+
+```text
+affected group
+old/new entity cohort nếu mapping đổi
+affected dependencies
+```
+
+Analyze/Reanalyze/Confirm:
+
+```text
+full-session validation
+```
+
+Confirm bắt buộc full revalidation DB-sensitive dù Preview đang xanh.
+
+---
+
+# 11. P1 — CONFIRM SERVER FLOW KHÔNG ĐƯỢC GIẢM BẢO VỆ
+
+Giữ flow:
+
+```text
+Authorize
+→ Session ownership
+→ Session state
+→ PreviewVersion
+→ CanConfirm / no blockers
+→ Begin idempotency
+→ Conditional claim IMPORTING
+→ Full DB-sensitive revalidation
+→ Reference/dependency plan
+→ Supplier token validation
+→ Serializable transaction
+→ Existing CRUD Create
+→ result/audit
+→ MarkSuccessAsync
+→ Commit
+```
+
+Category luôn chạy trước Drink trong execution plan.
+
+Không phụ thuộc:
+
+```text
+sheet order
+file order
+candidate order
+```
+
+Nếu:
+
+```text
+Category Create success
+Drink Create fail
+```
+
+thì:
+
+```text
+rollback Category
+rollback toàn session
+```
+
+Không partial success.
+
+---
+
+# 12. P2 — ERROR UX
+
+Các lỗi source/file phải xuất hiện gần file upload, không cần người dùng mở một session rỗng để đọc lỗi.
+
+Response fatal preflight phải trả dữ liệu đủ để UI hiển thị:
+
+```text
+FileName
 Code
-Name
+Message
+Severity/Fatal
+safe metadata nếu cần
 ```
 
-SupplierPackage có thể dựa vào tổ hợp:
+Không trả:
 
 ```text
-SupplierId
-IngredientId
-PackageUnitId
-ContentUnitId
+raw document
+OCR full text
+stack trace
+SqlException
+filesystem temp path
+API key
+secret
+warning token
 ```
 
-hoặc business key hiện tại của project.
+Các thông báo UI dùng tiếng Việt rõ ràng.
 
-Không tự đặt unique rule mới nếu Entity/Configuration hiện tại đã có convention.
-
-Khi seed lại:
-
-* Nếu record chưa tồn tại → insert.
-* Nếu record seed đã tồn tại nhưng dữ liệu demo cũ sai → update fields liên quan.
-* Không tạo thêm record duplicate.
+Technical error code vẫn giữ ổn định để frontend/test dùng.
 
 ---
 
-# XIV. XỬ LÝ DATABASE DEMO ĐÃ CÓ SEED CŨ
+# 13. CẬP NHẬT TÀI LIỆU NGHIỆP VỤ SAU KHI IMPLEMENT
 
-Database có thể đã tồn tại dữ liệu từ phiên bản seed trước.
+Sau khi code chạy đúng, cập nhật `AI_SMART_IMPORT_BUSINESS_RULES` để phản ánh behavior mới.
 
-Không được:
-
-```text
-Drop database
-Reset database
-Delete migration
-Rewrite migration
-```
-
-chỉ để sửa SeedData.
-
-SeedAll cần có khả năng normalize/backfill các record seed đã biết theo convention hiện tại.
-
-Ví dụ:
-
-Seed cũ:
+Đặc biệt phải sửa rule multi-file cũ:
 
 ```text
-Cup:
-BaseUnit = Carton
+File lỗi không bị silent-drop.
+Phiên vẫn hiển thị preview file hợp lệ nhưng Confirm bị khóa...
 ```
 
-Seed mới cần normalize thành:
+thành rule mới có hai tầng:
 
 ```text
-Cup:
-BaseUnit = pcs
+Fatal preflight/source error
+→ reject toàn Analyze request
+→ không tạo ImportSession.
+
+Business-level candidate error sau khi preflight pass
+→ tạo Preview
+→ cho user sửa/review
+→ Confirm gate quyết định.
 ```
 
-nếu xác định chắc chắn Cup được tồn và tiêu hao từng cái.
-
-Tương tự SupplierPackage cũ:
+Đồng thời bổ sung rõ:
 
 ```text
-Coffee
-ContentUnit = kg
-PackageQuantity = 1
+SYSTEM_DUPLICATE_SKIP phải recompute khi payload/business key thay đổi.
+
+USER_SKIP giữ nguyên cho tới khi user thay đổi action.
+
+Same-session Category là reference hợp lệ cho Drink nếu Category candidate importable.
+
+Supplier soft duplicate phải có reason + token theo AdminSupplierService.
+
+Confirm eligibility do backend quyết định tập trung.
 ```
 
-có thể được normalize thành:
-
-```text
-Coffee
-ContentUnit = g
-PackageQuantity = 1000
-```
-
-nếu đây là record demo do SeedAll quản lý và có thể nhận diện chắc chắn.
-
-Không update dữ liệu user-created hoặc production-like record ngoài phạm vi SeedData.
+Không để tài liệu và source tiếp tục lệch nhau.
 
 ---
 
-# XV. KHÔNG HARD-CODE CONVERSION PACKAGE TOÀN CỤC
+# 14. DEFINITION OF DONE
 
-Hãy search toàn bộ phần SeedAll liên quan để đảm bảo không còn logic kiểu:
-
-```csharp
-AddConversion("Carton", "pcs", 1000);
-AddConversion("Pack", "pcs", 100);
-AddConversion("Bottle", "ml", 750);
-```
-
-Nếu có và conversion đó chỉ phục vụ SupplierPackage demo:
-
-* Gỡ khỏi seed physical conversion.
-* Di chuyển quantity tương ứng về SupplierPackage.
-
-Ví dụ:
-
-Thay vì:
-
-```text
-Carton -> pcs = 1000
-```
-
-hãy seed:
-
-```text
-SupplierPackage:
-PackageUnit = Carton
-PackageQuantity = 1000
-ContentUnit = pcs
-```
-
----
-
-# XVI. GIỮ NGUYÊN BUSINESS LOGIC HIỆN TẠI
-
-Task này là **SeedData normalization**, không phải redesign toàn hệ thống.
-
-Vì vậy:
-
-Không sửa:
-
-```text
-InventoryService
-ProcurementService
-SupplierService
-RecipeService
-UnitConversionService
-Controller
-Repository
-DTO
-Request/Response contract
-Entity Configuration
-Migration
-```
-
-trừ khi chỉ cần đọc để hiểu contract hiện tại.
-
-Nếu phát hiện bug business logic bên ngoài SeedAll:
-
-Không tự sửa.
-
-Hãy báo:
-
-```text
-OUT_OF_SCOPE_BUSINESS_LOGIC_FOUND
-```
-
-và giải thích ngắn gọn.
+* [ ] `E06_all_entities_separate_sheets.xlsx`: Supplier soft duplicate hiển thị matched data, checkbox và ô lý do tạo mới.
+* [ ] Supplier soft duplicate không bypass server warning token.
+* [ ] Supplier TaxCode hard duplicate không thể override bằng reason.
+* [ ] Category trong cùng session resolve cho Drink bằng pending dependency.
+* [ ] Category có thể nằm ở sheet/file khác và source order không ảnh hưởng.
+* [ ] ProductType vẫn resolve độc lập từ DB active.
+* [ ] Cùng một ProductType/reference error không render lặp hai lần.
+* [ ] Candidate duplicate được sửa sang Code/Name unique không còn bị giữ `SKIPPED`.
+* [ ] Revalidation chạy cho business key cũ và mới.
+* [ ] `USER_SKIP` không bị tự mở lại.
+* [ ] `SYSTEM_DUPLICATE_SKIP` được tính lại sau PATCH.
+* [ ] PreviewVersion tăng đúng sau mutation.
+* [ ] Summary counters cập nhật từ response server.
+* [ ] `E42_fake_xlsx_contains_pdf.xlsx` trả lỗi ngay và không tạo ImportSession.
+* [ ] `E40_suspicious_compression_ratio.xlsx` trả lỗi ngay và không tạo ImportSession.
+* [ ] Multi-file có một fatal file → không tạo session cho cả batch.
+* [ ] Fatal Analyze failure không để lại session rỗng/history giả.
+* [ ] `E23_hidden_sheet.xlsx`: sheet ẩn được bỏ qua theo rule hiện tại; không tự coi cả workbook là file hỏng nếu còn dữ liệu hợp lệ.
+* [ ] Confirm button disabled khi server `CanConfirm=false`.
+* [ ] Gọi Confirm API trực tiếp vẫn bị backend chặn nếu có blocker.
+* [ ] ERROR chặn Confirm.
+* [ ] REVIEW_REQUIRED chưa xử lý chặn Confirm.
+* [ ] Supplier warning chưa có acknowledgement/reason/token hợp lệ chặn Confirm.
+* [ ] Unresolved mapping/reference/conflict chặn Confirm.
+* [ ] Chỉ còn SKIPPED và không có record để Create → Confirm disabled.
+* [ ] Có SKIPPED nhưng còn record hợp lệ khác → SKIPPED không tự chặn Confirm.
+* [ ] Modal giữ field/row errors chính xác.
+* [ ] Modal Supplier có reason UX đúng.
+* [ ] Không có duplicate ValidationIssue.
+* [ ] Category → Drink transaction vẫn atomic.
+* [ ] Idempotency, concurrency, RBAC, ownership và Serializable transaction không regression.
+* [ ] Không sửa migration cũ nếu không thực sự cần.
+* [ ] `AI_SMART_IMPORT_BUSINESS_RULES` được cập nhật theo behavior mới.
+* [ ] Test chỉ được sửa/thêm sau khi implementation hoàn tất.
 
 ---
 
-# XVII. LOGIC MẪU MONG MUỐN
+# 15. TEST — CHỈ LÀM SAU CÙNG
 
-SeedData sau khi chuẩn hóa phải thể hiện được tư duy sau:
+Sau khi hoàn thiện toàn bộ nghiệp vụ và code, mới viết/chỉnh test.
 
-```text
-Ingredient
-    │
-    ├── Coffee
-    │      BaseUnit = g
-    │
-    │      SupplierPackage
-    │          Package = Bag
-    │          ContentUnit = g
-    │          PackageQuantity = 1000
-    │
-    ├── Syrup
-    │      BaseUnit = ml
-    │
-    │      SupplierPackage
-    │          Package = Bottle
-    │          ContentUnit = ml
-    │          PackageQuantity = 750
-    │
-    └── Cup Lid
-           BaseUnit = pcs
-
-           SupplierPackage
-               Package = Bag
-               ContentUnit = pcs
-               PackageQuantity = 100
-```
-
-Trong khi PhysicalUnitConversion chỉ chứa những conversion thực sự mang ý nghĩa vật lý:
+Bắt buộc có regression test cho:
 
 ```text
-kg -> g = 1000
-L -> ml = 1000
+SUPPLIER
+
+soft duplicate
+→ WARNING
+→ reason required
+→ acknowledgement
+→ valid server warning token
+→ Confirm success
+
+payload changed
+→ old warning token invalid
+
+TaxCode duplicate
+→ ERROR
+→ reason không bypass
 ```
+
+```text
+SAME-SESSION CATEGORY
+
+Category CAT_TEA + Drink Category=CAT_TEA
+→ PENDING_IN_SESSION
+→ no Category reference error
+
+Category nằm sau Drink
+→ vẫn resolve
+
+Category nằm file khác
+→ vẫn resolve
+
+Category bị edit/skip/error
+→ dependent Drink revalidate
+
+ProductType missing
+→ đúng 1 ProductType error
+```
+
+```text
+DUPLICATE EDIT
+
+candidate A unique
+candidate B duplicate → SYSTEM SKIPPED
+
+edit B business key thành unique
+→ save
+→ duplicate issue removed
+→ B no longer SKIPPED
+→ PreviewVersion++
+→ Confirm creates A + B
+```
+
+```text
+USER SKIP
+
+user chủ động skip item
+→ PATCH/revalidation không tự unskip
+```
+
+```text
+PREFLIGHT
+
+E42_fake_xlsx_contains_pdf.xlsx
+→ typed invalid OpenXML error
+→ ImportSession count không tăng
+
+E40_suspicious_compression_ratio.xlsx
+→ unsafe compression error
+→ ImportSession count không tăng
+
+multi-file:
+A valid + B invalid
+→ Analyze fail
+→ không session
+→ không SourceDocument orphan
+```
+
+```text
+CONFIRM GATE
+
+ERROR → disabled
+REVIEW_REQUIRED → disabled
+unresolved mapping → disabled
+Supplier warning unresolved → disabled
+fatal source → disabled
+all SKIPPED → disabled
+VALID records + harmless ignored source → allowed
+direct Confirm API với blocker → rejected
+```
+
+```text
+E23_hidden_sheet.xlsx
+
+hidden sheet ignored
+visible valid row retained
+không tạo candidate từ hidden sheet
+không biến hidden-sheet warning thành fatal file error
+```
+
+Cuối cùng chạy build/test theo command convention hiện tại của repository.
+
+Không dùng production database cho integration test.
+
+Nếu SQL integration environment không khả dụng:
+
+```text
+NOT VERIFIED
+```
+
+không được báo PASS giả.
 
 ---
 
-# XVIII. YÊU CẦU INSPECT TRƯỚC KHI CHỈNH SỬA
+# 16. BÁO CÁO SAU KHI HOÀN THÀNH
 
-Trước khi code, hãy đọc toàn bộ phần liên quan đến:
+Sau khi hoàn tất, trả báo cáo gồm:
 
 ```text
-SeedAll
-Unit
-Ingredient
-Supplier
-SupplierPackage
-PhysicalUnitConversion
-IngredientUnitConversion
+A. Root cause từng bug
+B. Business rule đã thay đổi
+C. Backend component đã sửa
+D. Frontend/View/JS đã sửa
+E. API contract thay đổi hay giữ nguyên
+F. Database/Migration có thay đổi không
+G. AI_SMART_IMPORT_BUSINESS_RULES đã cập nhật gì
+H. File source đã sửa/tạo
+I. Known limitations còn lại
+J. Build result
+K. Test result
 ```
 
-để xác định:
+Không chỉ trả `"đã sửa xong"`.
 
-1. Unit nào hiện đang tồn tại.
-2. Ingredient nào đang dùng BaseUnit sai.
-3. SupplierPackage nào đang dùng ContentUnit khác BaseUnit.
-4. PackageQuantity hiện đang được hiểu như thế nào.
-5. PackageUnit hiện được lưu ở field nào.
-6. Có global conversion package nào đang tồn tại không.
-7. SeedAll đang dùng Add/Update/Upsert hay helper nào.
-8. Business key hiện tại để chống duplicate là gì.
-9. Những record nào chắc chắn là SeedData.
-10. Những record nào có semantics mơ hồ cần `NEEDS_REVIEW`.
-
-Không sửa code dựa trên suy đoán nếu có thể inspect implementation hiện tại để xác nhận.
+Phải giải thích rõ vì sao từng bug xảy ra và component nào chịu trách nhiệm.
 
 ---
 
-# XIX. KẾT QUẢ SEED MONG MUỐN
+# CÂU CHỐT
 
-Sau khi hoàn tất, dữ liệu demo tối thiểu phải đạt:
+Đợt refactor này ưu tiên **correctness, data integrity và UX state consistency**, không thêm AI capability mới.
 
-```text
-Cup Lid       -> pcs
-Cup           -> pcs
-Straw         -> pcs
-
-Coffee        -> g
-
-Milk          -> ml
-Syrup         -> ml
-```
-
-SupplierPackage tương ứng:
+Bốn vấn đề phải được xử lý triệt để là:
 
 ```text
-ContentUnitId = Ingredient.BaseUnitId
+Supplier soft duplicate
+→ có reason + server warning token đúng.
+
+Same-session Category
+→ Drink resolve đúng dependency, không báo lỗi giả.
+
+Duplicate candidate sau khi edit
+→ derived skip/duplicate state phải được tính lại.
+
+Invalid file
+→ fail ở preflight và không tạo/open ImportSession.
 ```
 
-và:
+Sau đó chuẩn hóa `CanConfirm`, modal, issue aggregation và counters để UI luôn phản ánh đúng state backend.
 
-```text
-PackageQuantity
-```
-
-đã được normalize về BaseUnit.
-
-Ví dụ:
-
-```text
-100 lids       -> 100 pcs
-1000 cups      -> 1000 pcs
-1 kg coffee    -> 1000 g
-750 ml syrup   -> 750 ml
-1 L milk       -> 1000 ml
-```
-
----
-
-# XX. TEST VÀ VERIFY — THỰC HIỆN CUỐI CÙNG
-
-Chỉ chạy test sau khi đã hoàn tất việc inspect và chỉnh sửa SeedAll.
-
-Không ưu tiên viết test trước việc sửa SeedData trong task này.
-
-Chạy focused tests theo convention/SkillTest hiện tại của project.
-
-Verify tối thiểu:
-
-### Test 1 — Count items
-
-```text
-Cup Lid.BaseUnit = pcs
-Cup.BaseUnit = pcs
-Straw.BaseUnit = pcs
-```
-
-### Test 2 — Weight ingredient
-
-```text
-Coffee.BaseUnit = g
-```
-
-### Test 3 — Volume ingredient
-
-```text
-Milk.BaseUnit = ml
-Syrup.BaseUnit = ml
-```
-
-### Test 4 — SupplierPackage ContentUnit
-
-Với các target demo seed:
-
-```text
-SupplierPackage.ContentUnitId
-==
-Ingredient.BaseUnitId
-```
-
-### Test 5 — Normalized PackageQuantity
-
-Kiểm tra các package representative:
-
-```text
-1 kg coffee -> 1000 g
-
-750 ml syrup -> 750 ml
-
-100 lids -> 100 pcs
-
-1000 cups -> 1000 pcs
-```
-
-### Test 6 — Không có package global conversion
-
-Không được tồn tại SeedData kiểu:
-
-```text
-carton -> pcs
-pack -> pcs
-box -> pcs
-bottle -> ml
-can -> ml
-```
-
-nếu đây chỉ là SupplierPackage relationship.
-
-### Test 7 — Physical conversions hợp lệ
-
-Các conversion chuẩn vẫn hoạt động:
-
-```text
-kg -> g
-L -> ml
-```
-
-### Test 8 — Procurement readiness
-
-Mỗi seeded SupplierPackage có:
-
-```text
-IsActive = true
-```
-
-phải có đủ:
-
-```text
-Ingredient
-Supplier
-ContentUnit
-PackageQuantity > 0
-Price hợp lệ
-Scope hợp lệ
-```
-
-### Test 9 — Idempotency
-
-Chạy SeedAll nhiều lần và xác minh không tạo duplicate:
-
-```text
-UnitConversion
-IngredientUnitConversion
-SupplierPackage
-```
-
-### Test 10 — Không đụng Migration/Configuration
-
-Kiểm tra Git diff cuối task.
-
-Không được có thay đổi trong:
-
-```text
-Migrations/
-*Migration.cs
-*ModelSnapshot.cs
-
-EntityConfigurations/
-IEntityTypeConfiguration<>
-OnModelCreating configuration
-```
-
-nếu task không yêu cầu.
-
----
-
-# XXI. BÁO CÁO CUỐI TASK
-
-Sau khi hoàn thành, báo ngắn gọn:
-
-```text
-SEED_BASE_UNITS_NORMALIZED
-
-COUNT_ITEMS_USE_PCS_BASE_UNIT
-
-WEIGHT_ITEMS_USE_GRAM_BASE_UNIT
-
-VOLUME_ITEMS_USE_MILLILITER_BASE_UNIT
-
-SUPPLIER_PACKAGE_CONTENT_DEFAULTS_TO_BASE_UNIT
-
-PACKAGE_QUANTITY_SEEDED_IN_BASE_UNIT
-
-NO_PACKAGE_TO_PHYSICAL_GLOBAL_CONVERSION_CREATED
-
-PHYSICAL_UNIT_CONVERSIONS_PRESERVED
-
-ACTIVE_SEEDED_PACKAGES_ARE_PROCUREMENT_READY
-
-SEED_IS_IDEMPOTENT
-
-NO_MIGRATION_CHANGED
-
-NO_ENTITY_CONFIGURATION_CHANGED
-
-NO_BUSINESS_LOGIC_OUTSIDE_SEED_SCOPE_CHANGED
-
-FOCUSED_TESTS_PASSED
-```
-
-Nếu có Ingredient chưa xác định được semantics:
-
-```text
-NEEDS_REVIEW
-```
-
-kèm danh sách cụ thể.
-
-Nếu phát hiện vấn đề ngoài SeedAll:
-
-```text
-OUT_OF_SCOPE_BUSINESS_LOGIC_FOUND
-```
-
-nhưng không tự sửa.
-
----
-
-# XXII. KẾT QUẢ CUỐI CÙNG CẦN ĐẠT
-
-Thiết kế SeedAll phải tuân theo nguyên tắc:
-
-```text
-BaseUnit
-=
-đơn vị cơ sở dùng để tồn kho / tiêu hao Ingredient
-```
-
-```text
-PhysicalUnitConversion
-=
-quy đổi đo lường vật lý có tính phổ quát
-```
-
-```text
-SupplierPackage
-=
-quy cách đóng gói thực tế khi mua Ingredient từ Supplier
-```
-
-Do đó:
-
-```text
-g
-ml
-pcs
-```
-
-là các BaseUnit ưu tiên theo semantics Ingredient.
-
-Trong khi:
-
-```text
-bag
-pack
-carton
-box
-bottle
-can
-```
-
-chủ yếu mô tả package/procurement và **không được biến thành global physical conversion chỉ để phục vụ SeedData**.
-
-Toàn bộ thay đổi phải tập trung vào **SeedAll và SeedData**, không thay đổi Migration hoặc Entity Configuration.
+Không fix bằng workaround JavaScript nếu root cause nằm trong validation/reference/duplicate/state engine.

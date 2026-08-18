@@ -54,6 +54,10 @@ public sealed class AIImportResolutionEngine
                 .Where(value => !string.IsNullOrWhiteSpace(value))
                 .Select(AIImportSchemaRegistry.Key)
                 .ToHashSet(StringComparer.Ordinal);
+            if (scope.PreviousReferenceTokens != null)
+                categoryTokens.UnionWith(scope.PreviousReferenceTokens
+                    .Where(value => !string.IsNullOrWhiteSpace(value))
+                    .Select(AIImportSchemaRegistry.Key));
 
             foreach (var drink in all.Where(entry => entry.Group.EntityType == AIImportEntityType.Drink))
             {

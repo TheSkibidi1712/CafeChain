@@ -52,11 +52,17 @@ public sealed record AIImportValidationScope(
     int? GroupId = null,
     int? ItemId = null,
     AIImportEntityType? PreviousEntityType = null,
-    string? PreviousBusinessKey = null)
+    string? PreviousBusinessKey = null,
+    IReadOnlyCollection<string>? PreviousReferenceTokens = null)
 {
     public static AIImportValidationScope FullSession() => new(AIImportValidationScopeKind.Full);
     public static AIImportValidationScope ForGroup(int groupId, AIImportEntityType previousEntityType) =>
         new(AIImportValidationScopeKind.Group, GroupId: groupId, PreviousEntityType: previousEntityType);
-    public static AIImportValidationScope ForItem(int itemId, AIImportEntityType entityType, string? previousBusinessKey) =>
-        new(AIImportValidationScopeKind.Item, ItemId: itemId, PreviousEntityType: entityType, PreviousBusinessKey: previousBusinessKey);
+    public static AIImportValidationScope ForItem(
+        int itemId,
+        AIImportEntityType entityType,
+        string? previousBusinessKey,
+        IReadOnlyCollection<string>? previousReferenceTokens = null) =>
+        new(AIImportValidationScopeKind.Item, ItemId: itemId, PreviousEntityType: entityType,
+            PreviousBusinessKey: previousBusinessKey, PreviousReferenceTokens: previousReferenceTokens);
 }

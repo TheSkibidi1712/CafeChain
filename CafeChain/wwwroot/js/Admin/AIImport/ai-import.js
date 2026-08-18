@@ -15,8 +15,21 @@
         confirmKey: null,
         editorOptions: null,
         confirmErrors: new Map(),
-        sessionGeneration: 0
+        sessionGeneration: 0,
+        mutationBusy: false,
+        requestBusyCount: 0
     };
+
+    const interactionFactory = window.AIImportInteractions;
+    if (!interactionFactory) throw new Error('AI Import interaction coordinator is not loaded.');
+
+    const alertCoordinator = window.Swal
+        ? interactionFactory.createAlertCoordinator({ swal: window.Swal, target: document.body })
+        : null;
+    const mutationGuard = interactionFactory.createOperationGuard(value => {
+        state.mutationBusy = value;
+        syncBusyUi();
+    });
 
     const entityLabels = {
         Category: 'Danh mục', Drink: 'Đồ uống', Size: 'Kích cỡ', Ingredient: 'Nguyên liệu', Supplier: 'Nhà cung cấp', Unknown: 'Chưa xác định'
@@ -145,33 +158,55 @@
         return payload.data;
     }
 
+    function syncBusyUi() {
+        const requestBusy = state.requestBusyCount > 0;
+        const interactionBusy = requestBusy || state.mutationBusy;
+        const session = state.session;
+        const ready = session?.status === 'READY_TO_PREVIEW';
+        const editing = !!state.editingItem;
+
+        byId('loadingPanel').hidden = !requestBusy;
+        app.setAttribute('aria-busy', interactionBusy ? 'true' : 'false');
+        byId('analyzeButton').disabled = interactionBusy || !(byId('excelFile').files?.length);
+        byId('confirmButton').disabled = interactionBusy || !ready || session?.canConfirm !== true;
+        byId('cancelButton').disabled = interactionBusy || !['READY_TO_PREVIEW', 'FAILED'].includes(session?.status);
+        byId('reanalyzeButton').disabled = interactionBusy || !session;
+        byId('saveMappingButton').disabled = interactionBusy || !ready;
+        byId('skipItemButton').disabled = interactionBusy || !editing || !ready;
+
+        if (interactionBusy) byId('saveItemButton').disabled = true;
+        else if (editing) validateEditor(false);
+        else byId('saveItemButton').disabled = true;
+
+        app.querySelectorAll('.remove-source, .source-mapping-choice, .history-row').forEach(element => {
+            element.disabled = interactionBusy;
+        });
+    }
+
     function busy(value) {
-        byId('loadingPanel').hidden = !value;
-        ['analyzeButton', 'confirmButton', 'cancelButton', 'reanalyzeButton'].forEach(id => { const element = byId(id); if (element) element.disabled = value; });
+        state.requestBusyCount = Math.max(0, state.requestBusyCount + (value ? 1 : -1));
+        syncBusyUi();
+    }
+
+    function runMutation(key, operation) {
+        return mutationGuard.run(key, operation);
     }
 
     async function fireAlert(options) {
-        if (!window.Swal) {
+        if (!alertCoordinator) {
             console.error('SweetAlert2 chưa được tải.', options.text || options.title || '');
             return { isConfirmed: false };
         }
-        const editDialog = byId('editDialog');
-        const activeDialog = editDialog?.open ? editDialog : null;
-        activeDialog?.classList.add('has-swal');
-        try {
-            return await window.Swal.fire({
-                target: activeDialog || document.body,
-                confirmButtonColor: '#70482f',
-                cancelButtonColor: '#667085',
-                confirmButtonText: 'Đóng',
-                heightAuto: false,
-                returnFocus: false,
-                allowOutsideClick: false,
-                ...options
-            });
-        } finally {
-            activeDialog?.classList.remove('has-swal');
-        }
+        const alertKey = `${options.icon || 'info'}:${options.title || ''}:${options.text || ''}`;
+        return alertCoordinator.show(alertKey, {
+            confirmButtonColor: '#70482f',
+            cancelButtonColor: '#667085',
+            confirmButtonText: 'Đóng',
+            heightAuto: false,
+            returnFocus: false,
+            allowOutsideClick: false,
+            ...options
+        });
     }
 
     function showAlert(text, icon = 'info', title = '') {
@@ -194,6 +229,15 @@
     function errorMessage(error) {
         return error.message || 'Không thể thực hiện yêu cầu.';
     }
+    function uniqueIssues(issues) {
+        const values = new Map();
+        for (const issue of issues || []) {
+            const key = issue.issueKey || [issue.code, issue.field || '', issue.metadata?.referenceTarget || '',
+                issue.metadata?.matchedSupplierId || '', locatorLabel(issue.sourceLocator || issue.position, '')].join('|');
+            values.set(key, issue);
+        }
+        return [...values.values()];
+    }
     function escapeHtml(value) { const div = document.createElement('div'); div.textContent = value ?? ''; return div.innerHTML; }
     function displayValue(value) { return value === null || value === undefined || value === '' ? '—' : String(value); }
     function locatorLabel(locator, fallback = '') {
@@ -212,7 +256,7 @@
     }
     function closeAllDialogs() {
         closeEditDialog();
-        window.Swal?.close();
+        alertCoordinator?.close();
         app.querySelectorAll('dialog[open]').forEach(dialog => dialog.close());
     }
     function resetSessionFilters() {
@@ -226,6 +270,8 @@
         if (fileInput) fileInput.value = '';
         byId('selectedFileName').textContent = '';
         byId('analyzeButton').disabled = true;
+        byId('uploadErrors').hidden = true;
+        byId('uploadErrors').innerHTML = '';
     }
     function closeSessionView() {
         state.sessionGeneration++;
@@ -282,7 +328,7 @@
         byId('sessionMeta').textContent = `Bản xem trước v${session.previewVersion} · ${modes || 'Đang xác định nguồn'} · hết hạn ${new Date(session.expiresAtUtc).toLocaleString('vi-VN')}`;
         byId('sessionStatus').textContent = statusLabels[session.status] || 'Chưa xác định';
         const ready = session.status === 'READY_TO_PREVIEW';
-        byId('confirmButton').disabled = !ready || session.confirmBlockedBySources;
+        byId('confirmButton').disabled = !ready || session.canConfirm !== true;
         byId('cancelButton').disabled = !['READY_TO_PREVIEW', 'FAILED'].includes(session.status);
         const summary = session.summary;
         const metrics = [['Tổng dòng', summary.totalRows], ['Hợp lệ', summary.valid], ['Cảnh báo', summary.warnings], ['Lỗi', summary.errors], ['Cần xem lại', summary.reviewRequired], ['Bỏ qua', summary.skipped]];
@@ -297,6 +343,12 @@
         const warningBox = byId('analysisWarnings');
         warningBox.hidden = analysisWarnings.length === 0;
         warningBox.innerHTML = analysisWarnings.map(x => `<div>${escapeHtml(x.message)}</div>`).join('');
+        const blockers = uniqueIssues(session.confirmBlockers || []);
+        const blockerBox = byId('confirmBlockers');
+        blockerBox.hidden = blockers.length === 0;
+        blockerBox.innerHTML = blockers.length
+            ? `<strong>Chưa thể xác nhận nhập</strong>${blockers.map(issue => `<div>${escapeHtml(issue.message)}</div>`).join('')}`
+            : '';
         const entityFilter = byId('entityFilter').value;
         const visibleGroups = session.groups.filter(group =>
             (!sourceFilter.value || String(group.sourceDocumentId) === sourceFilter.value)
@@ -310,6 +362,7 @@
             byId('activeGroupMeta').textContent = '';
             byId('mappingFields').innerHTML = '';
             byId('previewRows').innerHTML = '<tr><td colspan="5" class="empty-preview">Tệp nguồn này chưa có vùng dữ liệu hợp lệ.</td></tr>';
+            syncBusyUi();
             return;
         }
         byId('activeGroupTitle').textContent = `${group.sourceLabel || group.sheetName} / ${locatorLabel(group.sourceLocator, group.regionAddress)}`;
@@ -320,6 +373,7 @@
         byId('pageInfo').textContent = `${session.page.page}/${session.page.totalPages} · ${session.page.totalItems} dòng`;
         byId('previousPage').disabled = session.page.page <= 1;
         byId('nextPage').disabled = session.page.page >= session.page.totalPages;
+        syncBusyUi();
     }
 
     function renderMapping(group) {
@@ -403,10 +457,11 @@
     function renderRows(group) {
         const rows = group.items || [];
         byId('previewRows').innerHTML = rows.length ? rows.map(item => {
-            const confirmIssues = state.confirmErrors.get(item.itemId) || [];
+            const confirmIssues = uniqueIssues(state.confirmErrors.get(item.itemId) || []);
             const canonicalIssues = item.issues?.length ? item.issues : [...(item.errors || []), ...(item.warnings || [])];
-            const errors = [...canonicalIssues.filter(issue => issue.severity !== 'WARNING'), ...confirmIssues];
-            const warnings = canonicalIssues.filter(issue => issue.severity === 'WARNING');
+            const mergedIssues = uniqueIssues([...canonicalIssues, ...confirmIssues]);
+            const errors = mergedIssues.filter(issue => issue.severity !== 'WARNING');
+            const warnings = mergedIssues.filter(issue => issue.severity === 'WARNING');
             const issueMarkup = (issue, warning) => {
                 const severity = issue.severity || (warning ? 'WARNING' : 'ERROR');
                 const label = fieldDefinition(group.entityType, issue.field)
@@ -484,73 +539,93 @@
     async function analyze() {
         const files = Array.from(byId('excelFile').files || []);
         if (!files.length) return;
-        const form = new FormData();
-        files.forEach(file => form.append('Files', file));
-        if (byId('entityHint').value) form.append('EntityHint', byId('entityHint').value);
-        form.append('UseOcr', byId('useOcr').checked ? 'true' : 'false');
-        busy(true);
-        try {
-            state.session = await api('/api/ai-import/analyze', { method: 'POST', body: form });
-            state.sessionGeneration++;
-            state.activeGroupId = state.session.groups[0]?.groupId;
-            state.page = 1;
-            clearMutationState();
-            render();
-            await showAlert('Đã phân tích xong. Hãy kiểm tra bản xem trước trước khi xác nhận nhập.', 'success', 'Phân tích thành công');
-        } catch (error) {
-            await showAlert(errorMessage(error), 'error');
-        } finally { busy(false); }
+        return runMutation('analyze', async () => {
+            const form = new FormData();
+            files.forEach(file => form.append('Files', file));
+            if (byId('entityHint').value) form.append('EntityHint', byId('entityHint').value);
+            form.append('UseOcr', byId('useOcr').checked ? 'true' : 'false');
+            byId('uploadErrors').hidden = true;
+            byId('uploadErrors').innerHTML = '';
+            busy(true);
+            try {
+                state.session = await api('/api/ai-import/analyze', { method: 'POST', body: form });
+                state.sessionGeneration++;
+                state.activeGroupId = state.session.groups[0]?.groupId;
+                state.page = 1;
+                clearMutationState();
+                render();
+                await showAlert('Đã phân tích xong. Hãy kiểm tra bản xem trước trước khi xác nhận nhập.', 'success', 'Phân tích thành công');
+            } catch (error) {
+                const details = uniqueIssues(error.details || []);
+                const uploadErrors = byId('uploadErrors');
+                uploadErrors.hidden = false;
+                uploadErrors.innerHTML = details.length
+                    ? details.map(detail => `<div><strong>${escapeHtml(detail.metadata?.fileName || 'Tệp đã chọn')}</strong><code>${escapeHtml(detail.code || error.code || '')}</code><span>${escapeHtml(detail.message || errorMessage(error))}</span></div>`).join('')
+                    : `<div><strong>Tệp đã chọn</strong><code>${escapeHtml(error.code || '')}</code><span>${escapeHtml(errorMessage(error))}</span></div>`;
+                uploadErrors.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            } finally { busy(false); }
+        });
     }
 
     async function saveMapping() {
         const group = state.session.groups.find(x => x.groupId === state.activeGroupId);
         if (!group) return;
-        const fields = entityFields[byId('groupEntity').value] || [];
-        const mapping = Object.fromEntries(fields.map(field => [field, null]));
-        document.querySelectorAll('[data-source-column]').forEach(select => {
-            if (select.value) mapping[select.value] = select.dataset.sourceColumn;
+        return runMutation('save-mapping', async () => {
+            const fields = entityFields[byId('groupEntity').value] || [];
+            const mapping = Object.fromEntries(fields.map(field => [field, null]));
+            const ignoredSourceColumns = [];
+            document.querySelectorAll('[data-source-column]').forEach(select => {
+                if (select.value) mapping[select.value] = select.dataset.sourceColumn;
+                else ignoredSourceColumns.push(select.dataset.sourceColumn);
+            });
+            const guard = sessionGuard();
+            busy(true);
+            try {
+                const session = await api(`/api/ai-import/${guard.id}/groups/${group.groupId}`, { method: 'PATCH', body: JSON.stringify({ expectedPreviewVersion: state.session.previewVersion, entityType: byId('groupEntity').value, mapping, ignoredSourceColumns }) });
+                if (!guardIsCurrent(guard)) return;
+                state.session = session;
+                clearMutationState();
+                render();
+                await showAlert('Đã lưu ánh xạ cột và kiểm tra lại toàn bộ vùng.', 'success');
+            } catch (error) { await handleMutationError(error); }
+            finally { busy(false); }
         });
-        const guard = sessionGuard();
-        busy(true);
-        try {
-            const session = await api(`/api/ai-import/${guard.id}/groups/${group.groupId}`, { method: 'PATCH', body: JSON.stringify({ expectedPreviewVersion: state.session.previewVersion, entityType: byId('groupEntity').value, mapping }) });
-            if (!guardIsCurrent(guard)) return;
-            state.session = session;
-            clearMutationState();
-            render();
-            await showAlert('Đã lưu ánh xạ cột và kiểm tra lại toàn bộ vùng.', 'success');
-        } catch (error) { await handleMutationError(error); }
-        finally { busy(false); }
     }
 
     async function remapFromEditor(targetField, sourceKey) {
         const group = state.session?.groups.find(x => x.groupId === state.activeGroupId);
         const itemId = state.editingItem?.itemId;
         if (!group || !targetField || !sourceKey) return;
-        const guard = sessionGuard();
-        const mapping = Object.fromEntries(Object.entries(group.mapping || {})
-            .map(([field, mappedSource]) => [field, mappedSource === sourceKey && field !== targetField ? null : mappedSource]));
-        mapping[targetField] = sourceKey;
-        busy(true);
-        try {
-            const session = await api(`/api/ai-import/${guard.id}/groups/${group.groupId}`, {
-                method: 'PATCH',
-                body: JSON.stringify({
-                    expectedPreviewVersion: state.session.previewVersion,
-                    entityType: group.entityType,
-                    mapping
-                })
-            });
-            if (!guardIsCurrent(guard)) return;
-            state.session = session;
-            clearMutationState();
-            render();
-            const updatedGroup = state.session.groups.find(x => x.groupId === group.groupId);
-            const updatedItem = updatedGroup?.items.find(x => x.itemId === itemId);
-            if (updatedItem) renderEditor(updatedGroup, updatedItem, await ensureEditorOptions());
-            await showAlert(`Đã chọn ${sourceKey} làm nguồn cho ${fieldLabel(group.entityType, targetField)} trên toàn bộ vùng dữ liệu.`, 'success');
-        } catch (error) { await handleMutationError(error); }
-        finally { busy(false); }
+        return runMutation(`remap:${group.groupId}`, async () => {
+            const guard = sessionGuard();
+            const mapping = Object.fromEntries(Object.entries(group.mapping || {})
+                .map(([field, mappedSource]) => [field, mappedSource === sourceKey && field !== targetField ? null : mappedSource]));
+            mapping[targetField] = sourceKey;
+            const ignoredSourceColumns = (group.sourceColumns || [])
+                .filter(column => column.classification === 'IGNORED' && column.key !== sourceKey)
+                .map(column => column.key);
+            busy(true);
+            try {
+                const session = await api(`/api/ai-import/${guard.id}/groups/${group.groupId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        expectedPreviewVersion: state.session.previewVersion,
+                        entityType: group.entityType,
+                        mapping,
+                        ignoredSourceColumns
+                    })
+                });
+                if (!guardIsCurrent(guard)) return;
+                state.session = session;
+                clearMutationState();
+                render();
+                const updatedGroup = state.session.groups.find(x => x.groupId === group.groupId);
+                const updatedItem = updatedGroup?.items.find(x => x.itemId === itemId);
+                if (updatedItem) renderEditor(updatedGroup, updatedItem, await ensureEditorOptions());
+                await showAlert(`Đã chọn ${sourceKey} làm nguồn cho ${fieldLabel(group.entityType, targetField)} trên toàn bộ vùng dữ liệu.`, 'success');
+            } catch (error) { await handleMutationError(error); }
+            finally { busy(false); }
+        });
     }
 
     async function ensureEditorOptions() {
@@ -683,7 +758,7 @@
         state.editingItem = item;
         byId('editEntityName').textContent = entityLabels[group.entityType] || 'Chưa xác định';
         byId('editRowNumber').textContent = item.sourceRow;
-        const serverErrors = [...((item.issues || item.errors || []).filter(issue => issue.severity !== 'WARNING')), ...(state.confirmErrors.get(item.itemId) || [])];
+        const serverErrors = uniqueIssues([...((item.issues || item.errors || []).filter(issue => issue.severity !== 'WARNING')), ...(state.confirmErrors.get(item.itemId) || [])]);
         byId('editFields').innerHTML = schema.sections.map(section => `<fieldset class="editor-section"><legend>${escapeHtml(section.title)}</legend>${section.note ? `<p>${escapeHtml(section.note)}</p>` : ''}<div class="editor-grid">${section.fields.map(field => editorFieldHtml(group.entityType, field, item.normalizedData?.[field.name], options, serverErrors)).join('')}</div></fieldset>`).join('');
         applyServerFieldErrors(group.entityType, serverErrors);
         const mappedHeaders = new Set(Object.values(group.mapping || {}).filter(Boolean));
@@ -707,9 +782,12 @@
         });
         byId('editSourceData').innerHTML = [...evidenceRows, ...supplementalRows].join('') || '<p>Không có dữ liệu ngoài ánh xạ.</p>';
         const hasWarnings = (item.warnings || []).length > 0;
-        const needsOverride = group.entityType === 'Supplier' && (item.warnings || []).some(x => x.code === 'NHÀ_CUNG_CẤP_GẦN_TRÙNG');
+        const supplierReview = group.entityType === 'Supplier' ? item.supplierDuplicateReview : null;
+        const needsOverride = supplierReview?.requiresReason === true;
         byId('warningSection').hidden = !hasWarnings;
-        byId('editWarningMessages').innerHTML = (item.warnings || []).map(issue => `<div class="edit-warning-message"><strong>${escapeHtml(issue.field ? fieldLabel(group.entityType, issue.field) : 'Cảnh báo')}</strong><span>${escapeHtml(issue.message)}</span></div>`).join('');
+        const regularWarnings = uniqueIssues(item.warnings || []).filter(issue => issue.code !== 'NHÀ_CUNG_CẤP_TƯƠNG_TỰ');
+        const supplierMatches = (supplierReview?.matches || []).map(match => `<div class="edit-warning-message supplier-match"><strong>${escapeHtml(`${match.code || 'Nhà cung cấp'} · ${match.name || ''}`)}</strong><span>Các tín hiệu trùng: ${escapeHtml((match.matchedSignals || []).join(', '))}</span></div>`).join('');
+        byId('editWarningMessages').innerHTML = `${regularWarnings.map(issue => `<div class="edit-warning-message"><strong>${escapeHtml(issue.field ? fieldLabel(group.entityType, issue.field) : 'Cảnh báo')}</strong><span>${escapeHtml(issue.message)}</span></div>`).join('')}${supplierMatches}`;
         byId('acknowledgeWarnings').checked = item.warningsAcknowledged;
         const reviewableIssues = (item.issues || []).filter(issue => issue.metadata?.resolution === 'MANUAL_REVIEW');
         byId('manualReviewRow').hidden = reviewableIssues.length === 0;
@@ -728,6 +806,7 @@
             validateEditor(false);
         }));
         validateEditor(false);
+        syncBusyUi();
         requestAnimationFrame(resetEditorViewport);
     }
 
@@ -804,27 +883,29 @@
         const item = state.editingItem;
         if (!item) return;
         if (action === 'CREATE' && !validateEditor(true)) return;
-        const values = {};
-        document.querySelectorAll('[data-edit-field]').forEach(input => values[input.dataset.editField] = input.value);
-        const guard = sessionGuard();
-        busy(true);
-        try {
-            const session = await api(`/api/ai-import/${guard.id}/items/${item.itemId}`, { method: 'PATCH', body: JSON.stringify({ expectedPreviewVersion: state.session.previewVersion, action, values, warningsAcknowledged: byId('acknowledgeWarnings').checked, manualReviewConfirmed: action === 'CREATE' && byId('manualReviewConfirmed').checked, duplicateOverrideReason: byId('overrideReason').value }) });
-            if (!guardIsCurrent(guard)) return;
-            state.session = session;
-            clearMutationState();
-            const group = state.session.groups.find(x => x.groupId === state.activeGroupId);
-            const updatedItem = group?.items.find(x => x.itemId === item.itemId);
-            render();
-            if (action === 'CREATE' && updatedItem && ['ERROR', 'REVIEW_REQUIRED'].includes(updatedItem.status)) {
-                const options = await ensureEditorOptions();
-                renderEditor(group, updatedItem, options);
-            } else {
-                closeEditDialog();
-                await showAlert(action === 'SKIP' ? 'Đã bỏ qua dòng.' : 'Đã lưu và kiểm tra lại dòng.', 'success');
-            }
-        } catch (error) { await handleMutationError(error); }
-        finally { busy(false); }
+        return runMutation(`item:${item.itemId}`, async () => {
+            const values = {};
+            document.querySelectorAll('[data-edit-field]').forEach(input => values[input.dataset.editField] = input.value);
+            const guard = sessionGuard();
+            busy(true);
+            try {
+                const session = await api(`/api/ai-import/${guard.id}/items/${item.itemId}`, { method: 'PATCH', body: JSON.stringify({ expectedPreviewVersion: state.session.previewVersion, action, values, warningsAcknowledged: byId('acknowledgeWarnings').checked, manualReviewConfirmed: action === 'CREATE' && byId('manualReviewConfirmed').checked, duplicateOverrideReason: byId('overrideReason').value }) });
+                if (!guardIsCurrent(guard)) return;
+                state.session = session;
+                clearMutationState();
+                const group = state.session.groups.find(x => x.groupId === state.activeGroupId);
+                const updatedItem = group?.items.find(x => x.itemId === item.itemId);
+                render();
+                if (action === 'CREATE' && updatedItem && ['ERROR', 'REVIEW_REQUIRED'].includes(updatedItem.status)) {
+                    const options = await ensureEditorOptions();
+                    renderEditor(group, updatedItem, options);
+                } else {
+                    closeEditDialog();
+                    await showAlert(action === 'SKIP' ? 'Đã bỏ qua dòng.' : 'Đã lưu và kiểm tra lại dòng.', 'success');
+                }
+            } catch (error) { await handleMutationError(error); }
+            finally { busy(false); }
+        });
     }
 
     function captureConfirmErrors(details) {
@@ -855,30 +936,36 @@
     }
 
     async function confirmSession() {
-        if (!await confirmAction('Xác nhận nhập', 'Hệ thống sẽ tạo toàn bộ dữ liệu trong một giao dịch. Bạn muốn tiếp tục?', 'Xác nhận nhập')) return;
-        state.confirmKey ||= (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
-        busy(true);
-        try {
-            const result = await api(`/api/ai-import/${state.session.sessionId}/confirm`, { method: 'POST', headers: { 'Idempotency-Key': state.confirmKey }, body: JSON.stringify({ expectedPreviewVersion: state.session.previewVersion }) });
-            await showAlert(`Hoàn tất: đã nhập ${result.imported}, bỏ qua ${result.skipped}.`, 'success', 'Nhập dữ liệu thành công');
-            clearMutationState();
-            closeImportWorkspace(result);
-        } catch (error) {
-            captureConfirmErrors(error.details);
-            await showAlert(errorMessage(error), 'error');
-            if (['PREVIEW_ĐÃ_THAY_ĐỔI', 'PREVIEW_CHƯA_SẴN_SÀNG'].includes(error.code) || error.details?.length) await focusConfirmError(error.details);
-        } finally { busy(false); }
+        return runMutation('confirm-session', async () => {
+            if (!await confirmAction('Xác nhận nhập', 'Hệ thống sẽ tạo toàn bộ dữ liệu trong một giao dịch. Bạn muốn tiếp tục?', 'Xác nhận nhập')) return;
+            state.confirmKey ||= (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
+            busy(true);
+            try {
+                const result = await api(`/api/ai-import/${state.session.sessionId}/confirm`, { method: 'POST', headers: { 'Idempotency-Key': state.confirmKey }, body: JSON.stringify({ expectedPreviewVersion: state.session.previewVersion }) });
+                await showAlert(`Hoàn tất: đã nhập ${result.imported}, bỏ qua ${result.skipped}.`, 'success', 'Nhập dữ liệu thành công');
+                clearMutationState();
+                closeImportWorkspace(result);
+            } catch (error) {
+                captureConfirmErrors(error.details);
+                await showAlert(errorMessage(error), 'error');
+                if (['PREVIEW_ĐÃ_THAY_ĐỔI', 'PREVIEW_CHƯA_SẴN_SÀNG'].includes(error.code) || error.details?.length) await focusConfirmError(error.details);
+            } finally { busy(false); }
+        });
     }
 
     async function handleMutationError(error) {
         await showAlert(errorMessage(error), 'error');
-        if (error.code === 'PREVIEW_ĐÃ_THAY_ĐỔI') await loadSession(state.session.sessionId);
+        if (error.code === 'PREVIEW_ĐÃ_THAY_ĐỔI') {
+            closeEditDialog();
+            await loadSession(state.session.sessionId);
+        }
     }
 
     async function history() {
         try {
             const data = await api('/api/ai-import/history?page=1&pageSize=30');
             byId('historyRows').innerHTML = data.items.map(x => `<button type="button" class="history-row group-tab" data-history-id="${x.sessionId}"><strong>#${x.sessionId} · [${escapeHtml(formatLabels[x.sourceFormat] || 'Tệp dữ liệu')}] ${escapeHtml(x.fileName)}</strong><span class="row-status">${escapeHtml(statusLabels[x.status] || 'Chưa xác định')}</span><small>${new Date(x.createdAtUtc).toLocaleString('vi-VN')} · ${x.importedRows}/${x.totalRows} đã nhập</small></button>`).join('') || '<p>Chưa có phiên.</p>';
+            syncBusyUi();
             byId('historyPanel').hidden = false;
         } catch (error) { await showAlert(error.message, 'error'); }
     }
@@ -887,8 +974,10 @@
     byId('chooseFileButton').addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', () => {
         const files = Array.from(fileInput.files || []);
+        byId('uploadErrors').hidden = true;
+        byId('uploadErrors').innerHTML = '';
         byId('selectedFileName').innerHTML = files.map(file => `<span>${escapeHtml(file.name)} · ${(file.size / 1024 / 1024).toFixed(2)} MiB</span>`).join('');
-        byId('analyzeButton').disabled = files.length === 0;
+        syncBusyUi();
     });
     const drop = byId('dropZone');
     ['dragenter', 'dragover'].forEach(name => drop.addEventListener(name, event => { event.preventDefault(); drop.classList.add('dragging'); }));
@@ -898,8 +987,17 @@
     byId('saveMappingButton').addEventListener('click', saveMapping);
     byId('confirmButton').addEventListener('click', confirmSession);
     byId('closeSessionButton').addEventListener('click', closeSessionView);
-    byId('reanalyzeButton').addEventListener('click', async () => { busy(true); try { state.session = await api(`/api/ai-import/${state.session.sessionId}/reanalyze`, { method: 'POST', body: JSON.stringify({ expectedPreviewVersion: state.session.previewVersion }) }); clearMutationState(); render(); await showAlert('Đã phân tích lại và cập nhật bản xem trước.', 'success', 'Phân tích thành công'); } catch (error) { await handleMutationError(error); } finally { busy(false); } });
-    byId('cancelButton').addEventListener('click', async () => {
+    byId('reanalyzeButton').addEventListener('click', () => runMutation('reanalyze-session', async () => {
+        busy(true);
+        try {
+            state.session = await api(`/api/ai-import/${state.session.sessionId}/reanalyze`, { method: 'POST', body: JSON.stringify({ expectedPreviewVersion: state.session.previewVersion }) });
+            clearMutationState();
+            render();
+            await showAlert('Đã phân tích lại và cập nhật bản xem trước.', 'success', 'Phân tích thành công');
+        } catch (error) { await handleMutationError(error); }
+        finally { busy(false); }
+    }));
+    byId('cancelButton').addEventListener('click', () => runMutation('cancel-session', async () => {
         if (!await confirmAction('Hủy phiên', 'Dữ liệu bản xem trước của phiên này sẽ không thể tiếp tục nhập.', 'Hủy phiên')) return;
         busy(true);
         try {
@@ -912,7 +1010,7 @@
             await showAlert('Đã hủy phiên nhập dữ liệu.', 'success');
         } catch (error) { await handleMutationError(error); }
         finally { busy(false); }
-    });
+    }));
     byId('groupEntity').addEventListener('change', () => { const group = state.session.groups.find(x => x.groupId === state.activeGroupId); group.entityType = byId('groupEntity').value; renderMapping(group); });
     byId('mappingFields').addEventListener('change', event => {
         if (!event.target.matches('[data-source-column]')) return;
@@ -923,18 +1021,20 @@
     byId('sourceDocuments').addEventListener('click', async event => {
         const button = event.target.closest('.remove-source');
         if (!button || !state.session) return;
-        if (!await confirmAction('Loại tài liệu nguồn', 'Toàn bộ vùng và bản ghi dự kiến thuộc tài liệu này sẽ bị loại khỏi phiên.', 'Loại nguồn')) return;
-        const guard = sessionGuard();
-        busy(true);
-        try {
-            const session = await api(`/api/ai-import/${guard.id}/sources/${button.dataset.sourceId}?expectedPreviewVersion=${state.session.previewVersion}`, { method: 'DELETE' });
-            if (!guardIsCurrent(guard)) return;
-            state.session = session;
-            state.activeGroupId = session.groups[0]?.groupId;
-            clearMutationState();
-            render();
-        } catch (error) { await handleMutationError(error); }
-        finally { busy(false); }
+        return runMutation(`remove-source:${button.dataset.sourceId}`, async () => {
+            if (!await confirmAction('Loại tài liệu nguồn', 'Toàn bộ vùng và bản ghi dự kiến thuộc tài liệu này sẽ bị loại khỏi phiên.', 'Loại nguồn')) return;
+            const guard = sessionGuard();
+            busy(true);
+            try {
+                const session = await api(`/api/ai-import/${guard.id}/sources/${button.dataset.sourceId}?expectedPreviewVersion=${state.session.previewVersion}`, { method: 'DELETE' });
+                if (!guardIsCurrent(guard)) return;
+                state.session = session;
+                state.activeGroupId = session.groups[0]?.groupId;
+                clearMutationState();
+                render();
+            } catch (error) { await handleMutationError(error); }
+            finally { busy(false); }
+        });
     });
     byId('saveItemButton').addEventListener('click', () => saveItem('CREATE'));
     byId('skipItemButton').addEventListener('click', () => saveItem('SKIP'));

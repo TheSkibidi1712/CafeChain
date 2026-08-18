@@ -32,6 +32,9 @@ namespace CafeChain.Application.Interfaces.Admin.Suppliers
         Task<AdminSupplierDuplicateWarningDTO?> PrepareDuplicateWarningAsync(
             AdminSupplierCreateDTO dto,
             int actorStaffId = 0);
+        Task<bool> IsDuplicateWarningValidAsync(
+            AdminSupplierCreateDTO dto,
+            int actorStaffId = 0);
         Task UpdateAsync(AdminSupplierUpdateDTO dto, int actorStaffId = 0);
         Task ToggleStatusAsync(int id);
 
