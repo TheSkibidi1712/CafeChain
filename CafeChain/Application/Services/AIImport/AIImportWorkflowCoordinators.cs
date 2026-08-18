@@ -1,3 +1,5 @@
+using System.Text.Json;
+using CafeChain.Application.DTOs.AIImport;
 using CafeChain.Models.AIImport;
 
 namespace CafeChain.Application.Services.AIImport;
@@ -42,8 +44,12 @@ public sealed class AIImportPreviewMutationCoordinator
     public AIImportValidationScope GroupScope(int groupId, AIImportEntityType previousEntityType) =>
         AIImportValidationScope.ForGroup(groupId, previousEntityType);
 
-    public AIImportValidationScope ItemScope(int itemId, AIImportEntityType entityType, string previousBusinessKey) =>
-        AIImportValidationScope.ForItem(itemId, entityType, previousBusinessKey);
+    public AIImportValidationScope ItemScope(
+        int itemId,
+        AIImportEntityType entityType,
+        string previousBusinessKey,
+        IReadOnlyCollection<string>? previousReferenceTokens = null) =>
+        AIImportValidationScope.ForItem(itemId, entityType, previousBusinessKey, previousReferenceTokens);
 
     public void AdvancePreview(ImportSession session) => session.PreviewVersion++;
 }
@@ -62,15 +68,62 @@ public sealed class AIImportConfirmCoordinator(AIImportEntityRegistry entityRegi
     public IReadOnlyList<AIImportExecutionEntry> BuildExecutionPlan(ImportSession session) => session.Groups
         .OrderBy(group => entityRegistry.Get(group.EntityType).DependencyOrder)
         .ThenBy(group => group.ImportGroupId)
-        .SelectMany(group => group.Items.OrderBy(item => item.SourceRow)
+        .SelectMany(group => group.Items
+            .Where(IsImportable)
+            .OrderBy(item => item.SourceRow)
             .Select(item => new AIImportExecutionEntry(group, item)))
         .ToList();
 
     public IReadOnlyList<string> RequiredCreatePermissions(ImportSession session) => session.Groups
-        .SelectMany(group => group.Items.Where(item => item.Action == AIImportActions.Create)
+        .SelectMany(group => group.Items.Where(IsImportable)
             .Select(_ => entityRegistry.Get(group.EntityType).CreatePermission))
         .Distinct(StringComparer.Ordinal)
         .ToList();
+
+    public IReadOnlyList<AIImportErrorDto> EvaluateStructuralEligibility(ImportSession session)
+    {
+        var blockers = new List<AIImportErrorDto>();
+        if (session.Status != AIImportSessionStatuses.ReadyToPreview)
+            blockers.Add(AIImportValidationContract.Issue("PHIÊN_KHÔNG_THỂ_CONFIRM",
+                "Phiên không ở trạng thái sẵn sàng để xác nhận.", AIImportIssueSeverities.Error));
+
+        blockers.AddRange(session.SourceDocuments
+            .Where(source => source.Status is AIImportSourceDocumentStatuses.Failed or AIImportSourceDocumentStatuses.Processing)
+            .Select(source => AIImportValidationContract.Issue(source.ErrorCode ?? "NGUỒN_CHƯA_SẴN_SÀNG",
+                $"{source.OriginalFileName}: {source.ErrorMessage ?? source.Status}", AIImportIssueSeverities.Error,
+                metadata: new Dictionary<string, object?>
+                {
+                    ["sourceDocumentId"] = source.ImportSourceDocumentId,
+                    ["fileName"] = source.OriginalFileName
+                })));
+
+        foreach (var item in FindBlockers(session))
+        {
+            var issues = (JsonSerializer.Deserialize<List<AIImportErrorDto>>(item.ErrorsJson,
+                              new JsonSerializerOptions(JsonSerializerDefaults.Web)) ?? [])
+                .Concat(JsonSerializer.Deserialize<List<AIImportErrorDto>>(item.WarningsJson,
+                            new JsonSerializerOptions(JsonSerializerDefaults.Web)) ?? [])
+                .ToList();
+            if (issues.Count == 0)
+                issues.Add(AIImportValidationContract.Issue(item.Status,
+                    "Dòng cần được kiểm tra trước khi xác nhận.", AIImportIssueSeverities.Error));
+            blockers.AddRange(issues.Select(issue =>
+            {
+                issue.ItemId = item.ImportItemId;
+                return issue;
+            }));
+        }
+
+        if (!session.Groups.SelectMany(group => group.Items).Any(IsImportable))
+            blockers.Add(AIImportValidationContract.Issue("KHÔNG_CÓ_DỮ_LIỆU_HỢP_LỆ_ĐỂ_NHẬP",
+                "Không có dữ liệu hợp lệ để nhập.", AIImportIssueSeverities.Error));
+
+        return AIImportIssueIdentity.Deduplicate(blockers);
+    }
+
+    private static bool IsImportable(ImportItem item) =>
+        item.Action == AIImportActions.Create
+        && item.Status is AIImportItemStatuses.Valid or AIImportItemStatuses.Warning;
 
     public void Complete(ImportSession session, DateTime completedAtUtc, string resultJson)
     {

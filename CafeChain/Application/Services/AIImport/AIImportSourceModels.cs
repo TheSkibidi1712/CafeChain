@@ -190,6 +190,16 @@ public interface IAIImportSourceParser
 
 public interface IAIImportDocumentPipeline
 {
+    Task<AIImportSourceDocument> PreflightAsync(
+        AIImportSourceFile source,
+        AIImportEntityType? entityHint,
+        CancellationToken cancellationToken);
+
+    Task<AIImportSourceDocument> AnalyzePreflightedAsync(
+        AIImportSourceDocument document,
+        AIImportEntityType? entityHint,
+        CancellationToken cancellationToken);
+
     Task<AIImportSourceDocument> AnalyzeAsync(
         AIImportSourceFile source,
         AIImportEntityType? entityHint,
@@ -224,6 +234,15 @@ public sealed class AIImportDocumentPipeline : IAIImportDocumentPipeline
         AIImportEntityType? entityHint,
         CancellationToken cancellationToken)
     {
+        var document = await PreflightAsync(source, entityHint, cancellationToken);
+        return await AnalyzePreflightedAsync(document, entityHint, cancellationToken);
+    }
+
+    public async Task<AIImportSourceDocument> PreflightAsync(
+        AIImportSourceFile source,
+        AIImportEntityType? entityHint,
+        CancellationToken cancellationToken)
+    {
         var extension = Path.GetExtension(source.FileName).ToLowerInvariant();
         if (extension == ".doc") return Failure("ĐỊNH_DẠNG_DOC_CŨ_KHÔNG_HỖ_TRỢ", "Tệp .doc không được hỗ trợ; vui lòng chuyển sang .docx.");
         if (extension == ".docm") return Failure("ĐỊNH_DẠNG_KHÔNG_HỖ_TRỢ", "Tệp Word có macro không được hỗ trợ.");
@@ -234,13 +253,20 @@ public sealed class AIImportDocumentPipeline : IAIImportDocumentPipeline
         if (!ContentTypeMatches(format, source.ContentType))
             return Failure("ĐỊNH_DẠNG_KHÔNG_KHỚP_NỘI_DUNG", "Content-Type của tệp không khớp phần mở rộng đã chọn.");
 
-        var result = await parser.ParseAsync(source, entityHint, cancellationToken);
-        var needsAi = format is AIImportSourceFormats.Docx or AIImportSourceFormats.Pdf
-                      && !string.IsNullOrWhiteSpace(result.ExtractedText)
-                      && (result.Groups.Count == 0 || result.Groups.Any(group => group.EntityType == AIImportEntityType.Unknown));
+        return await parser.ParseAsync(source, entityHint, cancellationToken);
+    }
+
+    public async Task<AIImportSourceDocument> AnalyzePreflightedAsync(
+        AIImportSourceDocument document,
+        AIImportEntityType? entityHint,
+        CancellationToken cancellationToken)
+    {
+        var needsAi = document.SourceFormat is AIImportSourceFormats.Docx or AIImportSourceFormats.Pdf
+                      && !string.IsNullOrWhiteSpace(document.ExtractedText)
+                      && (document.Groups.Count == 0 || document.Groups.Any(group => group.EntityType == AIImportEntityType.Unknown));
         if (needsAi && _aiExtractor != null)
-            await _aiExtractor.EnrichAsync(result, entityHint, cancellationToken);
-        return result;
+            await _aiExtractor.EnrichAsync(document, entityHint, cancellationToken);
+        return document;
     }
 
     public async Task<AIImportSourceDocument> ReanalyzeAsync(

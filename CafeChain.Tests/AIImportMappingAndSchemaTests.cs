@@ -249,6 +249,35 @@ public sealed class AIImportMappingAndSchemaTests
     }
 
     [Fact]
+    public void Explicitly_ignored_duplicate_header_is_not_left_unknown_or_allowed_to_bypass_forbidden()
+    {
+        var columns = AIImportSourceColumnBuilder.Build(["CategoryCode", "Name", "Name", "StoreId"])
+            .Select(column => new AIImportSourceColumn { Key = column.Key, Label = column.Label })
+            .ToList();
+        var mapping = new Dictionary<string, string?>
+        {
+            ["CategoryCode"] = "CategoryCode",
+            ["Name"] = "Name [B]",
+            ["Icon"] = null,
+            ["Active"] = null
+        };
+
+        var result = _schemas.ClassifyColumns(
+            AIImportEntityType.Category,
+            columns,
+            mapping,
+            ["Name [C]", "StoreId"]);
+
+        Assert.Equal(AIImportColumnClassifications.Mapped,
+            result.Single(column => column.Key == "Name [B]").Classification);
+        Assert.Equal(AIImportColumnClassifications.Ignored,
+            result.Single(column => column.Key == "Name [C]").Classification);
+        Assert.Null(result.Single(column => column.Key == "Name [C]").TargetField);
+        Assert.Equal(AIImportColumnClassifications.Forbidden,
+            result.Single(column => column.Key == "StoreId").Classification);
+    }
+
+    [Fact]
     public void Reference_resolver_reports_cross_code_name_ambiguity_and_inactive_reference()
     {
         var active = new[] { new Reference("CAT01", "Trà"), new Reference("CAT02", "CAT01") };
@@ -322,6 +351,75 @@ public sealed class AIImportMappingAndSchemaTests
 
         Assert.Equal(new[] { 2, 1, 3 }, coordinator.BuildExecutionPlan(session).Select(x => x.Item.ImportItemId));
         Assert.Equal(3, Assert.Single(coordinator.FindBlockers(session)).ImportItemId);
+    }
+
+    [Fact]
+    public void Issue_identity_deduplicates_same_semantic_problem_but_keeps_different_targets()
+    {
+        var first = AIImportValidationContract.Issue("REFERENCE_KHÔNG_HỢP_LỆ", "Thiếu loại sản phẩm",
+            AIImportIssueSeverities.Error, field: "ProductType",
+            metadata: new Dictionary<string, object?> { ["referenceTarget"] = "DRINK" });
+        var duplicateFromAnotherLayer = AIImportValidationContract.Issue("REFERENCE_KHÔNG_HỢP_LỆ", "Thiếu loại sản phẩm",
+            AIImportIssueSeverities.Review, field: "ProductType",
+            metadata: new Dictionary<string, object?> { ["referenceTarget"] = "DRINK" });
+        var otherTarget = AIImportValidationContract.Issue("REFERENCE_KHÔNG_HỢP_LỆ", "Thiếu loại sản phẩm",
+            AIImportIssueSeverities.Error, field: "ProductType",
+            metadata: new Dictionary<string, object?> { ["referenceTarget"] = "FOOD" });
+
+        var issues = AIImportIssueIdentity.Deduplicate([first, duplicateFromAnotherLayer, otherTarget]);
+
+        Assert.Equal(2, issues.Count);
+        Assert.All(issues, issue => Assert.False(string.IsNullOrWhiteSpace(issue.IssueKey)));
+    }
+
+    [Fact]
+    public void Category_edit_scope_revalidates_drinks_referencing_old_and_new_tokens()
+    {
+        var categoryGroup = Group(1, AIImportEntityType.Category,
+            DataItem(1, new() { ["CategoryCode"] = "CAT_NEW", ["Name"] = "Trà mới" }));
+        var drinkGroup = Group(2, AIImportEntityType.Drink,
+            DataItem(2, new() { ["DrinkCode"] = "D_OLD", ["Category"] = "CAT_OLD" }),
+            DataItem(3, new() { ["DrinkCode"] = "D_NEW", ["Category"] = "CAT_NEW" }),
+            DataItem(4, new() { ["DrinkCode"] = "D_OTHER", ["Category"] = "CAT_OTHER" }));
+        var all = new[] { categoryGroup, drinkGroup }
+            .SelectMany(group => group.Items.Select(item => (Group: group, Item: item))).ToList();
+
+        var affected = new AIImportResolutionEngine().ResolveScope(all,
+            AIImportValidationScope.ForItem(1, AIImportEntityType.Category, "CAT_OLD", ["CAT_OLD", "Tên cũ"]));
+
+        Assert.Equal(new[] { 1, 2, 3 }, affected.OrderBy(value => value));
+    }
+
+    [Fact]
+    public void Confirm_plan_excludes_user_and_system_skips_and_all_skipped_is_blocked()
+    {
+        var valid = DataItem(1, new() { ["CategoryCode"] = "CAT01" });
+        var userSkip = DataItem(2, new() { ["CategoryCode"] = "CAT02" });
+        userSkip.Action = AIImportActions.Skip;
+        userSkip.Status = AIImportItemStatuses.Skipped;
+        var systemSkip = DataItem(3, new() { ["CategoryCode"] = "CAT03" });
+        systemSkip.Action = AIImportActions.Create;
+        systemSkip.Status = AIImportItemStatuses.Skipped;
+        systemSkip.WarningsJson = System.Text.Json.JsonSerializer.Serialize(new[]
+        {
+            AIImportValidationContract.Issue("ĐÃ_TỒN_TẠI", "Trùng", AIImportIssueSeverities.Warning,
+                metadata: new Dictionary<string, object?> { ["skipOrigin"] = AIImportSkipOrigins.SystemDuplicate })
+        });
+        var group = Group(1, AIImportEntityType.Category, valid, userSkip, systemSkip);
+        var session = new ImportSession
+        {
+            Status = AIImportSessionStatuses.ReadyToPreview,
+            Groups = new List<ImportGroup> { group }
+        };
+        var coordinator = new AIImportConfirmCoordinator(new AIImportEntityRegistry());
+
+        Assert.Equal(1, Assert.Single(coordinator.BuildExecutionPlan(session)).Item.ImportItemId);
+
+        valid.Action = AIImportActions.Skip;
+        valid.Status = AIImportItemStatuses.Skipped;
+        var blocker = Assert.Single(coordinator.EvaluateStructuralEligibility(session),
+            issue => issue.Code == "KHÔNG_CÓ_DỮ_LIỆU_HỢP_LỆ_ĐỂ_NHẬP");
+        Assert.Equal(AIImportIssueSeverities.Error, blocker.Severity);
     }
 
     private static AIImportRegionData Region(string sheet, IReadOnlyList<string> headers)

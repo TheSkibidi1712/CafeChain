@@ -27,7 +27,7 @@ public sealed class AIImportEntityRegistry
         Descriptors.GetValueOrDefault(entityType);
 
     public AIImportEntityDescriptor Get(AIImportEntityType entityType) =>
-        Find(entityType) ?? throw new InvalidOperationException($"Entity {entityType} nằm ngoài phạm vi AI Smart Import.");
+        Find(entityType) ?? throw new InvalidOperationException("Loại dữ liệu nằm ngoài phạm vi nhập dữ liệu thông minh.");
 
     public string BusinessKey(AIImportEntityType entityType, IReadOnlyDictionary<string, string?> values)
     {
@@ -52,11 +52,17 @@ public sealed record AIImportValidationScope(
     int? GroupId = null,
     int? ItemId = null,
     AIImportEntityType? PreviousEntityType = null,
-    string? PreviousBusinessKey = null)
+    string? PreviousBusinessKey = null,
+    IReadOnlyCollection<string>? PreviousReferenceTokens = null)
 {
     public static AIImportValidationScope FullSession() => new(AIImportValidationScopeKind.Full);
     public static AIImportValidationScope ForGroup(int groupId, AIImportEntityType previousEntityType) =>
         new(AIImportValidationScopeKind.Group, GroupId: groupId, PreviousEntityType: previousEntityType);
-    public static AIImportValidationScope ForItem(int itemId, AIImportEntityType entityType, string? previousBusinessKey) =>
-        new(AIImportValidationScopeKind.Item, ItemId: itemId, PreviousEntityType: entityType, PreviousBusinessKey: previousBusinessKey);
+    public static AIImportValidationScope ForItem(
+        int itemId,
+        AIImportEntityType entityType,
+        string? previousBusinessKey,
+        IReadOnlyCollection<string>? previousReferenceTokens = null) =>
+        new(AIImportValidationScopeKind.Item, ItemId: itemId, PreviousEntityType: entityType,
+            PreviousBusinessKey: previousBusinessKey, PreviousReferenceTokens: previousReferenceTokens);
 }

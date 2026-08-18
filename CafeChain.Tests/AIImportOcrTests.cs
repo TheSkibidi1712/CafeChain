@@ -170,6 +170,29 @@ public sealed class AIImportOcrTests
     }
 
     [Fact]
+    public async Task Ocr_tsv_text_offsets_preserve_lines_when_diacritics_shift_word_geometry()
+    {
+        var provider = new FakeOcrProvider(request => Task.FromResult(new AIImportOcrResult
+        {
+            Success = true,
+            Provider = "FakeOCR",
+            Pages = [OcrPageWithOffsets(request.PageNumbers.Single())]
+        }));
+        var parser = new AIImportPdfSourceParser(Options.Create(new AIImportOptions()),
+            new AIImportSchemaRegistry(), provider);
+
+        var result = await parser.ParseAsync(
+            new AIImportSourceFile("scan.pdf", ImageOnlyPdf(), "application/pdf", UseOcr: true),
+            AIImportEntityType.Category,
+            default);
+
+        Assert.Empty(result.Errors);
+        var candidate = Assert.Single(Assert.Single(result.Groups).Candidates);
+        Assert.Equal("CAT_UTF8", candidate.MappedData["CategoryCode"]);
+        Assert.Equal("Danh mục tiếng Việt", candidate.MappedData["Name"]);
+    }
+
+    [Fact]
     public async Task Ocr_provider_failure_is_mapped_without_creating_second_import_path()
     {
         var provider = new FakeOcrProvider(_ => Task.FromResult(
@@ -437,6 +460,49 @@ public sealed class AIImportOcrTests
             Word("Tên danh mục:", 20, 50, 110, 12), Word("Danh mục OCR", 135, 50, 100, 12)
         ]
     };
+
+    private static AIImportOcrPage OcrPageWithOffsets(int pageNumber)
+    {
+        const string text = "Mã danh mục: CAT_UTF8\nTên danh mục: Danh mục tiếng Việt";
+        var tokens = new[] { "Mã", "danh", "mục:", "CAT_UTF8", "Tên", "danh", "mục:", "Danh", "mục", "tiếng", "Việt" };
+        var words = new List<AIImportOcrWord>();
+        var searchFrom = 0;
+        for (var index = 0; index < tokens.Length; index++)
+        {
+            var token = tokens[index];
+            var offset = text.IndexOf(token, searchFrom, StringComparison.Ordinal);
+            var secondLine = offset > text.IndexOf('\n');
+            words.Add(new AIImportOcrWord
+            {
+                Text = token,
+                Offset = offset,
+                Length = token.Length,
+                Confidence = 0.95m,
+                BoundingBox = new AIImportBoundingBox
+                {
+                    X = 20 + (secondLine ? index - 4 : index) * 55,
+                    Y = (secondLine ? 80 : 20) + (index % 2 == 0 ? 7 : 0),
+                    Width = 48,
+                    Height = 12,
+                    PageWidth = 600,
+                    PageHeight = 800,
+                    Unit = "PIXEL",
+                    Polygon = [0, 0, 1, 0, 1, 1, 0, 1]
+                }
+            });
+            searchFrom = offset + token.Length;
+        }
+        return new AIImportOcrPage
+        {
+            PageNumber = pageNumber,
+            Text = text,
+            Width = 600,
+            Height = 800,
+            Unit = "pixel",
+            Confidence = 0.95m,
+            Words = words
+        };
+    }
 
     private static AIImportOcrWord Word(string text, double x, double y, double width, double height) => new()
     {

@@ -49,7 +49,7 @@ public sealed class AppLauncherService : IAppLauncherService
                 17,
                 PermissionConstants.SystemPermissionManage,
                 false),
-            new AppDefinition(AppCode.AdminDashboard, "Admin Dashboard", "Theo dõi vận hành, doanh thu và các chỉ số quản trị.", "bi-speedometer2", "/Admin/Dashboard", 10, PermissionConstants.AppAdminDashboard, false),
+            new AppDefinition(AppCode.AdminDashboard, "Admin Dashboard", "Theo dõi vận hành, doanh thu và các chỉ số quản trị.", "bi-speedometer2", "/AppLauncher/OpenAdminDashboard", 10, PermissionConstants.AppAdminDashboard, false),
             new AppDefinition(AppCode.StaffHub, "StaffHub", "Xem lịch dự kiến và truy cập các tác vụ hằng ngày của nhân viên.", "bi-people", "/StaffHub", 20, PermissionConstants.AppStaffHub, false),
             new AppDefinition(AppCode.Pos, "POS", "Khởi chạy giao diện bán hàng mới.", "bi-receipt-cutoff", "#", 30, PermissionConstants.AppPos, true)
         };

@@ -30,8 +30,8 @@ namespace CafeChain.Tests;
 [Trait("Category", "SqlServerIntegration")]
 public sealed class AIImportSqlServerTests : IAsyncLifetime
 {
-    private const string Database = "CafeChain_AIImport_Verify_20260812";
-    private static string ConnectionString => SqlServerTestConnection.Create(Database);
+    private readonly string _database = $"CafeChain_AIImport_RuntimeSmoke_{Guid.NewGuid():N}";
+    private string ConnectionString => SqlServerTestConnection.Create(_database);
 
     public async Task InitializeAsync()
     {
@@ -39,7 +39,7 @@ public sealed class AIImportSqlServerTests : IAsyncLifetime
         await master.OpenAsync();
         await using (var command = master.CreateCommand())
         {
-            command.CommandText = $"IF DB_ID(N'{Database}') IS NULL CREATE DATABASE [{Database}];";
+            command.CommandText = $"IF DB_ID(N'{_database}') IS NULL CREATE DATABASE [{_database}];";
             await command.ExecuteNonQueryAsync();
         }
         await using var context = CreateContext();
@@ -64,8 +64,8 @@ public sealed class AIImportSqlServerTests : IAsyncLifetime
             .ToListAsync();
         Assert.Equal(5, tables.Count);
         var applied = await context.Database.GetAppliedMigrationsAsync();
-        Assert.Contains("20260815105817_InitialCreate", applied);
-        Assert.Contains("20260815141744_AddAIImportOcrRuntimeAndMultiFile", applied);
+        Assert.Contains("20260815152712_InitialCreate", applied);
+        Assert.Contains("20260816170000_AddPreparedItemTargetStockLevel", applied);
         Assert.Equal(2, applied.Count());
         var traceabilityColumns = await context.Database.SqlQueryRaw<string>(
                 "SELECT COLUMN_NAME AS Value FROM INFORMATION_SCHEMA.COLUMNS WHERE "
@@ -265,7 +265,7 @@ public sealed class AIImportSqlServerTests : IAsyncLifetime
         Assert.Equal(1, await verify.DrinkCategories.CountAsync(x => x.CategoryCode == code));
     }
 
-    private static async Task<int> SeedReadySessionAsync()
+    private async Task<int> SeedReadySessionAsync()
     {
         await using var context = CreateContext();
         var session = new ImportSession
@@ -278,12 +278,12 @@ public sealed class AIImportSqlServerTests : IAsyncLifetime
         context.ImportSessions.Add(session); await context.SaveChangesAsync(); return session.ImportSessionId;
     }
 
-    private static async Task<int> ClaimAsync(int id, string target)
+    private async Task<int> ClaimAsync(int id, string target)
     {
         await using var context = CreateContext();
         return await context.ImportSessions.Where(x => x.ImportSessionId == id && x.Status == AIImportSessionStatuses.ReadyToPreview && x.PreviewVersion == 1)
             .ExecuteUpdateAsync(x => x.SetProperty(s => s.Status, target));
     }
 
-    private static AppDbContext CreateContext() => new(new DbContextOptionsBuilder<AppDbContext>().UseSqlServer(ConnectionString).Options);
+    private AppDbContext CreateContext() => new(new DbContextOptionsBuilder<AppDbContext>().UseSqlServer(ConnectionString).Options);
 }

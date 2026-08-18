@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using CafeChain.Application.DTOs.AIImport;
 using CafeChain.Application.Options;
+using CafeChain.Application.Services.AI;
 using CafeChain.Models.AIImport;
 using Microsoft.Extensions.Options;
 using UglyToad.PdfPig;
@@ -264,7 +265,9 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
         AIImportSourceDocument result,
         decimal reviewThreshold)
     {
-        var records = lines.GroupBy(line => line.Page);
+        var records = lines.GroupBy(line => line.Page)
+            .SelectMany(page => BuildKeyValueTracks(page, entityHint)
+                .Select(track => new KeyValueTrack(page.Key, track)));
         var ordinal = 0;
         foreach (var page in records)
         {
@@ -272,9 +275,7 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
             var evidence = new List<PdfLine>();
             foreach (var line in page)
             {
-                var match = KeyValuePattern().Match(line.Text);
-                if (!match.Success) continue;
-                var key = match.Groups[1].Value.Trim();
+                if (!TryParseKeyValue(line, entityHint, out var key, out var value)) continue;
                 if (raw.ContainsKey(key))
                 {
                     result.Errors.Add(AIImportValidationContract.Issue(
@@ -286,7 +287,7 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
                     raw.Clear();
                     break;
                 }
-                raw[key] = match.Groups[2].Value.Trim();
+                raw[key] = value;
                 evidence.Add(line);
             }
             if (raw.Count < 2) continue;
@@ -328,12 +329,75 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
                 Confidence = detected.Confidence,
                 LayoutConfidence = 0.90m,
                 OcrConfidence = AverageOcrConfidence(evidence),
-                FieldEvidence = BuildFieldEvidence(detected.Mapping, raw, evidence)
+                FieldEvidence = BuildFieldEvidence(detected.Mapping, raw, evidence, detected.EntityType)
             };
             AddOcrReviewIssues(candidate, detected.EntityType, reviewThreshold);
             group.Candidates.Add(candidate);
             result.Groups.Add(group);
         }
+    }
+
+    private IReadOnlyList<List<PdfLine>> BuildKeyValueTracks(
+        IEnumerable<PdfLine> pageLines,
+        AIImportEntityType? entityHint)
+    {
+        var tracks = new List<List<PdfLine>>();
+        foreach (var line in pageLines
+                     .Where(line => (line.Cells.Count == 1 || line.SourceKind == AIImportSourceKinds.Ocr)
+                                    && TryParseKeyValue(line, entityHint, out _, out _))
+                     .OrderBy(line => line.Box.X).ThenBy(line => line.Box.Y))
+        {
+            var pageWidth = line.Box.PageWidth.GetValueOrDefault(612d);
+            var tolerance = Math.Max(72d, pageWidth * 0.20d);
+            var track = tracks.FirstOrDefault(candidate =>
+                candidate.All(item => item.SourceKind == line.SourceKind)
+                && Math.Abs(candidate.Average(item => item.Box.X) - line.Box.X) <= tolerance);
+            if (track == null) tracks.Add([line]); else track.Add(line);
+        }
+        return tracks;
+    }
+
+    private bool TryParseKeyValue(
+        PdfLine line,
+        AIImportEntityType? entityHint,
+        out string key,
+        out string value)
+    {
+        var match = KeyValuePattern().Match(line.Text);
+        if (match.Success)
+        {
+            key = match.Groups[1].Value.Trim();
+            value = match.Groups[2].Value.Trim();
+            return true;
+        }
+
+        key = string.Empty;
+        value = string.Empty;
+        if (line.SourceKind != AIImportSourceKinds.Ocr || entityHint is null
+            || entityHint == AIImportEntityType.Unknown) return false;
+
+        var words = line.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (words.Length < 2) return false;
+        var schema = _schemas.Get(entityHint.Value);
+        var best = (Score: 0d, Split: 0, Field: (AIImportFieldDefinition?)null);
+        for (var split = 1; split < words.Length; split++)
+        {
+            var prefix = string.Join(' ', words.Take(split));
+            foreach (var field in schema.Fields)
+            {
+                var score = field.Aliases.Append(AIImportSchemaRegistry.Key(field.Name))
+                    .Max(alias => AISuggestionUniquenessPolicy.NameSimilarity(prefix, alias));
+                if (score > best.Score || (Math.Abs(score - best.Score) < 0.0001d && split > best.Split))
+                    best = (score, split, field);
+            }
+        }
+
+        if (best.Field == null || best.Score < 0.84d) return false;
+        var parsedValue = string.Join(' ', words.Skip(best.Split)).Trim(' ', ':', '：', '-', '|');
+        if (string.IsNullOrWhiteSpace(parsedValue)) return false;
+        key = best.Field.Name;
+        value = parsedValue;
+        return true;
     }
 
     private HashSet<(int Page, int Block)> ExtractTables(
@@ -396,9 +460,10 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
                 for (var rowIndex = headerIndex + 1; rowIndex < ordered.Count; rowIndex++)
                 {
                     var row = ordered[rowIndex];
-                    if (row.Cells.Count != headers.Count) break;
+                    if (row.Cells.Count < 2) break;
+                    var alignedCells = AlignTableCells(headerLine.Cells, row.Cells);
                     var raw = headerColumns.ToDictionary(column => column.Key,
-                        column => (string?)row.Cells[column.Index].Text, StringComparer.OrdinalIgnoreCase);
+                        column => alignedCells[column.Index]?.Text, StringComparer.OrdinalIgnoreCase);
                     var locator = new AIImportSourceLocator
                     {
                         SourceFormat = SourceFormat,
@@ -408,6 +473,18 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
                         TextEnd = row.TextEnd,
                         BoundingBox = row.Box
                     };
+                    var missingRequired = _schemas.Get(detected.EntityType).RequiredFields.Any(field =>
+                        !mapping.TryGetValue(field, out var sourceKey)
+                        || string.IsNullOrWhiteSpace(sourceKey)
+                        || string.IsNullOrWhiteSpace(raw.GetValueOrDefault(sourceKey)));
+                    if (missingRequired)
+                    {
+                        result.Warnings.Add(AIImportValidationContract.Issue("BẢNG_PDF_KHÔNG_RÕ",
+                            "Hàng bảng bị thiếu ô bắt buộc hoặc bị cắt qua trang; không tự động ghép dữ liệu.",
+                            AIImportIssueSeverities.Review,
+                            locator: Position(locator), resolution: AIImportIssueResolutions.ManualReview));
+                        break;
+                    }
                     var candidate = new AIImportSourceCandidate
                     {
                         SortOrder = row.Block,
@@ -420,8 +497,9 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
                         Confidence = detected.Confidence,
                         LayoutConfidence = 0.95m,
                         OcrConfidence = row.OcrConfidence,
-                        FieldEvidence = BuildTableFieldEvidence(mapping, headerColumns, raw, row)
+                        FieldEvidence = BuildTableFieldEvidence(mapping, headerColumns, raw, row, alignedCells)
                     };
+                    AddColumnIssues(candidate, group.SourceColumns, raw);
                     AddOcrReviewIssues(candidate, detected.EntityType, reviewThreshold);
                     group.Candidates.Add(candidate);
                     consumed.Add((row.Page, row.Block));
@@ -437,6 +515,27 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
             }
         }
         return consumed;
+    }
+
+    private static IReadOnlyList<PdfCell?> AlignTableCells(
+        IReadOnlyList<PdfCell> headerCells,
+        IReadOnlyList<PdfCell> rowCells)
+    {
+        var aligned = new PdfCell?[headerCells.Count];
+        foreach (var cell in rowCells)
+        {
+            var target = Enumerable.Range(0, headerCells.Count)
+                .OrderBy(index => Math.Abs(headerCells[index].X - cell.X))
+                .First();
+            aligned[target] = aligned[target] == null
+                ? cell
+                : aligned[target] with
+                {
+                    Text = NormalizeText($"{aligned[target]!.Text} {cell.Text}"),
+                    RawText = $"{aligned[target]!.RawText ?? aligned[target]!.Text} {cell.RawText ?? cell.Text}"
+                };
+        }
+        return aligned;
     }
 
     private static void MergeCompatibleMultiPageTables(AIImportSourceDocument result)
@@ -501,39 +600,75 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
         double pageHeight,
         int rotation)
     {
-        var rows = new List<List<Word>>();
-        foreach (var word in words.OrderByDescending(word => word.BoundingBox.Bottom).ThenBy(word => word.BoundingBox.Left))
+        var tokens = words
+            .Where(word => !string.IsNullOrWhiteSpace(word.Text))
+            .Select(word =>
+            {
+                var normalizedRotation = NormalizeRotation(rotation);
+                var rowCoordinate = normalizedRotation is 90 or 270
+                    ? word.BoundingBox.Left
+                    : word.BoundingBox.Bottom;
+                var orderCoordinate = normalizedRotation switch
+                {
+                    90 => -word.BoundingBox.Bottom,
+                    180 => -word.BoundingBox.Left,
+                    270 => word.BoundingBox.Bottom,
+                    _ => word.BoundingBox.Left
+                };
+                return new PdfToken(word.Text.Trim(), NormalizePdfBox(
+                    word.BoundingBox.Left, word.BoundingBox.Bottom,
+                    word.BoundingBox.Width, word.BoundingBox.Height,
+                    pageWidth, pageHeight, rotation), rowCoordinate, orderCoordinate);
+            })
+            .ToList();
+        var rows = new List<List<PdfToken>>();
+        foreach (var token in tokens.OrderBy(token => token.RowCoordinate).ThenBy(token => token.OrderCoordinate))
         {
-            var row = rows.FirstOrDefault(candidate => Math.Abs(candidate[0].BoundingBox.Bottom - word.BoundingBox.Bottom) <= 3d);
-            if (row == null) rows.Add([word]); else row.Add(word);
+            const double tolerance = 4d;
+            var row = rows.FirstOrDefault(candidate =>
+                Math.Abs(candidate.Average(item => item.RowCoordinate) - token.RowCoordinate) <= tolerance);
+            if (row == null) rows.Add([token]); else row.Add(token);
         }
 
-        return rows.OrderByDescending(row => row.Max(word => word.BoundingBox.Top))
+        return rows.OrderBy(row => row.Min(token => token.Box.Y))
             .Select((row, index) =>
             {
-                var ordered = row.OrderBy(word => word.BoundingBox.Left).ToList();
-                var left = ordered.Min(word => word.BoundingBox.Left);
-                var bottom = ordered.Min(word => word.BoundingBox.Bottom);
-                var right = ordered.Max(word => word.BoundingBox.Right);
-                var top = ordered.Max(word => word.BoundingBox.Top);
-                var rawText = string.Join(" ", ordered.Select(word => word.Text.Trim()).Where(text => text.Length > 0));
+                var ordered = row.OrderBy(token => token.OrderCoordinate).ToList();
+                var rawText = string.Join(" ", ordered.Select(token => token.Text));
                 return new PdfLine(pageNumber, index + 1, NormalizeText(rawText),
-                    NormalizePdfBox(left, bottom, right - left, top - bottom, pageWidth, pageHeight, rotation),
+                    UnionBox(ordered.Select(token => token.Box)),
                     BuildCells(ordered), AIImportSourceKinds.TextLayer, RawText: rawText);
             })
             .Where(line => !string.IsNullOrWhiteSpace(line.Text)).ToList();
     }
 
+    private static AIImportBoundingBox UnionBox(IEnumerable<AIImportBoundingBox> source)
+    {
+        var boxes = source.ToList();
+        var first = boxes[0];
+        var left = boxes.Min(box => box.X);
+        var top = boxes.Min(box => box.Y);
+        var right = boxes.Max(box => box.X + box.Width);
+        var bottom = boxes.Max(box => box.Y + box.Height);
+        return new AIImportBoundingBox
+        {
+            X = left,
+            Y = top,
+            Width = right - left,
+            Height = bottom - top,
+            PageWidth = first.PageWidth,
+            PageHeight = first.PageHeight,
+            Rotation = first.Rotation,
+            Unit = first.Unit,
+            Polygon = [left, top, right, top, right, bottom, left, bottom]
+        };
+    }
+
     private static List<PdfLine> BuildOcrLines(AIImportOcrPage page)
     {
-        var rows = new List<List<AIImportOcrWord>>();
-        foreach (var word in page.Words.OrderBy(word => word.BoundingBox.Y).ThenBy(word => word.BoundingBox.X))
-        {
-            var tolerance = Math.Max(3d, word.BoundingBox.Height * 0.6d);
-            var row = rows.FirstOrDefault(candidate =>
-                Math.Abs(candidate[0].BoundingBox.Y - word.BoundingBox.Y) <= tolerance);
-            if (row == null) rows.Add([word]); else row.Add(word);
-        }
+        var rows = HasReliableOcrTextOffsets(page)
+            ? BuildOcrRowsFromTextOffsets(page)
+            : BuildOcrRowsFromGeometry(page.Words);
 
         return rows.OrderBy(row => row.Min(word => word.BoundingBox.Y))
             .Select((row, index) =>
@@ -565,21 +700,61 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
             .Where(line => !string.IsNullOrWhiteSpace(line.Text)).ToList();
     }
 
+    private static bool HasReliableOcrTextOffsets(AIImportOcrPage page)
+    {
+        if (string.IsNullOrEmpty(page.Text) || page.Words.Count == 0) return false;
+        var ordered = page.Words.OrderBy(word => word.Offset).ToList();
+        return ordered[0].Offset >= 0
+               && ordered.Select(word => word.Offset).Distinct().Count() == ordered.Count
+               && ordered.All(word => word.Length > 0
+                                      && word.Offset + word.Length <= page.Text.Length);
+    }
+
+    private static List<List<AIImportOcrWord>> BuildOcrRowsFromTextOffsets(AIImportOcrPage page)
+    {
+        var rows = new List<List<AIImportOcrWord>>();
+        AIImportOcrWord? previous = null;
+        foreach (var word in page.Words.OrderBy(word => word.Offset))
+        {
+            var startsNewLine = previous != null
+                                && page.Text.AsSpan(previous.Offset + previous.Length,
+                                        word.Offset - previous.Offset - previous.Length)
+                                    .Contains('\n');
+            if (rows.Count == 0 || startsNewLine) rows.Add([word]); else rows[^1].Add(word);
+            previous = word;
+        }
+        return rows;
+    }
+
+    private static List<List<AIImportOcrWord>> BuildOcrRowsFromGeometry(
+        IReadOnlyList<AIImportOcrWord> words)
+    {
+        var rows = new List<List<AIImportOcrWord>>();
+        foreach (var word in words.OrderBy(word => word.BoundingBox.Y).ThenBy(word => word.BoundingBox.X))
+        {
+            var tolerance = Math.Max(3d, word.BoundingBox.Height * 0.6d);
+            var row = rows.FirstOrDefault(candidate =>
+                Math.Abs(candidate[0].BoundingBox.Y - word.BoundingBox.Y) <= tolerance);
+            if (row == null) rows.Add([word]); else row.Add(word);
+        }
+        return rows;
+    }
+
     private bool HasAmbiguousReadingOrder(IReadOnlyList<PdfLine> lines, AIImportEntityType? entityHint)
     {
         var splitLines = lines.Where(line => line.Cells.Count >= 2).ToList();
-        if (splitLines.Count < 3) return false;
+        if (splitLines.Count < 2) return false;
         var hasRecognizedHeader = splitLines.Any(line =>
             _schemas.Detect(line.Cells.Select(cell => cell.Text), $"Trang {line.Page}", entityHint).EntityType
             != AIImportEntityType.Unknown);
         if (hasRecognizedHeader) return false;
         var tracks = splitLines.Select(line => line.Cells.Count).Distinct().Count();
-        return tracks > 1 || splitLines.Count >= Math.Max(3, lines.Count / 2);
+        return tracks > 1 || splitLines.Count >= 2;
     }
 
-    private static List<PdfCell> BuildCells(IReadOnlyList<Word> words)
+    private static List<PdfCell> BuildCells(IReadOnlyList<PdfToken> words)
     {
-        var groups = new List<List<Word>>();
+        var groups = new List<List<PdfToken>>();
         foreach (var word in words)
         {
             if (groups.Count == 0)
@@ -588,12 +763,15 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
                 continue;
             }
             var previous = groups[^1][^1];
-            var averageLetterWidth = previous.Text.Length == 0 ? 4d : previous.BoundingBox.Width / previous.Text.Length;
-            var gap = word.BoundingBox.Left - previous.BoundingBox.Right;
+            var averageLetterWidth = previous.Text.Length == 0 ? 4d : previous.Box.Width / previous.Text.Length;
+            var gap = word.Box.X - (previous.Box.X + previous.Box.Width);
             if (gap > Math.Max(18d, averageLetterWidth * 4d)) groups.Add([word]);
             else groups[^1].Add(word);
         }
-        return groups.Select(group => new PdfCell(JoinWords(group))).ToList();
+        return groups.Select(group => new PdfCell(
+            NormalizeText(string.Join(" ", group.Select(word => word.Text))),
+            X: group.Min(word => word.Box.X),
+            Width: group.Max(word => word.Box.X + word.Box.Width) - group.Min(word => word.Box.X))).ToList();
     }
 
     private static List<PdfCell> BuildOcrCells(IReadOnlyList<AIImportOcrWord> words)
@@ -616,17 +794,17 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
         return groups.Select(group =>
         {
             var raw = string.Join(" ", group.Select(word => word.Text));
-            return new PdfCell(NormalizeText(raw), group.Average(word => word.Confidence), raw);
+            return new PdfCell(NormalizeText(raw), group.Average(word => word.Confidence), raw,
+                group.Min(word => word.BoundingBox.X),
+                group.Max(word => word.BoundingBox.X + word.BoundingBox.Width) - group.Min(word => word.BoundingBox.X));
         }).ToList();
     }
-
-    private static string JoinWords(IEnumerable<Word> words) =>
-        NormalizeText(string.Join(" ", words.Select(word => word.Text.Trim()).Where(text => text.Length > 0)));
 
     private static IReadOnlyList<PdfLine> RemoveRepeatedDecorations(IReadOnlyList<PdfLine> lines)
     {
         var repeated = lines.GroupBy(line => AIImportSchemaRegistry.Key(line.Text))
             .Where(group => group.Select(line => line.Page).Distinct().Count() >= 2
+                            && group.All(line => line.Cells.Count == 1)
                             && group.All(line => IsPageDecoration(line, lines)))
             .Select(group => group.Key).ToHashSet(StringComparer.Ordinal);
         return lines.Where(line => !repeated.Contains(AIImportSchemaRegistry.Key(line.Text))).ToList();
@@ -781,18 +959,19 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
         return values.Count == 0 ? null : values.Average();
     }
 
-    private static Dictionary<string, AIImportFieldEvidence> BuildFieldEvidence(
+    private Dictionary<string, AIImportFieldEvidence> BuildFieldEvidence(
         IReadOnlyDictionary<string, string?> mapping,
         IReadOnlyDictionary<string, string?> raw,
-        IReadOnlyList<PdfLine> lines)
+        IReadOnlyList<PdfLine> lines,
+        AIImportEntityType entityType)
     {
         var evidence = new Dictionary<string, AIImportFieldEvidence>(StringComparer.OrdinalIgnoreCase);
         foreach (var pair in mapping.Where(pair => !string.IsNullOrWhiteSpace(pair.Value)))
         {
             var sourceHeader = pair.Value!;
             var line = lines.FirstOrDefault(candidate =>
-                KeyValuePattern().Match(candidate.Text) is { Success: true } match
-                && string.Equals(AIImportSchemaRegistry.Key(match.Groups[1].Value),
+                TryParseKeyValue(candidate, entityType, out var parsedKey, out _)
+                && string.Equals(AIImportSchemaRegistry.Key(parsedKey),
                     AIImportSchemaRegistry.Key(sourceHeader), StringComparison.Ordinal));
             if (line == null) continue;
             evidence[pair.Key] = FieldEvidence(line, raw.GetValueOrDefault(sourceHeader));
@@ -804,7 +983,8 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
         IReadOnlyDictionary<string, string?> mapping,
         IReadOnlyList<(int Index, string Key, string Label)> columns,
         IReadOnlyDictionary<string, string?> raw,
-        PdfLine line)
+        PdfLine line,
+        IReadOnlyList<PdfCell?> alignedCells)
     {
         var evidence = new Dictionary<string, AIImportFieldEvidence>(StringComparer.OrdinalIgnoreCase);
         foreach (var pair in mapping.Where(pair => !string.IsNullOrWhiteSpace(pair.Value)))
@@ -812,7 +992,7 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
             var column = columns.FirstOrDefault(column =>
                 string.Equals(column.Key, pair.Value, StringComparison.OrdinalIgnoreCase));
             if (string.IsNullOrWhiteSpace(column.Key)) continue;
-            var cell = column.Index >= 0 && column.Index < line.Cells.Count ? line.Cells[column.Index] : null;
+            var cell = column.Index >= 0 && column.Index < alignedCells.Count ? alignedCells[column.Index] : null;
             evidence[pair.Key] = FieldEvidence(line, raw.GetValueOrDefault(column.Key),
                 cell?.OcrConfidence, cell?.RawText);
         }
@@ -852,6 +1032,24 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
         }
     }
 
+    private static void AddColumnIssues(
+        AIImportSourceCandidate candidate,
+        IEnumerable<AIImportSourceColumn> columns,
+        IReadOnlyDictionary<string, string?> raw)
+    {
+        foreach (var column in columns.Where(column => !string.IsNullOrWhiteSpace(raw.GetValueOrDefault(column.Key))))
+        {
+            if (column.Classification == AIImportColumnClassifications.Forbidden)
+                candidate.Issues.Add(AIImportValidationContract.Issue("CỘT_CẤM",
+                    $"Cột '{column.Label}' không được phép dùng trong AI Smart Import.",
+                    AIImportIssueSeverities.Error, resolution: AIImportIssueResolutions.ReuploadOrSkip));
+            else if (column.Classification == AIImportColumnClassifications.Unknown)
+                candidate.Issues.Add(AIImportValidationContract.Issue("CỘT_KHÔNG_XÁC_ĐỊNH",
+                    $"Cột '{column.Label}' không thuộc danh sách trường được phép nhập và sẽ bị bỏ qua.",
+                    AIImportIssueSeverities.Warning, resolution: AIImportIssueResolutions.Acknowledge));
+        }
+    }
+
     private static AIImportPositionDto Position(AIImportSourceLocator locator) => new()
     {
         SourceFormat = locator.SourceFormat,
@@ -885,7 +1083,21 @@ public sealed partial class AIImportPdfSourceParser : IAIImportSourceParser
         string? RawText = null,
         int TextStart = 0,
         int TextEnd = 0);
-    private sealed record PdfCell(string Text, decimal? OcrConfidence = null, string? RawText = null);
+    private sealed record PdfCell(
+        string Text,
+        decimal? OcrConfidence = null,
+        string? RawText = null,
+        double X = 0,
+        double Width = 0);
+    private sealed record PdfToken(
+        string Text,
+        AIImportBoundingBox Box,
+        double RowCoordinate,
+        double OrderCoordinate);
+    private sealed record KeyValueTrack(int Key, List<PdfLine> Lines)
+    {
+        public List<PdfLine>.Enumerator GetEnumerator() => Lines.GetEnumerator();
+    }
 
     [GeneratedRegex(@"^\s*([^:\t]{2,100})\s*[:\t]\s*(.+?)\s*$", RegexOptions.CultureInvariant)]
     private static partial Regex KeyValuePattern();

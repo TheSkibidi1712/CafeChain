@@ -158,7 +158,7 @@ public sealed class AIImportExcelSourceParser(
                             metadata: new Dictionary<string, object?> { ["sourceColumn"] = column.Key }));
                     else if (column.Classification == AIImportColumnClassifications.Unknown)
                         candidate.Issues.Add(AIImportValidationContract.Issue(
-                            "CỘT_KHÔNG_XÁC_ĐỊNH", $"Cột '{column.Label}' không thuộc ImportSchema và sẽ bị bỏ qua.",
+                            "CỘT_KHÔNG_XÁC_ĐỊNH", $"Cột '{column.Label}' không thuộc danh sách trường được phép nhập và sẽ bị bỏ qua.",
                             AIImportIssueSeverities.Warning, locator: Position(column.SourceLocator),
                             resolution: AIImportIssueResolutions.Acknowledge,
                             metadata: new Dictionary<string, object?> { ["sourceColumn"] = column.Key }));

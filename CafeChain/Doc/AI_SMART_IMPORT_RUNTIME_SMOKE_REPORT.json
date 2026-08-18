@@ -1,0 +1,1325 @@
+﻿{
+    "SchemaVersion":  2,
+    "RunId":  "aiimport-20260816094707",
+    "StartedAtUtc":  "2026-08-16T09:47:07.8435276+00:00",
+    "FinishedAtUtc":  "2026-08-16T09:49:50.0112211+00:00",
+    "Status":  "FAILED",
+    "AIImportStatus":  "PASSED",
+    "UIRuntime":  "BLOCKED_NO_BROWSER_BACKEND",
+    "TesseractVersion":  "tesseract v5.4.0.20240606",
+    "OcrLanguages":  "vie+eng",
+    "OllamaModel":  "qwen3:4b",
+    "MigrationBaseline":  "20260815152712_InitialCreate",
+    "ForwardMigration":  "20260816170000_AddPreparedItemTargetStockLevel",
+    "Stages":  [
+                   {
+                       "Name":  "Build",
+                       "Status":  "PASSED",
+                       "DurationMs":  1276,
+                       "Detail":  ""
+                   },
+                   {
+                       "Name":  "126 fixtures - deterministic/offline",
+                       "Status":  "PASSED",
+                       "DurationMs":  2260,
+                       "Detail":  ""
+                   },
+                   {
+                       "Name":  "AI Import non-SQL regression",
+                       "Status":  "PASSED",
+                       "DurationMs":  6584,
+                       "Detail":  ""
+                   },
+                   {
+                       "Name":  "20 PDF scan - native Tesseract",
+                       "Status":  "PASSED",
+                       "DurationMs":  14661,
+                       "Detail":  ""
+                   },
+                   {
+                       "Name":  "Narrative fallback - Ollama qwen3:4b",
+                       "Status":  "PASSED",
+                       "DurationMs":  5789,
+                       "Detail":  ""
+                   },
+                   {
+                       "Name":  "SQL Server migration/session/confirm",
+                       "Status":  "PASSED",
+                       "DurationMs":  15885,
+                       "Detail":  ""
+                   },
+                   {
+                       "Name":  "Full regression suite",
+                       "Status":  "FAILED",
+                       "DurationMs":  115561,
+                       "Detail":  "  Error Message: |   Failed CafeChain.Tests.StoreMenuHardeningIssue166SqlServerTests.SqlServer_ConcurrentMenuUpdate_AllowsOneWinner [10 ms] |   Error Message: |   Failed CafeChain.Tests.StoreMenuHardeningIssue166SqlServerTests.SqlServer_OfflineSnapshotPersistsWithoutRepricing [32 ms] |   Error Message: |   Failed CafeChain.Tests.StoreMenuHardeningIssue166SqlServerTests.SqlServer_OneStoreMenuItemPerStoreDrinkSize [17 ms] |   Error Message: |   Failed CafeChain.Tests.DrinkSizeProfitabilitySqlServerTests.SqlServer_OneEffectiveRecipePerDrinkSize [1 ms] |   Error Message: |   Failed CafeChain.Tests.StoreMenuHardeningIssue166SqlServerTests.SqlServer_ConcurrentVersionIncrement_UpdatesOnce [9 ms] |   Error Message: | Failed!  - Failed:    44, Passed:  2543, Skipped:     0, Total:  2587, Duration: 1 m 54 s - CafeChain.Tests.dll (net8.0)"
+                   }
+               ],
+    "PostRunVerifications":  {
+                                  "AIImportNonSql":  "PASSED 231/231 after broadening the filter to every AIImport test except AIImportSqlServerTests",
+                                  "MigrationBaselineContracts":  "PASSED 3/3",
+                                  "RenderedUI":  "BLOCKED_NO_BROWSER_BACKEND"
+                              },
+    "Fixtures":  [
+                     {
+                         "File":  "01_EXCEL/E01_category_valid_basic.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E02_drink_valid_basic.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E03_size_valid_basic.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E04_ingredient_valid_basic.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E05_supplier_valid_basic.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E06_all_entities_separate_sheets.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E07_multiple_sheets_same_entity.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E08_two_regions_horizontal.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E09_two_regions_vertical.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E10_same_region_category_drink_projection.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E11_sparse_mixed_rows.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E12_metadata_before_table.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E13_footer_after_table.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E14_blank_rows_and_columns.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E15_known_ignored_columns.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E16_unknown_extra_columns.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E17_forbidden_store_id.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E18_forbidden_sql_command.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E19_duplicate_header.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E20_repeated_header_mid_data.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E21_vertical_merge_safe.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E22_horizontal_merge_ambiguous.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E23_hidden_sheet.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E24_hidden_row.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E25_hidden_column.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E26_cell_types_and_cached_formula.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E27_formula_without_cached_value.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E28_duplicate_same_payload.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E29_duplicate_conflicting_payload.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E30_missing_required_fields.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E31_invalid_field_values.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E32_unicode_and_whitespace.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E33_empty_workbook.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E34_unrecognized_headers.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E35_twenty_sheets_boundary.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E36_twenty_one_sheets_exceeded.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E37_one_hundred_one_columns_exceeded.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E38_ten_thousand_one_rows_exceeded.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E39_twenty_one_regions_exceeded.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E40_suspicious_compression_ratio.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E41_corrupt_not_openxml.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E42_fake_xlsx_contains_pdf.xlsx",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "01_EXCEL/E43_legacy_xls_unsupported.xls",
+                         "Format":  "01_EXCEL",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D01_category_key_value.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D02_drink_key_value.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D03_size_key_value.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D04_ingredient_key_value.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D05_supplier_key_value.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D06_category_table.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D07_multiple_records_blank_boundaries.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D08_heading_boundaries.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D09_list_item_boundaries.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D10_section_break_boundaries.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D11_gridspan_header_merge.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D12_vertical_merge.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D13_ambiguous_merged_ownership.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D14_tracked_insertion.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D15_tracked_deletion.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D16_tracked_move.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D17_nested_table_clear_boundary.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D18_nested_table_ambiguous.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D19_header_footer_isolation.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D20_comments_isolation.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D21_footnote_endnote_isolation.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D22_multiple_tables_different_entities.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D23_narrative_ai_fallback.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D24_multi_page_records.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D25_external_relationship_active.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D26_field_command_active.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D27_corrupt_not_openxml.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D28_suspicious_compression_ratio.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D29_legacy_doc_unsupported.doc",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D30_docm_extension_unsupported.docm",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D31_duplicate_labels_same_record.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D32_table_unknown_extra_column.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "02_DOCX/D33_table_forbidden_store_id.docx",
+                         "Format":  "02_DOCX",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P01_category_key_value.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P02_drink_key_value.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P03_size_key_value.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P04_ingredient_key_value.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P05_supplier_key_value.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P06_category_table.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P07_multi_page_records.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P08_multi_page_table_repeated_header.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P09_two_columns_clear.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P10_two_columns_ambiguous.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P11_page_rotation_90.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P12_page_rotation_180.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P13_page_rotation_270.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P14_repeated_header_footer.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P15_ligature_nbsp_zero_width.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P16_vietnamese_unicode_normalization.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P17_split_row_across_pages.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P18_table_unknown_extra_column.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P19_table_forbidden_store_id.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ISSUE",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P20_multiple_entities_separate_pages.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "CANDIDATES",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P21_blank_pdf.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "NEEDS_OCR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P22_two_hundred_pages_boundary.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "DOCUMENT",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P23_two_hundred_one_pages_exceeded.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P24_active_uri_marker.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P25_embedded_file_marker.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P26_javascript_marker.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P27_launch_marker.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P28_encrypt_marker.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P29_corrupt_pdf.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "03_PDF_TEXT/P30_fake_pdf_extension.pdf",
+                         "Format":  "03_PDF_TEXT",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "NOT_APPLICABLE",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "ERROR",
+                         "NativeExpectedOutcome":  null,
+                         "Note":  null
+                     },
+                     {
+                         "File":  "04_PDF_SCAN/S01_clean_category_scan.pdf",
+                         "Format":  "04_PDF_SCAN",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "PASSED",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "NEEDS_OCR",
+                         "NativeExpectedOutcome":  "CANDIDATES",
+                         "Note":  null
+                     },
+                     {
+                         "File":  "04_PDF_SCAN/S02_clean_supplier_scan.pdf",
+                         "Format":  "04_PDF_SCAN",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "PASSED",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "NEEDS_OCR",
+                         "NativeExpectedOutcome":  "CANDIDATES",
+                         "Note":  null
+                     },
+                     {
+                         "File":  "04_PDF_SCAN/S03_table_scan.pdf",
+                         "Format":  "04_PDF_SCAN",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "PASSED",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "NEEDS_OCR",
+                         "NativeExpectedOutcome":  "CANDIDATES",
+                         "Note":  null
+                     },
+                     {
+                         "File":  "04_PDF_SCAN/S04_low_contrast_scan.pdf",
+                         "Format":  "04_PDF_SCAN",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "PASSED",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "NEEDS_OCR",
+                         "NativeExpectedOutcome":  "ERROR",
+                         "Note":  null
+                     },
+                     {
+                         "File":  "04_PDF_SCAN/S05_blurred_scan.pdf",
+                         "Format":  "04_PDF_SCAN",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "PASSED",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "NEEDS_OCR",
+                         "NativeExpectedOutcome":  "OCR_DOCUMENT",
+                         "Note":  null
+                     },
+                     {
+                         "File":  "04_PDF_SCAN/S06_skewed_scan.pdf",
+                         "Format":  "04_PDF_SCAN",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "PASSED",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "NEEDS_OCR",
+                         "NativeExpectedOutcome":  "CANDIDATES",
+                         "Note":  null
+                     },
+                     {
+                         "File":  "04_PDF_SCAN/S07_noisy_scan.pdf",
+                         "Format":  "04_PDF_SCAN",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "PASSED",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "NEEDS_OCR",
+                         "NativeExpectedOutcome":  "OCR_DOCUMENT",
+                         "Note":  null
+                     },
+                     {
+                         "File":  "04_PDF_SCAN/S08_tiny_text_scan.pdf",
+                         "Format":  "04_PDF_SCAN",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "PASSED",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "NEEDS_OCR",
+                         "NativeExpectedOutcome":  "OCR_DOCUMENT",
+                         "Note":  null
+                     },
+                     {
+                         "File":  "04_PDF_SCAN/S09_rotated_image_90_scan.pdf",
+                         "Format":  "04_PDF_SCAN",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "PASSED",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "NEEDS_OCR",
+                         "NativeExpectedOutcome":  "CANDIDATES",
+                         "Note":  null
+                     },
+                     {
+                         "File":  "04_PDF_SCAN/S10_three_page_scan.pdf",
+                         "Format":  "04_PDF_SCAN",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "PASSED",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "NEEDS_OCR",
+                         "NativeExpectedOutcome":  "OCR_DOCUMENT",
+                         "Note":  null
+                     },
+                     {
+                         "File":  "04_PDF_SCAN/S11_fifty_one_page_scan_limit.pdf",
+                         "Format":  "04_PDF_SCAN",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "PASSED",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "NEEDS_OCR",
+                         "NativeExpectedOutcome":  "ERROR",
+                         "Note":  null
+                     },
+                     {
+                         "File":  "04_PDF_SCAN/S12_mixed_text_and_scan_same_page.pdf",
+                         "Format":  "04_PDF_SCAN",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "PASSED",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "NEEDS_OCR",
+                         "NativeExpectedOutcome":  "OCR_DOCUMENT",
+                         "Note":  null
+                     },
+                     {
+                         "File":  "04_PDF_SCAN/S13_alternating_text_scan_pages.pdf",
+                         "Format":  "04_PDF_SCAN",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "PASSED",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "NEEDS_OCR",
+                         "NativeExpectedOutcome":  "OCR_DOCUMENT",
+                         "Note":  null
+                     },
+                     {
+                         "File":  "04_PDF_SCAN/S14_two_column_scan.pdf",
+                         "Format":  "04_PDF_SCAN",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "PASSED",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "NEEDS_OCR",
+                         "NativeExpectedOutcome":  "CANDIDATES",
+                         "Note":  null
+                     },
+                     {
+                         "File":  "04_PDF_SCAN/S15_repeated_header_scan.pdf",
+                         "Format":  "04_PDF_SCAN",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "PASSED",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "NEEDS_OCR",
+                         "NativeExpectedOutcome":  "CANDIDATES",
+                         "Note":  null
+                     },
+                     {
+                         "File":  "04_PDF_SCAN/S16_sparse_fields_scan.pdf",
+                         "Format":  "04_PDF_SCAN",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "PASSED",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "NEEDS_OCR",
+                         "NativeExpectedOutcome":  "OCR_DOCUMENT",
+                         "Note":  null
+                     },
+                     {
+                         "File":  "04_PDF_SCAN/S17_blank_image_scan.pdf",
+                         "Format":  "04_PDF_SCAN",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "PASSED",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "NEEDS_OCR",
+                         "NativeExpectedOutcome":  "ERROR",
+                         "Note":  null
+                     },
+                     {
+                         "File":  "04_PDF_SCAN/S18_oversized_page_pixel_guard.pdf",
+                         "Format":  "04_PDF_SCAN",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "PASSED",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "NEEDS_OCR",
+                         "NativeExpectedOutcome":  "ERROR",
+                         "Note":  null
+                     },
+                     {
+                         "File":  "04_PDF_SCAN/S19_scan_unknown_extra_columns.pdf",
+                         "Format":  "04_PDF_SCAN",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "PASSED",
+                         "Classification":  "ENVIRONMENT_BLOCKER",
+                         "ExpectedOutcome":  "NEEDS_OCR",
+                         "NativeExpectedOutcome":  "OCR_ATTEMPT",
+                         "Note":  "tessdata_fast vie+eng with locked PSM 3 yields one word at runtime DPI 200; parser refuses to infer the unknown header without evidence."
+                     },
+                     {
+                         "File":  "04_PDF_SCAN/S20_all_entities_five_page_scan.pdf",
+                         "Format":  "04_PDF_SCAN",
+                         "OfflineStatus":  "PASSED",
+                         "NativeStatus":  "PASSED",
+                         "Classification":  "PRODUCT_EXPECTATION",
+                         "ExpectedOutcome":  "NEEDS_OCR",
+                         "NativeExpectedOutcome":  "OCR_DOCUMENT",
+                         "Note":  null
+                     }
+                 ]
+}

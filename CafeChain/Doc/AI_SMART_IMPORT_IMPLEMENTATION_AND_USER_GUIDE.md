@@ -1,6 +1,6 @@
 # AI Smart Import CafeChain — hướng dẫn triển khai và sử dụng
 
-> Cập nhật 15/08/2026: migration history forward-only là `20260815105817_InitialCreate` → `20260815141744_AddAIImportOcrRuntimeAndMultiFile`. OCR dùng Tesseract local, có System Setting, health check và switch theo phiên; không dùng cloud hoặc khóa API.
+> Cập nhật 17/08/2026: Analyze đã chuyển fatal source guard trước persistence, Preview có `CanConfirm`/`ConfirmBlockers`, Supplier duplicate review có match/signals có cấu trúc và duplicate skip dẫn xuất được phục hồi sau edit. Không có migration AI Import mới.
 
 ## 1. Capability hiện tại
 
@@ -33,7 +33,7 @@ Không hỗ trợ `.doc`, `.docm`, file có mật khẩu, active content, OCR cl
 | Preview UI | Group/item edit, badge TEXT/OCR/MIXED, confidence và field provenance | Đã triển khai | Không lưu image overlay |
 | Persistence/audit/retention | OCR snapshot tối thiểu, version/provider/usage audit, purge terminal state | Đã triển khai | Không lưu binary/rendered image |
 
-Hai migration baseline không được sửa sau Phase 0. Mọi schema OCR phải đi bằng migration thứ ba tiến tiếp.
+Baseline squash `20260816101047_InitialCreate` không được sửa sau khi chốt. Mọi thay đổi schema tiếp theo phải đi bằng forward migration mới.
 
 Interface chính `IAIImportDocumentPipeline` che toàn bộ việc chọn format, parser và AI fallback khỏi `AIImportService`.
 
@@ -52,8 +52,8 @@ Dependency PDF text được pin `PdfPig 0.1.15`; trang scan được rasterize 
 
 Filesystem có đúng hai migration theo thứ tự:
 
-1. `20260815105817_InitialCreate` — baseline đã squash, gồm validation state và OCR traceability hiện hữu.
-2. `20260815141744_AddAIImportOcrRuntimeAndMultiFile` — OCR runtime snapshot, `ImportSourceDocuments` và liên kết Group → SourceDocument.
+1. `20260816101047_InitialCreate` — baseline hiện có trong source, gồm validation state, OCR runtime/traceability, `ImportSourceDocuments`, multi-file và Target Stock.
+2. Đợt refactor hiện tại không tạo migration mới; nếu cần schema mới về sau phải dùng forward migration.
 
 Baseline này tạo toàn bộ schema AI Import, bao gồm:
 
@@ -73,6 +73,14 @@ dotnet ef database update --project CafeChain/CafeChain.csproj
 ```
 
 Repository pin `dotnet-ef` 8.0.0 trong `dotnet-tools.json`; máy mới hoặc clone mới phải chạy `dotnet tool restore` từ repository root. Hai migration trên đã tồn tại, vì vậy không chạy lại `dotnet ef migrations add InitialCreate`.
+
+Chạy runtime smoke từ repository root:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-ai-import-runtime-smoke.ps1
+```
+
+Tùy chọn `-SkipSqlServer`, `-SkipFullSuite`, `-SkipNativeOcr`, `-SkipOllama` chỉ dùng khi muốn chạy nhanh một tầng. SQL stage yêu cầu `CAFECHAIN_TEST_SQLSERVER_CONNECTION_STRING`; Tesseract lấy executable/model từ tham số, environment hoặc vị trí local chuẩn, không ghi đường dẫn máy cá nhân vào repository.
 
 Database chưa deploy lâu dài có thể tạo lại từ hai migration trên. Không đổi tên/sửa migration đã phát hành và không tự động migrate production ngoài quy trình release.
 
@@ -300,7 +308,7 @@ Reanalyze nhận `expectedPreviewVersion` bắt buộc và claim trạng thái `
 - `AIImportEntityCreator` build DTO rồi gọi năm CRUD service; coordinator không tự `DbContext.Add` entity nghiệp vụ.
 - Parser adapter chỉ tạo source document/group/candidate và issue nguồn; database-sensitive validation chạy ở preview và chạy lại khi Confirm.
 
-Migration áp dụng theo thứ tự `20260815105817_InitialCreate`, rồi `20260815141744_AddAIImportOcrRuntimeAndMultiFile`; không chỉnh sửa baseline.
+Migration hiện hành là `20260816101047_InitialCreate`; không chỉnh sửa baseline. Database disposable lệch history cần được tạo lại hoặc nâng cấp có kiểm soát, không tự động xóa production database.
 
 Locator có field tùy format: sheet/region/row/column; section/paragraph/table/tableRow/tableColumn; page/block/boundingBox/textStart/textEnd.
 
@@ -318,17 +326,19 @@ Locator có field tùy format: sheet/region/row/column; section/paragraph/table/
 | `THỨ_TỰ_ĐỌC_PDF_KHÔNG_RÕ` | Xuất lại PDF một cột/bảng rõ hoặc dùng nguồn XLSX/DOCX |
 | `KHÔNG_XÁC_ĐỊNH_RANH_GIỚI_BẢN_GHI` | Tách record bằng heading/paragraph trống hoặc một hàng cho mỗi record |
 | `CỘT_CẤM` | Xóa StoreId/BranchId/DB ID/audit/SQL/command khỏi file hoặc SKIP dòng |
-| `CỘT_KHÔNG_XÁC_ĐỊNH` | Kiểm tra cột bị bỏ qua và acknowledge warning nếu đúng |
+| `CỘT_KHÔNG_XÁC_ĐỊNH` | Ánh xạ cột nếu cần nhập; nếu không cần, chọn **Bỏ qua cột này** rồi lưu ánh xạ để backend ghi nhận `IGNORED` |
 | `XUNG_ĐỘT_ÁNH_XẠ` | Chọn source key cụ thể khi header/alias trùng |
 | `REFERENCE_KHÔNG_DUY_NHẤT` | Dùng code duy nhất thay vì tên mơ hồ |
 | `PDF_CẦN_OCR` | Lần import chưa chọn OCR; chọn OCR cho PDF scan hoặc chuyển sang PDF searchable text |
 | `PDF_OCR_KHÔNG_KHẢ_DỤNG` | Kiểm tra Tesseract executable, Visual C++ Runtime và model local |
-| `PDF_OCR_QUÁ_THỜI_GIAN` | Chia tài liệu hoặc kiểm tra provider/network |
+| `PDF_OCR_QUÁ_THỜI_GIAN` | Chia tài liệu hoặc kiểm tra tiến trình/Tesseract local |
 | `PDF_OCR_VƯỢT_GIỚI_HẠN` | Giảm số trang/DPI/kích thước hoặc chia tài liệu; hệ thống không truncate |
 | `OCR_OUTPUT_KHÔNG_HỢP_LỆ` | Provider không trả đủ page/word/span/polygon hợp lệ |
 | `OCR_CONFIDENCE_THẤP` | Đối chiếu field với raw OCR và xác nhận manual review |
 | `DOCX_Ô_GỘP_CẦN_XEM_LẠI` / `DOCX_TRACK_CHANGE_CẦN_XEM_LẠI` | Kiểm tra thủ công hoặc bỏ merge/Accept Changes rồi upload lại |
 | `AI_CONFIDENCE_THẤP` | Candidate vẫn được giữ nhưng phải sửa/xác nhận ở trạng thái review |
+| `AI_CONFIDENCE_ĐƯỢC_CHUẨN_HÓA` | Model trả thang phần trăm; backend đã giới hạn và đổi về `0..1` |
+| `AI_EVIDENCE_ĐƯỢC_CHUẨN_HÓA` | Evidence model không copy đúng; backend chỉ phục hồi span khi mọi giá trị whitelist xuất hiện duy nhất/nguyên văn trong chunk |
 | `CHUNK_VƯỢT_GIỚI_HẠN` | Chia nhỏ tài liệu; hệ thống không bỏ âm thầm phần text vượt giới hạn |
 | `AI_TRÍCH_XUẤT_KHÔNG_CÓ_BẰNG_CHỨNG` | Làm rõ tài liệu; AI output không được backend chấp nhận |
 | `XUNG_ĐỘT_DỮ_LIỆU_TRONG_TÀI_LIỆU` | Chọn/SKIP bản ghi có cùng key nhưng payload khác |
@@ -349,16 +359,18 @@ dotnet test CafeChain.Tests/CafeChain.Tests.csproj --no-build --nologo
 Nhóm AI Import:
 
 ```powershell
-dotnet test CafeChain.Tests/CafeChain.Tests.csproj --no-build --filter FullyQualifiedName~AIImport
+dotnet test CafeChain.Tests/CafeChain.Tests.csproj --no-build --filter "FullyQualifiedName~AIImport&FullyQualifiedName!~AIImportSqlServerTests"
 ```
 
-Kết quả xác minh cuối ngày 15/08/2026:
+Kết quả runtime smoke ngày 16/08/2026 (xem `AI_SMART_IMPORT_RUNTIME_SMOKE_REPORT.md` và `.json`):
 
 - build ứng dụng/test project: `0 error`; warning nullable/obsolete hiện hữu ngoài phạm vi vẫn còn nên không ghi clean-warning;
-- AI Import không phụ thuộc SQL Server: `90/90` PASS, gồm parser header trùng, OCR/provider/status/resource/cancellation, semantic retry/taxonomy/conflict, multi-file UI/API và migration contract;
-- forward migration `20260815141744_AddAIImportOcrRuntimeAndMultiFile` được sinh từ model hiện hành sau baseline `20260815105817_InitialCreate`;
-- 6 `AIImportSqlServerTests`: `NOT VERIFIED`, `0/6` chạy tới nghiệp vụ vì disposable connection `localhost\SQLEXPRESS02` lỗi `Failed to generate SSPI context` ngay lúc initialize;
-- full suite: `2186/2370` PASS, `184` FAIL; ngoài lỗi SQL/SSPI còn các contract UI/warehouse tồn tại ngoài phạm vi AI Smart Import. Không sửa test để che lỗi và không dùng database production thay thế.
+- 126/126 fixture deterministic/offline PASS; AI Import non-SQL PASS 231/231;
+- 20/20 PDF scan chạy Tesseract native PASS theo manifest; narrative fallback chạy Ollama `qwen3:4b` PASS;
+- migration contract kiểm tra đúng baseline squash `20260816101047_InitialCreate` có AI Import và Target Stock;
+- SQL Server migration/session/Confirm PASS 6/6 trên database GUID tạm; database được xóa sau test;
+- trạng thái scoped AI Import PASS. Full repository suite đạt 2543/2587 và còn 44 regression debt ngoài phạm vi AI Import; report giữ trạng thái tổng `FAILED` để không che các lỗi này;
+- rendered UI runtime chưa được đánh dấu PASS vì phiên kiểm thử không có Browser backend; ứng dụng/database cô lập đã khởi động thành công rồi được dọn sau lần thử, còn view/JavaScript contracts nằm trong tầng non-SQL;
 
 Với SQL integration, cấu hình `CAFECHAIN_TEST_SQLSERVER_CONNECTION_STRING` theo convention `{Database}` của test. Không trỏ test disposable database vào production.
 
@@ -377,6 +389,8 @@ Với SQL integration, cấu hình `CAFECHAIN_TEST_SQLSERVER_CONNECTION_STRING` 
 
 Khi thấy badge **Cần chọn nguồn**, chọn đúng `Name [B]`, `Name [C]` hoặc source key tương ứng trong phần ánh xạ. Trong modal sửa dòng có nút **Chọn làm nguồn cho…** cạnh từng lựa chọn; thao tác này cập nhật toàn vùng, không chỉ dòng đang mở. Sau PATCH thành công, preview được tải lại với version mới.
 
+Với cột nguồn còn lại không dùng, chọn **Bỏ qua cột này** và bấm **Lưu ánh xạ cột**. Request gửi danh sách `IgnoredSourceColumns`; backend kiểm tra source key không đồng thời nằm trong Mapping, chuyển classification sang `IGNORED` và tính lại issue/counter từ snapshot mới. Sửa giá trị chuẩn hóa trong modal không thay thế quyết định này vì raw source column và business field là hai lớp dữ liệu khác nhau.
+
 ### Cấu hình OCR
 
 Mở **Cài đặt hệ thống → OCR & nhận dạng tài liệu** (`?tab=ocr`). Màn hình chỉ hiển thị provider local, phiên bản Tesseract, languages và trạng thái executable/model. Lưu trạng thái bật, languages, confidence, DPI và resource/timeout limits độc lập với tab âm kho. Dùng **Kiểm tra OCR** để cập nhật trạng thái `READY`, `NOT_CONFIGURED`, `STALE` hoặc `UNAVAILABLE`.
@@ -385,7 +399,13 @@ Tại AI Smart Import, switch **OCR cho PDF scan** mặc định OFF và chỉ b
 
 ### Một phiên nhiều file
 
-Chọn hoặc kéo thả tối đa 10 file `.xlsx`, `.docx`, `.pdf`; giới hạn mặc định là 10 MiB/file và 50 MiB/phiên. Preview hiển thị trạng thái từng nguồn và filename trên mỗi Group. Nếu một nguồn lỗi, Confirm bị khóa nhưng dữ liệu hợp lệ vẫn được xem; dùng **Loại nguồn** để bỏ toàn bộ Group/candidate của file lỗi. Confirm còn lại vẫn nguyên tử toàn phiên.
+Chọn hoặc kéo thả tối đa 10 file `.xlsx`, `.docx`, `.pdf`; giới hạn mặc định là 10 MiB/file và 50 MiB/phiên. Backend phân tích/tiền kiểm toàn batch trong memory trước khi tạo phiên. Nếu một file fatal (signature/format giả, OpenXML/PDF/DOCX hỏng, encrypted, active content, compression/resource bomb, vượt resource limit, OCR bắt buộc không khả dụng hoặc hoàn tất enrichment mà vẫn không có candidate), Analyze trả lỗi ngay tại vùng upload theo file/code/message và **không tạo ImportSession hay SourceDocument cho cả batch**. Bỏ hoặc sửa file lỗi rồi Analyze lại.
+
+File an toàn nhưng có lỗi nghiệp vụ vẫn tạo Preview. Hidden sheet được bỏ qua kèm warning; missing field, duplicate, reference, mapping và confidence được sửa/review trong phiên. Nút Confirm chỉ theo `CanConfirm` của backend và hiển thị `ConfirmBlockers`; counter không quyết định eligibility.
+
+Khi sửa dòng duplicate: `USER_SKIP` (`Action=SKIP`) không tự mở lại, còn `SYSTEM_DUPLICATE_SKIP` (`Action=CREATE`, `Status=SKIPPED`) được recompute theo business key/payload cũ và mới. Category code/name cũ và mới kéo theo revalidation Drink. Category importable ở sheet/file khác có thể trở thành `PENDING_IN_SESSION`; ProductType vẫn bắt buộc tồn tại active trong DB.
+
+Modal Supplier phân biệt TaxCode hard duplicate (field error, không có override) với soft match Name/phone/email/address. Soft match hiển thị Supplier match và đúng matched signals, yêu cầu checkbox + reason tối đa 500 ký tự; backend mint/validate token gắn actor, normalized payload, reason, fingerprint và expiry. Sửa payload làm token cũ stale; token chỉ consumed khi CRUD Create thành công.
 
 ### Cancel an toàn
 

@@ -1,6 +1,6 @@
 # Quy tắc nghiệp vụ Dashboard, AI, tín hiệu vận hành, so sánh nhà cung cấp và AI Smart Import
 
-> Cập nhật AI Smart Import (15/08/2026): baseline `20260815105817_InitialCreate` có forward migration OCR runtime/multi-file. Các invariant RBAC, PreviewVersion, idempotency, transaction `Serializable`, full revalidation và CRUD source-of-truth không thay đổi.
+> Cập nhật AI Smart Import (17/08/2026): fatal preflight nguyên tử trước session, recoverable system duplicate skip, same-session Category dependency, Supplier reason/token và central Confirm gate đã trở thành hợp đồng chính thức. Không đổi schema/migration.
 
 > Cập nhật theo mã nguồn, AI skill/schema, giao diện Dashboard và `Scripts/SeedAll.sql` ngày 14/08/2026.
 
@@ -411,6 +411,7 @@ Quy tắc duplicate:
 - Size: hard duplicate theo mã hoặc tên.
 - Ingredient: hard duplicate theo mã hoặc tên.
 - Supplier: chỉ `TaxCode` là hard duplicate. Tên, hotline, điện thoại/email đầu mối và địa chỉ là soft duplicate; muốn tiếp tục phải dùng warning token của `AdminSupplierService`, xác nhận cảnh báo và nhập lý do khi được yêu cầu.
+- TaxCode hard duplicate luôn là field `ERROR` và reason không bypass. Soft duplicate luôn là `WARNING`; match/signals phải có cấu trúc, reason được trim, token gắn actor + normalized payload + fingerprint + expiry và chỉ consumed khi Create thành công.
 
 Category `Icon` chỉ chấp nhận rỗng hoặc một grapheme Unicode hoàn chỉnh. Chữ, số, HTML, emoji kèm văn bản hoặc nhiều biểu tượng bị từ chối; emoji ghép như `❤️` và `👩‍🍳` vẫn tính là một biểu tượng. UI giữ giá trị hợp lệ gần nhất khi người dùng gõ/dán sai, nhưng backend `CategoryIconPolicy` luôn kiểm tra lại. Giới hạn lưu trữ vẫn là 10 ký tự.
 
@@ -517,6 +518,14 @@ Trạng thái ngoại lệ: `FAILED`, `CANCELLED`, `EXPIRED`. Session và histor
 
 Confirm bị chặn nếu còn `ERROR`, `REVIEW_REQUIRED` hoặc warning chưa xác nhận. Việc xác nhận thủ công ứng viên confidence thấp chỉ được giữ khi mọi validation khác đã đạt.
 
+Backend trả `CanConfirm`/`ConfirmBlockers` và dùng cùng eligibility module cho query lẫn direct Confirm. Gate còn kiểm session/source, ít nhất một item importable, mapping/reference/dependency, Supplier reason/token, `AIImport.Confirm` và mọi quyền `*.Create`. `SKIPPED` không tự chặn nếu còn item importable, nhưng all-skipped trả `KHÔNG_CÓ_DỮ_LIỆU_HỢP_LỆ_ĐỂ_NHẬP`.
+
+Analyze mới là batch atomic trước phiên: extension/content type/signature, OpenXML/PDF/DOCX parseability, encryption/active content/external relationship, expanded size/compression/resource limits và OCR capability bắt buộc phải qua trước persistence. Một fatal file hoặc file hoàn tất enrichment mà không tạo được candidate nào sẽ reject toàn request, trả file/code/message/fatal và không tạo session/source/group/item. Lỗi business của candidate đã trích xuất sau preflight mới tạo Preview; hidden source chỉ warning/ignore. Source `FAILED/PROCESSING` chỉ còn được gate hỗ trợ cho session lịch sử.
+
+System duplicate skip dùng `Action=CREATE`, `Status=SKIPPED`, `skipOrigin=SYSTEM_DUPLICATE` và phải recompute khi payload/business key đổi. User skip dùng `Action=SKIP` và giữ qua revalidation. Item PATCH revalidate cohort key cũ/mới và Category tokens cũ/mới.
+
+Drink resolve Category từ DB active hoặc Category candidate importable ở bất kỳ sheet/file/order nào trong session; parent error/review/user-skip/system-skip không được làm pending reference. ProductType vẫn resolve riêng từ DB active và không được tạo qua Smart Import.
+
 Confirm dùng `Idempotency-Key`, session ID, `PreviewVersion` và lựa chọn/value của item. Toàn bộ claim session, tạo entity, ghi kết quả và đánh dấu idempotency thành công nằm trong transaction `Serializable`. Category tạo trước Drink; một lỗi hoặc unique race rollback toàn phiên và không lộ SQL exception.
 
 Quyền Smart Import:
@@ -540,7 +549,7 @@ Theo seed mặc định, Chủ doanh nghiệp có toàn bộ quyền Smart Impor
 - Audit lưu format/mode, OCR usage/page/provider/version/confidence summary, AI chunk count, actor, trạng thái và kết quả; không lưu raw OCR/full evidence/full prompt.
 - Snapshot bị xóa khi session `COMPLETED`, `CANCELLED` hoặc `EXPIRED`; raw data/evidence/secret không xuất hiện trong application log hoặc history response.
 
-Migration theo đúng thứ tự `20260815105817_InitialCreate` (baseline chính thức) rồi `20260815141744_AddAIImportOcrRuntimeAndMultiFile` (forward migration). Database development/test đã ghi migration ID khác phải được nâng cấp có kiểm soát hoặc tạo lại nếu disposable; không tự động xóa database production.
+Migration hiện hành trong source là baseline squash `20260816101047_InitialCreate`, đã chứa AI Import và Target Stock. Database development/test đã ghi migration ID khác phải được nâng cấp có kiểm soát hoặc tạo lại nếu disposable; không tự động xóa database production. Đợt refactor này không sửa migration cũ.
 
 ## 8. Phạm vi cửa hàng và ngày kinh doanh
 
@@ -613,6 +622,7 @@ Quyền mã xác thực dùng một lần và đăng ký thiết bị bán hàng
 ## 12. Bổ sung hợp đồng AI Smart Import
 
 - Duplicate header được giải quyết bằng Group Mapping theo source key vị trí; chỉnh tay normalized value không giải quyết `XUNG_ĐỘT_ÁNH_XẠ`.
+- Group Mapping phải phân biệt cột chưa quyết định (`UNKNOWN`) với cột người dùng chủ động bỏ qua (`IGNORED`). `IgnoredSourceColumns` dùng source key theo vị trí, không được giao với source key đang ánh xạ và không được bypass `FORBIDDEN`. Sau PATCH, backend lưu classification trong `SourceColumnsJson`, loại warning `CỘT_KHÔNG_XÁC_ĐỊNH` của cột đã ignore và tính lại Preview/counter/confirm gate; raw value vẫn được giữ làm provenance.
 - Cancel chỉ được coi thành công khi server chuyển trạng thái; client phải đóng dialog và vô hiệu hóa preview cũ sau success, không làm mất draft khi fail.
 - System Settings dùng hai tab độc lập: âm kho và OCR. Lưu tab OCR không thay đổi policy âm kho và ngược lại; cả hai dùng quyền `Settings.View`/`Settings.Update` hiện hữu.
 - OCR effective bằng Tesseract executable + model local đã health-check `READY` AND import `UseOcr`. System Settings không có switch OCR toàn hệ thống. OCR không có secret, không gửi tài liệu ra cloud; response/audit không chứa đường dẫn máy chủ, ảnh render hoặc OCR text đầy đủ.

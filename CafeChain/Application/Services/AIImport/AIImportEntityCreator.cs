@@ -93,7 +93,7 @@ public sealed class AIImportEntityCreator(
                 return await suppliers.CreateAsync(dto, actor.StaffId);
             }
             default:
-                throw new InvalidOperationException("Entity ngoài phạm vi AI Smart Import MVP.");
+                throw new InvalidOperationException("Loại dữ liệu nằm ngoài phạm vi nhập dữ liệu thông minh.");
         }
     }
 

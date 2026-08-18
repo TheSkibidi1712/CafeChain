@@ -2040,6 +2040,7 @@ namespace CafeChain.Migrations
                     ReservedQty = table.Column<decimal>(type: "decimal(18,3)", nullable: false, defaultValue: 0m),
                     MaxNegativeQty = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
                     MinStockLevel = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
+                    TargetStockLevel = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
                     LastUpdated = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
                     RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
                 },
@@ -2049,6 +2050,8 @@ namespace CafeChain.Migrations
                     table.CheckConstraint("CK_StoreInventories_BtpLifecycle", "([IngredientId] IS NOT NULL\r\n                        AND [BtpIdentityState] IS NULL\r\n                        AND [QuantitySemanticsStatus] IS NULL\r\n                        AND [SupersededByStoreInventoryId] IS NULL\r\n                        AND [QuantitySemanticsEvidenceType] IS NULL\r\n                        AND [QuantitySemanticsEvidenceReference] IS NULL\r\n                        AND [QuantitySemanticsReviewedAt] IS NULL\r\n                        AND [QuantitySemanticsReviewedByAccountId] IS NULL)\r\n                    OR ([IngredientId] IS NULL AND (\r\n                        ([BtpIdentityState] = 0 AND [QuantitySemanticsStatus] IS NOT NULL AND [SupersededByStoreInventoryId] IS NULL)\r\n                        OR ([BtpIdentityState] = 1 AND [PreparedItemId] IS NOT NULL AND [QuantitySemanticsStatus] = 1\r\n                            AND [SupersededByStoreInventoryId] IS NULL\r\n                            AND [QuantitySemanticsEvidenceType] IS NOT NULL\r\n                            AND [QuantitySemanticsEvidenceReference] IS NOT NULL\r\n                            AND [QuantitySemanticsReviewedAt] IS NOT NULL\r\n                            AND [QuantitySemanticsReviewedByAccountId] IS NOT NULL)\r\n                        OR ([BtpIdentityState] = 2 AND [QuantitySemanticsStatus] IS NOT NULL AND [SupersededByStoreInventoryId] IS NOT NULL)))");
                     table.CheckConstraint("CK_StoreInventories_NotSelfSuperseded", "[SupersededByStoreInventoryId] IS NULL OR [SupersededByStoreInventoryId] <> [StoreInventoryId]");
                     table.CheckConstraint("CK_StoreInventories_QuantityEvidence", "[QuantitySemanticsStatus] IS NULL\r\n                    OR [QuantitySemanticsStatus] = 0\r\n                    OR ([QuantitySemanticsEvidenceType] IS NOT NULL\r\n                        AND [QuantitySemanticsEvidenceReference] IS NOT NULL\r\n                        AND [QuantitySemanticsReviewedAt] IS NOT NULL\r\n                        AND [QuantitySemanticsReviewedByAccountId] IS NOT NULL)");
+                    table.CheckConstraint("CK_StoreInventories_TargetStock_AtLeastMin", "[TargetStockLevel] IS NULL OR [MinStockLevel] IS NULL OR [TargetStockLevel] >= [MinStockLevel]");
+                    table.CheckConstraint("CK_StoreInventories_TargetStock_NonNegative", "[TargetStockLevel] IS NULL OR [TargetStockLevel] >= 0");
                     table.CheckConstraint("CK_StoreInventories_XOR_Item", "([IngredientId] IS NOT NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NULL)\r\n                    OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NULL)\r\n                    OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NOT NULL)\r\n                    OR ([IngredientId] IS NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NOT NULL)");
                     table.CheckConstraint("CK_StoreInventory_ReservedQty", "[ReservedQty] >= 0");
                     table.ForeignKey(
@@ -7560,13 +7563,13 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "StoreInventories",
-                columns: new[] { "StoreInventoryId", "AvailableQty", "BtpIdentityState", "IngredientId", "LastUpdated", "MaxNegativeQty", "MinStockLevel", "PreparedItemId", "QuantitySemanticsEvidenceReference", "QuantitySemanticsEvidenceType", "QuantitySemanticsReviewedAt", "QuantitySemanticsReviewedByAccountId", "QuantitySemanticsStatus", "RecipeId", "StoreId", "SupersededByStoreInventoryId" },
+                columns: new[] { "StoreInventoryId", "AvailableQty", "BtpIdentityState", "IngredientId", "LastUpdated", "MaxNegativeQty", "MinStockLevel", "PreparedItemId", "QuantitySemanticsEvidenceReference", "QuantitySemanticsEvidenceType", "QuantitySemanticsReviewedAt", "QuantitySemanticsReviewedByAccountId", "QuantitySemanticsStatus", "RecipeId", "StoreId", "SupersededByStoreInventoryId", "TargetStockLevel" },
                 values: new object[,]
                 {
-                    { 1, 100m, null, 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, null, null, null, null, null, null, null, null, 1, null },
-                    { 2, 50m, null, 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, null, null, null, null, null, null, null, null, 1, null },
-                    { 3, 80m, null, 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, null, null, null, null, null, null, null, null, 2, null },
-                    { 4, 60m, null, 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, null, null, null, null, null, null, null, null, 3, null }
+                    { 1, 100m, null, 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, null, null, null, null, null, null, null, null, 1, null, null },
+                    { 2, 50m, null, 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, null, null, null, null, null, null, null, null, 1, null, null },
+                    { 3, 80m, null, 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, null, null, null, null, null, null, null, null, 2, null, null },
+                    { 4, 60m, null, 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, null, null, null, null, null, null, null, null, 3, null, null }
                 });
 
             migrationBuilder.InsertData(

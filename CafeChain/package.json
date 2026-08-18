@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "test:ai-import-ui": "node --test ../CafeChain.Tests/JavaScript/ai-import-interactions.test.js"
+  },
   "dependencies": {
     "bcryptjs": "^3.0.3"
   },
