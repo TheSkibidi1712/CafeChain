@@ -156,7 +156,7 @@
     box-shadow: var(--cc-shadow-sm, 0 4px 10px rgba(32, 24, 18, 0.06)) !important;
 }
 
-.topping-admin-page .main-card > .d-flex h5 {
+.topping-admin-page .main-card>.d-flex h5 {
     color: var(--cc-text, #201812);
     font-size: 18px;
     font-weight: 750;
@@ -173,7 +173,11 @@
     font-weight: 600;
 }
 
-.catalog-pagination { display: flex; align-items: center; gap: 6px; }
+.catalog-pagination {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
 
 .catalog-pagination a,
 .catalog-pagination span {
@@ -190,15 +194,35 @@
     text-decoration: none;
 }
 
-.catalog-pagination span { border-color: transparent; background: transparent; }
+.catalog-pagination span {
+    border-color: transparent;
+    background: transparent;
+}
+
 .catalog-pagination a:hover,
 .catalog-pagination a:focus-visible,
-.catalog-pagination a.active { border-color: var(--cc-brown-600, #70482f); background: var(--cc-brown-600, #70482f); color: #fff; }
-.catalog-pagination a.disabled { pointer-events: none; opacity: .5; }
+.catalog-pagination a.active {
+    border-color: var(--cc-brown-600, #70482f);
+    background: var(--cc-brown-600, #70482f);
+    color: #fff;
+}
+
+.catalog-pagination a.disabled {
+    pointer-events: none;
+    opacity: .5;
+}
 
 @media (max-width: 720px) {
-    .catalog-table-footer { align-items: stretch; flex-direction: column; }
-    .catalog-pagination { max-width: 100%; overflow-x: auto; padding-bottom: 4px; }
+    .catalog-table-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .catalog-pagination {
+        max-width: 100%;
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
 }
 
 .table-responsive {
@@ -717,12 +741,151 @@
     box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22));
 }
 
-.topping-create-modal .topping-image-field {
-    padding: 16px;
-    border: 1px dashed var(--cc-border-strong, #d8c5b6);
-    border-radius: var(--cc-radius-md, 12px);
-    background: var(--cc-surface-muted, #fbf7f2);
+/* Nút Chọn tệp (Brown Primary Button Accent) */
+.btn-brown-pill,
+.topping-custom-file-input .btn-brown-pill {
+    background: var(--cc-brown-600, #70482f) !important;
+    color: #ffffff !important;
 }
+
+.btn-brown-pill:hover,
+.topping-custom-file-input .btn-brown-pill:hover {
+    background: var(--cc-brown-900, #3d2418) !important;
+    color: #ffffff !important;
+}
+
+.topping-custom-file-input {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.topping-file-name-text {
+    font-size: 13.5px;
+    color: var(--cc-text-secondary, #66584f);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* ==========================================================================
+   TOPPING IMAGE UPLOADER (THEO THIẾT KẾ MẪU)
+   ========================================================================== */
+.topping-upload-section {
+    width: 100%;
+    margin-bottom: 16px;
+}
+
+.topping-upload-header {
+    margin-bottom: 8px;
+}
+
+.topping-upload-title-wrap {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--cc-text, #201812);
+}
+
+.topping-upload-title-icon {
+    font-size: 16px;
+    color: var(--cc-text, #201812);
+}
+
+.topping-upload-box {
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 22px 20px 18px;
+    border: 1.5px dashed var(--cc-border-strong, #d6c5b8);
+    border-radius: 16px;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: all 0.2s ease;
+}
+
+.topping-upload-box:hover,
+.topping-upload-box.is-dragover {
+    border-color: var(--cc-brown-600, #70482f);
+    background: #fdfbf8;
+}
+
+.topping-upload-box.is-dragover {
+    border-style: solid;
+    box-shadow: 0 0 0 3px rgba(112, 72, 47, 0.15);
+}
+
+/* Nút Chọn ảnh dạng Pill Dark Chocolate */
+.topping-pill-choose-btn {
+    width: 100%;
+    height: 46px;
+    border-radius: 50px;
+    background: linear-gradient(180deg, #442617 0%, #2f190e 100%);
+    border: none;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(44, 25, 14, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.topping-pill-choose-btn:hover {
+    background: linear-gradient(180deg, #532f1c 0%, #3a1f12 100%);
+    box-shadow: 0 6px 18px rgba(44, 25, 14, 0.48);
+    transform: translateY(-1px);
+}
+
+.topping-pill-choose-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 6px rgba(44, 25, 14, 0.25);
+}
+
+.topping-pill-choose-btn:focus-visible {
+    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.25));
+}
+
+/* Dòng trạng thái: Chưa chọn file nào */
+.topping-file-status {
+    font-size: 13.5px;
+    color: #4b3d33;
+    font-weight: 500;
+    text-align: center;
+    margin-top: 2px;
+}
+
+/* Preview ảnh khi đã chọn */
+.topping-file-preview-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.topping-file-preview-img {
+    width: 90px;
+    height: 90px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+}
+
+.fs-11 { font-size: 11px !important; }
+.fs-12 { font-size: 12px !important; }
+.fs-14 { font-size: 14px !important; }
 
 .topping-create-modal .preview-img,
 #edit-preview {

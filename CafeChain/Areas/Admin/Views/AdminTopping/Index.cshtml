@@ -491,54 +491,49 @@
                         </div>
                     </div>
 
-                    <!-- IMAGE -->
-
-                    <div class="mb-3 topping-image-field">
-
-                        <label class="form-label">
-                            Ảnh topping
-                        </label>
-
-                        <input type="file"
-                               id="create-image-input"
-                               name="ImageFile"
-                               required
-                               class="form-control"
-                               accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                               onchange="previewCreateImage(event)" />
-
-                        <small class="text-muted d-block mt-1">
-
-                            JPG, JPEG, PNG, WEBP - Tối đa 3MB
-
-                        </small>
-
-                        <div class="position-relative d-inline-block mt-3">
-
-                            <img id="create-preview"
-                                 src="https://res.cloudinary.com/dzfizobk8/image/upload/v1779803296/no-image_vuuic6.jpg"
-                                 alt="Preview"
-                                 class="rounded preview-img d-none" 
-                            />
-
-                            <button type="button"
-                                    id="create-remove-btn"
-                                    onclick="removeCreateImage()"
-                                    class="btn btn-sm btn-danger position-absolute top-0 end-0 d-none">
-
-                                <i class="fas fa-times"></i>
-
-                            </button>
-
+                    <!-- CHỌN ẢNH TOPPING THEO MẪU -->
+                    <div class="mb-3 topping-upload-section">
+                        <div class="topping-upload-header mb-2">
+                            <div class="topping-upload-title-wrap d-flex align-items-center">
+                                <i class="fas fa-cloud-arrow-up topping-upload-title-icon me-2"></i>
+                                <span class="fw-bold fs-14">Thêm ảnh mới</span>
+                            </div>
+                            <div class="text-muted fs-12 mt-1">
+                                Ảnh JPG hoặc PNG, nên sử dụng ảnh vuông để hiển thị đẹp nhất.
+                            </div>
                         </div>
 
-                        <span class="text-danger"
-                              data-valmsg-for="ImageFile">
-                        </span>
+                        <div class="topping-upload-box" id="createToppingUploadBox">
+                            <input type="file"
+                                   id="create-image-input"
+                                   name="ImageFile"
+                                   class="d-none"
+                                   accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
+
+                            <button type="button"
+                                    id="btn-trigger-choose-image"
+                                    class="topping-pill-choose-btn"
+                                    onclick="document.getElementById('create-image-input').click();">
+                                <i class="fas fa-folder me-2"></i>Chọn ảnh
+                            </button>
+
+                            <div class="topping-file-status" id="create-file-status-text">
+                                Chưa chọn file nào
+                            </div>
+
+                            <!-- Preview thumbnail if file is chosen -->
+                            <div class="topping-file-preview-wrap d-none" id="create-file-preview-container">
+                                <img id="create-preview" src="" alt="Ảnh xem trước" class="topping-file-preview-img" />
+                                <button type="button" class="btn btn-sm btn-outline-danger mt-2" id="create-remove-btn" onclick="removeCreateImage(event)">
+                                    <i class="fas fa-trash-alt me-1"></i>Xóa ảnh đã chọn
+                                </button>
+                            </div>
+                        </div>
+
+                        <span class="text-danger" data-valmsg-for="ImageFile"></span>
+                    </div>
 
                     </div>
-                    </div>
-
                 </div>
 
                 <div class="modal-footer border-0">
@@ -681,12 +676,18 @@
                                      alt="Preview"
                                 />
 
-                                <input id="edit-image-input"
-                                       type="file"
-                                       name="ImageFile"
-                                       class="form-control"
-                                       accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                                       onchange="previewEditImage(event)" />
+                                <div class="topping-custom-file-input mt-2">
+                                    <input id="edit-image-input"
+                                           type="file"
+                                           name="ImageFile"
+                                           class="d-none"
+                                           accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                                           onchange="previewEditImage(event)" />
+                                    <label for="edit-image-input" class="btn btn-brown-pill me-1">
+                                        <i class="fas fa-folder-open me-1"></i> Chọn tệp
+                                    </label>
+                                    <span id="edit-image-file-name" class="topping-file-name-text" title="Chưa chọn tệp nào">Chưa chọn tệp nào</span>
+                                </div>
 
                                 <button type="button"
                                         class="btn btn-outline-danger btn-sm mt-2"
