@@ -195,13 +195,50 @@
                         <td class="text-center">
                             <input type="hidden" name="Items[@index].StoreInventoryId" value="@item.StoreInventoryId" form="@formId" />
                             <input type="hidden" name="Items[@index].RowVersion" value="@item.RowVersion" form="@formId" />
-                            <select class="form-select form-select-sm negative-limit-mode"
-                                    name="Items[@index].LimitMode" form="@formId"
-                                    disabled="@(!Model.IsConfigurationValid)">
-                                <option value="@NegativeInventoryLimitModes.Blocked" selected="@(item.LimitMode == NegativeInventoryLimitModes.Blocked)">Chặn</option>
-                                <option value="@NegativeInventoryLimitModes.Default" selected="@(item.LimitMode == NegativeInventoryLimitModes.Default)">Theo mặc định</option>
-                                <option value="@NegativeInventoryLimitModes.Custom" selected="@(item.LimitMode == NegativeInventoryLimitModes.Custom)">Hạn mức riêng</option>
-                            </select>
+                            <div class="ni-custom-dropdown-wrap">
+                                <select class="form-select form-select-sm negative-limit-mode d-none"
+                                        name="Items[@index].LimitMode" form="@formId"
+                                        disabled="@(!Model.IsConfigurationValid)">
+                                    <option value="@NegativeInventoryLimitModes.Blocked" selected="@(item.LimitMode == NegativeInventoryLimitModes.Blocked)">Chặn</option>
+                                    <option value="@NegativeInventoryLimitModes.Default" selected="@(item.LimitMode == NegativeInventoryLimitModes.Default)">Theo mặc định</option>
+                                    <option value="@NegativeInventoryLimitModes.Custom" selected="@(item.LimitMode == NegativeInventoryLimitModes.Custom)">Hạn mức riêng</option>
+                                </select>
+                                <div class="dropdown ni-custom-dropdown">
+                                    <button class="btn btn-sm ni-dropdown-trigger dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" disabled="@(!Model.IsConfigurationValid)">
+                                        <span class="ni-dropdown-selected-label">
+                                            @if (item.LimitMode == NegativeInventoryLimitModes.Blocked)
+                                            {
+                                                <i class="fas fa-lock me-1 text-danger"></i><span>Chặn</span>
+                                            }
+                                            else if (item.LimitMode == NegativeInventoryLimitModes.Custom)
+                                            {
+                                                <i class="fas fa-sliders me-1 text-amber"></i><span>Hạn mức riêng</span>
+                                            }
+                                            else
+                                            {
+                                                <i class="fas fa-circle-check me-1 text-success"></i><span>Theo mặc định</span>
+                                            }
+                                        </span>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-center ni-dropdown-menu shadow-sm">
+                                        <li>
+                                            <button type="button" class="dropdown-item ni-dropdown-item @(item.LimitMode == NegativeInventoryLimitModes.Blocked ? "active" : "")" data-value="BLOCKED">
+                                                <i class="fas fa-lock me-2 text-danger"></i>Chặn
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button type="button" class="dropdown-item ni-dropdown-item @(item.LimitMode == NegativeInventoryLimitModes.Default ? "active" : "")" data-value="DEFAULT">
+                                                <i class="fas fa-circle-check me-2 text-success"></i>Theo mặc định
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button type="button" class="dropdown-item ni-dropdown-item @(item.LimitMode == NegativeInventoryLimitModes.Custom ? "active" : "")" data-value="CUSTOM">
+                                                <i class="fas fa-sliders me-2 text-amber"></i>Hạn mức riêng
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
                         </td>
                         <td class="text-center">
                             <div class="ni-limit-controls">

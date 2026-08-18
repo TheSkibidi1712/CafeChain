@@ -3,12 +3,12 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 .negative-inventory-page {
-    --ni-primary:      #70482f;
+    --ni-primary: #70482f;
     --ni-primary-dark: #3d2418;
     --ni-primary-soft: #fbf7f2;
-    --ni-border:       #e9ded4;
-    --ni-muted:        #66584f;
-    --ni-surface:      #fffdfb;
+    --ni-border: #e9ded4;
+    --ni-muted: #66584f;
+    --ni-surface: #fffdfb;
     max-width: 1480px;
     margin: 0 auto;
     padding: 24px clamp(16px, 2.2vw, 32px) 40px;
@@ -19,7 +19,9 @@
     border-radius: 24px;
 }
 
-.negative-inventory-page *, .negative-inventory-page *::before, .negative-inventory-page *::after {
+.negative-inventory-page *,
+.negative-inventory-page *::before,
+.negative-inventory-page *::after {
     box-sizing: border-box;
 }
 
@@ -32,16 +34,32 @@
     align-items: center !important;
     justify-content: space-between !important;
     gap: 16px;
-    margin-bottom: 22px !important;
+    margin-bottom: 24px !important;
     min-height: 140px !important;
     padding: 24px 28px !important;
-    border: 1px solid #E9DED4 !important;
-    border-left: 5px solid #5C3F2B !important;
+    border: 1px solid var(--cc-border, #E9DED4) !important;
+    border-left: 5px solid var(--cc-brown-600, #70482F) !important;
     border-radius: var(--cc-radius-header, 20px) !important;
-    background: var(--cc-surface, #FFFDFB) !important;
-    box-shadow: var(--cc-shadow-md);
+    background: linear-gradient(135deg, var(--cc-surface-raised, #FFFDFB) 0%, #F7F4F0 100%) !important;
+    box-shadow: 0 6px 20px rgba(32, 24, 18, 0.05) !important;
     overflow: hidden;
     box-sizing: border-box !important;
+}
+
+.negative-inventory-page .ni-page-header::after {
+    right: 28px !important;
+    bottom: 14px !important;
+    width: 78px !important;
+    height: 78px !important;
+    opacity: 0.75 !important;
+}
+
+.negative-inventory-page .ni-page-header::before {
+    right: 125px !important;
+    top: -24px !important;
+    width: 108px !important;
+    height: 108px !important;
+    opacity: 0.75 !important;
 }
 
 .negative-inventory-page .ni-eyebrow {
@@ -83,11 +101,18 @@
 }
 
 .negative-inventory-page .ni-feature-panel {
-    padding: 20px 24px;
-    border: 1px solid #E9DED4;
-    border-left: 5px solid #5C3F2B;
-    border-radius: var(--cc-radius-md, 12px);
-    background: #FBF7F2;
+    padding: 22px 26px;
+    border: 1px solid var(--cc-border, #E9DED4);
+    border-left: 5px solid var(--cc-brown-600, #70482F);
+    border-radius: var(--cc-radius-card, 16px);
+    background: linear-gradient(135deg, #FBF7F2 0%, #FFFDFB 100%);
+    box-shadow: 0 4px 16px rgba(32, 24, 18, 0.04);
+    margin-bottom: 24px !important;
+    transition: box-shadow 0.18s ease;
+}
+
+.negative-inventory-page .ni-feature-panel:hover {
+    box-shadow: 0 6px 20px rgba(61, 36, 24, 0.08);
 }
 
 .negative-inventory-page .ni-feature-icon {
@@ -98,37 +123,57 @@
     height: 44px;
     border-radius: var(--cc-radius-md, 12px);
     color: #FFFDFB;
-    background: #70482F;
-    box-shadow: 0 2px 8px rgba(112, 72, 47, 0.2);
+    background: var(--cc-brown-600, #70482F);
+    box-shadow: 0 4px 12px rgba(112, 72, 47, 0.25);
 }
 
 .negative-inventory-page .ni-master-switch {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     margin: 0;
-    padding: 10px 18px 10px 48px;
-    border: 1px solid #D8C5B6;
+    padding: 10px 18px 10px 52px;
+    border: 1px solid var(--cc-border-strong, #D8C5B6);
     border-radius: var(--cc-radius-header, 20px);
-    background: #FFFDFB;
+    background: var(--cc-surface-raised, #FFFDFB);
+    box-shadow: 0 2px 6px rgba(32, 24, 18, 0.03);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
-.negative-inventory-page .ni-master-switch .form-check-input {
-    width: 2.4em;
-    height: 1.3em;
-    margin-left: -36px;
-    cursor: pointer;
+.negative-inventory-page .ni-master-switch:hover {
+    border-color: var(--cc-brown-600, #70482F);
+    box-shadow: 0 4px 12px rgba(112, 72, 47, 0.08);
 }
 
-.negative-inventory-page .form-check-input:checked {
-    border-color: #70482F;
-    background-color: #70482F;
+.negative-inventory-page :is(.form-switch, .ni-master-switch) .form-check-input {
+    width: 2.7em !important;
+    height: 1.45em !important;
+    margin-left: -42px;
+    background-color: #d1d5db !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3.1' fill='%23ffffff'/%3e%3c/svg%3e") !important;
+    background-position: left center !important;
+    background-repeat: no-repeat !important;
+    border: 1px solid #9ca3af !important;
+    border-radius: 2em !important;
+    transition: background-position 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    cursor: pointer !important;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+}
+
+.negative-inventory-page :is(.form-switch, .ni-master-switch) .form-check-input:checked {
+    background-color: var(--cc-brown-600, #70482F) !important;
+    border-color: var(--cc-brown-600, #70482F) !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3.1' fill='%23ffffff'/%3e%3c/svg%3e") !important;
+    background-position: right center !important;
+    box-shadow: 0 2px 8px rgba(112, 72, 47, 0.3) !important;
 }
 
 .negative-inventory-page .form-check-input:focus,
 .negative-inventory-page .form-control:focus,
 .negative-inventory-page .form-select:focus {
-    border-color: #70482F;
+    border-color: var(--cc-brown-600, #70482F);
     box-shadow: 0 0 0 3px rgba(112, 72, 47, 0.22);
     outline: none;
 }
@@ -194,31 +239,36 @@
 
 .negative-inventory-page .ni-meta-field {
     display: flex;
-    align-items: flex-start;
-    gap: 14px;
+    align-items: center;
+    gap: 16px;
     height: 100%;
-    padding: 16px 18px;
-    border: 1px solid #E9DED4;
-    border-radius: var(--cc-radius-md, 12px);
-    background: #FFFDFB;
-    transition: all 140ms ease;
+    min-height: 96px;
+    padding: 18px 22px;
+    border: 1px solid var(--cc-border, #E9DED4);
+    border-radius: var(--cc-radius-card, 14px);
+    background: var(--cc-surface-raised, #FFFDFB);
+    box-shadow: 0 3px 10px rgba(32, 24, 18, 0.03);
+    box-sizing: border-box;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
 .negative-inventory-page .ni-meta-field:hover {
-    border-color: #70482F;
-    box-shadow: 0 2px 8px rgba(61, 36, 24, 0.04);
+    transform: translateY(-2px);
+    border-color: var(--cc-brown-600, #70482F);
+    box-shadow: 0 8px 20px rgba(112, 72, 47, 0.09);
 }
 
 .negative-inventory-page .ni-meta-icon {
     display: grid;
     flex: 0 0 auto;
     place-items: center;
-    width: 36px;
-    height: 36px;
-    border: 1px solid #D8C5B6;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--cc-border-strong, #D8C5B6);
     border-radius: var(--cc-radius-control, 10px);
-    color: #70482F;
+    color: var(--cc-brown-600, #70482F);
     background: #FBF7F2;
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
 .negative-inventory-page .ni-policy-value {
@@ -231,17 +281,19 @@
     margin-top: 2px;
     padding: 4px 10px;
     border-radius: var(--cc-radius-header, 20px);
-    color: #5C3F2B;
+    color: var(--cc-brown-700, #5C3F2B);
     background: #FBF7F2;
-    border: 1px solid #D8C5B6;
+    border: 1px solid var(--cc-border-strong, #D8C5B6);
     font-size: .85rem;
     font-weight: 800;
 }
 
 .negative-inventory-page .ni-policy-grid {
-    display: grid;
-    grid-template-columns: minmax(320px, 1.35fr) minmax(220px, .8fr) minmax(260px, 1fr);
-    gap: 14px;
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+    align-items: stretch !important;
+    margin-bottom: 28px !important;
 }
 
 .negative-inventory-page .ni-section-heading {
@@ -249,32 +301,36 @@
     justify-content: space-between;
     gap: 18px;
     align-items: flex-end;
-    margin-bottom: 14px;
+    margin-top: 8px !important;
+    margin-bottom: 14px !important;
 }
 
 .negative-inventory-page .ni-section-heading h6 {
     margin: 0 0 4px;
-    color: #201812;
+    color: var(--cc-brown-950, #201812);
     font-size: 16px;
     font-weight: 800;
 }
 
 .negative-inventory-page .ni-section-heading p {
     margin: 0;
-    color: #66584F;
+    color: var(--cc-text-muted, #66584F);
     font-size: 13px;
 }
 
 .negative-inventory-page .ni-toolbar {
     margin-right: 0;
     margin-left: 0;
+    margin-bottom: 20px !important;
     padding: 14px 16px;
-    border: 1px solid #E9DED4;
-    border-radius: var(--cc-radius-md, 12px);
+    border: 1px solid var(--cc-border, #E9DED4);
+    border-radius: var(--cc-radius-card, 14px);
     background: #FBF7F2;
+    box-shadow: 0 2px 8px rgba(32, 24, 18, 0.02);
 }
 
 .negative-inventory-page .negative-store-tabs-wrap {
+    margin-bottom: 20px !important;
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: thin;
@@ -283,40 +339,45 @@
 .negative-inventory-page #negativeInventoryStoreTabs {
     width: max-content;
     min-width: 100%;
-    gap: 6px;
+    gap: 8px;
     padding-bottom: 10px;
-    border-bottom: 1px solid #E9DED4;
+    border-bottom: 1px solid var(--cc-border, #E9DED4);
 }
 
 .negative-inventory-page #negativeInventoryStoreTabs .nav-link {
     margin-right: 0;
-    padding: 10px 16px;
-    border: 1px solid #E9DED4;
+    padding: 10px 18px;
+    border: 1px solid var(--cc-border, #E9DED4);
     border-radius: var(--cc-radius-control, 10px);
-    color: #66584F;
-    background: #FFFDFB;
+    color: var(--cc-text-muted, #66584F);
+    background: var(--cc-surface-raised, #FFFDFB);
     font-weight: 750;
     font-size: 13px;
     white-space: nowrap;
-    transition: all 140ms ease;
+    transition: all 160ms ease;
+    box-shadow: 0 1px 3px rgba(32, 24, 18, 0.03);
 }
 
 .negative-inventory-page #negativeInventoryStoreTabs .nav-link:hover {
-    border-color: #70482F;
-    color: #70482F;
+    border-color: var(--cc-brown-600, #70482F);
+    color: var(--cc-brown-600, #70482F);
     background: #FBF7F2;
+    transform: translateY(-1px);
 }
 
 .negative-inventory-page #negativeInventoryStoreTabs .nav-link.active {
-    border-color: #70482F;
+    border-color: var(--cc-brown-600, #70482F);
     color: #FFFDFB;
-    background: #70482F;
+    background: var(--cc-brown-600, #70482F);
     font-weight: 800;
-    box-shadow: 0 2px 6px rgba(112, 72, 47, 0.18);
+    box-shadow: 0 4px 12px rgba(112, 72, 47, 0.22);
 }
 
-.negative-inventory-page .ni-search-wrap { position: relative; }
-.negative-inventory-page .ni-search-wrap > i {
+.negative-inventory-page .ni-search-wrap {
+    position: relative;
+}
+
+.negative-inventory-page .ni-search-wrap>i {
     position: absolute;
     top: 50%;
     left: 14px;
@@ -364,7 +425,7 @@
 }
 
 .negative-inventory-page #negativeInventoryItemsTable {
-    min-width: 980px;
+    min-width: 1040px;
     table-layout: fixed;
     border-collapse: collapse;
 }
@@ -388,7 +449,7 @@
     vertical-align: middle;
 }
 
-.negative-inventory-page #negativeInventoryItemsTable tbody tr:hover > * {
+.negative-inventory-page #negativeInventoryItemsTable tbody tr:hover>* {
     background: #FBF7F2;
 }
 
@@ -419,12 +480,29 @@
     white-space: nowrap;
 }
 
-.negative-inventory-page .ni-col-item { width: 27%; }
-.negative-inventory-page .ni-col-stock { width: 12%; }
-.negative-inventory-page .ni-col-mode { width: 13%; }
-.negative-inventory-page .ni-col-limit { width: 22%; }
-.negative-inventory-page .ni-col-effective { width: 10%; }
-.negative-inventory-page .ni-col-status { width: 16%; }
+.negative-inventory-page .ni-col-item {
+    width: 23%;
+}
+
+.negative-inventory-page .ni-col-stock {
+    width: 13%;
+}
+
+.negative-inventory-page .ni-col-mode {
+    width: 16%;
+}
+
+.negative-inventory-page .ni-col-limit {
+    width: 18%;
+}
+
+.negative-inventory-page .ni-col-effective {
+    width: 14%;
+}
+
+.negative-inventory-page .ni-col-status {
+    width: 16%;
+}
 
 .negative-inventory-page #negativeInventoryItemsTable .badge {
     display: inline-block;
@@ -457,27 +535,172 @@
 .negative-inventory-page #negativeInventoryItemsTable th.text-end,
 .negative-inventory-page #negativeInventoryItemsTable td.text-end {
     text-align: right !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
 }
 
-.negative-inventory-page .negative-limit-mode {
-    margin-left: auto;
-    margin-right: auto;
-    text-align: center;
-    text-align-last: center;
-    border-color: #ded2c8;
-    border-radius: var(--cc-radius-sm, 8px);
-    font-size: 13px;
+.negative-inventory-page .negative-limit-mode,
+.system-setting-page .negative-limit-mode {
+    width: 100% !important;
+    min-width: 140px !important;
+    max-width: 160px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    text-align: center !important;
+    text-align-last: center !important;
+    border-color: var(--cc-border-strong, #D8C5B6) !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+    font-size: 13px !important;
+    font-weight: 750 !important;
+    white-space: nowrap !important;
+    padding-left: 12px !important;
+    padding-right: 32px !important;
+    background-position: right 10px center !important;
+}
+
+/* ==========================================================================
+   CUSTOM DROPDOWN COMPONENT (.ni-custom-dropdown)
+   ========================================================================== */
+.ni-custom-dropdown-wrap {
+    display: inline-block;
+    width: 100%;
+    max-width: 178px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.ni-custom-dropdown {
+    width: 100%;
+    position: relative;
+}
+
+/* Trigger Button */
+.ni-dropdown-trigger {
+    width: 100% !important;
+    min-height: 38px !important;
+    padding: 6px 12px !important;
+    background-color: var(--cc-surface-raised, #FFFDFB) !important;
+    border: 1px solid var(--cc-border-strong, #D8C5B6) !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+    color: var(--cc-text-main, #201812) !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 160ms ease !important;
+    box-shadow: 0 1px 3px rgba(32, 24, 18, 0.04) !important;
+    position: relative !important;
+}
+
+.ni-dropdown-trigger::after {
+    display: none !important;
+}
+
+.ni-dropdown-trigger:hover:not(:disabled) {
+    border-color: var(--cc-brown-600, #70482F) !important;
+    background-color: #FBF7F2 !important;
+    box-shadow: 0 2px 6px rgba(112, 72, 47, 0.12) !important;
+}
+
+.ni-dropdown-trigger.show,
+.ni-dropdown-trigger:focus-visible {
+    border-color: var(--cc-brown-600, #70482F) !important;
+    box-shadow: 0 0 0 3px rgba(112, 72, 47, 0.18), 0 2px 8px rgba(112, 72, 47, 0.14) !important;
+    background-color: #FFFDFB !important;
+    outline: none !important;
+}
+
+.ni-dropdown-trigger.show::after {
+    transform: translateY(-50%) rotate(180deg) !important;
+}
+
+.ni-dropdown-selected-label {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    white-space: nowrap !important;
+    padding: 0 !important;
+}
+
+/* Floating Dropdown Menu */
+.ni-dropdown-menu {
+    min-width: 165px !important;
+    padding: 6px !important;
+    background: var(--cc-surface-raised, #FFFDFB) !important;
+    border: 1px solid var(--cc-border, #E9DED4) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 24px rgba(32, 24, 18, 0.14) !important;
+    margin-top: 6px !important;
+    z-index: 1050 !important;
+    animation: niDropdownFadeIn 160ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes niDropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Dropdown Items */
+.ni-dropdown-item {
+    padding: 8px 12px !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    font-weight: 650 !important;
+    color: var(--cc-text-main, #201812) !important;
+    display: flex !important;
+    align-items: center !important;
+    transition: all 140ms ease !important;
+    cursor: pointer !important;
+}
+
+.ni-dropdown-item:hover,
+.ni-dropdown-item:focus {
+    background-color: var(--cc-brown-soft, #FBF7F2) !important;
+    color: var(--cc-brown-600, #70482F) !important;
+    outline: none !important;
+}
+
+.ni-dropdown-item.active,
+.ni-dropdown-item:active {
+    background-color: var(--cc-brown-600, #70482F) !important;
+    color: #FFFDFB !important;
+}
+
+.ni-dropdown-item.active i {
+    color: #FFFDFB !important;
+}
+
+.text-amber {
+    color: #D97706 !important;
+}
+
+.negative-inventory-page .ni-stock-value {
+    font-weight: 700;
     white-space: nowrap;
-    padding-right: 28px;
+    word-break: keep-all;
 }
 
-.negative-inventory-page .ni-stock-value { font-weight: 700; white-space: nowrap; }
+.negative-inventory-page .negative-effective-limit,
+.negative-inventory-page .negative-display-unit-code {
+    white-space: nowrap;
+    word-break: keep-all;
+    display: inline-block;
+}
 
 .negative-inventory-page .ni-limit-controls {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 7px;
+    gap: 6px;
     width: 100%;
     min-width: 0;
     margin-left: auto;
@@ -485,44 +708,52 @@
 }
 
 .negative-inventory-page .ni-limit-controls .form-select {
-    flex: 1 1 60%;
+    flex: 1 1 auto;
     width: 60%;
     min-width: 0;
     margin-bottom: 0 !important;
-    min-height: 36px;
-    padding: 4px 8px;
+    padding: 4px 20px 4px 8px;
     font-size: 12.5px;
     border-radius: var(--cc-radius-sm, 8px);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .negative-inventory-page .ni-limit-controls .form-control {
-    flex: 0 0 35%;
-    width: 35%;
-    min-width: 80px;
-    min-height: 36px;
-    padding: 4px 8px;
+    flex: 0 0 68px;
+    width: 68px;
+    min-width: 60px;
+    padding: 4px 6px;
     font-size: 12.5px;
     border-radius: var(--cc-radius-sm, 8px);
+    text-align: center;
 }
 
 .negative-inventory-page .ni-status-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 5px 12px;
+    width: 100%;
+    max-width: 125px;
+    padding: 5px 8px;
     border-radius: 999px;
     font-size: 11.5px;
     font-weight: 700;
     white-space: nowrap;
+    text-align: center;
 }
+
 .negative-inventory-page .ni-status-badge.text-bg-success {
     background: #ecfdf5 !important;
     color: #16a34a !important;
 }
+
 .negative-inventory-page .ni-status-badge.text-bg-secondary {
     background: #f1f5f9 !important;
     color: #64748b !important;
 }
+
 .negative-inventory-page #negativeInventoryItemsTable .form-select-sm,
 .negative-inventory-page #negativeInventoryItemsTable .form-control-sm {
     min-height: 36px;
@@ -555,15 +786,19 @@
 }
 
 .negative-inventory-page .ni-save-bar {
-    position: sticky;
-    bottom: 0;
-    z-index: 5;
-    margin: 20px -24px -24px;
-    padding: 16px 24px;
-    border-top: 1px solid #E9DED4;
-    border-radius: 0 0 16px 16px;
-    background: rgba(255, 253, 251, 0.96);
-    backdrop-filter: blur(8px);
+    position: static !important;
+    margin-top: 24px !important;
+    margin-bottom: 0 !important;
+    padding: 16px 0 0 0 !important;
+    border-top: 1px solid var(--cc-border, #E9DED4) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    z-index: 1 !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
 }
 
 .negative-inventory-page .btn-ni-primary {
@@ -587,35 +822,287 @@
 }
 
 @media (max-width: 767.98px) {
-    .negative-inventory-page .ni-settings-card .card-body { padding: 18px !important; }
-    .negative-inventory-page .ni-feature-panel { padding: 16px; }
-    .negative-inventory-page .ni-master-switch { width: 100%; }
-    .negative-inventory-page .ni-section-heading { display: grid; }
-    .negative-inventory-page .ni-policy-grid { grid-template-columns: 1fr; }
-    .negative-inventory-page .ni-save-bar { margin: 18px -18px -18px; padding: 14px 18px; }
-    .negative-inventory-page .btn-ni-primary { width: 100%; }
+    .negative-inventory-page .ni-settings-card .card-body {
+        padding: 18px !important;
+    }
+
+    .negative-inventory-page .ni-feature-panel {
+        padding: 16px;
+    }
+
+    .negative-inventory-page .ni-master-switch {
+        width: 100%;
+    }
+
+    .negative-inventory-page .ni-section-heading {
+        display: grid;
+    }
+
+    .negative-inventory-page .ni-policy-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .negative-inventory-page .ni-save-bar {
+        margin-top: 20px !important;
+        padding: 14px 0 0 0 !important;
+    }
+
+    .negative-inventory-page .btn-ni-primary {
+        width: 100%;
+    }
 }
 
 @media (min-width: 768px) and (max-width: 1199.98px) {
-    .negative-inventory-page .ni-policy-grid { grid-template-columns: 1fr 1fr; }
-    .negative-inventory-page .ni-policy-primary { grid-column: 1 / -1; }
+    .negative-inventory-page .ni-policy-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .negative-inventory-page .ni-policy-primary {
+        grid-column: 1 / -1;
+    }
 }
 
 /* FE2 batch 13: settings state, guard and save hierarchy. */
-.system-setting-page .ni-page-header { position:relative; overflow:hidden; border:1px solid var(--cc-border,#E9DED4); border-left:4px solid var(--cc-caramel-500,#A97750); border-radius:var(--cc-radius-lg,16px); padding:clamp(18px,2.4vw,28px); background:var(--cc-surface,#FFFDFB); }
-.system-setting-page .ni-feature-panel { border-color:var(--cc-warning,#99623B); background:var(--cc-warning-bg,#FBF3EA); }
-.system-setting-page .ni-section-heading { padding-left:10px; border-left:3px solid var(--cc-caramel-500,#A97750); }
-.system-setting-page .ni-table-wrap { border-top:3px solid var(--cc-brown-600,#70482F)!important; }
-.system-setting-page .ni-save-bar { position:sticky; bottom:12px; z-index:5; padding:12px; border:1px solid var(--cc-border,#E9DED4); border-radius:var(--cc-radius-control,10px); background:rgba(255,253,251,.96); box-shadow:var(--cc-shadow-md); }
-.system-setting-page :is(a,button,input,select,textarea):focus-visible { outline:2px solid var(--cc-brown-600,#70482F); outline-offset:2px; box-shadow:var(--cc-focus-ring)!important; }
-@media(max-width:767.98px){.system-setting-page .ni-save-bar{position:static}.system-setting-page .ni-save-bar>*{width:100%}}
-@media(prefers-reduced-motion:reduce){.system-setting-page *{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important;}}
+.system-setting-page .ni-page-header {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--cc-border, #E9DED4);
+    border-left: 4px solid var(--cc-caramel-500, #A97750);
+    border-radius: var(--cc-radius-lg, 16px);
+    padding: clamp(18px, 2.4vw, 28px);
+    background: var(--cc-surface, #FFFDFB);
+}
+
+.system-setting-page .ni-feature-panel {
+    border-color: var(--cc-warning, #99623B);
+    background: var(--cc-warning-bg, #FBF3EA);
+}
+
+.system-setting-page .ni-section-heading {
+    padding-left: 10px;
+    border-left: 3px solid var(--cc-caramel-500, #A97750);
+}
+
+.system-setting-page .ni-table-wrap {
+    border-top: 3px solid var(--cc-brown-600, #70482F) !important;
+}
+
+.system-setting-page .ni-save-bar {
+    position: static !important;
+    margin-top: 24px !important;
+    margin-bottom: 0 !important;
+    padding: 16px 0 0 0 !important;
+    border-top: 1px solid var(--cc-border, #E9DED4) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    z-index: 1 !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+}
+
+.system-setting-page :is(a, button, input, select, textarea):focus-visible {
+    outline: 2px solid var(--cc-brown-600, #70482F);
+    outline-offset: 2px;
+    box-shadow: var(--cc-focus-ring) !important;
+}
+
+@media(max-width:767.98px) {
+    .system-setting-page .ni-save-bar {
+        position: static
+    }
+
+    .system-setting-page .ni-save-bar>* {
+        width: 100%
+    }
+}
+
+@media(prefers-reduced-motion:reduce) {
+    .system-setting-page * {
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}
+
 /* Fix branch: normalize editable table controls and multiline cells. */
-.system-setting-page #negativeInventoryItemsTable th { text-align: center; vertical-align: middle; }
-.system-setting-page #negativeInventoryItemsTable td { text-align: center; vertical-align: middle; }
-.system-setting-page #negativeInventoryItemsTable td:first-child { text-align: left; }
-.system-setting-page .ni-item-heading { justify-content: flex-start; align-items: center; flex-wrap: wrap; line-height: 1.35; }
-.system-setting-page .ni-item-name { white-space: normal; overflow-wrap: anywhere; text-overflow: clip; }
+.system-setting-page #negativeInventoryItemsTable th {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.system-setting-page #negativeInventoryItemsTable td {
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* 🎯 FIX LỖI 1 & 2: CĂN GIỮA 4 CỘT (ITEM, TỒN KHẢ DỤNG, HIỆU LỰC, TRẠNG THÁI) + KHÔNG TRÀN VIỀN */
+
+/* 1. Cột ITEM (Cột 1) - Căn giữa toàn bộ dòng & chữ */
+.system-setting-page #negativeInventoryItemsTable th.ni-col-item,
+.system-setting-page #negativeInventoryItemsTable td:first-child,
+.negative-inventory-page #negativeInventoryItemsTable th.ni-col-item,
+.negative-inventory-page #negativeInventoryItemsTable td:first-child {
+    text-align: center !important;
+}
+
+.system-setting-page .ni-item-heading,
+.negative-inventory-page .ni-item-heading {
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    flex-wrap: wrap;
+    line-height: 1.35;
+}
+
+.system-setting-page .ni-item-code,
+.system-setting-page .ni-item-name,
+.negative-inventory-page .ni-item-code,
+.negative-inventory-page .ni-item-name {
+    text-align: center !important;
+    display: inline-block !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.system-setting-page #negativeInventoryItemsTable td:first-child .small,
+.negative-inventory-page #negativeInventoryItemsTable td:first-child .small {
+    display: block !important;
+    width: 100% !important;
+    text-align: center !important;
+    margin-top: 2px !important;
+}
+
+/* 2. Cột TỒN KHẢ DỤNG (Cột 2) - Căn giữa số & dòng phụ */
+.system-setting-page #negativeInventoryItemsTable th.ni-col-stock,
+.system-setting-page #negativeInventoryItemsTable td:nth-child(2),
+.negative-inventory-page #negativeInventoryItemsTable th.ni-col-stock,
+.negative-inventory-page #negativeInventoryItemsTable td:nth-child(2) {
+    text-align: center !important;
+}
+
+.system-setting-page #negativeInventoryItemsTable td:nth-child(2) .ni-stock-value,
+.system-setting-page #negativeInventoryItemsTable td:nth-child(2) .small,
+.negative-inventory-page #negativeInventoryItemsTable td:nth-child(2) .ni-stock-value,
+.negative-inventory-page #negativeInventoryItemsTable td:nth-child(2) .small {
+    text-align: center !important;
+    display: block !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+/* 3. Cột HIỆU LỰC (Cột 5) - Căn giữa giá trị & đơn vị */
+.system-setting-page #negativeInventoryItemsTable th.ni-col-effective,
+.system-setting-page #negativeInventoryItemsTable td:nth-child(5),
+.negative-inventory-page #negativeInventoryItemsTable th.ni-col-effective,
+.negative-inventory-page #negativeInventoryItemsTable td:nth-child(5) {
+    text-align: center !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+}
+
+.system-setting-page #negativeInventoryItemsTable td:nth-child(5) .negative-effective-limit,
+.system-setting-page #negativeInventoryItemsTable td:nth-child(5) .negative-display-unit-code,
+.negative-inventory-page #negativeInventoryItemsTable td:nth-child(5) .negative-effective-limit,
+.negative-inventory-page #negativeInventoryItemsTable td:nth-child(5) .negative-display-unit-code {
+    text-align: center !important;
+}
+
+/* 4. Cột TRẠNG THÁI (Cột 6) - Căn giữa nút/badge & không tràn viền */
+.system-setting-page #negativeInventoryItemsTable th.ni-col-status,
+.system-setting-page #negativeInventoryItemsTable td:nth-child(6),
+.negative-inventory-page #negativeInventoryItemsTable th.ni-col-status,
+.negative-inventory-page #negativeInventoryItemsTable td:nth-child(6) {
+    text-align: center !important;
+}
+
+.system-setting-page #negativeInventoryItemsTable td:nth-child(6) .ni-status-badge,
+.negative-inventory-page #negativeInventoryItemsTable td:nth-child(6) .ni-status-badge {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    display: inline-flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+}
+
+/* Bảo đảm đệm viền phải cho ô cuối cùng không bao giờ bị dính mép hoặc tràn viền */
+.system-setting-page #negativeInventoryItemsTable th:last-child,
+.system-setting-page #negativeInventoryItemsTable td:last-child,
+.negative-inventory-page #negativeInventoryItemsTable th:last-child,
+.negative-inventory-page #negativeInventoryItemsTable td:last-child {
+    padding-right: 18px !important;
+}
+
 .system-setting-page #negativeInventoryItemsTable .form-select-sm,
-.system-setting-page #negativeInventoryItemsTable .form-control-sm { height: 40px; min-height: 40px; border-radius: var(--cc-radius-control, 10px); }
-.system-setting-page .ni-limit-controls { align-items: center; gap: 8px; }.system-setting-page .btn-ni-primary{min-height:44px;border-color:var(--cc-brown-600,#70482F)!important;background:var(--cc-brown-600,#70482F)!important;color:#fff!important}.system-setting-page :is(.btn-danger,.btn-outline-danger){border-color:var(--cc-danger,#B42318)!important;background:var(--cc-danger-bg,#FEF3F2)!important;color:var(--cc-danger,#B42318)!important}
+.system-setting-page #negativeInventoryItemsTable .form-control-sm {
+    height: 40px;
+    min-height: 40px;
+    border-radius: var(--cc-radius-control, 10px);
+}
+
+.system-setting-page .ni-limit-controls {
+    align-items: center;
+    gap: 6px;
+}
+
+.system-setting-page .ni-limit-controls .form-select {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.system-setting-page .btn-ni-primary {
+    min-height: 44px;
+    border-color: var(--cc-brown-600, #70482F) !important;
+    background: var(--cc-brown-600, #70482F) !important;
+    color: #fff !important
+}
+
+.system-setting-page :is(.btn-danger, .btn-outline-danger) {
+    border-color: var(--cc-danger, #B42318) !important;
+    background: var(--cc-danger-bg, #FEF3F2) !important;
+    color: var(--cc-danger, #B42318) !important;
+}
+
+/* System Settings Top Navigation Tabs */
+.system-setting-page > .nav-tabs {
+    border-bottom: 1px solid var(--cc-border, #E9DED4) !important;
+    gap: 8px !important;
+    margin-bottom: 24px !important;
+    padding-bottom: 2px !important;
+}
+
+.system-setting-page > .nav-tabs .nav-link {
+    padding: 10px 20px !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    color: var(--cc-text-muted, #66584F) !important;
+    background: var(--cc-surface-raised, #FFFDFB) !important;
+    border: 1px solid var(--cc-border, #E9DED4) !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+    transition: all 160ms ease !important;
+    box-shadow: 0 1px 3px rgba(32, 24, 18, 0.04) !important;
+}
+
+.system-setting-page > .nav-tabs .nav-link:hover {
+    color: var(--cc-brown-600, #70482F) !important;
+    background: #FBF7F2 !important;
+    border-color: var(--cc-brown-600, #70482F) !important;
+    transform: translateY(-1px) !important;
+}
+
+.system-setting-page > .nav-tabs .nav-link.active {
+    color: #FFFDFB !important;
+    background: var(--cc-brown-600, #70482F) !important;
+    border-color: var(--cc-brown-600, #70482F) !important;
+    box-shadow: 0 4px 14px rgba(112, 72, 47, 0.25) !important;
+    font-weight: 800 !important;
+}
