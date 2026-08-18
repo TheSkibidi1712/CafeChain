@@ -292,7 +292,7 @@
 
 .admin-premium-refresh .admin-page-body :is(
     .btn-primary, .btn-save, .btn-edit, .btn-apply, .btn-search,
-    .ops-btn-primary, .supplier-btn-primary, .category-btn-primary
+    .ops-btn-primary, .category-btn-primary
 ) {
     border-color: var(--cc-refresh-espresso-2) !important;
     background: var(--cc-refresh-espresso-2) !important;
@@ -809,10 +809,8 @@ body.admin-premium-shell :is(.offcanvas-body, .sm-drawer-body, .pf-drawer-body, 
 
 
 body.admin-premium-shell :is(.offcanvas-body, .sm-drawer-body, .pf-drawer-body, .modal-body) label:not(.inventory-export-option):not(.create-purpose-card):not(.negative-stock-mode-card) {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: stretch !important;
-    margin-bottom: 16px !important;
+    display: block !important;
+    margin-bottom: 10px !important;
 }
 
 body.admin-premium-shell :is(.offcanvas-body, .sm-drawer-body, .pf-drawer-body, .modal-body) label:not(.inventory-export-option):not(.create-purpose-card):not(.negative-stock-mode-card) > span:first-child {
@@ -851,6 +849,18 @@ body.admin-premium-shell :is(
     border: 1.5px solid var(--cc-brown-600, #70482F) !important;
     background: #ffffff !important;
     background-color: #ffffff !important;
+}
+
+/* Restore file input styling on focus — override the white background above */
+body.admin-premium-shell input[type="file"]:focus,
+body.admin-premium-shell input[type="file"]:focus-visible,
+body.admin-premium-shell input[type="file"].form-control:focus,
+body.admin-premium-shell input[type="file"].form-control:focus-visible {
+    background: #FAF6F2 !important;
+    background-color: #FAF6F2 !important;
+    border: 1px solid #70482f !important;
+    outline: none !important;
+    box-shadow: none !important;
 }
 
 /* Make the label text light up and become bold when the child input/textarea is focused */
@@ -1227,38 +1237,52 @@ body.admin-premium-shell :is(
 
 /* 31. Standardize and align Supplier and Ingredient filter elements (inputs, selects, buttons) to the same height and vertical line */
 body.admin-premium-shell :is(.supplier-filter-grid, .ingredient-filter-grid) {
-    align-items: end !important;
+    align-items: start !important;
 }
 
 /* 31. Standardize and align Supplier and Ingredient filter elements to the premium 38px height standard (High Specificity Overrides) */
 body.admin-premium-shell .supplier-page .supplier-filter-grid {
-    align-items: end !important;
+    align-items: start !important;
 }
 
 body.admin-premium-shell .ingredient-page .ingredient-filter-grid {
-    align-items: end !important;
+    align-items: start !important;
 }
 
+/* Push filter action buttons down by exactly label-height (18px) + margin-bottom (6px) = 24px so they align with the select/input below the label */
 body.admin-premium-shell :is(.supplier-page, .ingredient-page) :is(
-    .supplier-search-control,
+    .supplier-filter-actions,
+    .ingredient-filter-actions
+) {
+    padding-top: 24px !important;
+    align-self: auto !important;
+}
+
+/* Filter interactive elements: inputs, selects, and buttons forced to 38px */
+body.admin-premium-shell :is(.supplier-page, .ingredient-page) :is(
     .supplier-search-control input,
     .supplier-filter-field select,
-    .supplier-filter-actions,
     .supplier-filter-actions .supplier-btn,
     .supplier-filter-actions :is(a, button),
-    .ingredient-search-control,
     .ingredient-search-control input,
     .ingredient-filter-field select,
-    .ingredient-filter-actions,
     .ingredient-filter-actions .ingredient-btn,
     .ingredient-filter-actions :is(a, button)
 ) {
     height: 38px !important;
     min-height: 38px !important;
     max-height: 38px !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
     box-sizing: border-box !important;
+}
+
+/* Search control wrapper spans match the input height */
+body.admin-premium-shell :is(.supplier-page, .ingredient-page) :is(
+    .supplier-search-control,
+    .ingredient-search-control
+) {
+    height: 38px !important;
+    min-height: 38px !important;
+    display: block !important;
 }
 
 /* Ensure inner inputs and select boxes inside the wrapper elements have correct padding and line-height */
@@ -1865,6 +1889,770 @@ body.admin-premium-shell .recipe-workspace__section-heading.bom-section-heading 
     justify-content: flex-start !important;
     gap: 12px !important;
 }
+
+/* 51. Supply Chain Sidebar Stepper/Timeline connecting process flow styling */
+body.admin-premium-shell .sidebar-flow-group {
+    position: relative !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Vertical timeline line connecting the nodes */
+body.admin-premium-shell .sidebar-flow-group::before {
+    content: '' !important;
+    position: absolute !important;
+    left: 23px !important; /* Center of the node dots */
+    top: 14px !important;  /* Start slightly below the first node center */
+    bottom: 14px !important; /* End slightly above the last node center */
+    width: 2px !important;
+    background-color: rgba(211, 160, 113, 0.22) !important;
+    z-index: 1 !important;
+}
+
+/* Indent and align flow items with high specificity to prevent text overlap */
+body.admin-premium-shell .sidebar .sidebar-sub a.sidebar-flow-item {
+    position: relative !important;
+    padding-left: 36px !important; /* Move text to the right to clear the line */
+}
+
+/* Redesign nodes: hide FontAwesome icon and draw a custom CSS hollow ring */
+body.admin-premium-shell .sidebar .sidebar-sub a.sidebar-flow-item i.sidebar-flow-node::before {
+    content: "" !important; /* Hide solid dot text glyph */
+}
+
+body.admin-premium-shell .sidebar .sidebar-sub a.sidebar-flow-item i.sidebar-flow-node {
+    position: absolute !important;
+    left: 20px !important; /* Mathematically centered on the 2px vertical line at 24px center */
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 8px !important;
+    height: 2px !important; /* Horizontal sleek progress tick mark instead of circle */
+    background-color: var(--cc-border-strong, #aa8f7d) !important;
+    border: none !important;
+    border-radius: 1px !important;
+    box-sizing: border-box !important;
+    z-index: 2 !important;
+    transition: all 0.16s ease !important;
+}
+
+/* Hover state: dash expands and turns warm gold */
+body.admin-premium-shell .sidebar .sidebar-sub a.sidebar-flow-item:hover i.sidebar-flow-node {
+    background-color: var(--cc-refresh-gold, #c99e7d) !important;
+    width: 12px !important;
+    left: 18px !important;
+}
+
+/* Active state for flow nodes: wider, solid gold dash mark */
+body.admin-premium-shell .sidebar .sidebar-sub a.sidebar-flow-item.active i.sidebar-flow-node,
+body.admin-premium-shell .sidebar .sidebar-sub a.sidebar-flow-item[class*="active"] i.sidebar-flow-node {
+    background-color: var(--cc-refresh-gold, #c99e7d) !important;
+    border: none !important;
+    width: 14px !important;
+    height: 2px !important;
+    left: 17px !important;
+    border-radius: 1px !important;
+}
+
+/* 52. Align and standardize filter dropdowns and action buttons to be exactly the same size and height (38px) */
+body.admin-premium-shell :is(.supplier-page, .ingredient-page, .admin-page-body) :is(
+    .ingredient-filter-actions .ingredient-btn,
+    .supplier-filter-actions .supplier-btn,
+    .ingredient-filter-actions button,
+    .supplier-filter-actions button,
+    .supplier-filter-actions a,
+    #btnReset,
+    #btnFilter
+) {
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    box-sizing: border-box !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+    font-size: 13px !important;
+    font-weight: 750 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    vertical-align: middle !important;
+    line-height: 1 !important;
+}
+
+body.admin-premium-shell :is(.supplier-page, .ingredient-page, .admin-page-body) :is(
+    .ingredient-filter-field select,
+    .supplier-filter-field select,
+    select#statusFilter,
+    select#supplierStatusFilter
+) {
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    box-sizing: border-box !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    vertical-align: middle !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+    padding-left: 12px !important;
+    padding-right: 32px !important;
+}
+
+/* 53. AI Import Header - Unified with Dashboard design */
+.admin-premium-refresh .admin-page-body .ai-import-header {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 20px !important;
+    min-height: 132px !important;
+    padding: 24px 30px !important;
+    margin-bottom: 24px !important;
+    border: 1px solid var(--cc-border, #E9DED4) !important;
+    border-left: 5px solid var(--cc-refresh-espresso, #2b1b16) !important;
+    border-radius: 18px !important;
+    background: radial-gradient(circle at 92% 4%, rgba(201, 158, 125, 0.12), transparent 280px), linear-gradient(135deg, #fffdfb 0%, #faf6f2 54%, #f7f4f0 100%) !important;
+    box-shadow: 0 10px 28px rgba(57, 38, 29, .05) !important;
+    overflow: hidden !important;
+}
+
+.admin-premium-refresh .admin-page-body .ai-import-header-copy {
+    max-width: 760px !important;
+}
+
+.admin-premium-refresh .admin-page-body .ai-import-header h1 {
+    font-size: 25px !important;
+    font-weight: 800 !important;
+    color: var(--cc-brown-950, #2b1a12) !important;
+    letter-spacing: -.02em !important;
+    margin: 0 0 6px 0 !important;
+    line-height: 1.2 !important;
+}
+
+.admin-premium-refresh .admin-page-body .ai-import-header p {
+    margin: 0 !important;
+    color: var(--cc-text-secondary, #66584f) !important;
+    font-size: 13.5px !important;
+    line-height: 1.5 !important;
+}
+
+.admin-premium-refresh .admin-page-body .ai-import-header .ai-import-eyebrow {
+    display: block !important;
+    text-transform: uppercase !important;
+    letter-spacing: .12em !important;
+    font-size: .72rem !important;
+    font-weight: 800 !important;
+    color: var(--cc-brown-600, #70482f) !important;
+    margin-bottom: 4px !important;
+}
+
+/* Style the Lịch sử button inside AI Import Header to match Dashboard secondary button */
+.admin-premium-refresh .admin-page-body .ai-import-header .btn-ai.ghost {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    box-sizing: border-box !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    border: 1px solid var(--cc-border-strong, #D8C5B6) !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+    padding: 10px 18px !important;
+    background: var(--cc-surface-raised, #FFFFFF) !important;
+    color: var(--cc-brown-800, #4D3021) !important;
+    font-weight: 700 !important;
+    font-size: .88rem !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    box-shadow: var(--cc-shadow-xs) !important;
+    transition: background .18s, border-color .18s, transform .12s, box-shadow .18s !important;
+}
+
+.admin-premium-refresh .admin-page-body .ai-import-header .btn-ai.ghost:hover {
+    color: var(--cc-brown-900, #3D2418) !important;
+    border-color: var(--cc-brown-600, #70482F) !important;
+    background: var(--cc-brown-50, #FAF6F2) !important;
+    box-shadow: 0 4px 12px rgba(112, 72, 47, 0.12) !important;
+    transform: translateY(-1px) !important;
+}
+
+.admin-premium-refresh .admin-page-body .ai-import-header .btn-ai.ghost i {
+    font-size: 14px !important;
+}
+
+/* Standardize AI Import buttons and select boxes to be exactly 38px height for premium alignment */
+body.admin-premium-shell .ai-import-page :is(.btn-ai:not(.ghost):not(.small), select, input:not([type="checkbox"]):not([type="radio"])) {
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    box-sizing: border-box !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    vertical-align: middle !important;
+}
+
+body.admin-premium-shell .ai-import-page select {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+    padding-left: 12px !important;
+    padding-right: 32px !important;
+}
+
+/* SweetAlert container inside the HTML5 edit-dialog modal */
+.edit-dialog .swal2-container {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 1000000 !important;
+}
+
+/* Synchronize AI Import page shell size, padding and max-width with Category page (standard admin layout) */
+.admin-premium-refresh .admin-page-body:has(.ai-import-page) {
+    box-sizing: border-box !important;
+    width: min(100%, 1680px) !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+}
+
+body.admin-premium-shell .ai-import-page {
+    padding: 0 !important; /* Reset padding to 0, exactly matching Category and Dashboard pages */
+    min-height: auto !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+}
+
+/* Synchronize AI Import buttons to use Category-standard brand brown colors */
+body.admin-premium-shell .ai-import-page .btn-ai.primary {
+    border-color: #6F4E37 !important;
+    background: #6F4E37 !important;
+    color: #FFFDFB !important;
+    box-shadow: 0 8px 18px rgba(111, 78, 55, .18) !important;
+}
+
+body.admin-premium-shell .ai-import-page .btn-ai.primary:hover:not(:disabled) {
+    border-color: #5C3F2B !important;
+    background: #5C3F2B !important;
+    box-shadow: 0 10px 22px rgba(111, 78, 55, .24) !important;
+}
+
+body.admin-premium-shell .ai-import-page .btn-ai:not(.primary):not(.ghost):not(.danger) {
+    background: #FFFDFB !important;
+    border-color: #D8C5B6 !important;
+    color: #201812 !important;
+    box-shadow: var(--cc-shadow-xs) !important;
+}
+
+body.admin-premium-shell .ai-import-page .btn-ai:not(.primary):not(.ghost):not(.danger):hover:not(:disabled) {
+    background: #FAF6F2 !important;
+    border-color: #6F4E37 !important;
+    color: #6F4E37 !important;
+    box-shadow: 0 4px 12px rgba(111, 78, 55, 0.12) !important;
+}
+
+/* Synchronize Dashboard analytics-page padding with Category to match header widths */
+body.admin-premium-shell .analytics-page {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* AI Import Header Concentric Circles (2 curves/arcs) styling matching Category header */
+.admin-premium-refresh .admin-page-body .ai-import-header {
+    isolation: isolate !important;
+}
+
+.admin-premium-refresh .admin-page-body .ai-import-header::before {
+    content: "" !important;
+    display: block !important;
+    position: absolute !important;
+    width: 130px !important;
+    height: 130px !important;
+    border-radius: 50% !important;
+    border: 10px solid rgba(211, 140, 95, 0.18) !important;
+    background: transparent !important;
+    top: -60px !important;
+    right: 90px !important;
+    left: auto !important;
+    transform: none !important;
+    pointer-events: none !important;
+    z-index: 1 !important;
+    box-sizing: border-box !important;
+}
+
+.admin-premium-refresh .admin-page-body .ai-import-header::after {
+    content: "" !important;
+    display: block !important;
+    position: absolute !important;
+    width: 95px !important;
+    height: 95px !important;
+    border-radius: 50% !important;
+    border: 9px solid rgba(211, 140, 95, 0.15) !important;
+    background: transparent !important;
+    bottom: -35px !important;
+    right: -15px !important;
+    left: auto !important;
+    transform: none !important;
+    pointer-events: none !important;
+    z-index: 1 !important;
+    box-sizing: border-box !important;
+}
+
+.admin-premium-refresh .admin-page-body .ai-import-header > * {
+    position: relative !important;
+    z-index: 2 !important;
+}
+
+/* Synchronize header heights to match Category header standard (162px) on desktop viewports */
+@media (min-width: 1025px) {
+    .admin-premium-refresh .admin-page-body :is(
+        .category-page-header, .analytics-header, .ai-import-header
+    ) {
+        height: 162px !important;
+        min-height: 162px !important;
+        max-height: 162px !important;
+        box-sizing: border-box !important;
+    }
+}
+
+/* Add breathing spacing (gap and margins) for uploader metrics tiles to prevent squishing */
+body.admin-premium-shell .ai-import-page .summary-grid {
+    gap: 1.5rem !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 1.5rem !important;
+}
+
+/* Rotates sub-chevron inside sidebar when expanded */
+body.admin-premium-shell .sidebar-sub a[data-bs-toggle="collapse"] .sub-chevron {
+    margin-left: auto !important;
+    font-size: 8px !important;
+    transition: transform 0.2s ease !important;
+    color: var(--cc-text-muted, #7a6c62) !important;
+}
+
+body.admin-premium-shell .sidebar-sub a[data-bs-toggle="collapse"][aria-expanded="true"] .sub-chevron {
+    transform: rotate(180deg) !important;
+}
+
+/* Add vertical spacing between disposal/purpose choice cards to prevent them from sticking together */
+body.admin-premium-shell .create-purpose-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+}
+
+/* Prevent "Sửa dòng" button from wrapping and adjust column widths */
+body.admin-premium-shell .preview-table .edit-row {
+    white-space: nowrap !important;
+}
+
+body.admin-premium-shell .preview-col-actions {
+    width: 10% !important;
+}
+
+body.admin-premium-shell .preview-col-data {
+    width: 40% !important;
+}
+
+/* Unify Drink form card headers with card body for a premium borderless look */
+body.admin-premium-shell .drink-form-page .card-header {
+    background: transparent !important;
+    border-bottom: none !important;
+    padding-top: 24px !important;
+    padding-bottom: 8px !important;
+}
+
+body.admin-premium-shell .drink-form-page .card-body {
+    padding-top: 12px !important;
+}
+
+/* Hide the red asterisk (*) globally inside all form labels and modals */
+body.admin-premium-shell label span.text-danger,
+body.admin-premium-shell .form-label span.text-danger,
+body.admin-premium-shell :is(.rb-modal, .modal-content, .offcanvas-body, .sm-drawer-body, .pf-drawer-body, .modal-body) label span.text-danger,
+body.admin-premium-shell :is(.rb-modal, .modal-content, .offcanvas-body, .sm-drawer-body, .pf-drawer-body, .modal-body) .form-label span.text-danger {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Restore normal block layout for form labels inside modals to prevent flex wrapping */
+body.admin-premium-shell :is(.rb-modal, .modal-content) .form-label {
+    display: block !important;
+    margin-bottom: 8px !important;
+}
+
+/* Restrict modal widths to look compact, neat, and elegant on desktop */
+@media (min-width: 576px) {
+    /* Category Modals */
+    body.admin-premium-shell :is(#createCategoryModal, #editCategoryModal) .modal-dialog {
+        max-width: 460px !important;
+    }
+    
+    /* Size Modals */
+    body.admin-premium-shell :is(#createModal, #editModal) .modal-dialog {
+        max-width: 540px !important;
+    }
+
+    /* Drink-Size Assignment Modal */
+    body.admin-premium-shell #drinkModal .modal-dialog {
+        max-width: 860px !important;
+    }
+}
+
+/* Restructure and override all default white backgrounds to Category-standard warm cream (#FAF6F2) */
+body.admin-premium-shell :is(
+    .card, 
+    .cc-card, 
+    .rb-card, 
+    .table-card, 
+    .preview-card, 
+    .history-card,
+    .summary-card,
+    .drink-summary-card,
+    .category-summary-card,
+    .analytics-widget,
+    .analytics-filter,
+    .chart-container,
+    .topping-card,
+    .drink-card,
+    .size-card,
+    .category-list-card,
+    .main-card,
+    .topping-admin-page .main-card,
+    .size-admin-page .main-card,
+    .drink-toolbar,
+    .catalog-list-toolbar
+) {
+    background: #FAF6F2 !important;
+    background-color: #FAF6F2 !important;
+    border-color: #E9DED5 !important;
+}
+
+body.admin-premium-shell :is(
+    .card-body, 
+    .rb-card-body,
+    .modal-body
+) {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+body.admin-premium-shell :is(
+    .table, 
+    .preview-table, 
+    .preview-row,
+    .category-table,
+    .drink-table,
+    .size-table,
+    .topping-table,
+    table,
+    tbody,
+    tr,
+    td,
+    th
+) {
+    background-color: #FAF6F2 !important;
+    background: #FAF6F2 !important;
+}
+
+body.admin-premium-shell :is(
+    input:not([type="checkbox"]):not([type="radio"]), 
+    select, 
+    textarea,
+    .form-control,
+    .form-select,
+    .catalog-search-box input,
+    .drink-search-box input,
+    .drink-page-size select,
+    .drink-status-tabs a:not(.active),
+    .catalog-filter-tabs a:not(.active),
+    .catalog-filter-tab:not(.active)
+) {
+    background-color: #FAF6F2 !important;
+    background: #FAF6F2 !important;
+    border-color: #D8C5B6 !important;
+}
+
+body.admin-premium-shell :is(
+    .pagination, 
+    .category-table-footer, 
+    .catalog-table-footer,
+    .table-footer,
+    .preview-toolbar,
+    .session-readonly-banner,
+    .pagination button:not(.active),
+    .drink-pagination,
+    .catalog-pagination
+) {
+    background-color: #FAF6F2 !important;
+    background: #FAF6F2 !important;
+    border-color: #E9DED5 !important;
+}
+
+body.admin-premium-shell :is(.modal-content, .rb-modal) {
+    background-color: #FAF6F2 !important;
+    background: #FAF6F2 !important;
+}
+
+/* Force all page header cards to use the standard cream gradient (no white highlights) */
+body.admin-premium-shell :is(
+    .cc-page-hero, .cc-page-header, .analytics-header,
+    .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
+    .ops-page-header, .notification-page-header, .category-page-header,
+    .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
+    .pf-header, .sm-header, .ops-header, .sales-history-header,
+    .cc-warehouse-header, .inventory-header, .reorder-header,
+    .notification-header, .drink-form-heading, .ai-import-header,
+    .topping-page-heading, .topping-page-header, .size-page-heading,
+    .size-page-header, .ingredient-page-heading, .ingredient-page-header
+) {
+    background: radial-gradient(circle at 92% 4%, rgba(201, 158, 125, 0.12), transparent 280px), 
+                linear-gradient(135deg, #fffdfb 0%, #faf6f2 54%, #f7f4f0 100%) !important;
+    border-color: #E9DED5 !important;
+}
+
+/* Force all list/table card headers to have a cream background instead of white */
+body.admin-premium-shell :is(
+    .drink-list-heading,
+    .supplier-list-heading,
+    .ingredient-list-heading,
+    .uc-list-heading,
+    .category-list-heading,
+    [class*="-list-heading"],
+    [class*="-list-header"]
+) {
+    background: #FAF6F2 !important;
+    background-color: #FAF6F2 !important;
+    border-bottom: 1px solid var(--cc-border, #E9DED5) !important;
+}
+
+/* Sync all filter/action buttons inside headers to have a cream background and border */
+body.admin-premium-shell :is(
+    .drink-filter-btn,
+    .drink-header-actions .btn:not(.drink-primary-btn),
+    .ops-actions .btn:not([class*="-primary-btn"]),
+    .cc-warehouse-actions .btn:not([class*="-primary-btn"]),
+    .btn-outline-secondary,
+    .btn-light
+) {
+    background-color: #FAF6F2 !important;
+    background: #FAF6F2 !important;
+    border-color: #D8C5B6 !important;
+    color: var(--cc-text-secondary, #66584f) !important;
+}
+
+/* Sync user profile card in topbar */
+body.admin-premium-shell .topbar-user {
+    background-color: #FAF6F2 !important;
+    background: #FAF6F2 !important;
+    border-color: #D8C5B6 !important;
+}
+
+/* Fix label flex-direction column bug in modals causing text/spans to wrap and wide gaps */
+/* Ensure labels in modals are block-level for consistent form layout */
+body.admin-premium-shell :is(.offcanvas-body, .sm-drawer-body, .pf-drawer-body, .modal-body) label:not(.inventory-export-option):not(.create-purpose-card):not(.negative-stock-mode-card) {
+    display: block !important;
+    margin-bottom: 6px !important;
+}
+
+/* File inputs inside labels must be block-level full width, not flex children */
+body.admin-premium-shell :is(.offcanvas-body, .sm-drawer-body, .pf-drawer-body, .modal-body) label input[type="file"] {
+    display: block !important;
+    width: 100% !important;
+}
+
+body.admin-premium-shell :is(.offcanvas-body, .sm-drawer-body, .pf-drawer-body, .modal-body) label:not(.inventory-export-option):not(.create-purpose-card):not(.negative-stock-mode-card) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea) {
+    display: block !important;
+    width: 100% !important;
+}
+
+/* Force all header circle decoration lines to be a warm cream/beige */
+body.admin-premium-shell :is(
+    .cc-page-hero, .cc-page-header, .analytics-header,
+    .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
+    .ops-page-header, .notification-page-header, .category-page-header,
+    .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
+    .pf-header, .sm-header, .ops-header, .sales-history-header,
+    .cc-warehouse-header, .inventory-header, .reorder-header,
+    .notification-header, .drink-form-heading, .ai-import-header,
+    .topping-page-heading, .topping-page-header, .size-page-heading,
+    .size-page-header, .ingredient-page-heading, .ingredient-page-header
+)::before,
+body.admin-premium-shell :is(
+    .cc-page-hero, .cc-page-header, .analytics-header,
+    .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
+    .ops-page-header, .notification-page-header, .category-page-header,
+    .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
+    .pf-header, .sm-header, .ops-header, .sales-history-header,
+    .cc-warehouse-header, .inventory-header, .reorder-header,
+    .notification-header, .drink-form-heading, .ai-import-header,
+    .topping-page-heading, .topping-page-header, .size-page-heading,
+    .size-page-header, .ingredient-page-heading, .ingredient-page-header
+)::after {
+    border-color: rgba(180, 130, 90, 0.22) !important;
+}
+
+/* Fix vertical alignment of the "Tải lại" button and selects in Drink Profitability filter bar */
+body.admin-premium-shell .pf-filter-band label {
+    margin-bottom: 0 !important;
+}
+
+body.admin-premium-shell .pf-primary-button {
+    align-self: end !important;
+    margin-bottom: 4px !important;
+}
+
+/* ===== FILE UPLOAD INPUT — Premium Coffee Shop Style (Entirely Brown) ===== */
+/* 
+   Container: The outer <input type="file"> wrapper.
+   Uses a rich coffee-brown background to match the theme.
+*/
+body.admin-premium-shell input[type="file"].form-control,
+body.admin-premium-shell input[type="file"] {
+    height: 46px !important;
+    min-height: 46px !important;
+    padding: 4px !important;
+    padding-right: 12px !important;
+    background-color: #70482f !important; /* Rich coffee brown background */
+    background: #70482f !important;
+    border: 1.5px solid #5c3a21 !important;
+    border-radius: 12px !important;
+    color: #FAF6F2 !important; /* Cream text color for high contrast readability */
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    line-height: 36px !important;
+    box-sizing: border-box !important;
+    outline: none !important;
+    box-shadow: none !important;
+    transition: all 0.2s ease !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+}
+
+body.admin-premium-shell input[type="file"].form-control:focus,
+body.admin-premium-shell input[type="file"]:focus,
+body.admin-premium-shell input[type="file"].form-control:focus-visible,
+body.admin-premium-shell input[type="file"]:focus-visible {
+    border-color: #3d2418 !important;
+    background-color: #5c3a21 !important; /* Slightly darker brown on focus */
+    background: #5c3a21 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(112, 72, 47, 0.25) !important;
+}
+
+/* 
+   Button: The inner "Choose File" action button.
+   Styled as a dark chocolate contrast pill.
+*/
+body.admin-premium-shell input[type="file"].form-control::file-selector-button,
+body.admin-premium-shell input[type="file"]::file-selector-button {
+    height: 36px !important;
+    padding: 0 14px !important; /* Compact padding to prevent overflow in narrow column layouts */
+    margin: 0 10px 0 0 !important;
+    border: none !important;
+    border-radius: 8px !important;
+    background: linear-gradient(135deg, #4d311e, #2e1a0f) !important; /* Elegant dark chocolate gradient */
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 12.5px !important;
+    line-height: 36px !important;
+    cursor: pointer !important;
+    outline: none !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+    transition: all 0.2s ease !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+}
+
+body.admin-premium-shell input[type="file"].form-control::file-selector-button:hover,
+body.admin-premium-shell input[type="file"]::file-selector-button:hover {
+    background: linear-gradient(135deg, #5c3a21, #3d2418) !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
+    transform: translateY(-0.5px);
+}
+
+body.admin-premium-shell input[type="file"].form-control::file-selector-button:active,
+body.admin-premium-shell input[type="file"]::file-selector-button:active {
+    transform: translateY(0.5px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* ===== BROKEN IMAGE FALLBACKS ===== */
+/* 
+   If an image fails to load (e.g. invalid cloudinary URL), standard browsers show a broken image icon.
+   This rule uses CSS pseudo-elements to mask broken images with a premium cream placeholder automatically.
+*/
+body.admin-premium-shell img {
+    position: relative !important;
+}
+
+body.admin-premium-shell :is(.preview-img, #edit-preview, #create-preview, .img-thumbnail)::after {
+    content: "📷 Chưa có ảnh" !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background-color: #FAF6F2 !important;
+    color: #8c7b70 !important;
+    border: 1.5px dashed #d8c5b6 !important;
+    border-radius: inherit !important;
+    font-size: 12px !important; /* Slightly smaller to fit smaller thumbnail sizes */
+    font-weight: 600 !important;
+    box-sizing: border-box !important;
+    box-shadow: inset 0 2px 8px rgba(32, 24, 18, 0.03) !important;
+    white-space: nowrap !important; /* CRITICAL FIX: prevents text from wrapping to the next line */
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* Unify primary add/action buttons in headers to use the premium coffee-brown theme */
+body.admin-premium-shell :is(
+    .size-page-heading, .topping-page-heading, .topping-page-header, .size-page-header,
+    .ops-header, .category-page-header, .drink-page-header, .ingredient-page-header
+) .ops-actions :is(.btn-orange, .btn-primary),
+body.admin-premium-shell :is(.ops-actions, .category-header, .drink-header-actions) :is(.btn-orange, .btn-primary, [class*="-primary-btn"]) {
+    background-color: var(--cc-brown-600, #70482f) !important;
+    background: var(--cc-brown-600, #70482f) !important;
+    border-color: var(--cc-brown-600, #70482f) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(112, 72, 47, 0.18) !important;
+}
+
+body.admin-premium-shell :is(
+    .size-page-heading, .topping-page-heading, .topping-page-header, .size-page-header,
+    .ops-header, .category-page-header, .drink-page-header, .ingredient-page-header
+) .ops-actions :is(.btn-orange, .btn-primary):hover,
+body.admin-premium-shell :is(.ops-actions, .category-header, .drink-header-actions) :is(.btn-orange, .btn-primary, [class*="-primary-btn"]):hover {
+    background-color: var(--cc-brown-900, #3d2418) !important;
+    background: var(--cc-brown-900, #3d2418) !important;
+    border-color: var(--cc-brown-900, #3d2418) !important;
+    color: #ffffff !important;
+}
+
+/* Style Topping badge in Topping page modal to have black text and a cream/beige background */
+body.admin-premium-shell :is(.badge.bg-brown, #currentToppingBadge, [id*="ToppingBadge"]) {
+    background-color: #E9DED5 !important;
+    background: #E9DED5 !important;
+    color: #201812 !important;
+    border: 1px solid #D8C5B6 !important;
+}
+
+body.admin-premium-shell :is(.badge.bg-brown, #currentToppingBadge, [id*="ToppingBadge"]) span {
+    color: #201812 !important;
+}
+
+
 
 
 
