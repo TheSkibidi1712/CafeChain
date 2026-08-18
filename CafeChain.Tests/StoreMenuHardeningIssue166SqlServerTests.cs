@@ -2,6 +2,7 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Profitability;
 using CafeChain.Application.DTOs.Admin.StoreMenu;
 using CafeChain.Application.Interfaces.Admin.Profitability;
+using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Admin.StoreMenu;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
@@ -11,10 +12,12 @@ using CafeChain.Data;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Orders;
+using CafeChain.Models.Permissions;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 
 namespace CafeChain.Tests;
 
@@ -64,6 +67,41 @@ public sealed class StoreMenuHardeningIssue166SqlServerTests : IAsyncLifetime
 
         var exception = await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync());
         Assert.Contains("UX_StoreMenuItems_Store_DrinkSize", exception.InnerException?.Message ?? exception.Message);
+    }
+
+    [Fact]
+    public async Task SqlServer_ConcurrentProvisioning_DoesNotDuplicateStoreMenu()
+    {
+        var graph = await SeedGraphAsync("PROVISION-RACE");
+        await using (var setup = CreateContext())
+        {
+            setup.StoreMenuItems.RemoveRange(
+                await setup.StoreMenuItems.Where(x => x.StoreId == graph.StoreId).ToListAsync());
+            await setup.SaveChangesAsync();
+        }
+
+        var results = await Task.WhenAll(Enumerable.Range(0, 2).Select(async _ =>
+        {
+            await using var context = CreateContext();
+            var accountId = await context.Staffs
+                .Where(x => x.StaffId == graph.OwnerStaffId)
+                .Select(x => x.AccountId)
+                .SingleAsync();
+            return await CreateProvisioning(context)
+                .ProvisionMissingAsync(graph.StoreId, accountId, graph.OwnerStaffId);
+        }));
+
+        Assert.Contains(results, result => result.IsSuccess);
+        Assert.All(results, result => Assert.True(
+            result.IsSuccess || result.ErrorCode == "STORE_MENU_CHANGED_BY_ANOTHER_USER",
+            result.Message));
+        await using var verify = CreateContext();
+        Assert.Single(await verify.StoreMenuItems.AsNoTracking()
+            .Where(x => x.StoreId == graph.StoreId && x.DrinkSizeId == graph.DrinkSizeId)
+            .ToListAsync());
+        Assert.Single(await verify.StoreDrinks.AsNoTracking()
+            .Where(x => x.StoreId == graph.StoreId && x.DrinkId == graph.DrinkId)
+            .ToListAsync());
     }
 
     [Fact]
@@ -250,12 +288,36 @@ public sealed class StoreMenuHardeningIssue166SqlServerTests : IAsyncLifetime
         .UseSqlServer(ConnectionString)
         .Options);
 
-    private static StoreMenuWorkspaceService CreateWorkspace(AppDbContext context) => new(
+    private static StoreMenuWorkspaceService CreateWorkspace(AppDbContext context)
+    {
+        return new StoreMenuWorkspaceService(
+            context,
+            new AvailabilityStub(),
+            new ProfitabilityStub(),
+            new StoreCatalogVersionService(context),
+            CreatePermissions().Object);
+    }
+
+    private static StoreMenuProvisioningService CreateProvisioning(AppDbContext context) => new(
         context,
-        new AvailabilityStub(),
-        new ProfitabilityStub(),
-        new StoreCatalogVersionService(context),
-        new ScopeStub());
+        new StoreMenuBackfillPlanner(context),
+        CreatePermissions().Object);
+
+    private static Mock<IAdminPermissionService> CreatePermissions()
+    {
+        var permissions = new Mock<IAdminPermissionService>();
+        permissions.Setup(x => x.HasPermissionAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int?>()))
+            .ReturnsAsync((int accountId, string code, int? storeId) =>
+                ServiceResult<CafeChain.Application.DTOs.Admin.Permissions.PermissionDecisionDto>.Success(new()
+                {
+                    AccountId = accountId,
+                    PermissionCode = code,
+                    TargetStoreId = storeId,
+                    Allowed = true,
+                    ScopeAllowed = true
+                }));
+        return permissions;
+    }
 
     private static async Task<string> ReadItemVersionAsync(int itemId)
     {
@@ -297,7 +359,20 @@ public sealed class StoreMenuHardeningIssue166SqlServerTests : IAsyncLifetime
         context.AddRange(store, size, drink, account);
         await context.SaveChangesAsync();
 
-        var ownerRole = await context.Roles.SingleAsync(x => x.Name == RoleConstants.BusinessOwner);
+        var ownerRole = await context.Roles.SingleOrDefaultAsync(x => x.Name == RoleConstants.BusinessOwner);
+        if (ownerRole == null)
+        {
+            ownerRole = new Role
+            {
+                Name = RoleConstants.BusinessOwner,
+                Active = true,
+                IsStoreLevel = false,
+                CreatedAt = DateTime.UtcNow
+            };
+            context.Roles.Add(ownerRole);
+            await context.SaveChangesAsync();
+        }
+
         var owner = new Staff
         {
             AccountId = account.AccountId, StoreId = store.StoreId, FullName = "Store Menu SQL Owner",

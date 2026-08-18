@@ -221,6 +221,8 @@ namespace CafeChain.Extensions.Services
                 CafeChain.Application.Services.Admin.Profitability.DrinkSizePricingService>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.StoreMenu.IStoreMenuBackfillPlanner,
                 CafeChain.Application.Services.Admin.StoreMenu.StoreMenuBackfillPlanner>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.StoreMenu.IStoreMenuProvisioningService,
+                CafeChain.Application.Services.Admin.StoreMenu.StoreMenuProvisioningService>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.StoreMenu.IStoreMenuAvailabilityEvaluator,
                 CafeChain.Application.Services.Admin.StoreMenu.StoreMenuAvailabilityEvaluator>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.StoreMenu.IStoreCatalogVersionService,

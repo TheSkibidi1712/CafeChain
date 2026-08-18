@@ -860,16 +860,18 @@ namespace CafeChain.Application.Services.Inventories
                 if (!validation.IsSuccess) return validation;
 
                 var poLine = await LoadLineForUpdateAsync(line.PurchaseOrderLineId.Value);
+                var acceptedBaseQuantity = line.InventoryPostingBaseQuantity
+                    ?? line.ReceivedBaseQuantity;
                 _context.PurchaseOrderReceiptPostings.Add(new PurchaseOrderReceiptPosting
                 {
                     PurchaseMode = line.PurchaseMode,
                     PurchaseOrderLineId = poLine!.PurchaseOrderLineId,
                     BranchReceiptLineId = line.BranchReceiptLineId,
-                    AcceptedBaseQuantity = line.ReceivedBaseQuantity,
+                    AcceptedBaseQuantity = acceptedBaseQuantity,
                     RejectedBaseQuantity = line.RejectedBaseQuantity,
                     AcceptedProcurementQuantity = line.AcceptedProcurementQuantity,
                     RejectedProcurementQuantity = line.RejectedProcurementQuantity,
-                    InventoryPostingBaseQuantity = line.InventoryPostingBaseQuantity ?? line.ReceivedBaseQuantity,
+                    InventoryPostingBaseQuantity = acceptedBaseQuantity,
                     ProcurementUnitId = line.ProcurementUnitId,
                     InventoryBaseUnitId = line.InventoryBaseUnitId,
                     ProcurementToInventoryFactor = line.ProcurementToInventoryFactor,
@@ -878,12 +880,12 @@ namespace CafeChain.Application.Services.Inventories
                 });
                 await _context.SaveChangesAsync();
 
-                if (line.ReceivedBaseQuantity > 0)
+                if (acceptedBaseQuantity > 0)
                 {
                     var backPost = await _purchaseAdviceFulfillment.BackPostAcceptedAsync(
                         poLine.PurchaseOrderLineId,
                         line.BranchReceiptLineId,
-                        line.ReceivedBaseQuantity,
+                        acceptedBaseQuantity,
                         actorStaffId);
                     if (!backPost.IsSuccess)
                         return backPost;

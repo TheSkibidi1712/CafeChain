@@ -39,15 +39,9 @@
                             @if (isPreparedItems)
                             {
                                 <span class="inventory-identity-badge">@item.IdentityBadge</span>
-                                @if (item.LegacyRecipeId.HasValue)
-                                {
-                                    <small class="inventory-warning d-block">
-                                        Dữ liệu công thức cũ #@item.LegacyRecipeId; bán thành phẩm vẫn là định danh tồn kho chính.
-                                    </small>
-                                }
                                 @if (item.QuantitySemanticsStatus == "QUANTITY_SEMANTICS_UNKNOWN")
                                 {
-                                    <small class="inventory-warning d-block">Chưa xác nhận số lượng theo đơn vị tồn kho.</small>
+                                    <small class="inventory-warning d-block">Chưa xác nhận số lượng tồn theo đơn vị chuẩn.</small>
                                 }
                             }
                         </td>

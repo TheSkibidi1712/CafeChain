@@ -27,11 +27,11 @@ public sealed class ProcurementRequestWorkflowUiIssue236Tests
         var requestView = Read("CafeChain/Areas/Admin/Views/AdminRestockRequests/Details.cshtml");
         var controller = Read("CafeChain/Areas/Admin/Controllers/AdminPurchaseAdvicesController.cs");
 
-        Assert.Contains("Tạo PA mới", requestView);
-        Assert.Contains("Thêm vào PA nháp", requestView);
+        Assert.Contains("Tạo đề nghị mua mới", requestView);
+        Assert.Contains("Thêm vào đề nghị mua nháp", requestView);
         Assert.Contains("AddRestockRequestToDraft", requestView);
         Assert.Contains("AddRestockRequestToDraftAsync", controller);
-        Assert.Contains("Chưa có PA liên kết", requestView);
+        Assert.Contains("Chưa có đề nghị mua liên kết", requestView);
         Assert.Contains("Chưa có đơn đặt hàng liên kết", requestView);
         Assert.DoesNotContain("Tạo phiếu nhận", requestView);
         Assert.DoesNotContain("Tạo đơn đặt hàng cho phần còn lại", requestView);

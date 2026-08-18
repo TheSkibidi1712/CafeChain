@@ -248,10 +248,16 @@ public sealed class RestockRequestDuplicateAdjustmentIssue237SqlServerTests : IA
         _adjustIngredientId = ingredients[1].IngredientId;
         _doubleSubmitIngredientId = ingredients[2].IngredientId;
 
-        var roleId = await context.Roles
-            .Where(x => x.Name == RoleConstants.StoreManager)
-            .Select(x => x.RoleId)
-            .SingleAsync();
+        var managerRole = new Role
+        {
+            Name = RoleConstants.StoreManager,
+            Active = true,
+            IsStoreLevel = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        context.Roles.Add(managerRole);
+        await context.SaveChangesAsync();
+
         var account = new Account
         {
             Email = "manager-issue237@test.local",
@@ -261,7 +267,7 @@ public sealed class RestockRequestDuplicateAdjustmentIssue237SqlServerTests : IA
         };
         context.Accounts.Add(account);
         await context.SaveChangesAsync();
-        context.AccountRoles.Add(new AccountRole { AccountId = account.AccountId, RoleId = roleId });
+        context.AccountRoles.Add(new AccountRole { AccountId = account.AccountId, RoleId = managerRole.RoleId });
         var staff = new Staff
         {
             AccountId = account.AccountId,

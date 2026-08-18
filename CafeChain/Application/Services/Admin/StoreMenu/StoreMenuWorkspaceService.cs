@@ -3,8 +3,8 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Profitability;
 using CafeChain.Application.DTOs.Admin.StoreMenu;
 using CafeChain.Application.Interfaces.Admin.Profitability;
+using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Admin.StoreMenu;
-using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Stores;
@@ -19,20 +19,20 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
         private readonly IStoreMenuAvailabilityEvaluator _availability;
         private readonly IDrinkSizeProfitabilityQueryService _profitability;
         private readonly IStoreCatalogVersionService _catalogVersions;
-        private readonly IScopeAuthorizationService _scopeAuthorization;
+        private readonly IAdminPermissionService _permissions;
 
         public StoreMenuWorkspaceService(
             AppDbContext context,
             IStoreMenuAvailabilityEvaluator availability,
             IDrinkSizeProfitabilityQueryService profitability,
             IStoreCatalogVersionService catalogVersions,
-            IScopeAuthorizationService scopeAuthorization)
+            IAdminPermissionService permissions)
         {
             _context = context;
             _availability = availability;
             _profitability = profitability;
             _catalogVersions = catalogVersions;
-            _scopeAuthorization = scopeAuthorization;
+            _permissions = permissions;
         }
 
         public async Task<ServiceResult<IReadOnlyList<StoreMenuWorkspaceRowDto>>> GetRowsAsync(
@@ -102,16 +102,12 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
             if (item == null)
                 return ServiceResult<StoreMenuWorkspaceRowDto>.Failure("Không tìm thấy SKU trong menu cửa hàng.");
 
-            var roles = await GetRolesAsync(actorStaffId, cancellationToken);
-            var canPublish = roles.Contains(RoleConstants.BusinessOwner)
-                || roles.Contains(RoleConstants.SystemAdmin);
-            var canOperate = canPublish || (roles.Contains(RoleConstants.StoreManager)
-                && await CanAccessManagedStoreAsync(actorStaffId, item.StoreId, cancellationToken));
-            if (request.Action == StoreMenuLifecycleActions.Publish && !canPublish)
-                return ServiceResult<StoreMenuWorkspaceRowDto>.Failure(
-                    "Chỉ Chủ doanh nghiệp được publish SKU lên menu cửa hàng.",
-                    errorCode: "STORE_MENU_PUBLISH_FORBIDDEN");
-            if (request.Action != StoreMenuLifecycleActions.Publish && !canOperate)
+            var accountId = await GetAccountIdAsync(actorStaffId, cancellationToken);
+            var permission = await _permissions.HasPermissionAsync(
+                accountId,
+                PermissionConstants.StoreMenuUpdate,
+                item.StoreId);
+            if (!permission.IsSuccess || permission.Data?.Allowed != true)
                 return ServiceResult<StoreMenuWorkspaceRowDto>.Failure(
                     "Bạn không có quyền vận hành menu của cửa hàng này.",
                     errorCode: "STORE_MENU_OPERATION_FORBIDDEN");
@@ -158,6 +154,23 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
                         item.PublishedByStaffId = actorStaffId;
                         item.IsEnabled = true;
                         item.PauseReason = null;
+                        var storeDrink = await _context.StoreDrinks.SingleOrDefaultAsync(
+                            x => x.StoreId == item.StoreId
+                                && x.DrinkId == item.DrinkSize.DrinkId,
+                            cancellationToken);
+                        if (storeDrink == null)
+                        {
+                            _context.StoreDrinks.Add(new StoreDrink
+                            {
+                                StoreId = item.StoreId,
+                                DrinkId = item.DrinkSize.DrinkId,
+                                Active = true
+                            });
+                        }
+                        else
+                        {
+                            storeDrink.Active = true;
+                        }
                         break;
                     case StoreMenuLifecycleActions.Pause:
                         if (!item.PublishedAtUtc.HasValue)
@@ -271,29 +284,19 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
 
         private async Task<bool> CanReadStoreAsync(int staffId, int storeId, CancellationToken cancellationToken)
         {
-            var roles = await GetRolesAsync(staffId, cancellationToken);
-            if (roles.Contains(RoleConstants.BusinessOwner)
-                || roles.Contains(RoleConstants.AccountantWarehouse)
-                || roles.Contains(RoleConstants.SystemAdmin))
-                return true;
-            if (roles.Contains(RoleConstants.AreaManager))
-                return await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId);
-            return roles.Contains(RoleConstants.StoreManager)
-                && await CanAccessManagedStoreAsync(staffId, storeId, cancellationToken);
+            var accountId = await GetAccountIdAsync(staffId, cancellationToken);
+            var permission = await _permissions.HasPermissionAsync(
+                accountId,
+                PermissionConstants.StoreMenuView,
+                storeId);
+            return permission.IsSuccess && permission.Data?.Allowed == true;
         }
 
-        private async Task<bool> CanAccessManagedStoreAsync(int staffId, int storeId, CancellationToken cancellationToken) =>
-            await _context.Staffs.AsNoTracking().AnyAsync(
-                x => x.StaffId == staffId && x.Active && x.StoreId == storeId,
-                cancellationToken)
-            || await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId);
-
-        private Task<List<string>> GetRolesAsync(int staffId, CancellationToken cancellationToken) =>
+        private Task<int> GetAccountIdAsync(int staffId, CancellationToken cancellationToken) =>
             _context.Staffs.AsNoTracking()
                 .Where(x => x.StaffId == staffId && x.Active && x.Account.Active)
-                .SelectMany(x => x.Account.AccountRoles.Where(r => r.Role.Active).Select(r => r.Role.Name))
-                .Distinct()
-                .ToListAsync(cancellationToken);
+                .Select(x => x.AccountId)
+                .SingleOrDefaultAsync(cancellationToken);
 
         private static StoreMenuWorkspaceRowDto Map(
             StoreMenuItem item,
