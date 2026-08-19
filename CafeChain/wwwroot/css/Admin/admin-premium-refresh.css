@@ -156,6 +156,108 @@
     width: 100%;
 }
 
+/* --- Nested sub-group header (level 2: e.g. "Tồn kho cửa hàng" inside "Kho & Cung ứng") --- */
+.admin-premium-shell .sidebar .sidebar-sub .sidebar-nested-header {
+    display: flex;
+    align-items: center;
+    margin: 1px 0;
+    padding: 8px 10px 8px 12px !important;
+    color: #cdbdb2 !important;
+    background: transparent !important;
+    font-size: 12.75px !important;
+    font-weight: 600 !important;
+    cursor: pointer;
+    user-select: none;
+    border: 0 !important;
+    border-radius: 8px;
+    transition: color .16s ease, background-color .16s ease;
+    text-decoration: none;
+    box-shadow: none;
+    width: 100%;
+}
+
+.admin-premium-shell .sidebar .sidebar-sub .sidebar-nested-header:hover {
+    color: #fff8f2 !important;
+    background: rgba(255, 255, 255, .065) !important;
+}
+
+.admin-premium-shell .sidebar .sidebar-sub .sidebar-nested-header.active {
+    color: #fffaf5 !important;
+    background: #513328 !important;
+    box-shadow: inset 3px 0 0 #d3a071;
+}
+
+.admin-premium-shell .sidebar .sidebar-sub .sidebar-nested-header i.section-icon {
+    font-size: 8px !important;
+    width: 14px !important;
+    margin-right: 6px !important;
+    color: #aa8f7d !important;
+    flex-shrink: 0 !important;
+}
+
+.admin-premium-shell .sidebar .sidebar-sub .sidebar-nested-header.active i.section-icon {
+    color: #e0b383 !important;
+}
+
+.admin-premium-shell .sidebar .sidebar-sub .sidebar-nested-header .chevron-nested {
+    margin-left: auto;
+    font-size: 9px;
+    transition: transform 0.2s ease;
+    color: #7a6c62;
+}
+
+.admin-premium-shell .sidebar .sidebar-sub .sidebar-nested-header[aria-expanded="true"] .chevron-nested {
+    transform: rotate(180deg);
+}
+
+/* --- Nested sub-items (level 2) --- */
+.admin-premium-shell .sidebar .sidebar-sub-nested {
+    margin: 2px 0 6px 10px !important;
+    padding: 3px 4px !important;
+    border-left: 2px solid rgba(211, 160, 113, .32) !important;
+    border-radius: 0 8px 8px 0;
+    background: #2e1e18 !important;
+}
+
+.admin-premium-shell .sidebar .sidebar-sub-nested a {
+    margin: 1px 0;
+    padding: 6px 8px 6px 10px !important;
+    color: #bfb0a4 !important;
+    background: transparent !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    border-radius: 6px;
+    min-height: 32px;
+    box-shadow: none;
+}
+
+.admin-premium-shell .sidebar .sidebar-sub-nested a i {
+    font-size: 6px !important;
+    width: 12px !important;
+    margin-right: 5px !important;
+    color: #8a7a6e !important;
+    flex-shrink: 0 !important;
+}
+
+.admin-premium-shell .sidebar .sidebar-sub-nested a:hover {
+    color: #fff8f2 !important;
+    background: rgba(255, 255, 255, .055) !important;
+}
+
+.admin-premium-shell .sidebar .sidebar-sub-nested a.active {
+    color: #fffaf5 !important;
+    background: #4a2c22 !important;
+    box-shadow: inset 3px 0 0 #c9956a;
+}
+
+.admin-premium-shell .sidebar .sidebar-sub-nested a.active i {
+    color: #d9a87a !important;
+}
+
+.admin-premium-shell .sidebar .sidebar-sub-nested a:hover i {
+    color: #c99e7d !important;
+}
+
 .admin-premium-refresh .topbar {
     min-height: 60px;
     padding: 10px clamp(16px, 2.5vw, 32px) !important;

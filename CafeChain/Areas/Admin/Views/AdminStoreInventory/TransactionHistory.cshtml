@@ -1,0 +1,237 @@
+@model CafeChain.ViewModels.Admin.StoreInventories.InventoryTransactionHistoryVM
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/Admin/StoreInventory/transaction-history.css" asp-append-version="true" />
+}
+
+@{
+    var currentStoreName = Model.Stores.FirstOrDefault(x => x.StoreId == Model.StoreId)?.StoreName ?? "Cửa hàng";
+}
+
+<main class="txn-history-page cc-warehouse-page">
+
+    <header class="ice-page-header cc-warehouse-header">
+        <div>
+            <div class="ice-eyebrow">Kho &amp; Cung ứng</div>
+            <h1>Lịch sử giao dịch kho</h1>
+            <p>
+                Lịch sử nhập, xuất, điều chỉnh và hao hụt kho tại <strong>@currentStoreName</strong>.
+            </p>
+        </div>
+    </header>
+
+    @* ── Store Tabs ── *@
+    <div class="txn-history-store-tabs">
+        @foreach (var store in Model.Stores)
+        {
+            <a class="txn-history-store-tab @(store.StoreId == Model.StoreId ? "active" : "")"
+               href="@Url.Action("TransactionHistory", "AdminStoreInventory", new { area = "Admin", storeId = store.StoreId, page = 1 })">
+                @store.StoreName
+            </a>
+        }
+    </div>
+
+    <div class="txn-history-result-meta">
+        Tìm thấy <strong>@Model.TotalCount</strong> giao dịch kho.
+    </div>
+
+    @* ── Transactions Table ── *@
+    <div class="txn-history-table-wrap">
+        <table class="txn-history-table">
+            <thead>
+                <tr>
+                    <th>Kho</th>
+                    <th>Mặt hàng</th>
+                    <th>Loại</th>
+                    <th>Nguồn</th>
+                    <th>Số lượng</th>
+                    <th>Đơn giá</th>
+                    <th>Tổng tiền</th>
+                    <th>Trước</th>
+                    <th>Sau</th>
+                    <th>Ngày giao dịch</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Items != null && Model.Items.Any())
+                {
+                    @inject CafeChain.Application.Interfaces.Systems.IBusinessDateService BusinessDateService
+                    foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td>@item.StoreName</td>
+                            <td>
+                                <strong>@item.IngredientName</strong>
+                                @if (!string.IsNullOrWhiteSpace(item.IdentityBadge))
+                                {
+                                    <small class="text-muted d-block">@item.IdentityBadge</small>
+                                }
+                                @if (item.QuantitySemanticsStatus == "QUANTITY_SEMANTICS_UNKNOWN")
+                                {
+                                    <small class="text-warning d-block">Chưa xác nhận đơn vị tồn</small>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border" title="@item.StockStatusName">
+                                    @item.TypeName
+                                </span>
+                            </td>
+                            <td>@item.ReferenceType</td>
+                            <td>
+                                @if (item.Quantity > 0)
+                                {
+                                    <span class="plus">+@($"{item.Quantity:N0} {item.UnitCode}")</span>
+                                }
+                                else if (item.Quantity < 0)
+                                {
+                                    <span class="minus">@($"{item.Quantity:N0} {item.UnitCode}")</span>
+                                }
+                                else
+                                {
+                                    <span>@($"{item.Quantity:N0} {item.UnitCode}")</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.UnitPrice.HasValue)
+                                {
+                                    @($"{item.UnitPrice:N0} đ")
+                                }
+                                else
+                                {
+                                    <span>-</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.TotalAmount.HasValue)
+                                {
+                                    @($"{item.TotalAmount:N0} đ")
+                                }
+                                else
+                                {
+                                    <span>-</span>
+                                }
+                            </td>
+                            <td>@($"{item.BeforeQty:N0} {item.UnitCode}")</td>
+                            <td>@($"{item.AfterQty:N0} {item.UnitCode}")</td>
+                            <td>
+                                @BusinessDateService.ToBusinessTime(item.CreatedAt).ToString("dd/MM/yyyy HH:mm")
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="10" class="empty-data">
+                            <div class="txn-history-empty" role="status">
+                                <i class="fas fa-inbox" aria-hidden="true"></i>
+                                <h2>Chưa có giao dịch tồn kho</h2>
+                                <p>Không tìm thấy lịch sử biến động kho nào tại cửa hàng này.</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @* ── Sliding Window Pagination ── *@
+    @{
+        var currentPage = Model.Page;
+        var totalPages = Model.TotalPages;
+
+        var pages = new List<int?>();
+
+        if (totalPages <= 8)
+        {
+            for (int i = 1; i <= totalPages; i++)
+            {
+                pages.Add(i);
+            }
+        }
+        else
+        {
+            // Always show first 3 pages
+            pages.Add(1);
+            pages.Add(2);
+            pages.Add(3);
+
+            if (currentPage > 3 && currentPage < totalPages - 2)
+            {
+                if (currentPage > 4)
+                {
+                    pages.Add(null); // ellipsis
+                }
+
+                for (int i = currentPage - 1; i <= currentPage + 1; i++)
+                {
+                    if (!pages.Contains(i))
+                    {
+                        pages.Add(i);
+                    }
+                }
+            }
+
+            var lastStart = totalPages - 2;
+            var lastPageInList = pages.LastOrDefault(x => x.HasValue) ?? 0;
+            if (lastStart - lastPageInList > 1)
+            {
+                pages.Add(null); // ellipsis
+            }
+            else if (lastStart - lastPageInList == 1)
+            {
+                pages.Add(lastStart - 1);
+            }
+
+            // Always show last 3 pages
+            for (int i = totalPages - 2; i <= totalPages; i++)
+            {
+                if (!pages.Contains(i))
+                {
+                    pages.Add(i);
+                }
+            }
+        }
+    }
+
+    @if (totalPages > 1)
+    {
+        <nav class="txn-history-pagination" aria-label="Phân trang lịch sử giao dịch">
+            @if (currentPage > 1)
+            {
+                <a class="txn-history-page-btn"
+                   aria-label="Trang trước"
+                   href="@Url.Action("TransactionHistory", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, page = currentPage - 1 })">
+                    <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                </a>
+            }
+
+            @foreach (var p in pages)
+            {
+                if (p.HasValue)
+                {
+                    <a class="txn-history-page-btn @(p.Value == currentPage ? "active" : "")"
+                       aria-label="Trang @p.Value"
+                       aria-current="@(p.Value == currentPage ? "page" : null)"
+                       href="@Url.Action("TransactionHistory", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, page = p.Value })">
+                        @p.Value
+                    </a>
+                }
+                else
+                {
+                    <span class="txn-history-page-ellipsis">...</span>
+                }
+            }
+
+            @if (currentPage < totalPages)
+            {
+                <a class="txn-history-page-btn"
+                   aria-label="Trang sau"
+                   href="@Url.Action("TransactionHistory", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, page = currentPage + 1 })">
+                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </a>
+            }
+        </nav>
+    }
+
+</main>
