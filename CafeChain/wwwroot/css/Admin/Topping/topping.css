@@ -1032,3 +1032,22 @@
         width: 100%;
     }
 }
+
+/* Badge Topping Modal Reset */
+#drinkModal .badge.bg-brown {
+    background-color: #E9DED5 !important;
+    background: #E9DED5 !important;
+    color: #201812 !important;
+    border: 1px solid #D8C5B6 !important;
+}
+
+#drinkModal #currentToppingBadge {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    color: inherit !important;
+    box-shadow: none !important;
+    display: inline !important;
+    font-weight: 700 !important;
+}

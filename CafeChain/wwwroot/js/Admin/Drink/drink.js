@@ -4,10 +4,8 @@ $(document).ready(function () {
     const CROP_SIZE = 1000;
 
     let selectedCreateFiles = [];
-    let editedImageFile = null;
     let isCreateSubmitting = false;
     let isEditSubmitting = false;
-    let restoreImageManagerAfterEdit = false;
 
     $.ajaxPrefilter(function (options, originalOptions, xhr) {
         if ((options.type || 'GET').toUpperCase() !== 'GET') {
@@ -490,14 +488,6 @@ $(document).ready(function () {
     }
 
     function initImageManager() {
-        const imageManagerElement = document.getElementById('imageModal');
-        const editImageElement = document.getElementById('editImageModal');
-        editImageElement?.addEventListener('hidden.bs.modal', function () {
-            if (!restoreImageManagerAfterEdit || !imageManagerElement) return;
-            restoreImageManagerAfterEdit = false;
-            bootstrap.Modal.getOrCreateInstance(imageManagerElement).show();
-        });
-
         $(document).on('change', '#uploadImageInput', function () {
             const fileName = this.files && this.files[0] ? this.files[0].name : 'Chưa chọn file nào';
             $('#uploadFileName').text(fileName);
@@ -576,94 +566,98 @@ $(document).ready(function () {
         });
 
         $(document).on('click', '.btn-edit-img', function () {
-            $('#editImageId').val($(this).data('imgid'));
-            $('#editCurrentPreview').attr('src', $(this).data('imgurl'));
-            $('#newImageFileInput').val('');
-            $('#newImagePreviewWrapper').hide();
-            editedImageFile = null;
+            const drinkImageId = $(this).data('imgid');
+            const imgUrl = $(this).data('imgurl');
+
+            $('#editDrinkImageId').val(drinkImageId);
+            $('#editCurrentPreview').attr('src', imgUrl);
+            $('#editImageFileInput').val('');
+            $('#editImageFileName').text('Chưa chọn file nào');
+            $('#editNewPreview').attr('src', '');
+            $('#editNewPreviewWrapper').hide();
+            $('#editNewPreviewPlaceholder').show();
 
             const modalElement = document.getElementById('editImageModal');
-
             if (modalElement) {
-                const editModal = bootstrap.Modal.getOrCreateInstance(modalElement);
-                const managerElement = document.getElementById('imageModal');
-                if (managerElement?.classList.contains('show')) {
-                    restoreImageManagerAfterEdit = true;
-                    managerElement.addEventListener('hidden.bs.modal', () => editModal.show(), { once: true });
-                    bootstrap.Modal.getOrCreateInstance(managerElement).hide();
-                } else {
-                    restoreImageManagerAfterEdit = false;
-                    editModal.show();
-                }
+                bootstrap.Modal.getOrCreateInstance(modalElement).show();
             }
         });
 
-        $('#newImageFileInput').on('change', async function () {
-            const file = this.files[0];
+        $(document).on('change', '#editImageFileInput', function () {
+            const file = this.files && this.files[0];
+            if (file) {
+                $('#editImageFileName').text(file.name);
+                renderSingleImagePreview(file, '#editNewPreview', '#editNewPreviewWrapper');
+                $('#editNewPreviewPlaceholder').hide();
+                $('#editNewPreviewWrapper').show();
+            } else {
+                $('#editImageFileName').text('Chưa chọn file nào');
+                $('#editNewPreviewWrapper').hide();
+                $('#editNewPreviewPlaceholder').show();
+            }
+        });
+
+        $('#editImageForm').on('submit', async function (e) {
+            e.preventDefault();
+            const drinkImageId = $('#editDrinkImageId').val();
+            const input = document.getElementById('editImageFileInput');
+            const file = input?.files[0];
+
+            if (!drinkImageId) {
+                notify('Không tìm thấy ảnh cần chỉnh sửa', 'error');
+                return;
+            }
+
+            if (!file) {
+                notify('Vui lòng chọn ảnh mới để thay thế', 'warning');
+                return;
+            }
 
             if (!validateFile(file)) {
-                this.value = '';
                 return;
             }
+
+            const $btn = $('#btnSaveEditImage');
 
             try {
-                editedImageFile = await cropImageToSquare(file);
-                renderSingleImagePreview(editedImageFile, '#newImagePreview', '#newImagePreviewWrapper');
-            }
-            catch {
-                editedImageFile = null;
-                this.value = '';
+                const croppedFile = await cropImageToSquare(file);
+                const formData = new FormData();
+                formData.append('drinkImageId', drinkImageId);
+                formData.append('newImageFile', croppedFile);
+
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang lưu...');
+
+                $.ajax({
+                    url: '/Admin/AdminDrink/UpdateImage',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (res) {
+                        $btn.prop('disabled', false).html('<i class="fas fa-save me-1"></i> Lưu thay đổi');
+
+                        if (res.success) {
+                            notify(res.message || 'Cập nhật ảnh thành công', 'success');
+                            hideModal('editImageModal');
+                            const currentDrinkId = $('#currentDrinkId').val();
+                            if (currentDrinkId) {
+                                loadImages(currentDrinkId);
+                            }
+                            reloadDrinkTable();
+                            return;
+                        }
+
+                        notify(res.message || 'Cập nhật ảnh thất bại', 'error');
+                    },
+                    error: function (xhr) {
+                        $btn.prop('disabled', false).html('<i class="fas fa-save me-1"></i> Lưu thay đổi');
+                        notify(xhr.responseJSON?.message || 'Có lỗi xảy ra khi cập nhật ảnh', 'error');
+                    }
+                });
+            } catch {
+                $btn.prop('disabled', false).html('<i class="fas fa-save me-1"></i> Lưu thay đổi');
                 notify('Không thể xử lý ảnh', 'error');
             }
-        });
-
-        $('#btnConfirmEditImage').on('click', function () {
-            if (!editedImageFile) {
-                notify('Vui lòng chọn ảnh', 'error');
-                return;
-            }
-
-            const drinkId = $('#currentDrinkId').val();
-            const formData = new FormData();
-
-            formData.append('drinkImageId', $('#editImageId').val());
-            formData.append('newImageFile', editedImageFile);
-
-            const $btn = $(this);
-
-            $btn
-                .prop('disabled', true)
-                .html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
-
-            $.ajax({
-                url: '/Admin/AdminDrink/UpdateImage',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function (res) {
-                    $btn
-                        .prop('disabled', false)
-                        .html('<i class="fas fa-save"></i> Lưu ảnh mới');
-
-                    if (res.success) {
-                        notify(res.message || 'Cập nhật ảnh thành công', 'success');
-                        hideModal('editImageModal');
-                        loadImages(drinkId);
-                        reloadDrinkTable();
-                        return;
-                    }
-
-                    notify(res.message || 'Cập nhật ảnh thất bại', 'error');
-                },
-                error: function () {
-                    $btn
-                        .prop('disabled', false)
-                        .html('<i class="fas fa-save"></i> Lưu ảnh mới');
-
-                    notify('Có lỗi xảy ra', 'error');
-                }
-            });
         });
 
         $('#btnUploadDrinkImage').on('click', async function () {
@@ -783,10 +777,10 @@ $(document).ready(function () {
                 : `
                     <button
                         type="button"
-                        class="btn btn-sm drink-card-btn drink-card-btn-default flex-grow-1 text-truncate btn-set-default"
+                        class="btn btn-sm drink-card-btn drink-card-btn-default flex-grow-1 btn-set-default"
                         data-imgid="${img.drinkImageId}"
                         title="Đặt làm ảnh mặc định">
-                        <i class="fas fa-check me-1"></i>
+                        <i class="fas fa-check"></i>
                         <span>Mặc định</span>
                     </button>`;
 
@@ -797,17 +791,16 @@ $(document).ready(function () {
                     data-imgid="${img.drinkImageId}"
                     data-imgurl="${escapeHtml(img.imageUrl)}"
                     title="Chỉnh sửa ảnh">
-                    <i class="fas fa-pencil-alt"></i>
-                    ${img.isDefault ? '<span class="ms-1">Sửa</span>' : ''}
+                    <i class="fas fa-pen"></i>${img.isDefault ? '<span>Sửa</span>' : ''}
                 </button>`;
 
             const deleteButton = `
                 <button
                     type="button"
-                    class="btn btn-sm drink-card-btn drink-card-btn-delete btn-delete-img"
+                    class="btn btn-sm drink-card-btn drink-card-btn-delete ${img.isDefault ? 'flex-grow-1' : ''} btn-delete-img"
                     data-imgid="${img.drinkImageId}"
                     title="Xóa ảnh">
-                    <i class="fas fa-trash"></i>
+                    <i class="fas fa-trash"></i>${img.isDefault ? '<span>Xóa</span>' : ''}
                 </button>`;
 
             $container.append(`

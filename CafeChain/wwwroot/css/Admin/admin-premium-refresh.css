@@ -2744,15 +2744,22 @@ body.admin-premium-shell :is(.ops-actions, .category-header, .drink-header-actio
 }
 
 /* Style Topping badge in Topping page modal to have black text and a cream/beige background */
-body.admin-premium-shell :is(.badge.bg-brown, #currentToppingBadge, [id*="ToppingBadge"]) {
+body.admin-premium-shell .badge.bg-brown {
     background-color: #E9DED5 !important;
     background: #E9DED5 !important;
     color: #201812 !important;
     border: 1px solid #D8C5B6 !important;
 }
 
-body.admin-premium-shell :is(.badge.bg-brown, #currentToppingBadge, [id*="ToppingBadge"]) span {
-    color: #201812 !important;
+body.admin-premium-shell .badge.bg-brown span,
+body.admin-premium-shell #currentToppingBadge {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    color: inherit !important;
+    box-shadow: none !important;
+    display: inline !important;
 }
 
 
