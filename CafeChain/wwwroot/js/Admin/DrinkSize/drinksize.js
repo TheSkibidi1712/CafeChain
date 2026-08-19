@@ -245,7 +245,7 @@ async function toggleDrinkSize(id) {
             }
 
             // ✅ CHỈ TOAST KHI REQUEST THÀNH CÔNG
-            toast("Đã cập nhật trạng thái", "success");
+            toast("Thay đổi trạng thái thành công.", "success");
 
             return fetch(`/Admin/AdminSize/GetDrinks?sizeId=${currentSizeId}`);
         })
@@ -292,12 +292,13 @@ async function toggleSize(id) {
                 throw new Error(result.message);
             }
 
-            toast(result.message || "Đã cập nhật trạng thái", "success");
-
-            // ⏳ delay để toast kịp hiển thị
-            setTimeout(() => {
-                location.reload();
-            }, 500); // 500-1000ms là đẹp
+            try {
+                sessionStorage.setItem('toast_message', 'Thay đổi trạng thái thành công.');
+                sessionStorage.setItem('toast_type', 'success');
+            } catch (e) {
+                // Fallback
+            }
+            location.reload();
         })
         .catch(err => toast(err.message || "Lỗi cập nhật", "error"));
 }

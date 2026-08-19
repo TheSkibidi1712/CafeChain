@@ -787,7 +787,12 @@ async function toggleCategory(id) {
             return;
         }
 
-        await showCategoryAlert(result.message, "success");
+        try {
+            sessionStorage.setItem('toast_message', 'Thay đổi trạng thái thành công.');
+            sessionStorage.setItem('toast_type', 'success');
+        } catch (e) {
+            // Fallback
+        }
 
         location.reload();
     }

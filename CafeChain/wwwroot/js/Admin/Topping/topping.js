@@ -1046,7 +1046,7 @@ async function toggleDrinkTopping(
         }
 
         toast(
-            result.message,
+            "Thay đổi trạng thái thành công.",
             "success"
         );
 
@@ -1167,14 +1167,14 @@ async function toggleTopping(
             return;
         }
 
-        showToast(
-            result.message || "Cập nhật trạng thái thành công",
-            "success"
-        );
+        try {
+            sessionStorage.setItem('toast_message', 'Thay đổi trạng thái thành công.');
+            sessionStorage.setItem('toast_type', 'success');
+        } catch (e) {
+            // Fallback
+        }
 
-        setTimeout(() => {
-            location.reload();
-        }, 700);
+        location.reload();
     }
     catch {
 

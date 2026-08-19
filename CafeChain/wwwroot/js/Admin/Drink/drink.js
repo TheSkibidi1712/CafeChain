@@ -41,7 +41,12 @@ $(document).ready(function () {
             data: { id },
             success: function (result) {
                 if (!result.success) return notify(result.message || 'Không thể cập nhật trạng thái.', 'error');
-                notify(result.message || 'Đã cập nhật trạng thái.');
+                try {
+                    sessionStorage.setItem('toast_message', 'Thay đổi trạng thái thành công.');
+                    sessionStorage.setItem('toast_type', 'success');
+                } catch (e) {
+                    // Fallback
+                }
                 window.location.reload();
             },
             error: function (xhr) { notify(xhr.responseJSON?.message || 'Không thể cập nhật trạng thái.', 'error'); }
