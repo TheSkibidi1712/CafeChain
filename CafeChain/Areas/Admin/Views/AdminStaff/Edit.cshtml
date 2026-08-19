@@ -48,7 +48,19 @@
                 <div class="col-md-4"><label asp-for="StartDate" class="form-label">Ngày bắt đầu</label><input asp-for="StartDate" type="date" class="form-control" /></div>
                 <div class="col-md-4"><label asp-for="EmployeeStatus" class="form-label">Trạng thái nhân sự</label><select asp-for="EmployeeStatus" class="form-select"><option value="1">Thử việc</option><option value="2">Chính thức</option><option value="3">Nghỉ việc</option></select></div>
                 <div class="col-md-4"><label class="form-label">Số điện thoại</label><input name="Phones[0]" value="@(Model.Phones.FirstOrDefault())" class="form-control" /></div>
-                    <div class="col-12"><label asp-for="AvatarFile" class="form-label">Ảnh đại diện</label><div class="staff-edit-avatar d-flex gap-3 align-items-center"><img id="staffAvatarPreview" src="@(string.IsNullOrWhiteSpace(Model.CurrentAvatarUrl) ? DefaultImages.StaffAvatarUrl : Model.CurrentAvatarUrl)" width="64" height="64" class="rounded-circle" onerror="this.src='@DefaultImages.StaffAvatarUrl'" /><div class="staff-edit-avatar-control"><input asp-for="AvatarFile" type="file" accept=".jpg,.jpeg,.png,.webp" class="form-control" /><small>JPG, PNG hoặc WebP · dung lượng tối đa 2 MB.</small></div></div></div>
+                    <div class="col-12">
+                        <label class="form-label">Ảnh đại diện</label>
+                        <div class="staff-edit-avatar d-flex gap-3 align-items-center">
+                            <img id="staffAvatarPreview" src="@(string.IsNullOrWhiteSpace(Model.CurrentAvatarUrl) ? DefaultImages.StaffAvatarUrl : Model.CurrentAvatarUrl)" width="64" height="64" class="rounded-circle" onerror="this.src='@DefaultImages.StaffAvatarUrl'" />
+                            <input asp-for="AvatarFile" id="editAvatarInput" type="file" class="d-none" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
+                            <div class="avatar-actions d-flex flex-wrap align-items-center gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="chooseEditAvatar"><i class="fas fa-upload me-1"></i>Chọn ảnh</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger d-none" id="removeEditAvatar"><i class="fas fa-trash me-1"></i>Bỏ chọn</button>
+                                <small class="text-muted ms-1">Định dạng JPG, PNG, WebP · tối đa 2 MB</small>
+                            </div>
+                        </div>
+                        <span asp-validation-for="AvatarFile" class="text-danger small"></span>
+                    </div>
                 </div>
             </section>
 
@@ -69,6 +81,38 @@
 <partial name="_ValidationScriptsPartial" />
 <script>
 (() => {
+    const avatarInput = document.getElementById('editAvatarInput');
+    const avatarPreview = document.getElementById('staffAvatarPreview');
+    const chooseAvatarBtn = document.getElementById('chooseEditAvatar');
+    const removeAvatarBtn = document.getElementById('removeEditAvatar');
+    const initialAvatarUrl = '@(string.IsNullOrWhiteSpace(Model.CurrentAvatarUrl) ? DefaultImages.StaffAvatarUrl : Model.CurrentAvatarUrl)';
+
+    if (avatarInput && avatarPreview) {
+        chooseAvatarBtn?.addEventListener('click', () => avatarInput.click());
+
+        avatarInput.addEventListener('change', () => {
+            const file = avatarInput.files?.[0];
+            if (!file) return;
+            if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
+                avatarInput.value = '';
+                alert('Ảnh phải là JPG, PNG hoặc WebP và không vượt quá 2 MB.');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = e => {
+                avatarPreview.src = e.target.result;
+                removeAvatarBtn?.classList.remove('d-none');
+            };
+            reader.readAsDataURL(file);
+        });
+
+        removeAvatarBtn?.addEventListener('click', () => {
+            avatarInput.value = '';
+            avatarPreview.src = initialAvatarUrl;
+            removeAvatarBtn.classList.add('d-none');
+        });
+    }
+
     const province = document.getElementById('editProvince'), ward = document.getElementById('editWard');
     const initialWard = '@Model.WardId';
     const wardsEndpoint = '@Url.Action("GetWards", "AdminStaff", new { area = "Admin" })';
@@ -104,8 +148,7 @@
         const wardVersion = ++wardRequestVersion;
         await load(ward, wardsEndpoint, 'provinceId', provinceId, '-- Chọn Xã/Phường/Đặc khu --', initialWard, () => wardVersion === wardRequestVersion && province.value === provinceId);
     })();
-    const avatar = document.getElementById('AvatarFile');
-    avatar?.addEventListener('change', () => { const file = avatar.files?.[0]; if (!file) return; document.getElementById('staffAvatarPreview').src = URL.createObjectURL(file); });
+
 })();
 </script>
 }
