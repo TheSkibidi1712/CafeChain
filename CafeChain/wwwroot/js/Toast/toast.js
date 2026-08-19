@@ -146,4 +146,20 @@
         actionFallback,
         networkMessage
     });
+
+    document.addEventListener("DOMContentLoaded", () => {
+        try {
+            const message = sessionStorage.getItem("toast_message");
+            const type = sessionStorage.getItem("toast_type") || "success";
+            if (message) {
+                sessionStorage.removeItem("toast_message");
+                sessionStorage.removeItem("toast_type");
+                setTimeout(() => {
+                    toast(message, type);
+                }, 150);
+            }
+        } catch (e) {
+            // Ignored - browser privacy mode might restrict sessionStorage access
+        }
+    });
 })(window, document);
