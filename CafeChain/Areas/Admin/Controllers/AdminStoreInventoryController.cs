@@ -126,6 +126,50 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         // =====================================================
+        // TRANSACTION HISTORY (STANDALONE PAGE)
+        // =====================================================
+
+        public async Task<IActionResult> TransactionHistory(
+            int storeId = 0,
+            int page = 1)
+        {
+            var accountId = GetAccountId();
+
+            if (accountId <= 0)
+                return Unauthorized();
+
+            var actor = _actor.Get(User);
+            var storeScope = await _storeScopeResolver.ResolveAsync(
+                actor,
+                storeId > 0 ? storeId : null);
+            if (!storeScope.IsResolved)
+                return StoreScopeFailure(storeScope);
+            storeId = storeScope.StoreId!.Value;
+            var stores = await _service.GetStoresByStaffAsync(accountId);
+
+            if (!stores.Any(x => x.StoreId == storeId))
+                return Forbid();
+
+            var (data, total) = await _service.GetAllTransactionsByStaffAsync(
+                accountId,
+                storeId,
+                page,
+                PageSize);
+
+            var vm = new InventoryTransactionHistoryVM
+            {
+                StoreId = storeId,
+                Stores = ToStoreTabs(stores),
+                Items = ToTransactionViewModels(data),
+                Page = page < 1 ? 1 : page,
+                TotalPages = CalculateTotalPages(total),
+                TotalCount = total
+            };
+
+            return View(vm);
+        }
+
+        // =====================================================
         // PRIVATE - VIEW MODEL
         // =====================================================
 
