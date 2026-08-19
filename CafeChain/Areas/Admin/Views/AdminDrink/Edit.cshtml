@@ -224,42 +224,6 @@
                            id="currentDrinkId"
                            value="@Model.DrinkUpdateDTO.DrinkId" />
 
-                    <div class="drink-image-upload-panel mb-4">
-                        <div class="drink-image-upload-heading">
-                            <span><i class="fas fa-cloud-arrow-up"></i></span>
-                            <div>
-                                <h6>Thêm ảnh mới</h6>
-                                <p>JPG, PNG • Tối đa 5MB • Crop chuẩn 1:1</p>
-                            </div>
-                        </div>
-
-                        <input type="file"
-                               class="form-control drink-image-file-input mb-3"
-                               id="uploadImageInput"
-                               accept=".jpg,.jpeg,.png" />
-
-                        <div class="d-flex align-items-center justify-content-between gap-2">
-                            <div class="form-check form-switch mb-0">
-                                <input class="form-check-input"
-                                       type="checkbox"
-                                       role="switch"
-                                       id="uploadDefaultSwitch" />
-
-                                <label class="form-check-label small"
-                                       for="uploadDefaultSwitch">
-                                    Đặt làm mặc định
-                                </label>
-                            </div>
-
-                            <button type="button"
-                                    class="btn drink-image-upload-btn"
-                                    id="btnUploadDrinkImage">
-                                <i class="fas fa-upload me-1"></i>
-                                Tải ảnh
-                            </button>
-                        </div>
-                    </div>
-
                     <div class="drink-image-library-heading mb-3">
                         <div>
                             <i class="fas fa-layer-group"></i>
@@ -285,75 +249,65 @@
 
 </div>
 
-@if (canUpdateImage)
-{
 <!-- Modal Edit Image -->
-<div class="modal fade"
-     id="editImageModal"
-     tabindex="-1"
-     aria-hidden="true">
-    <div class="modal-dialog modal-sm">
-        <div class="modal-content drink-modal-content">
+<div class="modal fade" id="editImageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content drink-modal-content drink-image-edit-modal">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold text-warning">
-                    <i class="fas fa-pencil-alt"></i>
-                    Chỉnh sửa ảnh
-                </h5>
-                <button type="button"
-                        class="btn-close"
-                        data-bs-dismiss="modal"
-                        aria-label="Close">
-                </button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden"
-                       id="editImageId"
-                       value="" />
-                <div class="mb-3 text-center">
-                    <p class="text-muted small mb-2">Ảnh hiện tại:</p>
-                    <img id="editCurrentPreview"
-                         src=""
-                         alt="Current Image"
-                         style="max-height: 150px; max-width: 100%; object-fit: contain; border-radius: 6px; border: 1px solid #dee2e6;" />
+                <div class="drink-image-modal-title">
+                    <span class="drink-image-modal-icon"><i class="fas fa-pen"></i></span>
+                    <div>
+                        <h5 class="modal-title">Chỉnh sửa ảnh</h5>
+                        <p class="modal-header-subtitle">Thay thế ảnh hiện tại bằng ảnh mới</p>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">
-                        Chọn ảnh mới
-                        <span class="text-danger">*</span>
-                    </label>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editImageForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <input type="hidden" id="editDrinkImageId" value="" />
                     <input type="file"
-                           class="form-control"
-                           id="newImageFileInput"
+                           class="drink-image-file-input-hidden"
+                           id="editImageFileInput"
                            accept=".jpg,.jpeg,.png" />
-                    <div class="form-text">Chỉ chấp nhận JPG, JPEG, PNG.</div>
+
+                    <div class="row g-4 align-items-center justify-content-center">
+                        <div class="col-6 edit-image-col">
+                            <span class="edit-image-col-label">Ảnh hiện tại</span>
+                            <div class="edit-image-box-wrapper">
+                                <img id="editCurrentPreview" src="" alt="Ảnh hiện tại" />
+                            </div>
+                        </div>
+                        <div class="col-6 edit-image-col">
+                            <span class="edit-image-col-label">Ảnh mới (xem trước)</span>
+                            <label for="editImageFileInput" class="m-0 p-0 d-block" style="cursor: pointer;" title="Bấm để chọn ảnh mới">
+                                <div id="editNewPreviewPlaceholder" class="edit-image-picker-box">
+                                    <i class="fas fa-folder-open"></i>
+                                    <span>Chọn ảnh mới</span>
+                                </div>
+                                <div id="editNewPreviewWrapper" class="edit-image-box-wrapper" style="display: none;">
+                                    <img id="editNewPreview" src="" alt="Ảnh mới" />
+                                    <div class="edit-image-preview-overlay">
+                                        <i class="fas fa-sync-alt"></i>
+                                        <span>Đổi ảnh khác</span>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
                 </div>
-                <div id="newImagePreviewWrapper"
-                     class="text-center mb-2"
-                     style="display:none;">
-                    <p class="text-muted small mb-1">Xem trước ảnh mới:</p>
-                    <img id="newImagePreview"
-                         src=""
-                         alt="New Image Preview"
-                         style="max-height: 150px; max-width: 100%; object-fit: contain; border-radius: 6px; border: 1px dashed #0d6efd;" />
+                <div class="modal-footer">
+                    <button type="button" class="btn drink-modal-btn-cancel" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn drink-modal-btn-save" id="btnSaveEditImage">
+                        <i class="fas fa-save me-1"></i> Lưu thay đổi
+                    </button>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button"
-                        class="btn btn-secondary btn-sm"
-                        data-bs-dismiss="modal">
-                    Hủy
-                </button>
-                <button type="button"
-                        class="btn btn-warning btn-sm"
-                        id="btnConfirmEditImage">
-                    <i class="fas fa-save"></i>
-                    Lưu ảnh mới
-                </button>
-            </div>
+            </form>
         </div>
     </div>
 </div>
-}
+
+
 
 @section Scripts {
 
