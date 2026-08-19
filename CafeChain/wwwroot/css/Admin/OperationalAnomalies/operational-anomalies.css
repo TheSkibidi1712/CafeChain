@@ -136,5 +136,10 @@
         animation-iteration-count: 1 !important;
     }
 }
-/* Fix contract: centered anomaly data and semantic actions. */
 .anomalies-page table th,.anomalies-page table td{vertical-align:middle;text-align:center}.anomalies-page table td:first-child{text-align:left}.anomalies-page :is(.btn-primary,.cc-button-primary){min-height:44px;border-color:var(--cc-brown-600,#70482F)!important;background:var(--cc-brown-600,#70482F)!important;color:#fff!important}.anomalies-page :is(.btn-danger,.btn-outline-danger){border-color:var(--cc-danger,#B42318)!important;background:var(--cc-danger-bg,#FEF3F2)!important;color:var(--cc-danger,#B42318)!important}
+
+/* SweetAlert container z-index override to display on top of all modals and dialogs */
+body .swal2-container,
+.swal2-container {
+    z-index: 2000000000 !important;
+}

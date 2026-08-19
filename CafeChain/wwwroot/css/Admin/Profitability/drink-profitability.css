@@ -444,6 +444,7 @@ textarea.pf-control {
     font-size: 12px;
     font-weight: 700;
     line-height: 1.25;
+    white-space: nowrap !important;
 }
 
 .pf-status-ready {

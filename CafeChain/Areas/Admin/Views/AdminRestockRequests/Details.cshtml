@@ -71,6 +71,93 @@
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
+<style>
+    .restock-detail-page .ops-detail-grid {
+        grid-template-columns: minmax(0, 1.8fr) minmax(260px, 0.5fr) !important;
+    }
+    .restock-detail-page .ops-source-options {
+        display: flex !important;
+        gap: 16px !important;
+        margin-top: 16px !important;
+    }
+    .restock-detail-page .ops-source-option {
+        flex: 1 1 0 !important;
+        min-height: 48px !important;
+        height: 48px !important;
+        padding: 0 16px !important;
+        border: 1px solid var(--cc-border, #E9DED4) !important;
+        border-radius: var(--cc-radius-control, 10px) !important;
+        background: var(--cc-surface, #FFFDFB) !important;
+        color: var(--cc-text-primary, #201812) !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        cursor: pointer !important;
+        font-size: 0.95rem !important;
+        font-weight: 600 !important;
+        transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease !important;
+    }
+    .restock-detail-page .ops-source-option:hover {
+        border-color: var(--cc-accent, #A97750) !important;
+        background: var(--cc-surface-hover, #FDFBF7) !important;
+    }
+    .restock-detail-page .ops-source-option.is-active,
+    .restock-detail-page .ops-source-option[aria-pressed="true"] {
+        border-color: var(--cc-brown-600, #70482F) !important;
+        background: var(--cc-surface-active, #F4E9DF) !important;
+        color: var(--cc-brown-800, #3D2418) !important;
+        box-shadow: var(--cc-focus-ring) !important;
+        font-weight: 700 !important;
+    }
+    .restock-detail-page .ops-source-options.has-selection .ops-source-option {
+        max-width: 50% !important;
+    }
+    .restock-detail-page .ops-source-options.has-selection .ops-source-option:not(.is-active) {
+        display: none !important;
+    }
+    .restock-detail-page .ops-source-option i {
+        font-size: 1.1rem !important;
+        color: var(--cc-accent, #A97750) !important;
+    }
+    .restock-detail-page .ops-source-option.is-active i,
+    .restock-detail-page .ops-source-option[aria-pressed="true"] i {
+        color: var(--cc-brown-600, #70482F) !important;
+    }
+    .restock-detail-page .ops-source-option strong {
+        margin: 0 !important;
+    }
+    .restock-detail-page .ops-source-notes {
+        margin-top: 12px !important;
+        padding: 12px 16px !important;
+        background: var(--cc-surface-muted, #FBF7F2) !important;
+        border: 1px solid var(--cc-border-soft, #F5ECE4) !important;
+        border-radius: var(--cc-radius-control, 10px) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+    .restock-detail-page .ops-source-note-item {
+        display: flex !important;
+        align-items: start !important;
+        gap: 10px !important;
+        font-size: 0.8rem !important;
+        line-height: 1.45 !important;
+        color: var(--cc-text-secondary, #605045) !important;
+    }
+    .restock-detail-page .ops-source-note-item i {
+        color: var(--cc-accent, #A97750) !important;
+        font-size: 0.95rem !important;
+        margin-top: 2px !important;
+        width: 16px !important;
+        text-align: center !important;
+        flex-shrink: 0 !important;
+    }
+    .restock-detail-page .ops-source-note-item strong {
+        color: var(--cc-text, #201812) !important;
+        font-weight: 650 !important;
+    }
+</style>
 
 <main class="restock-page restock-detail-page ops-shell cc-warehouse-page">
 <header class="ops-header cc-warehouse-header cc-warehouse-header--compact cc-warehouse-header--detail">
@@ -232,20 +319,41 @@
                         {
                             <div class="ops-notice ops-notice-info"><strong>Còn @AdminStatusDisplay.Quantity(remainingSource) @requestUnitName chưa xác định nguồn.</strong><br />Chọn một cách thực hiện để mở đúng biểu mẫu. Bạn vẫn có thể chia nhu cầu cho nhiều nguồn.</div>
                             <div class="ops-source-options" role="group" aria-label="Chọn nguồn thực hiện">
-                                <button type="button" class="ops-source-option" data-source-option="TRANSFER" aria-pressed="false">
-                                    <i class="fa-solid fa-arrow-right-arrow-left" aria-hidden="true"></i><strong>Điều chuyển nội bộ</strong><span>Nhận hàng từ một chi nhánh khác trong chuỗi.</span>
-                                </button>
+                                <div class="ops-source-option" data-source-option="TRANSFER" tabindex="0" aria-pressed="false">
+                                    <i class="fa-solid fa-arrow-right-arrow-left" aria-hidden="true"></i><strong>Điều chuyển nội bộ</strong>
+                                </div>
                                 @if (canOfferPurchase)
                                 {
-                                    <button type="button" class="ops-source-option" data-source-option="PURCHASE" aria-pressed="false">
-                                        <i class="fa-solid fa-basket-shopping" aria-hidden="true"></i><strong>Mua ngoài</strong><span>Đưa số lượng vào đề nghị mua và chọn Nhà cung cấp ở bước tổng hợp.</span>
-                                    </button>
+                                    <div class="ops-source-option" data-source-option="PURCHASE" tabindex="0" aria-pressed="false">
+                                        <i class="fa-solid fa-basket-shopping" aria-hidden="true"></i><strong>Mua ngoài</strong>
+                                    </div>
                                 }
                                 @if (productionEligibility?.Eligible == true)
                                 {
-                                    <button type="button" class="ops-source-option" data-source-option="PRODUCTION" aria-pressed="false">
-                                        <i class="fa-solid fa-flask" aria-hidden="true"></i><strong>Sản xuất nội bộ</strong><span>Tạo lệnh sản xuất bán thành phẩm tại cửa hàng.</span>
-                                    </button>
+                                    <div class="ops-source-option" data-source-option="PRODUCTION" tabindex="0" aria-pressed="false">
+                                        <i class="fa-solid fa-flask" aria-hidden="true"></i><strong>Sản xuất nội bộ</strong>
+                                    </div>
+                                }
+                            </div>
+                            
+                            <div class="ops-source-notes">
+                                <div class="ops-source-note-item">
+                                    <i class="fa-solid fa-arrow-right-arrow-left" aria-hidden="true"></i>
+                                    <span><strong>Điều chuyển nội bộ:</strong> Nhận hàng từ một chi nhánh khác trong chuỗi.</span>
+                                </div>
+                                @if (canOfferPurchase)
+                                {
+                                    <div class="ops-source-note-item">
+                                        <i class="fa-solid fa-basket-shopping" aria-hidden="true"></i>
+                                        <span><strong>Mua ngoài:</strong> Đưa số lượng vào đề nghị mua và chọn Nhà cung cấp ở bước tổng hợp.</span>
+                                    </div>
+                                }
+                                @if (productionEligibility?.Eligible == true)
+                                {
+                                    <div class="ops-source-note-item">
+                                        <i class="fa-solid fa-flask" aria-hidden="true"></i>
+                                        <span><strong>Sản xuất nội bộ:</strong> Tạo lệnh sản xuất bán thành phẩm tại cửa hàng.</span>
+                                    </div>
                                 }
                             </div>
                             <form method="post" asp-action="SetSourcingDecision" class="ops-source-form" data-source-form hidden>

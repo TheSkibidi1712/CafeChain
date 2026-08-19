@@ -756,7 +756,7 @@ textarea.sm-control {
         grid-template-columns: 1fr 1fr;
     }
 
-    .sm-toolbar > button {
+    .sm-toolbar > :is(button, .sm-icon-button) {
         grid-column: 1 / -1;
     }
 
