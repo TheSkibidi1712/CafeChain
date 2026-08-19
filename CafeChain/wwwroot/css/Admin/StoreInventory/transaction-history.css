@@ -1,0 +1,270 @@
+/* ================================================================
+   Inventory Transaction History — standalone page styles
+   Synced with storeinventory.css design tokens & spacing
+   ================================================================ */
+
+/* ---- Store Tabs ---- */
+.txn-history-store-tabs {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.txn-history-store-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border-radius: var(--cc-radius-control, 10px);
+    border: 1px solid var(--cc-border, #E9DED4);
+    background: var(--cc-surface-muted, #fbf7f2);
+    color: var(--cc-text-secondary, #66584f);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-height: 38px;
+}
+
+.txn-history-store-tab:hover {
+    border-color: var(--cc-brown-500, #8b6247);
+    color: var(--cc-brown-900, #3d2418);
+    background: var(--cc-surface-active, #f4e9df);
+}
+
+.txn-history-store-tab.active {
+    border-color: var(--cc-brown-600, #70482f);
+    background: var(--cc-brown-600, #70482f);
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 3px 10px rgba(112, 72, 47, .2);
+}
+
+/* ---- Filter Bar ---- */
+.txn-history-filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 14px 18px;
+    border: 1px solid var(--cc-border, #E9DED4);
+    border-radius: var(--cc-radius-md, 14px);
+    background: var(--cc-surface-muted, #fbf7f2);
+}
+
+.txn-history-search-field {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 200px;
+}
+
+.txn-history-search-field input {
+    width: 100%;
+    min-height: 38px;
+    padding: 6px 14px;
+    border: 1px solid var(--cc-border-strong, #D8C5B6);
+    border-radius: var(--cc-radius-control, 10px);
+    font-size: 13.5px;
+    background: #f7f4f0;
+    color: var(--cc-text, #201812);
+    transition: border-color 0.15s ease;
+}
+
+.txn-history-search-field input:focus {
+    border-color: var(--cc-brown-600, #70482f);
+    outline: none;
+}
+
+.txn-history-type-select {
+    min-height: 38px;
+    min-width: 160px;
+    padding: 6px 12px;
+    border: 1px solid var(--cc-border-strong, #D8C5B6);
+    border-radius: var(--cc-radius-control, 10px);
+    font-size: 13.5px;
+    background: #f7f4f0;
+    color: var(--cc-text, #201812);
+    cursor: pointer;
+}
+
+.txn-history-type-select:focus {
+    border-color: var(--cc-brown-600, #70482f);
+    outline: none;
+}
+
+.txn-history-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 38px;
+    padding: 0 16px;
+    border: none;
+    border-radius: var(--cc-radius-control, 10px);
+    background: var(--cc-refresh-espresso-2, #3a241c);
+    color: #fff;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.txn-history-filter-btn:hover {
+    background: var(--cc-brown-700, #5c3f2b);
+    box-shadow: 0 4px 12px rgba(112, 72, 47, .2);
+}
+
+/* ---- Result Meta ---- */
+.txn-history-result-meta {
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--cc-text-secondary, #66584f);
+}
+
+.txn-history-result-meta strong {
+    color: var(--cc-text, #201812);
+    font-weight: 800;
+}
+
+/* ---- Table ---- */
+.txn-history-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--cc-border, #E9DED4);
+    border-radius: var(--cc-radius-md, 14px);
+    background: var(--cc-surface-muted, #fbf7f2);
+    margin-bottom: 24px;
+}
+
+.txn-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.txn-history-table thead th {
+    padding: 10px 14px;
+    background: #f0ebe5;
+    color: #4b3024;
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    border-bottom: 1px solid var(--cc-border-strong, #D8C5B6);
+    text-align: center;
+    white-space: nowrap;
+}
+
+.txn-history-table tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--cc-border, #E9DED4);
+    vertical-align: middle;
+    text-align: center;
+    color: var(--cc-text, #201812);
+}
+
+.txn-history-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.txn-history-table tbody tr:hover td {
+    background: #f0ebe5;
+}
+
+.txn-history-table .plus {
+    color: #2b8a3e;
+    font-weight: 700;
+}
+
+.txn-history-table .minus {
+    color: #c92a2a;
+    font-weight: 700;
+}
+
+/* ---- Empty State ---- */
+.txn-history-empty {
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--cc-text-muted, #8c7b70);
+}
+
+.txn-history-empty i {
+    font-size: 2.5rem;
+    margin-bottom: 16px;
+    color: var(--cc-border-strong, #D8C5B6);
+}
+
+.txn-history-empty h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--cc-text-secondary, #66584f);
+}
+
+.txn-history-empty p {
+    font-size: 0.88rem;
+}
+
+/* ---- Sliding Window Pagination ---- */
+.txn-history-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.txn-history-page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 38px;
+    min-height: 38px;
+    padding: 4px 10px;
+    border: 1px solid var(--cc-border-strong, #D8C5B6);
+    border-radius: var(--cc-radius-control, 10px);
+    background: var(--cc-surface-muted, #fbf7f2);
+    color: var(--cc-text-secondary, #66584f);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.txn-history-page-btn:hover {
+    border-color: var(--cc-brown-500, #8b6247);
+    color: var(--cc-brown-900, #3d2418);
+    background: var(--cc-surface-active, #f4e9df);
+}
+
+.txn-history-page-btn.active {
+    border-color: var(--cc-refresh-espresso-2, #3a241c);
+    background: var(--cc-refresh-espresso-2, #3a241c);
+    color: #fff;
+    font-weight: 700;
+    pointer-events: none;
+}
+
+.txn-history-page-btn.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.txn-history-page-ellipsis {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    min-height: 38px;
+    color: var(--cc-text-muted, #8c7b70);
+    font-size: 13px;
+    font-weight: 600;
+    pointer-events: none;
+    user-select: none;
+}

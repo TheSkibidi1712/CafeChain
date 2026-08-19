@@ -1,6 +1,6 @@
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=YOUR_PC_NAME\\SQLEXPRESS;Database=CafeChain;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true"
+    "DefaultConnection": "Server=(localdb)\MSSQLLocalDB;Database=CafeChain;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true"
   }
 }
 
