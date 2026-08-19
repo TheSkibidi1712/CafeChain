@@ -196,7 +196,7 @@
                             </td>
 
                             <!-- CONSUMPTION SOURCE -->
-                            <td class="topping-source-cell">
+                            <td class="topping-source-cell text-start">
                                 <span class="topping-source-badge @(item.ConsumptionSource.MappingValid ? "is-valid" : "is-warning")">
                                     @item.ConsumptionSource.SourceLabel
                                 </span>
@@ -205,22 +205,27 @@
                                 @foreach (var component in item.ConsumptionSource.Components)
                                 {
                                     <div class="topping-source-component">
-                                        <div class="font-monospace text-break">@component.IdentityDisplay</div>
-                                        <div>
-                                            @component.QuantityDisplay/phần
+                                        <div class="comp-header">
+                                            <span class="comp-name">@(component.SourceKind == ToppingConsumptionSourceCodes.DirectIngredient ? component.IngredientName : component.PreparedItemName)</span>
+                                            <span class="comp-qty">@component.QuantityDisplay/phần</span>
+                                        </div>
+                                        <div class="comp-code">
+                                            @(component.SourceKind == ToppingConsumptionSourceCodes.DirectIngredient ? component.IngredientCode : component.PreparedItemCode)
                                             @if (component.ChildRecipeId.HasValue)
                                             {
-                                                <span>· pin Recipe #@component.ChildRecipeId</span>
+                                                <span class="text-info ms-1">· pin Recipe #@component.ChildRecipeId</span>
                                             }
                                         </div>
                                         @if (component.PreparedItemId.HasValue)
                                         {
-                                            <a asp-area="Admin"
-                                               asp-controller="AdminStoreInventory"
-                                               asp-action="Index"
-                                               asp-route-tab="prepared-items"
-                                               asp-route-search="@component.PreparedItemCode"
-                                               class="small text-decoration-none text-primary fw-semibold"><i class="fas fa-boxes me-1"></i>Xem tồn kho BTP</a>
+                                            <div class="mt-1">
+                                                <a asp-area="Admin"
+                                                   asp-controller="AdminStoreInventory"
+                                                   asp-action="Index"
+                                                   asp-route-tab="prepared-items"
+                                                   asp-route-search="@component.PreparedItemCode"
+                                                   class="small text-decoration-none text-primary fw-semibold"><i class="fas fa-boxes me-1"></i>Xem tồn kho BTP</a>
+                                            </div>
                                         }
                                     </div>
                                 }
@@ -228,16 +233,25 @@
                                 <div class="topping-cost-authority">
                                     @if (item.ConsumptionSource.EstimatedCostPerPortion.HasValue)
                                     {
-                                        <span>Giá vốn BOM ước tính: <strong>@item.ConsumptionSource.EstimatedCostPerPortion.Value.ToString("N0") đ/phần</strong></span>
+                                        <div class="topping-cost-row">
+                                            <span>Giá vốn BOM ước tính:</span>
+                                            <span class="topping-cost-val">@item.ConsumptionSource.EstimatedCostPerPortion.Value.ToString("N0") đ/phần</span>
+                                        </div>
                                     }
                                     else
                                     {
-                                        <span>@item.ConsumptionSource.CostStatus</span>
+                                        <div class="topping-cost-row">
+                                             <span>Trạng thái:</span>
+                                             <span class="text-warning small"><i class="fas fa-exclamation-triangle me-1"></i>@item.ConsumptionSource.CostStatus</span>
+                                        </div>
                                     }
-                                    <span>Giá vốn thực tế: FIFO khi bán</span>
+                                    <div class="topping-cost-row small text-muted">
+                                        <span>Giá vốn thực tế:</span>
+                                        <span>FIFO khi bán</span>
+                                    </div>
                                 </div>
 
-                                <div class="mt-2 d-flex flex-wrap gap-2">
+                                <div class="mt-2 d-flex flex-wrap gap-2 justify-content-start">
                                     @if (item.ConsumptionSource.ActiveRecipeId.HasValue)
                                     {
                                         <a asp-area="Admin"

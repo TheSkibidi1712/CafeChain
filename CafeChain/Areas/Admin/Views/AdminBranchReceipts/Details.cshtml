@@ -8,6 +8,12 @@
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
+<style>
+    /* Remove vertical brown accent border on the left of document info */
+    .branch-receipt-detail-page .ops-data-grid {
+        border-left: 0 !important;
+    }
+</style>
 
 <main class="ops-shell branch-receipt-page branch-receipt-detail-page cc-warehouse-page">
 <header class="ops-header cc-warehouse-header cc-warehouse-header--compact cc-warehouse-header--detail">
@@ -49,7 +55,7 @@
             <div class="ops-panel-header"><h2 class="ops-panel-title">Các dòng hàng thực nhận</h2></div>
             <div class="ops-table-scroll cc-warehouse-table-shell">
 <table class="ops-table ops-table-min-900">
-                    <thead><tr><th>Nguồn yêu cầu nhập</th><th>Mặt hàng</th><th class="number">Số lượng thực giao</th><th class="number">Số lượng chấp nhận</th><th class="number">Số lượng từ chối</th><th class="number">Giá vốn cơ sở</th><th class="number">Thành tiền</th><th>Giao dịch kho</th><th></th></tr></thead>
+                    <thead><tr><th>Nguồn yêu cầu nhập</th><th>Mặt hàng</th><th class="number">Số lượng thực giao</th><th class="number">Số lượng chấp nhận</th><th class="number">Số lượng từ chối</th><th class="number">Giá vốn cơ sở</th><th class="number">Thành tiền</th><th>Giao dịch kho</th><th class="text-center">Thao tác</th></tr></thead>
                     <tbody>
                     @foreach (var line in Model.Lines)
                     {
@@ -72,7 +78,7 @@
                             <td class="number">@AdminStatusDisplay.Currency(line.BaseUnitCostSnapshot)</td>
                             <td class="number fw-bold">@AdminStatusDisplay.Currency(line.LineTotalCost)</td>
                             <td>@(line.InventoryTransactionId.HasValue ? $"#{line.InventoryTransactionId}" : "Chưa ghi kho")</td>
-                            <td>@if(isConfirmed && line.PurchaseOrderLineId.HasValue){<a class="ops-btn" asp-area="Admin" asp-controller="AdminSupplierQuality" asp-action="Create" asp-route-branchReceiptLineId="@line.BranchReceiptLineId">Ghi sự cố</a>}</td>
+                            <td class="text-center">@if(isConfirmed && line.PurchaseOrderLineId.HasValue){<a class="ops-btn" asp-area="Admin" asp-controller="AdminSupplierQuality" asp-action="Create" asp-route-branchReceiptLineId="@line.BranchReceiptLineId">Ghi sự cố</a>}</td>
                         </tr>
                     }
                     </tbody>

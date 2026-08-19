@@ -47,7 +47,21 @@ document.addEventListener('click', async event => {
 
     const explain = event.target.closest('[data-explain]');
     if (explain) {
+        const originalText = explain.innerHTML;
         explain.disabled = true;
+        explain.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Đang phân tích...';
+
+        // Show loading Swal
+        Swal.fire({
+            title: 'Đang phân tích...',
+            text: 'Hệ thống AI đang phân tích dữ liệu tín hiệu vận hành, vui lòng đợi trong giây lát.',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
         try {
             const response = await fetch('/Admin/AdminOperationalAnomalies/Explain', {
                 method: 'POST',
@@ -60,7 +74,16 @@ document.addEventListener('click', async event => {
                 title: body.presentation?.metricDisplayName || 'Giải thích tín hiệu',
                 html: buildExplanationContent(body)
             });
-        } finally { explain.disabled = false; }
+        } catch (err) {
+            await Swal.fire({
+                icon: 'error',
+                title: 'Lỗi kết nối',
+                text: 'Không thể kết nối đến hệ thống AI để giải thích tín hiệu lúc này.'
+            });
+        } finally {
+            explain.disabled = false;
+            explain.innerHTML = originalText;
+        }
         return;
     }
 

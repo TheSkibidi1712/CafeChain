@@ -294,6 +294,7 @@
 .topping-source-cell {
     min-width: 320px;
     max-width: 500px;
+    text-align: left !important;
 }
 
 .topping-source-badge {
@@ -320,19 +321,67 @@
 }
 
 .topping-source-component {
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid var(--cc-border, #e9ded4);
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: var(--cc-surface-muted, #fbf7f2);
+    border: 1px solid var(--cc-border-soft, #f5ece4);
+    border-radius: 8px;
     color: var(--cc-text-secondary, #66584f);
-    font-size: 12px;
+    font-size: 12.5px;
+    text-align: left !important;
+}
+
+.topping-source-component .comp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.topping-source-component .comp-name {
+    font-weight: 650;
+    color: var(--cc-text, #201812);
+}
+
+.topping-source-component .comp-qty {
+    font-family: monospace;
+    font-weight: 700;
+    font-size: 11.5px;
+    color: var(--cc-accent, #a97750);
+    background: #ffffff;
+    padding: 2px 8px;
+    border: 1px solid var(--cc-border-soft, #f5ece4);
+    border-radius: 4px;
+}
+
+.topping-source-component .comp-code {
+    font-family: monospace;
+    font-size: 11px;
+    color: #9f8d83;
 }
 
 .topping-cost-authority {
-    display: grid;
-    gap: 2px;
-    margin-top: 8px;
-    color: var(--cc-text-secondary, #66584f);
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: var(--cc-surface-muted, #fbf7f2);
+    border: 1px solid var(--cc-border-soft, #f5ece4);
+    border-radius: 8px;
     font-size: 12px;
+    color: var(--cc-text-secondary, #66584f);
+    text-align: left !important;
+}
+
+.topping-cost-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.topping-cost-val {
+    font-weight: 750;
+    color: var(--cc-success, #2f6f5e);
 }
 
 .status-active,

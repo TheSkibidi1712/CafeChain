@@ -2203,11 +2203,12 @@ body.admin-premium-shell .ai-import-page select {
     padding-right: 32px !important;
 }
 
-/* SweetAlert container inside the HTML5 edit-dialog modal */
-.edit-dialog .swal2-container {
+/* SweetAlert container z-index override to display on top of all modals and dialogs globally */
+body .swal2-container,
+.swal2-container {
     position: fixed !important;
     inset: 0 !important;
-    z-index: 1000000 !important;
+    z-index: 2000000000 !important;
 }
 
 /* Synchronize AI Import page shell size, padding and max-width with Category page (standard admin layout) */
