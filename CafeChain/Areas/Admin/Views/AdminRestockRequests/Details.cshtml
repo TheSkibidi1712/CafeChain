@@ -317,7 +317,7 @@
                         {
                             <div class="ops-notice ops-notice-warning mb-3"><strong>Phân bổ điều chuyển chưa hợp lệ.</strong><br />Phân bổ cũ chưa có phiếu điều chuyển nên không được tính là nguồn đã bao phủ. Hãy chọn lại nguồn đáp ứng hoặc lập phiếu điều chuyển hợp lệ trước khi xác nhận.</div>
                         }
-                        else if (remainingSource <= 0)
+                        @if (remainingSource <= 0)
                         {
                             <div class="ops-notice ops-notice-success mb-0"><strong>Đã xác định nguồn cung.</strong><br />Toàn bộ nhu cầu đã được phân bổ. Nếu một nguồn bị hủy hoặc giải phóng, các lựa chọn nguồn sẽ tự xuất hiện lại.</div>
                         }

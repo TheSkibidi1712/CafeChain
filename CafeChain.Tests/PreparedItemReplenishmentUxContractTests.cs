@@ -130,6 +130,17 @@ public sealed class PreparedItemReplenishmentUxContractTests
     }
 
     [Fact]
+    public void OrphanTransfer_DoesNotHideReplacementSourceOptions()
+    {
+        var view = Read("CafeChain/Areas/Admin/Views/AdminRestockRequests/Details.cshtml");
+
+        Assert.Contains("if (orphanTransferAllocations.Count > 0)", view, StringComparison.Ordinal);
+        Assert.Contains("if (remainingSource <= 0)", view, StringComparison.Ordinal);
+        Assert.Contains("data-source-option=\"PRODUCTION\"", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("else if (remainingSource <= 0)", view, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RestockTraceability_IncludesReleasedProductionAllocations()
     {
         var workflow = Read("CafeChain/Application/Services/Inventories/RestockRequestWorkflowService.cs");
