@@ -3,6 +3,7 @@ using CafeChain.Application.Services.AI;
 using CafeChain.Infrastrusture.Interfaces.Systems;
 using Microsoft.Extensions.Options;
 using Moq;
+using System.Text.RegularExpressions;
 
 namespace CafeChain.Tests;
 
@@ -26,6 +27,9 @@ public sealed class AdminAiSupplierRefactorTests
         Assert.Equal("Đã tiếp nhận", result.StatusDisplay);
         Assert.Contains("75.000", result.CurrentValueDisplay, StringComparison.Ordinal);
         Assert.Contains(result.SuggestedChecks, x => x.Contains("tiền đầu ca", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains("đối soát", result.ImpactSummary, StringComparison.OrdinalIgnoreCase);
+        Assert.NotEmpty(result.ImmediateActions);
+        Assert.NotEmpty(result.PreparationChecklist);
 
         var fallback = OperationalAnomalyPresentation.BuildFallbackExplanation(
             result.MetricDisplayName,
@@ -36,6 +40,8 @@ public sealed class AdminAiSupplierRefactorTests
         Assert.DoesNotContain("robust", fallback, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("baseline", fallback, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("chưa đủ cơ sở kết luận", fallback, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Ảnh hưởng", fallback, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("chuẩn bị", fallback, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -120,11 +126,18 @@ public sealed class AdminAiSupplierRefactorTests
         var anomaly = Read("CafeChain", "Areas", "Admin", "Views", "AdminOperationalAnomalies", "Index.cshtml");
         Assert.Contains("Giá trị ghi nhận", anomaly, StringComparison.Ordinal);
         Assert.Contains("Mức thông thường trước đây", anomaly, StringComparison.Ordinal);
-        Assert.Contains("Thông tin kỹ thuật", anomaly, StringComparison.Ordinal);
+        Assert.Contains("Cơ sở phát hiện", anomaly, StringComparison.Ordinal);
+        Assert.Single(Regex.Matches(anomaly, "<div class=\\\"cc-anomaly-card\\\">").Cast<System.Text.RegularExpressions.Match>());
+        Assert.DoesNotContain("data-ack=\"@x.Id\"", anomaly, StringComparison.Ordinal);
+        Assert.Contains("item.Status == \"OPEN\"", anomaly, StringComparison.Ordinal);
 
         var anomalyClient = Read("CafeChain", "wwwroot", "js", "Admin", "Dashboard", "operational-anomalies.js");
         Assert.Contains("buildExplanationContent", anomalyClient, StringComparison.Ordinal);
         Assert.Contains("textContent", anomalyClient, StringComparison.Ordinal);
+        Assert.Contains("impactSummary", anomalyClient, StringComparison.Ordinal);
+        Assert.Contains("preparationChecklist", anomalyClient, StringComparison.Ordinal);
+        Assert.Contains("feedback.dataset.version", anomalyClient, StringComparison.Ordinal);
+        Assert.DoesNotContain("location.reload(); return", anomalyClient, StringComparison.Ordinal);
         Assert.DoesNotContain("innerHTML", anomalyClient, StringComparison.Ordinal);
     }
 
@@ -139,6 +152,11 @@ public sealed class AdminAiSupplierRefactorTests
         Assert.Contains("supplier_intelligence_store_allowlist", seed, StringComparison.Ordinal);
         Assert.Contains("IF NOT EXISTS(SELECT 1 FROM dbo.SystemSettings", seed, StringComparison.Ordinal);
         Assert.Contains("(N'POS.WorkShift.ApproveLateOpen',1,1,1,0,0,0,0,0)", seed, StringComparison.Ordinal);
+        Assert.Contains("BATCH 11B - BTP BASE-UNIT CONFIRMATION V2", seed, StringComparison.Ordinal);
+        Assert.Contains("QuantitySemanticsStatus=1", seed, StringComparison.Ordinal);
+        Assert.Contains("QuantitySemanticsEvidenceType=1", seed, StringComparison.Ordinal);
+        Assert.Contains("SEEDALL_BTP_BASE_UNIT_CONFIRMED_", seed, StringComparison.Ordinal);
+        Assert.Contains("53654", seed, StringComparison.Ordinal);
     }
 
     [Fact]

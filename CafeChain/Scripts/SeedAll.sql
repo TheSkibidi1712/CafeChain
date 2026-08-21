@@ -1523,16 +1523,42 @@ GO
 BEGIN TRY
     BEGIN TRANSACTION;
 
+    /* Remove only the retired NUOCNGOT fixture left by older SeedAll/EF
+       versions. User/business references are never deleted implicitly. */
+    DECLARE @RetiredDrinkIds TABLE(DrinkId int PRIMARY KEY);
+    INSERT @RetiredDrinkIds(DrinkId)
+    SELECT d.DrinkId FROM dbo.Drinks d
+    WHERE d.DrinkId IN (5,6) OR d.DrinkCode IN (N'STING',N'COCA');
+    IF EXISTS
+    (
+        SELECT 1 FROM dbo.OrderDetails od JOIN @RetiredDrinkIds r ON r.DrinkId=od.DrinkId
+        UNION ALL SELECT 1 FROM dbo.Ratings rt JOIN @RetiredDrinkIds r ON r.DrinkId=rt.DrinkId
+        UNION ALL SELECT 1 FROM dbo.Recipes rc JOIN @RetiredDrinkIds r ON r.DrinkId=rc.DrinkId
+        UNION ALL SELECT 1 FROM dbo.PosRecommendationCatalog pr JOIN @RetiredDrinkIds r ON r.DrinkId IN(pr.TriggerDrinkId,pr.RecommendedDrinkId)
+    )
+        THROW 52005,N'SEEDALL: đồ uống NUOCNGOT đã nghỉ vẫn được dữ liệu nghiệp vụ tham chiếu; không tự động xóa.',1;
+    DELETE sm FROM dbo.StoreMenuItems sm
+      JOIN dbo.DrinkSizes ds ON ds.DrinkSizeId=sm.DrinkSizeId
+      JOIN @RetiredDrinkIds r ON r.DrinkId=ds.DrinkId;
+    DELETE sd FROM dbo.StoreDrinks sd JOIN @RetiredDrinkIds r ON r.DrinkId=sd.DrinkId;
+    DELETE dt FROM dbo.DrinkDefaultToppings dt JOIN @RetiredDrinkIds r ON r.DrinkId=dt.DrinkId;
+    DELETE dt FROM dbo.DrinkToppings dt JOIN @RetiredDrinkIds r ON r.DrinkId=dt.DrinkId;
+    DELETE ds FROM dbo.DrinkSizes ds JOIN @RetiredDrinkIds r ON r.DrinkId=ds.DrinkId;
+    DELETE di FROM dbo.DrinkImages di JOIN @RetiredDrinkIds r ON r.DrinkId=di.DrinkId;
+    DELETE d FROM dbo.Drinks d JOIN @RetiredDrinkIds r ON r.DrinkId=d.DrinkId;
+    DELETE FROM dbo.DrinkCategories WHERE CategoryId=3 AND CategoryCode=N'NUOCNGOT'
+      AND NOT EXISTS(SELECT 1 FROM dbo.Drinks WHERE CategoryId=3);
+
     /* ============================================================
        01. DRINK CATEGORIES
 
        Source analysis:
-       - EF HasData: IDs 1-3.
+       - EF HasData: IDs 1-2.
        - Part1: IDs 4-8, retained without changing ID/code/name/value.
        - Store1 duplicate DEMO_CAT_FRUIT_TEA is mapped to TRATRAICAY.
        - Store1 duplicate DEMO_CAT_FRAPPE is mapped to DAXAY.
        - Five non-duplicate Store1 categories receive deterministic IDs 9-13.
-       Final expected count on a clean migrated database: 13.
+       Final expected count on a clean migrated database: 12.
        ============================================================ */
 
     DECLARE @CategorySeed TABLE
@@ -1638,11 +1664,6 @@ BEGIN TRY
         (13, 2, 1, N'TS_KhoaiMon', N'Trà sữa khoai môn', N'Trà sữa vị khoai môn béo nhẹ.', 1, '2025-01-01', NULL),
         (14, 2, 1, N'TS_OLong', N'Trà sữa ô long', N'Trà sữa pha từ trà ô long đậm vị.', 1, '2025-01-01', NULL),
         (15, 2, 1, N'TS_Caramel', N'Trà sữa caramel', N'Trà sữa kết hợp caramel ngọt thơm.', 1, '2025-01-01', NULL),
-        (16, 3, 2, N'PEPSI', N'Pepsi', N'Nước ngọt có gas Pepsi mát lạnh.', 1, '2025-01-01', NULL),
-        (17, 3, 2, N'SPRITE', N'Sprite', N'Nước ngọt có gas vị chanh Sprite.', 1, '2025-01-01', NULL),
-        (18, 3, 2, N'7UP', N'7 Up', N'Nước ngọt có gas vị chanh 7 Up.', 1, '2025-01-01', NULL),
-        (19, 3, 2, N'FANTACAM', N'Fanta cam', N'Nước ngọt có gas vị cam Fanta.', 1, '2025-01-01', NULL),
-        (20, 3, 2, N'AQUAFINA', N'Aquafina', N'Nước suối đóng chai Aquafina.', 1, '2025-01-01', NULL),
         (21, 4, 1, N'TTC_CamSa', N'Trà đào cam sả', N'Trà đào kết hợp cam và sả thơm mát.', 1, '2025-01-01', NULL),
         (22, 4, 1, N'TTC_Vai', N'Trà vải', N'Trà vải ngọt thanh, dùng lạnh.', 1, '2025-01-01', NULL),
         (23, 4, 1, N'TTC_Chanh', N'Trà chanh', N'Trà chanh thanh mát giải khát.', 1, '2025-01-01', NULL),
@@ -1703,6 +1724,8 @@ BEGIN TRY
         (78, 12, 1, N'ZZ_DRINK_MANGO_COCONUT_JELLY_MATCHA', N'Matcha xoài thạch dừa', N'Matcha kết hợp puree xoài và thạch dừa.', 1, '2026-01-01', NULL),
         (79, 12, 1, N'ZZ_DRINK_SALTED_CARAMEL_CHOCOLATE', N'Chocolate caramel kem muối', N'Chocolate kết hợp caramel và lớp kem muối.', 1, '2026-01-01', NULL),
         (80, 8, 1, N'ZZ_DRINK_MANGO_ALOE_YOGURT', N'Sữa chua xoài nha đam', N'Sữa chua kết hợp puree xoài và nha đam.', 1, '2026-01-01', NULL);
+
+    DELETE FROM @DrinkSeed WHERE DrinkId IN (16,17,18,19,20);
 
     IF EXISTS
     (
@@ -2112,6 +2135,8 @@ BEGIN TRY
         (319,80,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877866/suachuaxoainhadam3_xzdjyi.jpg',N'suachuaxoainhadam3_xzdjyi','2025-01-01',0),
         (320,80,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877867/suachuaxoainhadam4_fw8vyo.jpg',N'suachuaxoainhadam4_fw8vyo','2025-01-01',0);
     
+    DELETE FROM @DrinkImageSeed WHERE DrinkId IN (16,17,18,19,20);
+
     IF EXISTS
     (
         SELECT 1
@@ -2226,6 +2251,8 @@ BEGIN TRY
         (79,2,50000,1),(79,3,55000,1),
         (80,2,45000,1),(80,3,40000,1);
 
+    DELETE FROM @DrinkSizeSeed WHERE DrinkId IN (16,17,18,19,20);
+
     IF EXISTS
     (
         SELECT 1
@@ -2245,14 +2272,14 @@ BEGIN TRY
     );
 
     /* Batch-level invariants before commit. */
-    IF (SELECT COUNT(*) FROM dbo.DrinkCategories WHERE CategoryId BETWEEN 1 AND 13) <> 13
-        THROW 52020, N'Số DrinkCategories canonical sau Batch 01 phải bằng 13.', 1;
+    IF (SELECT COUNT(*) FROM dbo.DrinkCategories WHERE CategoryId BETWEEN 1 AND 13) <> 12
+        THROW 52020, N'Số DrinkCategories canonical sau Batch 01 phải bằng 12.', 1;
 
-    IF (SELECT COUNT(*) FROM dbo.Drinks WHERE DrinkId BETWEEN 1 AND 80) <> 80
-        THROW 52021, N'Số Drinks canonical sau Batch 01 phải bằng 80.', 1;
+    IF (SELECT COUNT(*) FROM dbo.Drinks WHERE DrinkId BETWEEN 1 AND 80) <> 73
+        THROW 52021, N'Số Drinks canonical sau Batch 01 phải bằng 73.', 1;
 
-    IF (SELECT COUNT(*) FROM dbo.DrinkImages WHERE DrinkImageId BETWEEN 1 AND 320) <> 320
-        THROW 52022, N'Số DrinkImages nền + Part1 sau Batch 01 phải bằng 320.', 1;
+    IF (SELECT COUNT(*) FROM dbo.DrinkImages WHERE DrinkImageId BETWEEN 1 AND 320) <> 292
+        THROW 52022, N'Số DrinkImages nền + Part1 sau Batch 01 phải bằng 292.', 1;
 
     IF EXISTS
     (
@@ -2384,8 +2411,8 @@ IF NOT EXISTS (SELECT 1 FROM dbo.Stores WHERE StoreId = 1 AND Active = 1)
    OR NOT EXISTS (SELECT 1 FROM dbo.Stores WHERE StoreId = 3 AND Active = 1)
     THROW 52101, N'Thiếu Store nền 1, 2 hoặc 3.', 1;
 
-IF (SELECT COUNT(*) FROM dbo.Drinks WHERE DrinkId BETWEEN 1 AND 50) <> 50
-    THROW 52102, N'Batch 01 chưa hoàn tất đủ DrinkId 1-50.', 1;
+IF (SELECT COUNT(*) FROM dbo.Drinks WHERE DrinkId BETWEEN 1 AND 50) <> 43
+    THROW 52102, N'Batch 01 chưa hoàn tất đủ canonical drinks sau khi loại bỏ đồ uống ngừng kinh doanh.', 1;
 
 IF NOT EXISTS (SELECT 1 FROM dbo.Toppings WHERE ToppingId = 1 AND ToppingCode = N'TC_DEN' AND Name = N'Trân châu đen' AND Price = 5000 AND Active = 1)
    OR NOT EXISTS (SELECT 1 FROM dbo.Toppings WHERE ToppingId = 2 AND ToppingCode = N'TC_TRANG' AND Name = N'Trân châu trắng' AND Price = 5000 AND Active = 1)
@@ -7353,6 +7380,140 @@ WHERE InventoryTransferId=1 AND([Status]<>1 OR ConfirmedAt IS NOT NULL
 OR DispatchedAt IS NOT NULL OR CancelledAt IS NOT NULL);
 
 /* ============================================================
+   BATCH 11B - BTP BASE-UNIT CONFIRMATION V2
+
+   This batch intentionally runs even when the foundation marker has already
+   been completed. It repairs only the eleven demo BTP inventory rows in each
+   of the three seeded stores
+   and never changes their quantities or ledger evidence.
+   ============================================================ */
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+
+    IF OBJECT_ID(N'dbo.PreparedItems',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.Recipes',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.StoreInventories',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.ProductionRuns',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.InventoryCostLayers',N'U') IS NULL
+        THROW 53650,N'SEEDALL_BTP_BASE_UNIT_CONFIRMATION_V2: schema thiếu bảng bắt buộc.',1;
+
+    DECLARE @BtpConfirmationFallbackAccountId int;
+    SELECT TOP(1) @BtpConfirmationFallbackAccountId=AccountId
+    FROM dbo.Accounts
+    WHERE Active=1
+    ORDER BY AccountId;
+    IF @BtpConfirmationFallbackAccountId IS NULL
+        THROW 53651,N'SEEDALL_BTP_BASE_UNIT_CONFIRMATION_V2: thiếu account hệ thống đang hoạt động để ghi nhận evidence.',1;
+
+    DECLARE @BtpConfirmationStores TABLE(StoreId int PRIMARY KEY,ActorAccountId int NOT NULL);
+    INSERT @BtpConfirmationStores(StoreId,ActorAccountId)
+    SELECT st.StoreId,COALESCE(actor.AccountId,@BtpConfirmationFallbackAccountId)
+    FROM dbo.Stores st
+    OUTER APPLY
+    (
+        SELECT TOP(1) s.AccountId
+        FROM dbo.Staffs s
+        JOIN dbo.Accounts a ON a.AccountId=s.AccountId AND a.Active=1
+        WHERE s.StoreId=st.StoreId AND s.Active=1
+        ORDER BY s.StaffId
+    ) actor
+    WHERE st.StoreId IN (1,2,3);
+    IF (SELECT COUNT(*) FROM @BtpConfirmationStores)<>3
+        THROW 53651,N'SEEDALL_BTP_BASE_UNIT_CONFIRMATION_V2: thiếu một trong ba cửa hàng fixture đang hoạt động.',1;
+
+    DECLARE @BtpConfirmationContract TABLE(PreparedItemId int PRIMARY KEY,Code nvarchar(50) UNIQUE);
+    INSERT @BtpConfirmationContract
+    VALUES
+        (1,N'DEMO_PREP_VIET_COFFEE'),(2,N'DEMO_PREP_ESPRESSO'),
+        (3,N'DEMO_PREP_BLACK_TEA'),(4,N'DEMO_PREP_OOLONG_TEA'),
+        (5,N'DEMO_PREP_SUGAR_SYRUP'),(6,N'DEMO_PREP_SALTED_CREAM'),
+        (7,N'DEMO_PREP_CHEESE_CREAM'),(8,N'DEMO_PREP_BLACK_PEARL'),
+        (9,N'DEMO_PREP_ALOE_BASE'),(10,N'DEMO_PREP_COCONUT_JELLY_BASE'),
+        (11,N'DEMO_PREP_KHUC_BACH_BASE');
+
+    IF (SELECT COUNT(*) FROM dbo.PreparedItems p JOIN @BtpConfirmationContract c ON c.Code=p.Code WHERE p.Active=1)<>11
+        THROW 53652,N'SEEDALL_BTP_BASE_UNIT_CONFIRMATION_V2: thiếu hoặc thừa BTP active trong contract.',1;
+    IF EXISTS
+    (
+        SELECT 1
+        FROM dbo.PreparedItems p
+        JOIN @BtpConfirmationContract c ON c.Code=p.Code
+        LEFT JOIN dbo.Units u ON u.UnitId=p.BaseUnitId
+        LEFT JOIN dbo.Recipes r ON r.PreparedItemId=p.PreparedItemId AND r.Active=1 AND r.Status=N'Active'
+        WHERE u.UnitId IS NULL OR r.RecipeId IS NULL OR r.OutputUnitId IS NULL
+           OR r.OutputUnitId<>p.BaseUnitId OR r.OutputQuantity IS NULL OR r.OutputQuantity<=0
+        GROUP BY p.PreparedItemId,p.BaseUnitId,u.UnitId
+        HAVING COUNT(r.RecipeId)<>1
+    )
+        THROW 53653,N'SEEDALL_BTP_BASE_UNIT_CONFIRMATION_V2: BTP thiếu đúng một Recipe output theo BaseUnit.',1;
+    IF EXISTS
+    (
+        SELECT 1
+        FROM dbo.PreparedItems p
+        JOIN @BtpConfirmationContract c ON c.Code=p.Code
+        JOIN dbo.Recipes r ON r.PreparedItemId=p.PreparedItemId AND r.Active=1 AND r.Status=N'Active'
+        WHERE NOT EXISTS(SELECT 1 FROM dbo.ProductionRuns pr WHERE pr.RecipeId=r.RecipeId)
+           OR NOT EXISTS(SELECT 1 FROM dbo.InventoryCostLayers l WHERE l.PreparedItemId=p.PreparedItemId AND l.Quantity>0 AND l.RemainingQuantity>=0)
+    )
+        THROW 53654,N'SEEDALL_BTP_BASE_UNIT_CONFIRMATION_V2: BTP thiếu production/cost evidence, không thể tự đoán đơn vị.',1;
+    IF (SELECT COUNT(*) FROM dbo.StoreInventories si JOIN dbo.PreparedItems p ON p.PreparedItemId=si.PreparedItemId
+        JOIN @BtpConfirmationContract c ON c.Code=p.Code JOIN @BtpConfirmationStores fs ON fs.StoreId=si.StoreId
+        WHERE si.IngredientId IS NULL)<>33
+        THROW 53655,N'SEEDALL_BTP_BASE_UNIT_CONFIRMATION_V2: ba cửa hàng fixture phải có đủ 33 dòng tồn BTP.',1;
+    IF EXISTS
+    (
+        SELECT si.StoreId,si.PreparedItemId
+        FROM dbo.StoreInventories si
+        JOIN dbo.PreparedItems p ON p.PreparedItemId=si.PreparedItemId
+        JOIN @BtpConfirmationContract c ON c.Code=p.Code
+        JOIN @BtpConfirmationStores fs ON fs.StoreId=si.StoreId
+        WHERE si.IngredientId IS NULL
+        GROUP BY si.StoreId,si.PreparedItemId
+        HAVING COUNT(*)<>1
+    )
+        THROW 53657,N'SEEDALL_BTP_BASE_UNIT_CONFIRMATION_V2: mỗi cửa hàng chỉ được có đúng một dòng cho từng BTP fixture.',1;
+
+    UPDATE si
+       SET RecipeId=r.RecipeId,
+           BtpIdentityState=1,
+           QuantitySemanticsStatus=1,
+           SupersededByStoreInventoryId=NULL,
+           QuantitySemanticsEvidenceType=1,
+           QuantitySemanticsEvidenceReference=N'SEEDALL_BTP_BASE_UNIT_CONFIRMED_'+CONVERT(nvarchar(12),si.StoreId)+N'_'+p.Code,
+           QuantitySemanticsReviewedAt='2026-01-01',
+           QuantitySemanticsReviewedByAccountId=fs.ActorAccountId
+    FROM dbo.StoreInventories si
+    JOIN dbo.PreparedItems p ON p.PreparedItemId=si.PreparedItemId
+    JOIN @BtpConfirmationContract c ON c.Code=p.Code
+    JOIN dbo.Recipes r ON r.PreparedItemId=p.PreparedItemId AND r.Active=1 AND r.Status=N'Active'
+    JOIN @BtpConfirmationStores fs ON fs.StoreId=si.StoreId
+    WHERE si.IngredientId IS NULL;
+
+    IF EXISTS
+    (
+        SELECT 1
+        FROM dbo.StoreInventories si
+        JOIN dbo.PreparedItems p ON p.PreparedItemId=si.PreparedItemId
+        JOIN @BtpConfirmationContract c ON c.Code=p.Code
+        JOIN @BtpConfirmationStores fs ON fs.StoreId=si.StoreId
+        WHERE si.IngredientId IS NULL
+          AND (si.BtpIdentityState<>1 OR si.QuantitySemanticsStatus<>1 OR si.QuantitySemanticsEvidenceType<>1
+            OR si.SupersededByStoreInventoryId IS NOT NULL OR si.AvailableQty<0 OR si.ReservedQty<0
+            OR si.QuantitySemanticsEvidenceReference<>N'SEEDALL_BTP_BASE_UNIT_CONFIRMED_'+CONVERT(nvarchar(12),si.StoreId)+N'_'+p.Code
+            OR si.QuantitySemanticsReviewedByAccountId<>fs.ActorAccountId)
+    )
+        THROW 53656,N'SEEDALL_BTP_BASE_UNIT_CONFIRMATION_V2: BTP fixture chưa đạt canonical/base-unit contract.',1;
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF XACT_STATE()<>0 ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+GO
+
+/* ============================================================
    BATCH 12B - ACTIVE ADMIN PERMISSION CATALOG
    Expected clean totals after Batch 12 + 12B:
    - 25 PermissionGroups
@@ -9271,8 +9432,7 @@ BEGIN TRY
  INSERT @WorkShiftSeed VALUES
  (N'DEMO_DASHBOARD_V13_20260115_AM','2026-01-15T06:00:00','2026-01-15T12:00:00',650000,650000,0,0,0),
  (N'DEMO_DASHBOARD_V13_20260115_PM','2026-01-15T12:00:00','2026-01-15T18:00:00',750000,720000,0,1,0),
- (N'DEMO_DASHBOARD_V13_20260116_OFFLINE','2026-01-16T06:00:00','2026-01-16T12:00:00',680000,670000,1,1,1),
- (N'DEMO_DASHBOARD_V13_20260118_OPEN','2026-01-18T06:00:00',NULL,500000,NULL,0,0,0);
+ (N'DEMO_DASHBOARD_V13_20260116_OFFLINE','2026-01-16T06:00:00','2026-01-16T12:00:00',680000,670000,1,1,1);
 
  INSERT dbo.WorkShifts(
    StoreId,UserId,StartTimeUtc,EndTimeUtc,BusinessDate,OpenContext,CloseType,ClosedByStaffId,CloseReason,ExpiryWarningLevel,
@@ -9300,6 +9460,20 @@ BEGIN TRY
  FROM @WorkShiftSeed x
  WHERE NOT EXISTS(SELECT 1 FROM dbo.WorkShifts w
    WHERE w.StoreId=@DashboardStoreId AND w.UserId=@DashboardSalesStaffId AND w.StartTimeUtc=DATEADD(HOUR,-7,x.StartAt));
+
+ DELETE FROM dbo.WorkShifts
+ WHERE StoreId=@DashboardStoreId
+   AND UserId=@DashboardSalesStaffId
+   AND StartTimeUtc=DATEADD(HOUR,-7,CONVERT(datetime2,'2026-01-18T06:00:00'))
+   AND EndTimeUtc IS NULL
+   AND Status=N'OPEN'
+   AND NOT EXISTS(SELECT 1 FROM dbo.Orders o WHERE o.WorkShiftId=dbo.WorkShifts.ShiftId);
+
+ IF EXISTS(SELECT 1 FROM dbo.WorkShifts
+           WHERE StoreId=@DashboardStoreId AND UserId=@DashboardSalesStaffId
+             AND StartTimeUtc=DATEADD(HOUR,-7,CONVERT(datetime2,'2026-01-18T06:00:00'))
+             AND EndTimeUtc IS NULL AND Status=N'OPEN')
+     THROW 53620,N'SeedAll không được tạo phiên POS OPEN demo.',1;
 
  DECLARE @DashboardOrders TABLE(
    ClientOrderId uniqueidentifier PRIMARY KEY,CreatedAt datetime2,OrderStatusId int,PaymentStatusId int,
@@ -9463,7 +9637,7 @@ BEGIN TRY
    THROW 53110,N'DEMO_DASHBOARD_V13 order count mismatch.',1;
  IF (SELECT COUNT(*) FROM dbo.WorkShifts
      WHERE StoreId=@DashboardStoreId AND UserId=@DashboardSalesStaffId
-       AND StartTimeUtc IN ('2026-01-14T23:00:00','2026-01-15T05:00:00','2026-01-15T23:00:00','2026-01-17T23:00:00'))<>4
+       AND StartTimeUtc IN ('2026-01-14T23:00:00','2026-01-15T05:00:00','2026-01-15T23:00:00'))<>3
    THROW 53111,N'DEMO_DASHBOARD_V13 WorkShift count mismatch.',1;
  IF (SELECT COUNT(*) FROM dbo.StaffShifts ss JOIN dbo.Shifts sh ON sh.ShiftId=ss.ShiftId
      WHERE ss.StaffId=@DashboardSalesStaffId AND ss.WorkDate BETWEEN '2026-01-15' AND '2026-01-17'
@@ -9483,7 +9657,7 @@ GO
 SELECT N'DEMO_DASHBOARD_V13' AS SeedMarker,
        (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_DASHBOARD_V13') AS DemoOrders,
        (SELECT COUNT(*) FROM dbo.WorkShifts
-        WHERE StoreId=1 AND StartTimeUtc IN ('2026-01-14T23:00:00','2026-01-15T05:00:00','2026-01-15T23:00:00','2026-01-17T23:00:00')) AS DemoWorkShifts,
+        WHERE StoreId=1 AND StartTimeUtc IN ('2026-01-14T23:00:00','2026-01-15T05:00:00','2026-01-15T23:00:00')) AS DemoWorkShifts,
        (SELECT COUNT(*) FROM dbo.PurchaseOrders WHERE Note=N'DEMO_DASHBOARD_V13') AS DemoPurchaseOrders,
        (SELECT COUNT(*) FROM dbo.SupplierReceiptIssues WHERE Description=N'DEMO_DASHBOARD_V13 supplier issue') AS DemoSupplierIssues;
 GO
@@ -13966,7 +14140,7 @@ BEGIN TRY
       VALUES
       (
         3,@AiStore3StaffId,DATEADD(HOUR,6,DATEADD(DAY,-1,@AiDay)),
-        DATEADD(HOUR,12,DATEADD(DAY,-1,@AiDay)),CONVERT(date,DATEADD(HOUR,13,DATEADD(DAY,-1,@AiDay))),N'LEGACY',N'NORMAL',0,500000,500000,420000,-80000,
+        DATEADD(HOUR,12,DATEADD(DAY,-1,@AiDay)),CONVERT(date,DATEADD(HOUR,13,DATEADD(DAY,-1,@AiDay))),N'LEGACY',N'NORMAL',0,500000,500000,1750000,1250000,
         N'CLOSED',N'DEMO_AI_DASHBOARD_ROLLING_V1_CASH_ANOMALY',0,NULL,NULL,NULL,
         0,0,0,1,0,0,NULL,NULL
       );
@@ -13976,8 +14150,8 @@ BEGIN TRY
            ws.EndTimeUtc=DATEADD(HOUR,12,DATEADD(DAY,-1,@AiDay)),
            ws.BusinessDate=CONVERT(date,DATEADD(HOUR,13,DATEADD(DAY,-1,@AiDay))),
            ws.OpenContext=N'LEGACY',ws.CloseType=N'NORMAL',ws.Status=N'CLOSED',
-           ws.ExpectedEndingCash=500000,ws.ActualEndingCash=420000,
-           ws.CashDiscrepancy=-80000,ws.RequiresReconciliation=1
+           ws.ExpectedEndingCash=500000,ws.ActualEndingCash=1750000,
+           ws.CashDiscrepancy=1250000,ws.RequiresReconciliation=1
     FROM dbo.WorkShifts ws
     WHERE ws.DiscrepancyReason=N'DEMO_AI_DASHBOARD_ROLLING_V1_CASH_ANOMALY';
 
@@ -14061,7 +14235,7 @@ BEGIN TRY
         THROW 53505,N'AI rolling fixture thiếu phân bố completed/cancelled/refunded.',1;
     IF (SELECT COUNT(*) FROM dbo.RestockRequests WHERE Note LIKE N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S%')<>2
         THROW 53502,N'AI rolling fixture phải có 2 restock requests.',1;
-    IF NOT EXISTS(SELECT 1 FROM dbo.WorkShifts WHERE DiscrepancyReason=N'DEMO_AI_DASHBOARD_ROLLING_V1_CASH_ANOMALY' AND ABS(CashDiscrepancy)>=50000)
+    IF NOT EXISTS(SELECT 1 FROM dbo.WorkShifts WHERE DiscrepancyReason=N'DEMO_AI_DASHBOARD_ROLLING_V1_CASH_ANOMALY' AND ABS(CashDiscrepancy)>1000000)
         OR NOT EXISTS(SELECT 1 FROM dbo.SupplierReceiptIssues WHERE Description=N'DEMO_AI_DASHBOARD_ROLLING_V1_SUPPLIER_ISSUE')
         THROW 53506,N'AI rolling fixture missing cash discrepancy or supplier issue.',1;
     IF NOT EXISTS
@@ -14328,10 +14502,61 @@ BEGIN TRY
          ReasonCodesJson,CreatedAtUtc,UpdatedAtUtc,AcknowledgedAtUtc,AcknowledgedByStaffId,
          ResolvedAtUtc,ResolvedByStaffId,ResolutionNote,Feedback,FeedbackNote,FeedbackByStaffId)
         VALUES(1,N'CASH_DISCREPANCY',N'DEMO_COVERAGE_V17','2026-07-19',N'v1',
-               75000,5000,70000,14,4.2,
-               '2026-07-19','2026-07-20',30,N'HIGH',N'HIGH',N'ACKNOWLEDGED',
-               N'["ABOVE_BASELINE"]',@Coverage17Now,@Coverage17Now,@Coverage17Now,@Coverage17Staff,
+               1250000,50000,1200000,24,4.2,
+               '2026-07-19','2026-07-20',30,N'HIGH',N'HIGH',N'OPEN',
+               N'["ABOVE_BASELINE"]',@Coverage17Now,@Coverage17Now,NULL,NULL,
                NULL,NULL,NULL,N'Useful',N'Demo manager acknowledged',@Coverage17Staff);
+
+    UPDATE dbo.OperationalAnomalies
+       SET Status=N'OPEN', AcknowledgedAtUtc=NULL, AcknowledgedByStaffId=NULL,
+           ResolvedAtUtc=NULL, ResolvedByStaffId=NULL, ResolutionNote=NULL
+    WHERE StoreId=1 AND MetricCode=N'CASH_DISCREPANCY' AND PeriodKey=N'DEMO_COVERAGE_V17';
+
+    DECLARE @OperationalAnomalyFixture TABLE
+    (
+        StoreId int NOT NULL,
+        MetricCode nvarchar(80) NOT NULL,
+        PeriodKey nvarchar(100) NOT NULL,
+        CurrentValue decimal(18,2) NOT NULL,
+        BaselineValue decimal(18,2) NOT NULL,
+        AbsoluteDeviation decimal(18,2) NOT NULL,
+        PercentageDeviation decimal(18,2) NOT NULL,
+        RobustScore decimal(18,2) NOT NULL,
+        Severity nvarchar(20) NOT NULL,
+        Confidence nvarchar(20) NOT NULL,
+        Status nvarchar(20) NOT NULL,
+        ReasonCodesJson nvarchar(1000) NOT NULL
+    );
+
+    INSERT @OperationalAnomalyFixture
+    VALUES
+        (1,N'REVENUE',N'DEMO_COVERAGE_V17_REVENUE',3200000,1800000,1400000,0.7778,4.1,N'HIGH',N'HIGH',N'ACKNOWLEDGED',N'["ABOVE_BASELINE","MATERIAL_DEVIATION"]'),
+        (1,N'ORDER_COUNT',N'DEMO_COVERAGE_V17_ORDER_COUNT',42,78,-36,-0.4615,-4.0,N'HIGH',N'HIGH',N'OPEN',N'["BELOW_SEASONAL_BASELINE","MATERIAL_DEVIATION"]'),
+        (1,N'WASTE_ADJUSTMENT',N'DEMO_COVERAGE_V17_WASTE',145,35,110,3.1429,4.5,N'CRITICAL',N'HIGH',N'RESOLVED',N'["ABOVE_BASELINE","MATERIAL_DEVIATION"]'),
+        (1,N'SUPPLIER_ISSUE',N'DEMO_COVERAGE_V17_SUPPLIER',7,1,6,6.0000,4.3,N'CRITICAL',N'HIGH',N'OPEN',N'["ABOVE_BASELINE","MATERIAL_DEVIATION"]'),
+        (1,N'PRODUCT_VOLUME:1',N'DEMO_COVERAGE_V17_PRODUCT_1',8,30,-22,-0.7333,-4.4,N'CRITICAL',N'HIGH',N'OPEN',N'["BELOW_SEASONAL_BASELINE","MATERIAL_DEVIATION"]');
+
+    INSERT dbo.OperationalAnomalies
+    (StoreId,MetricCode,PeriodKey,BusinessDate,DetectionVersion,CurrentValue,BaselineValue,AbsoluteDeviation,
+     PercentageDeviation,RobustScore,WindowFromUtc,WindowToExclusiveUtc,SampleCount,Severity,Confidence,Status,
+     ReasonCodesJson,CreatedAtUtc,UpdatedAtUtc)
+    SELECT x.StoreId,x.MetricCode,x.PeriodKey,'2026-07-19',N'v1',x.CurrentValue,x.BaselineValue,x.AbsoluteDeviation,
+           x.PercentageDeviation,x.RobustScore,'2026-06-19','2026-07-20',30,x.Severity,x.Confidence,x.Status,
+           x.ReasonCodesJson,@Coverage17Now,@Coverage17Now
+    FROM @OperationalAnomalyFixture x
+    WHERE NOT EXISTS
+    (
+        SELECT 1 FROM dbo.OperationalAnomalies a
+        WHERE a.StoreId=x.StoreId AND a.MetricCode=x.MetricCode AND a.PeriodKey=x.PeriodKey
+    );
+
+    UPDATE a
+       SET AcknowledgedAtUtc=CASE WHEN a.Status IN (N'ACKNOWLEDGED',N'RESOLVED') THEN COALESCE(a.AcknowledgedAtUtc,@Coverage17Now) ELSE a.AcknowledgedAtUtc END,
+           AcknowledgedByStaffId=CASE WHEN a.Status IN (N'ACKNOWLEDGED',N'RESOLVED') THEN COALESCE(a.AcknowledgedByStaffId,@Coverage17Staff) ELSE a.AcknowledgedByStaffId END,
+           ResolvedAtUtc=CASE WHEN a.Status=N'RESOLVED' THEN COALESCE(a.ResolvedAtUtc,@Coverage17Now) ELSE a.ResolvedAtUtc END,
+           ResolvedByStaffId=CASE WHEN a.Status=N'RESOLVED' THEN COALESCE(a.ResolvedByStaffId,@Coverage17Staff) ELSE a.ResolvedByStaffId END
+    FROM dbo.OperationalAnomalies a
+    WHERE a.StoreId=1 AND a.PeriodKey LIKE N'DEMO_COVERAGE_V17%';
 
     IF NOT EXISTS(SELECT 1 FROM dbo.StaffAvailabilityRules
                   WHERE StaffId=@Coverage17Staff AND DayOfWeek=1 AND EffectiveFrom='2026-07-01')

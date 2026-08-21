@@ -17,7 +17,7 @@
 <main class="anomalies-page cc-page ops-shell cc-warehouse-page">
     <header class="anomalies-header ops-header cc-warehouse-header">
         <div>
-            <div class="anomalies-eyebrow">Nhân sự & vận hành</div>
+            <div class="anomalies-eyebrow">Nhân sự &amp; vận hành</div>
             <h1>Tín hiệu vận hành</h1>
             <p class="anomalies-subtitle">Các thay đổi đáng chú ý cần đối chiếu thêm; đây không phải kết luận sai phạm.</p>
         </div>
@@ -67,62 +67,31 @@
                         <td><strong>@item.CurrentValueDisplay</strong></td>
                         <td>@item.BaselineValueDisplay</td>
                         <td><strong>@item.DeviationDisplay</strong></td>
-                        <td>
-                            <span class="@(item.Severity == "CRITICAL" ? "anomaly-badge-critical" : "anomaly-badge-warning")">
-                                @item.SeverityDisplay
-                            </span>
-                        </td>
+                        <td><span class="@(item.Severity == "CRITICAL" ? "anomaly-badge-critical" : "anomaly-badge-warning")">@item.SeverityDisplay</span></td>
                         <td>@item.StatusDisplay</td>
                         <td class="text-end text-nowrap">
-                            @if (canUseAi) { <button class="cc-btn-outline" data-explain="@item.Id">Giải thích</button> }
-                            @if (canAcknowledge && item.Status == "OPEN") { <button class="cc-btn-outline cc-btn-outline-primary" data-ack="@item.Id" data-version="@item.RowVersion">Tiếp nhận</button> }
-                            @if (canResolve && item.Status is "OPEN" or "ACKNOWLEDGED") { <button class="cc-btn-outline cc-btn-outline-success" data-resolve="@item.Id" data-version="@item.RowVersion">Đánh dấu đã xử lý</button> }
-                            @if (canFeedback) { <button class="cc-btn-outline" data-feedback="@item.Id" data-version="@item.RowVersion">Phản hồi</button> }
+                            @if (canUseAi)
+                            {
+                                <button class="cc-btn-outline" data-explain="@item.Id">Giải thích</button>
+                            }
+                            @if (canAcknowledge && item.Status == "OPEN")
+                            {
+                                <button class="cc-btn-outline cc-btn-outline-primary" data-ack="@item.Id" data-version="@item.RowVersion">Tiếp nhận</button>
+                            }
+                            @if (canResolve && (item.Status == "OPEN" || item.Status == "ACKNOWLEDGED"))
+                            {
+                                <button class="cc-btn-outline cc-btn-outline-success" data-resolve="@item.Id" data-version="@item.RowVersion">Đánh dấu đã xử lý</button>
+                            }
+                            @if (canFeedback)
+                            {
+                                <button class="cc-btn-outline @(string.IsNullOrWhiteSpace(item.FeedbackDisplay) ? "" : "is-completed")" data-feedback="@item.Id" data-version="@item.RowVersion" @(string.IsNullOrWhiteSpace(item.FeedbackDisplay) ? null : "disabled")>
+                                    @(string.IsNullOrWhiteSpace(item.FeedbackDisplay) ? "Phản hồi" : item.FeedbackDisplay)
+                                </button>
+                                <small class="anomaly-feedback-status d-block" data-feedback-status="@item.Id">@item.FeedbackDisplay</small>
+                            }
                         </td>
                     </tr>
                 }
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="cc-anomaly-card">
-        <div class="table-responsive">
-            <table class="cc-anomaly-table">
-                <thead>
-                    <tr>
-                        <th>Chỉ số cần kiểm tra</th>
-                        <th>Hiện tại</th>
-                        <th>Mức thông thường</th>
-                        <th>Độ lệch</th>
-                        <th>Mức độ</th>
-                        <th>Trạng thái</th>
-                        <th class="text-center">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if(Model.Count == 0){<tr><td colspan="7" class="text-center text-muted py-4">Không có tín hiệu đang mở.</td></tr>}
-                    @foreach(var x in Model){
-                    <tr id="anomaly-@x.Id">
-                        <td>
-                            <div class="anomaly-title">@x.MetricDisplayName</div>
-                            <div class="anomaly-meta">Ngày @x.BusinessDate.ToString("dd/MM/yyyy") &bull; mức chuẩn hóa @x.RobustScore.ToString("N2")</div>
-                        </td>
-                        <td>@x.CurrentValueDisplay</td>
-                        <td>@x.BaselineValueDisplay</td>
-                        <td>@x.DeviationDisplay</td>
-                        <td>
-                            <span class="@(x.Severity == "CRITICAL" ? "anomaly-badge-critical" : "anomaly-badge-warning")">
-                                @x.SeverityDisplay
-                            </span>
-                        </td>
-                        <td>@x.StatusDisplay</td>
-                        <td class="text-center">
-                            <button class="cc-btn-outline" data-explain="@x.Id">Giải thích</button>
-                            <button class="cc-btn-outline cc-btn-outline-primary" data-ack="@x.Id" data-version="@x.RowVersion">Đã xem</button>
-                        </td>
-                    </tr>
-                    }
                 </tbody>
             </table>
         </div>

@@ -53,6 +53,7 @@ public sealed class OperationalAnomalyDto
     public string ConfidenceDisplay { get; init; } = string.Empty;
     public IReadOnlyList<string> ReasonSummaries { get; init; } = [];
     public IReadOnlyList<string> SuggestedChecks { get; init; } = [];
+    public string FeedbackDisplay { get; init; } = string.Empty;
     public DateTime CreatedAtUtc { get; init; }
     public string RowVersion { get; init; } = string.Empty;
 }
@@ -64,6 +65,16 @@ public sealed class AnomalyFeedbackDto
     public string? Feedback { get; init; }
     public string? Note { get; init; }
     public string RowVersion { get; init; } = string.Empty;
+}
+
+public sealed class AnomalyFeedbackResultDto
+{
+    public int Id { get; init; }
+    public string Feedback { get; init; } = string.Empty;
+    public string? Note { get; init; }
+    public string RowVersion { get; init; } = string.Empty;
+    public DateTime UpdatedAtUtc { get; init; }
+    public string FeedbackDisplay { get; init; } = string.Empty;
 }
 
 public sealed class ForecastExplanationContextDto
@@ -102,6 +113,13 @@ public sealed class AnomalyExplanationContextDto
     public string DirectionDescription { get; init; } = string.Empty;
     public IReadOnlyList<string> ReasonSummaries { get; init; } = [];
     public IReadOnlyList<string> SuggestedChecks { get; init; } = [];
+    public decimal PercentageDeviation { get; init; }
+    public decimal AbsolutePercentageDeviation { get; init; }
+    public string PercentageDeviationDisplay { get; init; } = string.Empty;
+    public string ImpactSummary { get; init; } = string.Empty;
+    public string WhyDetected { get; init; } = string.Empty;
+    public IReadOnlyList<string> ImmediateActions { get; init; } = [];
+    public IReadOnlyList<string> PreparationChecklist { get; init; } = [];
 }
 
 public sealed class TypedExplanationResultDto
