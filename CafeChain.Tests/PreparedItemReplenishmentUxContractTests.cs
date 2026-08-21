@@ -105,6 +105,31 @@ public sealed class PreparedItemReplenishmentUxContractTests
     }
 
     [Fact]
+    public void PreparedItemTransfer_RequiresValidExecutionSource()
+    {
+        var service = Read("CafeChain/Application/Services/Inventories/RestockRequestService.cs");
+
+        Assert.Contains("ValidateTransferSourceAsync", service, StringComparison.Ordinal);
+        Assert.Contains("SourceDocumentLineId.HasValue", service, StringComparison.Ordinal);
+        Assert.Contains("InventoryTransfer.Status == Models.Enums.Inventory.InventoryTransferStatus.CANCELLED", service, StringComparison.Ordinal);
+        Assert.Contains("x.RestockRequestId == demand.RestockRequestId", service, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NoExecutionDocument_DoesNotPretendTransferFulfillmentExists()
+    {
+        var service = Read("CafeChain/Application/Services/Inventories/RestockRequestService.cs");
+        var workflow = Read("CafeChain/Application/Services/Inventories/RestockRequestWorkflowService.cs");
+        var view = Read("CafeChain/Areas/Admin/Views/AdminRestockRequests/Details.cshtml");
+
+        Assert.Contains("IsEffectiveActiveAllocation", service, StringComparison.Ordinal);
+        Assert.Contains("allocation.InventoryTransferId.HasValue", service, StringComparison.Ordinal);
+        Assert.Contains("orphanTransferAllocations", view, StringComparison.Ordinal);
+        Assert.Contains("chưa có chứng từ thực hiện", view, StringComparison.Ordinal);
+        Assert.Contains("Where(IsEffectiveActiveAllocation)", workflow, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RestockTraceability_IncludesReleasedProductionAllocations()
     {
         var workflow = Read("CafeChain/Application/Services/Inventories/RestockRequestWorkflowService.cs");

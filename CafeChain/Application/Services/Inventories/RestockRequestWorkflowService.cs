@@ -714,8 +714,7 @@ namespace CafeChain.Application.Services.Inventories
                 .OrderBy(x => x.RestockSourcingAllocationId)
                 .ToListAsync();
             var activeSourcingEntities = sourcingEntities
-                .Where(x => x.Status == RestockSourcingAllocationStatuses.Active
-                    || x.Status == RestockSourcingAllocationStatuses.PendingPurchaseAdvice)
+                .Where(IsEffectiveActiveAllocation)
                 .ToList();
             var procurementFactor = r.RequestedProcurementQuantity.GetValueOrDefault() > 0m
                 && r.RequestedQuantity > 0m
@@ -1056,8 +1055,9 @@ namespace CafeChain.Application.Services.Inventories
             static RestockWorkflowStepDto Step(string label, string status, string description) =>
                 new() { Label = label, Status = status, Description = description };
             var rejected = request.Status is RestockRequestStatuses.Rejected or RestockRequestStatuses.Cancelled;
-            var hasSourcing = allocations.Count > 0;
-            var productionAllocations = allocations
+            var effectiveAllocations = allocations.Where(IsEffectiveActiveAllocation).ToList();
+            var hasSourcing = effectiveAllocations.Count > 0;
+            var productionAllocations = effectiveAllocations
                 .Where(x => x.DecisionType == RestockSourcingDecisionTypes.Production)
                 .ToList();
             var hasProduction = productionAllocations.Count > 0;
@@ -1065,7 +1065,7 @@ namespace CafeChain.Application.Services.Inventories
                 .Where(x => x.ProductionRun != null)
                 .Select(x => x.ProductionRun!)
                 .ToList();
-            var hasPurchase = allocations.Any(x => x.DecisionType == RestockSourcingDecisionTypes.Purchase)
+            var hasPurchase = effectiveAllocations.Any(x => x.DecisionType == RestockSourcingDecisionTypes.Purchase)
                 || advices.Count > 0
                 || orders.Count > 0
                 || receipts.Count > 0;
@@ -1135,6 +1135,12 @@ namespace CafeChain.Application.Services.Inventories
                     StringComparison.OrdinalIgnoreCase))
                 .Sum(x => x.ProcurementQuantity);
 
+        private static bool IsEffectiveActiveAllocation(RestockSourcingAllocation allocation) =>
+            (allocation.Status == RestockSourcingAllocationStatuses.Active
+                || allocation.Status == RestockSourcingAllocationStatuses.PendingPurchaseAdvice)
+            && (allocation.DecisionType != RestockSourcingDecisionTypes.Transfer
+                || (allocation.InventoryTransferId.HasValue && allocation.SourceDocumentId.HasValue));
+
         private static SourcingAllocationDto MapSourcingAllocation(
             RestockSourcingAllocation allocation) => new()
         {
@@ -1146,6 +1152,9 @@ namespace CafeChain.Application.Services.Inventories
             Status = allocation.Status,
             PurchaseAdviceLineId = allocation.PurchaseAdviceLineId,
             PurchaseOrderLineId = allocation.PurchaseOrderLineId,
+            InventoryTransferId = allocation.InventoryTransferId,
+            SourceDocumentId = allocation.SourceDocumentId,
+            SourceDocumentLineId = allocation.SourceDocumentLineId,
             Reason = allocation.Reason,
             CreatedAtUtc = allocation.CreatedAtUtc
         };
