@@ -7457,10 +7457,13 @@ BEGIN TRY
            OR NOT EXISTS(SELECT 1 FROM dbo.InventoryCostLayers l WHERE l.PreparedItemId=p.PreparedItemId AND l.Quantity>0 AND l.RemainingQuantity>=0)
     )
         THROW 53654,N'SEEDALL_BTP_BASE_UNIT_CONFIRMATION_V2: BTP thiếu production/cost evidence, không thể tự đoán đơn vị.',1;
+    /* Store 2/3 BTP inventories are published later by DEMO_REORDER_V14.
+       At this point only the eleven Store 1 foundation rows are mandatory;
+       any already-existing Store 2/3 rows are normalized by the same UPDATE. */
     IF (SELECT COUNT(*) FROM dbo.StoreInventories si JOIN dbo.PreparedItems p ON p.PreparedItemId=si.PreparedItemId
-        JOIN @BtpConfirmationContract c ON c.Code=p.Code JOIN @BtpConfirmationStores fs ON fs.StoreId=si.StoreId
-        WHERE si.IngredientId IS NULL)<>33
-        THROW 53655,N'SEEDALL_BTP_BASE_UNIT_CONFIRMATION_V2: ba cửa hàng fixture phải có đủ 33 dòng tồn BTP.',1;
+        JOIN @BtpConfirmationContract c ON c.Code=p.Code
+        WHERE si.StoreId=1 AND si.IngredientId IS NULL)<>11
+        THROW 53655,N'SEEDALL_BTP_BASE_UNIT_CONFIRMATION_V2: Store 1 phải có đủ 11 dòng tồn BTP nền trước khi xác nhận.',1;
     IF EXISTS
     (
         SELECT si.StoreId,si.PreparedItemId
