@@ -31,6 +31,11 @@
         .Where(x => x.DecisionType == RestockSourcingDecisionTypes.Production)
         .OrderByDescending(x => x.CreatedAtUtc)
         .ToList();
+    var usesPurchaseBranch = Model.SourcingAllocations.Any(x =>
+            x.DecisionType == RestockSourcingDecisionTypes.Purchase)
+        || Model.PurchaseAdvices.Count > 0
+        || Model.PurchaseOrders.Count > 0
+        || Model.Receipts.Count > 0;
     var visibleProductionAllocations = productionAllocations.Take(8).ToList();
     var canCreatePurchaseAdvice = canWarehouse
         && Model.IngredientId.HasValue
@@ -189,7 +194,7 @@
         </div>
     }
 
-    <section class="ops-panel" aria-label="Tiến trình mua hàng">
+    <section class="ops-panel" aria-label="Tiến trình đáp ứng nhu cầu">
         <div class="ops-panel-header"><h2 class="ops-panel-title">Tiến trình xử lý</h2></div>
         <div class="ops-panel-body">
             <div class="ops-workflow" role="list" aria-label="Các bước xử lý yêu cầu">
@@ -429,6 +434,8 @@
                 </section>
             }
 
+            @if (usesPurchaseBranch)
+            {
             <section class="ops-panel">
                 <div class="ops-panel-header"><h2 class="ops-panel-title">Đề nghị mua liên kết</h2></div>
                 <div class="ops-panel-body">
@@ -460,6 +467,7 @@
                     @if (Model.HasOrphanPurchaseAllocation) { <div class="ops-notice ops-notice-error mt-3">Có phân bổ mua ngoài thiếu liên kết chứng từ. Vui lòng hủy/giải phóng phân bổ trước khi tiếp tục.</div> }
                 </div>
             </section>
+            }
 
             <section class="ops-panel">
                 <div class="ops-panel-header"><h2 class="ops-panel-title">Lịch sử chuyển trạng thái</h2></div>
@@ -507,6 +515,8 @@
                 </div>
             </section>
 
+            @if (usesPurchaseBranch)
+            {
             <section class="ops-panel">
                 <div class="ops-panel-header"><h2 class="ops-panel-title">Đơn đặt hàng liên kết</h2></div>
                 <div class="ops-panel-body p-0">
@@ -529,7 +539,10 @@
                     }
                 </div>
             </section>
+            }
 
+            @if (usesPurchaseBranch)
+            {
             <section class="ops-panel">
                 <div class="ops-panel-header"><h2 class="ops-panel-title">Sự cố nhà cung cấp</h2></div>
                 <div class="ops-panel-body p-0">
@@ -545,7 +558,10 @@
                     }
                 </div>
             </section>
+            }
 
+            @if (usesPurchaseBranch)
+            {
             <section class="ops-panel">
                 <div class="ops-panel-header"><h2 class="ops-panel-title">Chứng từ nhận hàng</h2></div>
                 <div class="ops-panel-body p-0">
@@ -561,6 +577,7 @@
                     }
                 </div>
             </section>
+            }
         </div>
 
         <aside>
@@ -628,7 +645,18 @@
             <section class="ops-panel">
                 <div class="ops-panel-header"><h2 class="ops-panel-title">Nguồn thực hiện</h2></div>
                 <div class="ops-panel-body">
-                    @if (Model.Fulfillments.Count == 0) { <div class="ops-secondary">Chưa gắn nguồn thực hiện.</div> }
+                    @if (productionAllocations.Count > 0)
+                    {
+                        <div class="ops-notice mb-2">
+                            <strong>Sản xuất nội bộ</strong>
+                            <div class="ops-secondary">Đã phân bổ @AdminStatusDisplay.Quantity(productionAllocated) @requestUnitName cho nguồn sản xuất.</div>
+                            @if (canViewProduction && productionAllocations.FirstOrDefault(x => x.ProductionRunId.HasValue)?.ProductionRunId is int productionRunId)
+                            {
+                                <a class="ops-btn mt-2" asp-area="Admin" asp-controller="AdminProductionOrder" asp-action="Details" asp-route-id="@productionRunId">Mở lệnh sản xuất</a>
+                            }
+                        </div>
+                    }
+                    else if (Model.Fulfillments.Count == 0) { <div class="ops-secondary">Chưa gắn nguồn thực hiện.</div> }
                     else
                     {
                         @foreach (var fulfillment in Model.Fulfillments)
@@ -636,7 +664,14 @@
                             <div class="ops-notice mb-2"><strong>@AdminStatusDisplay.RestockFulfillmentSource(fulfillment.SourceType)</strong> · @AdminStatusDisplay.RestockFulfillmentStatus(fulfillment.Status)<div class="ops-secondary">Dự kiến @AdminStatusDisplay.Quantity(fulfillment.PlannedBaseQuantity) · @AdminStatusDisplay.DateTime(fulfillment.CreatedAt.ToLocalTime())</div></div>
                         }
                     }
-                    <div class="ops-help mt-3">Nguồn mua ngoài chỉ được ghi nhận khi có dòng đơn đặt hàng liên kết. Không dùng ghi chú thủ công để thay thế chứng từ mua.</div>
+                    @if (productionAllocations.Count > 0)
+                    {
+                        <div class="ops-help mt-3">Nguồn sản xuất đi thẳng vào lệnh sản xuất và không cần đề nghị mua, đơn đặt hàng hoặc nhận hàng nhà cung cấp.</div>
+                    }
+                    else
+                    {
+                        <div class="ops-help mt-3">Nguồn mua ngoài chỉ được ghi nhận khi có dòng đơn đặt hàng liên kết. Không dùng ghi chú thủ công để thay thế chứng từ mua.</div>
+                    }
                 </div>
             </section>
         </aside>
