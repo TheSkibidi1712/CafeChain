@@ -13,7 +13,7 @@
     <header class="ice-page-header cc-warehouse-header">
         <div>
             <div class="ice-eyebrow">Kho &amp; Cung ứng</div>
-            <h1>Lịch sử giao dịch kho</h1>
+            <h1><i class="fa-solid fa-clock-rotate-left me-2 text-warning" aria-hidden="true"></i>Lịch sử giao dịch kho</h1>
             <p>
                 Lịch sử nhập, xuất, điều chỉnh và hao hụt kho tại <strong>@currentStoreName</strong>.
             </p>
@@ -29,6 +29,36 @@
                 @store.StoreName
             </a>
         }
+    </div>
+
+    <div class="txn-history-filter-bar d-flex align-items-center justify-content-between gap-3 mb-3 p-3 bg-white border rounded-3 shadow-sm" style="margin-top: 15px;">
+        <div class="d-flex align-items-center gap-2">
+            <span class="text-secondary fw-semibold small">Loại mặt hàng:</span>
+            <div class="d-inline-flex gap-2" role="group" aria-label="Lọc loại mặt hàng">
+                <button type="button" class="btn btn-outline-secondary btn-sm active" data-filter-type="all">Tất cả</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-filter-type="raw">Nguyên liệu thô</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-filter-type="btp">Bán thành phẩm (BTP)</button>
+            </div>
+        </div>
+        <div class="position-relative flex-grow-1" style="max-width: 320px;">
+            <i class="fa-solid fa-magnifying-glass position-absolute top-50 translate-middle-y text-muted" style="left: 12px; z-index: 5;"></i>
+            <input type="text" id="txnItemSearch" class="form-control form-control-sm" placeholder="Tìm tên mặt hàng..." style="padding-left: 32px !important; border-radius: 8px;" />
+        </div>
+    </div>
+
+    <div class="txn-history-filter-bar d-flex align-items-center justify-content-between gap-3 mb-3 p-3 bg-white border rounded-3 shadow-sm" style="margin-top: 15px;">
+        <div class="d-flex align-items-center gap-2">
+            <span class="text-secondary fw-semibold small">Loại mặt hàng:</span>
+            <div class="d-inline-flex gap-2" role="group" aria-label="Lọc loại mặt hàng">
+                <button type="button" class="btn btn-outline-secondary btn-sm active" data-filter-type="all">Tất cả</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-filter-type="raw">Nguyên liệu thô</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-filter-type="btp">Bán thành phẩm (BTP)</button>
+            </div>
+        </div>
+        <div class="position-relative flex-grow-1" style="max-width: 320px;">
+            <i class="fa-solid fa-magnifying-glass position-absolute top-50 translate-middle-y text-muted" style="left: 12px; z-index: 5;"></i>
+            <input type="text" id="txnItemSearch" class="form-control form-control-sm" placeholder="Tìm tên mặt hàng..." style="padding-left: 32px !important; border-radius: 8px;" />
+        </div>
     </div>
 
     <div class="txn-history-result-meta">
@@ -58,7 +88,7 @@
                     @inject CafeChain.Application.Interfaces.Systems.IBusinessDateService BusinessDateService
                     foreach (var item in Model.Items)
                     {
-                        <tr>
+                        <tr data-timestamp="@item.CreatedAt.Ticks">
                             <td>@item.StoreName</td>
                             <td>
                                 <strong>@item.IngredientName</strong>
@@ -194,44 +224,639 @@
         }
     }
 
-    @if (totalPages > 1)
-    {
-        <nav class="txn-history-pagination" aria-label="Phân trang lịch sử giao dịch">
-            @if (currentPage > 1)
+    <nav class="txn-history-pagination" aria-label="Phân trang lịch sử giao dịch" style="@(totalPages <= 1 ? "display: none;" : "")">
+        @if (currentPage > 1)
+        {
+            <a class="txn-history-page-btn"
+               aria-label="Trang trước"
+               href="@Url.Action("TransactionHistory", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, page = currentPage - 1 })">
+                <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+            </a>
+        }
+
+        @foreach (var p in pages)
+        {
+            if (p.HasValue)
             {
-                <a class="txn-history-page-btn"
-                   aria-label="Trang trước"
-                   href="@Url.Action("TransactionHistory", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, page = currentPage - 1 })">
-                    <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                <a class="txn-history-page-btn @(p.Value == currentPage ? "active" : "")"
+                   aria-label="Trang @p.Value"
+                   aria-current="@(p.Value == currentPage ? "page" : null)"
+                   href="@Url.Action("TransactionHistory", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, page = p.Value })">
+                    @p.Value
                 </a>
             }
-
-            @foreach (var p in pages)
+            else
             {
-                if (p.HasValue)
-                {
-                    <a class="txn-history-page-btn @(p.Value == currentPage ? "active" : "")"
-                       aria-label="Trang @p.Value"
-                       aria-current="@(p.Value == currentPage ? "page" : null)"
-                       href="@Url.Action("TransactionHistory", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, page = p.Value })">
-                        @p.Value
-                    </a>
-                }
-                else
-                {
-                    <span class="txn-history-page-ellipsis">...</span>
-                }
+                <span class="txn-history-page-ellipsis">...</span>
             }
+        }
 
-            @if (currentPage < totalPages)
-            {
-                <a class="txn-history-page-btn"
-                   aria-label="Trang sau"
-                   href="@Url.Action("TransactionHistory", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, page = currentPage + 1 })">
-                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-                </a>
-            }
-        </nav>
-    }
+        @if (currentPage < totalPages)
+        {
+            <a class="txn-history-page-btn"
+               aria-label="Trang sau"
+               href="@Url.Action("TransactionHistory", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, page = currentPage + 1 })">
+                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+            </a>
+        }
+    </nav>
 
 </main>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('txnItemSearch');
+            const filterButtons = document.querySelectorAll('[data-filter-type]');
+            const resultMeta = document.querySelector('.txn-history-result-meta');
+            const tableBody = document.querySelector('.txn-history-table tbody');
+
+            // Load server-rendered data
+            const storeId = @Model.StoreId;
+            const serverCurrentPage = @Model.Page;
+            const serverTotalPages = @Model.TotalPages;
+            const baseUrl = '@Url.Action("TransactionHistory", "AdminStoreInventory", new { area = "Admin" })';
+
+            let currentSearch = '';
+            let currentType = 'all'; // 'all', 'raw', 'btp'
+            let currentPageIndex = 1;
+            let loadedPagesCount = 1;
+
+            // Load initial page rows into client memory
+            const initialRows = Array.from(tableBody.querySelectorAll('tr:not(#txnEmptyRow)'));
+            let allRows = [...initialRows];
+
+            // Create empty state row
+            const emptyRow = document.createElement('tr');
+            emptyRow.id = 'txnEmptyRow';
+            emptyRow.style.display = 'none';
+            emptyRow.innerHTML = `
+                <td colspan="10" class="text-center py-5 text-muted">
+                    <i class="fa-solid fa-box-open d-block mb-3 fs-3 text-warning"></i>
+                    <span>Không tìm thấy giao dịch nào phù hợp với bộ lọc.</span>
+                </td>
+            `;
+            tableBody.appendChild(emptyRow);
+
+            // Add background loading indicator to result meta
+            const loadingIndicator = document.createElement('span');
+            loadingIndicator.className = 'ms-2 text-muted small';
+            loadingIndicator.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-warning me-1"></i>Đang tải các trang khác...';
+            if (resultMeta && serverTotalPages > 1) {
+                resultMeta.appendChild(loadingIndicator);
+            }
+
+            function updateDisplay() {
+                let filteredRows = [];
+
+                allRows.forEach(row => {
+                    if (row.id === 'txnEmptyRow') return;
+
+                    const itemNameEl = row.querySelector('td:nth-child(2) strong');
+                    const badgeEl = row.querySelector('td:nth-child(2) small');
+
+                    const itemName = itemNameEl ? itemNameEl.textContent.toLowerCase() : '';
+                    const isBtp = badgeEl ? badgeEl.textContent.includes('BTP') : false;
+
+                    // Match search text
+                    const matchesSearch = itemName.includes(currentSearch);
+
+                    // Match type
+                    let matchesType = false;
+                    if (currentType === 'all') {
+                        matchesType = true;
+                    } else if (currentType === 'btp') {
+                        matchesType = isBtp;
+                    } else if (currentType === 'raw') {
+                        matchesType = !isBtp;
+                    }
+
+                    if (matchesSearch && matchesType) {
+                        filteredRows.push(row);
+                    }
+                });
+
+                // Sort rows descending (newest first)
+                filteredRows.sort((a, b) => {
+                    const valA = parseInt(a.getAttribute('data-timestamp') || '0', 10);
+                    const valB = parseInt(b.getAttribute('data-timestamp') || '0', 10);
+                    return valB - valA;
+                });
+
+                const totalItems = filteredRows.length;
+                const itemsPerPage = 10;
+                const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+                // Adjust current page index if it goes out of range
+                if (currentPageIndex > totalPages) {
+                    currentPageIndex = totalPages > 0 ? totalPages : 1;
+                }
+                if (currentPageIndex < 1) currentPageIndex = 1;
+
+                // Clear current table body rows (except empty row)
+                const existingRows = tableBody.querySelectorAll('tr:not(#txnEmptyRow)');
+                existingRows.forEach(row => row.remove());
+
+                // Crop items for the current page
+                const startIdx = (currentPageIndex - 1) * itemsPerPage;
+                const endIdx = startIdx + itemsPerPage;
+                const pageRows = filteredRows.slice(startIdx, endIdx);
+
+                // Append the rows to tableBody
+                pageRows.forEach(row => {
+                    row.style.display = '';
+                    tableBody.insertBefore(row, emptyRow);
+                });
+
+                // Handle empty state row
+                if (totalItems === 0) {
+                    emptyRow.style.display = '';
+                } else {
+                    emptyRow.style.display = 'none';
+                }
+
+                // Update search counter description
+                if (resultMeta) {
+                    resultMeta.innerHTML = `Hiển thị <strong>${pageRows.length}</strong> trên tổng số <strong>${totalItems}</strong> giao dịch phù hợp.`;
+                    if (loadedPagesCount < serverTotalPages) {
+                        resultMeta.appendChild(loadingIndicator);
+                    }
+                }
+
+                // Render pagination links
+                renderPagination(currentPageIndex, totalPages);
+            }
+
+            function renderPagination(currentPage, totalPages) {
+                const paginationNav = document.querySelector('.txn-history-pagination');
+                if (!paginationNav) return;
+
+                if (totalPages <= 1) {
+                    paginationNav.style.display = 'none';
+                    return;
+                }
+
+                paginationNav.style.display = '';
+                paginationNav.innerHTML = '';
+
+                // Prev button
+                if (currentPage > 1) {
+                    const prevBtn = document.createElement('a');
+                    prevBtn.className = 'txn-history-page-btn';
+                    prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left" aria-hidden="true"></i>';
+                    prevBtn.href = '#';
+                    prevBtn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        currentPageIndex = currentPage - 1;
+                        updateDisplay();
+                    });
+                    paginationNav.appendChild(prevBtn);
+                }
+
+                const pages = [];
+                if (totalPages <= 8) {
+                    for (let i = 1; i <= totalPages; i++) {
+                        pages.push(i);
+                    }
+                } else {
+                    // Always show first 3 pages
+                    pages.push(1, 2, 3);
+
+                    if (currentPage > 3 && currentPage < totalPages - 2) {
+                        if (currentPage > 4) {
+                            pages.push(null); // ellipsis
+                        }
+                        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+                            if (!pages.includes(i)) {
+                                pages.push(i);
+                            }
+                        }
+                    }
+
+                    const lastPageInList = pages.filter(x => x !== null).pop() || 0;
+                    const lastStart = totalPages - 2;
+                    if (lastStart - lastPageInList > 1) {
+                        pages.push(null);
+                    } else if (lastStart - lastPageInList === 1) {
+                        pages.push(lastStart - 1);
+                    }
+
+                    // Always show last 3 pages
+                    for (let i = totalPages - 2; i <= totalPages; i++) {
+                        if (!pages.includes(i)) {
+                            pages.push(i);
+                        }
+                    }
+                }
+
+                pages.forEach(p => {
+                    if (p === null) {
+                        const ellipsis = document.createElement('span');
+                        ellipsis.className = 'txn-history-page-ellipsis';
+                        ellipsis.textContent = '...';
+                        paginationNav.appendChild(ellipsis);
+                    } else {
+                        const pageBtn = document.createElement('a');
+                        pageBtn.className = `txn-history-page-btn ${p === currentPage ? 'active' : ''}`;
+                        pageBtn.textContent = p;
+                        pageBtn.href = '#';
+                        if (p === currentPage) {
+                            pageBtn.setAttribute('aria-current', 'page');
+                        }
+                        pageBtn.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            currentPageIndex = p;
+                            updateDisplay();
+                        });
+                        paginationNav.appendChild(pageBtn);
+                    }
+                });
+
+                // Next button
+                if (currentPage < totalPages) {
+                    const nextBtn = document.createElement('a');
+                    nextBtn.className = 'txn-history-page-btn';
+                    nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right" aria-hidden="true"></i>';
+                    nextBtn.href = '#';
+                    nextBtn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        currentPageIndex = currentPage + 1;
+                        updateDisplay();
+                    });
+                    paginationNav.appendChild(nextBtn);
+                }
+            }
+
+            // Background prefetching of remaining pages
+            async function prefetchNextPages() {
+                for (let p = 1; p <= serverTotalPages; p++) {
+                    if (p === serverCurrentPage) continue;
+                    try {
+                        const response = await fetch(`${baseUrl}?storeId=${storeId}&page=${p}`);
+                        if (!response.ok) continue;
+                        const htmlText = await response.text();
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(htmlText, 'text/html');
+                        const rows = doc.querySelectorAll('.txn-history-table tbody tr');
+
+                        rows.forEach(row => {
+                            if (row.id !== 'txnEmptyRow' && !row.querySelector('.txn-history-empty')) {
+                                allRows.push(row);
+                            }
+                        });
+
+                        loadedPagesCount++;
+                        updateDisplay();
+                    } catch (err) {
+                        console.error('Error prefetching page ' + p, err);
+                    }
+                }
+
+                // Remove loading indicator when done
+                if (loadingIndicator) {
+                    loadingIndicator.remove();
+                }
+            }
+
+            // Initialize display
+            updateDisplay();
+
+            // Start prefetching if there are other pages
+            if (serverTotalPages > 1) {
+                prefetchNextPages();
+            }
+
+            // Bind search input events
+            if (searchInput) {
+                searchInput.addEventListener('input', function (e) {
+                    currentSearch = e.target.value.toLowerCase().trim();
+                    currentPageIndex = 1;
+                    updateDisplay();
+                });
+            }
+
+            // Bind filter button click events
+            filterButtons.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    filterButtons.forEach(b => {
+                        b.classList.remove('active', 'btn-primary', 'category-primary-btn');
+                        b.classList.add('btn-outline-secondary');
+                    });
+
+                    btn.classList.remove('btn-outline-secondary');
+                    btn.classList.add('active', 'btn-primary', 'category-primary-btn');
+
+                    currentType = btn.getAttribute('data-filter-type');
+                    currentPageIndex = 1;
+                    updateDisplay();
+                });
+            });
+
+            // Set initially active button styling
+            const initialActive = document.querySelector('[data-filter-type="all"]');
+            if (initialActive) {
+                initialActive.classList.remove('btn-outline-secondary');
+                initialActive.classList.add('active', 'btn-primary', 'category-primary-btn');
+            }
+        });
+    </script>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('txnItemSearch');
+            const filterButtons = document.querySelectorAll('[data-filter-type]');
+            const resultMeta = document.querySelector('.txn-history-result-meta');
+            const tableBody = document.querySelector('.txn-history-table tbody');
+
+            // Load server-rendered data
+            const storeId = @Model.StoreId;
+            const serverCurrentPage = @Model.Page;
+            const serverTotalPages = @Model.TotalPages;
+            const baseUrl = '@Url.Action("TransactionHistory", "AdminStoreInventory", new { area = "Admin" })';
+
+            let currentSearch = '';
+            let currentType = 'all'; // 'all', 'raw', 'btp'
+            let currentPageIndex = 1;
+            let loadedPagesCount = 1;
+
+            // Load initial page rows into client memory
+            const initialRows = Array.from(tableBody.querySelectorAll('tr:not(#txnEmptyRow)'));
+            let allRows = [...initialRows];
+
+            // Create empty state row
+            const emptyRow = document.createElement('tr');
+            emptyRow.id = 'txnEmptyRow';
+            emptyRow.style.display = 'none';
+            emptyRow.innerHTML = `
+                <td colspan="10" class="text-center py-5 text-muted">
+                    <i class="fa-solid fa-box-open d-block mb-3 fs-3 text-warning"></i>
+                    <span>Không tìm thấy giao dịch nào phù hợp với bộ lọc.</span>
+                </td>
+            `;
+            tableBody.appendChild(emptyRow);
+
+            // Add background loading indicator to result meta
+            const loadingIndicator = document.createElement('span');
+            loadingIndicator.className = 'ms-2 text-muted small';
+            loadingIndicator.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-warning me-1"></i>Đang tải các trang khác...';
+            if (resultMeta && serverTotalPages > 1) {
+                resultMeta.appendChild(loadingIndicator);
+            }
+
+            function updateDisplay() {
+                let filteredRows = [];
+
+                allRows.forEach(row => {
+                    if (row.id === 'txnEmptyRow') return;
+
+                    const itemNameEl = row.querySelector('td:nth-child(2) strong');
+                    const badgeEl = row.querySelector('td:nth-child(2) small');
+
+                    const itemName = itemNameEl ? itemNameEl.textContent.toLowerCase() : '';
+                    const isBtp = badgeEl ? badgeEl.textContent.includes('BTP') : false;
+
+                    // Match search text
+                    const matchesSearch = itemName.includes(currentSearch);
+
+                    // Match type
+                    let matchesType = false;
+                    if (currentType === 'all') {
+                        matchesType = true;
+                    } else if (currentType === 'btp') {
+                        matchesType = isBtp;
+                    } else if (currentType === 'raw') {
+                        matchesType = !isBtp;
+                    }
+
+                    if (matchesSearch && matchesType) {
+                        filteredRows.push(row);
+                    }
+                });
+
+                // Sort rows descending (newest first)
+                filteredRows.sort((a, b) => {
+                    const valA = parseInt(a.getAttribute('data-timestamp') || '0', 10);
+                    const valB = parseInt(b.getAttribute('data-timestamp') || '0', 10);
+                    return valB - valA;
+                });
+
+                const totalItems = filteredRows.length;
+                const itemsPerPage = 10;
+                const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+                // Adjust current page index if it goes out of range
+                if (currentPageIndex > totalPages) {
+                    currentPageIndex = totalPages > 0 ? totalPages : 1;
+                }
+                if (currentPageIndex < 1) currentPageIndex = 1;
+
+                // Clear current table body rows (except empty row)
+                const existingRows = tableBody.querySelectorAll('tr:not(#txnEmptyRow)');
+                existingRows.forEach(row => row.remove());
+
+                // Crop items for the current page
+                const startIdx = (currentPageIndex - 1) * itemsPerPage;
+                const endIdx = startIdx + itemsPerPage;
+                const pageRows = filteredRows.slice(startIdx, endIdx);
+
+                // Append the rows to tableBody
+                pageRows.forEach(row => {
+                    row.style.display = '';
+                    tableBody.insertBefore(row, emptyRow);
+                });
+
+                // Handle empty state row
+                if (totalItems === 0) {
+                    emptyRow.style.display = '';
+                } else {
+                    emptyRow.style.display = 'none';
+                }
+
+                // Update search counter description
+                if (resultMeta) {
+                    resultMeta.innerHTML = `Hiển thị <strong>${pageRows.length}</strong> trên tổng số <strong>${totalItems}</strong> giao dịch phù hợp.`;
+                    if (loadedPagesCount < serverTotalPages) {
+                        resultMeta.appendChild(loadingIndicator);
+                    }
+                }
+
+                // Render pagination links
+                renderPagination(currentPageIndex, totalPages);
+            }
+
+            function renderPagination(currentPage, totalPages) {
+                const paginationNav = document.querySelector('.txn-history-pagination');
+                if (!paginationNav) return;
+
+                if (totalPages <= 1) {
+                    paginationNav.style.display = 'none';
+                    return;
+                }
+
+                paginationNav.style.display = '';
+                paginationNav.innerHTML = '';
+
+                // Prev button
+                if (currentPage > 1) {
+                    const prevBtn = document.createElement('a');
+                    prevBtn.className = 'txn-history-page-btn';
+                    prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left" aria-hidden="true"></i>';
+                    prevBtn.href = '#';
+                    prevBtn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        currentPageIndex = currentPage - 1;
+                        updateDisplay();
+                    });
+                    paginationNav.appendChild(prevBtn);
+                }
+
+                const pages = [];
+                if (totalPages <= 8) {
+                    for (let i = 1; i <= totalPages; i++) {
+                        pages.push(i);
+                    }
+                } else {
+                    // Always show first 3 pages
+                    pages.push(1, 2, 3);
+
+                    if (currentPage > 3 && currentPage < totalPages - 2) {
+                        if (currentPage > 4) {
+                            pages.push(null); // ellipsis
+                        }
+                        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+                            if (!pages.includes(i)) {
+                                pages.push(i);
+                            }
+                        }
+                    }
+
+                    const lastPageInList = pages.filter(x => x !== null).pop() || 0;
+                    const lastStart = totalPages - 2;
+                    if (lastStart - lastPageInList > 1) {
+                        pages.push(null);
+                    } else if (lastStart - lastPageInList === 1) {
+                        pages.push(lastStart - 1);
+                    }
+
+                    // Always show last 3 pages
+                    for (let i = totalPages - 2; i <= totalPages; i++) {
+                        if (!pages.includes(i)) {
+                            pages.push(i);
+                        }
+                    }
+                }
+
+                pages.forEach(p => {
+                    if (p === null) {
+                        const ellipsis = document.createElement('span');
+                        ellipsis.className = 'txn-history-page-ellipsis';
+                        ellipsis.textContent = '...';
+                        paginationNav.appendChild(ellipsis);
+                    } else {
+                        const pageBtn = document.createElement('a');
+                        pageBtn.className = `txn-history-page-btn ${p === currentPage ? 'active' : ''}`;
+                        pageBtn.textContent = p;
+                        pageBtn.href = '#';
+                        if (p === currentPage) {
+                            pageBtn.setAttribute('aria-current', 'page');
+                        }
+                        pageBtn.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            currentPageIndex = p;
+                            updateDisplay();
+                        });
+                        paginationNav.appendChild(pageBtn);
+                    }
+                });
+
+                // Next button
+                if (currentPage < totalPages) {
+                    const nextBtn = document.createElement('a');
+                    nextBtn.className = 'txn-history-page-btn';
+                    nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right" aria-hidden="true"></i>';
+                    nextBtn.href = '#';
+                    nextBtn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        currentPageIndex = currentPage + 1;
+                        updateDisplay();
+                    });
+                    paginationNav.appendChild(nextBtn);
+                }
+            }
+
+            // Background prefetching of remaining pages
+            async function prefetchNextPages() {
+                for (let p = 1; p <= serverTotalPages; p++) {
+                    if (p === serverCurrentPage) continue;
+                    try {
+                        const response = await fetch(`${baseUrl}?storeId=${storeId}&page=${p}`);
+                        if (!response.ok) continue;
+                        const htmlText = await response.text();
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(htmlText, 'text/html');
+                        const rows = doc.querySelectorAll('.txn-history-table tbody tr');
+
+                        rows.forEach(row => {
+                            if (row.id !== 'txnEmptyRow' && !row.querySelector('.txn-history-empty')) {
+                                allRows.push(row);
+                            }
+                        });
+
+                        loadedPagesCount++;
+                        updateDisplay();
+                    } catch (err) {
+                        console.error('Error prefetching page ' + p, err);
+                    }
+                }
+
+                // Remove loading indicator when done
+                if (loadingIndicator) {
+                    loadingIndicator.remove();
+                }
+            }
+
+            // Initialize display
+            updateDisplay();
+
+            // Start prefetching if there are other pages
+            if (serverTotalPages > 1) {
+                prefetchNextPages();
+            }
+
+            // Bind search input events
+            if (searchInput) {
+                searchInput.addEventListener('input', function (e) {
+                    currentSearch = e.target.value.toLowerCase().trim();
+                    currentPageIndex = 1;
+                    updateDisplay();
+                });
+            }
+
+            // Bind filter button click events
+            filterButtons.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    filterButtons.forEach(b => {
+                        b.classList.remove('active', 'btn-primary', 'category-primary-btn');
+                        b.classList.add('btn-outline-secondary');
+                    });
+
+                    btn.classList.remove('btn-outline-secondary');
+                    btn.classList.add('active', 'btn-primary', 'category-primary-btn');
+
+                    currentType = btn.getAttribute('data-filter-type');
+                    currentPageIndex = 1;
+                    updateDisplay();
+                });
+            });
+
+            // Set initially active button styling
+            const initialActive = document.querySelector('[data-filter-type="all"]');
+            if (initialActive) {
+                initialActive.classList.remove('btn-outline-secondary');
+                initialActive.classList.add('active', 'btn-primary', 'category-primary-btn');
+            }
+        });
+    </script>
+}

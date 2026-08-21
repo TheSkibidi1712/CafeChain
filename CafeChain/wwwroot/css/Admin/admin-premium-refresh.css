@@ -689,7 +689,10 @@ body:not(:has(.ai-import-page)),
     .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
     .pf-header, .sm-header, .ops-header, .sales-history-header,
     .cc-warehouse-header, .inventory-header, .reorder-header,
-    .notification-header, .drink-form-heading
+    .notification-header, .drink-form-heading,
+    .topping-page-heading, .size-page-heading, .supplier-page-header, .store-admin-header,
+    .uc-page-header, .shift-page-header, .pa-header, .work-shift-open-approvals-header,
+    .anomalies-header, .ice-page-header
 ) {
     position: relative !important;
     display: flex !important;
@@ -709,13 +712,17 @@ body:not(:has(.ai-import-page)),
 
 /* 11. Unified header — title typography */
 .admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    h1, .page-title, .category-page-title, .drink-page-title, 
-    .rb-page-title, .po-page-title, .cc-page-title, .ops-title,
-    .cc-page-hero h1, .analytics-header h1, .admin-page-header h1,
-    .page-header h1, .cc-warehouse-header h1, .pf-header h1,
-    .sm-header h1, .ops-header h1, .sales-history-header h1,
-    .drink-form-heading h1
-) {
+    .cc-page-hero, .cc-page-header, .analytics-header,
+    .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
+    .ops-page-header, .notification-page-header, .category-page-header,
+    .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
+    .pf-header, .sm-header, .ops-header, .sales-history-header,
+    .cc-warehouse-header, .inventory-header, .reorder-header,
+    .notification-header, .drink-form-heading,
+    .topping-page-heading, .size-page-heading, .supplier-page-header, .store-admin-header,
+    .uc-page-header, .shift-page-header, .pa-header, .work-shift-open-approvals-header,
+    .anomalies-header, .ice-page-header
+) :is(h1, h2, .page-title, [class*="-title"], [class*="-heading"]) {
     margin-top: 6px !important;
     margin-bottom: 4px !important;
     font-size: clamp(20px, 2.2vw, 24px) !important;
@@ -728,8 +735,16 @@ body:not(:has(.ai-import-page)),
 /* 12. Unified header — description */
 .admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
     .cc-page-hero, .cc-page-header, .analytics-header,
-    .admin-page-header, .page-header, .cc-warehouse-header, .drink-form-heading
-) p {
+    .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
+    .ops-page-header, .notification-page-header, .category-page-header,
+    .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
+    .pf-header, .sm-header, .ops-header, .sales-history-header,
+    .cc-warehouse-header, .inventory-header, .reorder-header,
+    .notification-header, .drink-form-heading,
+    .topping-page-heading, .size-page-heading, .supplier-page-header, .store-admin-header,
+    .uc-page-header, .shift-page-header, .pa-header, .work-shift-open-approvals-header,
+    .anomalies-header, .ice-page-header
+) :is(p, .ops-subtitle, [class*="-subtitle"], [class*="-description"]) {
     margin: 0 !important;
     font-size: 13px !important;
     color: var(--cc-text-secondary, #66584F) !important;
@@ -738,7 +753,19 @@ body:not(:has(.ai-import-page)),
 
 /* 13. Unified header — eyebrow / kicker */
 .admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    .cc-page-hero__eyebrow, .analytics-eyebrow, .cc-page-kicker, .drink-eyebrow
+    .cc-page-hero, .cc-page-header, .analytics-header,
+    .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
+    .ops-page-header, .notification-page-header, .category-page-header,
+    .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
+    .pf-header, .sm-header, .ops-header, .sales-history-header,
+    .cc-warehouse-header, .inventory-header, .reorder-header,
+    .notification-header, .drink-form-heading,
+    .topping-page-heading, .size-page-heading, .supplier-page-header, .store-admin-header,
+    .uc-page-header, .shift-page-header, .pa-header, .work-shift-open-approvals-header,
+    .anomalies-header, .ice-page-header
+) :is(
+    .cc-page-hero__eyebrow, .analytics-eyebrow, .cc-page-kicker, .drink-eyebrow,
+    [class*="-eyebrow"], [class*="-kicker"]
 ) {
     display: inline-flex !important;
     align-items: center !important;
@@ -751,6 +778,23 @@ body:not(:has(.ai-import-page)),
     text-transform: uppercase !important;
     letter-spacing: .09em !important;
     color: var(--cc-warning, #99623B) !important;
+}
+
+/* 13b. Unified header — title icon force warning color */
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
+    .cc-page-hero, .cc-page-header, .analytics-header,
+    .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
+    .ops-page-header, .notification-page-header, .category-page-header,
+    .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
+    .pf-header, .sm-header, .ops-header, .sales-history-header,
+    .cc-warehouse-header, .inventory-header, .reorder-header,
+    .notification-header, .drink-form-heading,
+    .topping-page-heading, .size-page-heading, .supplier-page-header, .store-admin-header,
+    .uc-page-header, .shift-page-header, .pa-header, .work-shift-open-approvals-header,
+    .anomalies-header, .ice-page-header
+) :is(h1, h2, .page-title, [class*="-title"], [class*="-heading"]) :is(i, svg) {
+    color: var(--cc-warning, #99623B) !important;
+    margin-right: 8px !important;
 }
 
 /* 14. Unified header — icon */
@@ -1806,13 +1850,17 @@ body.admin-premium-shell .perm-staff-list {
 }
 
 body.admin-premium-shell .perm-staff-item {
-    padding: 18px 22px !important;
+    padding: 14px 18px !important;
     margin-bottom: 12px !important;
     border-radius: 12px !important;
     border: 1px solid var(--cc-border-strong, #d8c5b6) !important;
     background: #ffffff !important;
     box-shadow: 0 2px 6px rgba(32, 24, 18, 0.04) !important;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    text-align: left !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
 }
 
 body.admin-premium-shell .perm-staff-item:hover {
@@ -1832,7 +1880,13 @@ body.admin-premium-shell .perm-staff-item.is-active {
 }
 
 body.admin-premium-shell .perm-staff-copy {
-    gap: 6px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    text-align: left !important;
+    gap: 4px !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
 }
 
 body.admin-premium-shell .perm-staff-item .perm-name {
