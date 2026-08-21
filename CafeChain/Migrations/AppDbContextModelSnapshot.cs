@@ -1604,30 +1604,6 @@ namespace CafeChain.Migrations
                             DrinkCode = "TS_Socola",
                             Name = "Trà sữa socola",
                             ProductTypeId = 1
-                        },
-                        new
-                        {
-                            DrinkId = 5,
-                            Active = true,
-                            CalculatedCogs = 0m,
-                            CategoryId = 3,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Sting mát lạnh",
-                            DrinkCode = "STING",
-                            Name = "Sting",
-                            ProductTypeId = 2
-                        },
-                        new
-                        {
-                            DrinkId = 6,
-                            Active = true,
-                            CalculatedCogs = 0m,
-                            CategoryId = 3,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Coca-cola mát lạnh",
-                            DrinkCode = "COCA",
-                            Name = "Coca-cola",
-                            ProductTypeId = 2
                         });
                 });
 
@@ -1684,14 +1660,6 @@ namespace CafeChain.Migrations
                             CategoryCode = "TRASUA",
                             Icon = "🧋",
                             Name = "Trà sữa"
-                        },
-                        new
-                        {
-                            CategoryId = 3,
-                            Active = true,
-                            CategoryCode = "NUOCNGOT",
-                            Icon = "🥤",
-                            Name = "Nước ngọt"
                         });
                 });
 
@@ -1940,78 +1908,6 @@ namespace CafeChain.Migrations
                             ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779802950/trasuasocola4_kju0s7.jpg",
                             IsDefault = false,
                             PublicId = "trasuasocola4_kju0s7"
-                        },
-                        new
-                        {
-                            DrinkImageId = 17,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DrinkId = 5,
-                            ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803393/sting1_tcita4.jpg",
-                            IsDefault = true,
-                            PublicId = "sting1_tcita4"
-                        },
-                        new
-                        {
-                            DrinkImageId = 18,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DrinkId = 5,
-                            ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803314/sting2_axipva.jpg",
-                            IsDefault = false,
-                            PublicId = "sting2_axipva"
-                        },
-                        new
-                        {
-                            DrinkImageId = 19,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DrinkId = 5,
-                            ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803314/sting3_rv03ev.jpg",
-                            IsDefault = false,
-                            PublicId = "sting3_rv03ev"
-                        },
-                        new
-                        {
-                            DrinkImageId = 20,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DrinkId = 5,
-                            ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803316/sting4_yzaesh.jpg",
-                            IsDefault = false,
-                            PublicId = "sting4_yzaesh"
-                        },
-                        new
-                        {
-                            DrinkImageId = 21,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DrinkId = 6,
-                            ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803080/coca1_qum0eb.jpg",
-                            IsDefault = true,
-                            PublicId = "coca1_qum0eb"
-                        },
-                        new
-                        {
-                            DrinkImageId = 22,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DrinkId = 6,
-                            ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803081/coca2_ctcrt0.jpg",
-                            IsDefault = false,
-                            PublicId = "coca2_ctcrt0"
-                        },
-                        new
-                        {
-                            DrinkImageId = 23,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DrinkId = 6,
-                            ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803082/coca3_mp28bz.jpg",
-                            IsDefault = false,
-                            PublicId = "coca3_mp28bz"
-                        },
-                        new
-                        {
-                            DrinkImageId = 24,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DrinkId = 6,
-                            ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803082/coca4_xbh74i.jpg",
-                            IsDefault = false,
-                            PublicId = "coca4_xbh74i"
                         });
                 });
 
@@ -2136,76 +2032,6 @@ namespace CafeChain.Migrations
                             Price = 35000m,
                             RowVersion = new byte[0],
                             SizeId = 3,
-                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            DrinkSizeId = 11,
-                            Active = true,
-                            DrinkId = 5,
-                            Price = 15000m,
-                            RowVersion = new byte[0],
-                            SizeId = 5,
-                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            DrinkSizeId = 12,
-                            Active = true,
-                            DrinkId = 5,
-                            Price = 20000m,
-                            RowVersion = new byte[0],
-                            SizeId = 6,
-                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            DrinkSizeId = 13,
-                            Active = true,
-                            DrinkId = 5,
-                            Price = 25000m,
-                            RowVersion = new byte[0],
-                            SizeId = 7,
-                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            DrinkSizeId = 14,
-                            Active = true,
-                            DrinkId = 6,
-                            Price = 15000m,
-                            RowVersion = new byte[0],
-                            SizeId = 5,
-                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            DrinkSizeId = 15,
-                            Active = true,
-                            DrinkId = 6,
-                            Price = 20000m,
-                            RowVersion = new byte[0],
-                            SizeId = 6,
-                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            DrinkSizeId = 16,
-                            Active = true,
-                            DrinkId = 6,
-                            Price = 25000m,
-                            RowVersion = new byte[0],
-                            SizeId = 7,
-                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            DrinkSizeId = 17,
-                            Active = true,
-                            DrinkId = 6,
-                            Price = 30000m,
-                            RowVersion = new byte[0],
-                            SizeId = 8,
                             UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         });
                 });

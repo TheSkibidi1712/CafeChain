@@ -44,7 +44,11 @@ public sealed class AdminOperationalAnomaliesController : AdminBaseController
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Feedback([FromBody] AnomalyFeedbackDto input, CancellationToken ct)
     {
-        try { await _service.RecordFeedbackAsync(_actor.Get(User), input, ct); return Ok(new { success = true, traceId = HttpContext.TraceIdentifier }); }
+        try
+        {
+            var result = await _service.RecordFeedbackAsync(_actor.Get(User), input, ct);
+            return Ok(new { success = true, data = result, message = result.FeedbackDisplay, traceId = HttpContext.TraceIdentifier });
+        }
         catch (UnauthorizedAccessException) { return Forbid(); }
         catch (KeyNotFoundException ex) { return NotFound(new { success = false, message = ex.Message }); }
         catch (DbUpdateConcurrencyException ex) { return Conflict(new { success = false, message = ex.Message }); }
@@ -71,7 +75,14 @@ public sealed class AdminOperationalAnomaliesController : AdminBaseController
                     context.BaselineValueDisplay,
                     context.DirectionDescription,
                     context.ReasonSummaries,
-                    context.SuggestedChecks
+                    context.SuggestedChecks,
+                    context.PercentageDeviation,
+                    context.AbsolutePercentageDeviation,
+                    context.PercentageDeviationDisplay,
+                    context.ImpactSummary,
+                    context.WhyDetected,
+                    context.ImmediateActions,
+                    context.PreparationChecklist
                 },
                 traceId = HttpContext.TraceIdentifier
             });

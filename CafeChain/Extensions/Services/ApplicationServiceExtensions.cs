@@ -427,6 +427,8 @@ namespace CafeChain.Extensions.Services
             services.AddSingleton<IOtpPayloadFingerprintService, OtpPayloadFingerprintService>();
             services.AddScoped<IWorkShiftNotificationPublisher,
                 CafeChain.Infrastructure.Realtime.SignalRWorkShiftNotificationPublisher>();
+            services.AddScoped<CafeChain.Application.Interfaces.StaffHub.IStaffScheduleNotificationPublisher,
+                CafeChain.Infrastructure.Realtime.SignalRStaffScheduleNotificationPublisher>();
             services.AddScoped<IPosAccessSessionPublisher,
                 CafeChain.Infrastructure.Realtime.SignalRPosAccessSessionPublisher>();
 

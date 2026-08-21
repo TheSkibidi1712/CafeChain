@@ -138,9 +138,13 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
                     PreparedItemId = x.PreparedItemId,
                     QuantitySemanticsStatus = x.IngredientId.HasValue
                         ? CafeChain.Application.DTOs.Inventories.QuantitySemanticsStatuses.NotApplicable
-                        : x.RecipeId.HasValue
-                            ? CafeChain.Application.DTOs.Inventories.QuantitySemanticsStatuses.Unknown
-                            : CafeChain.Application.DTOs.Inventories.QuantitySemanticsStatuses.BaseUnitQuantityConfirmed,
+                        : x.QuantitySemanticsStatus == InventoryQuantitySemanticsStatus.BaseUnitConfirmed
+                            ? CafeChain.Application.DTOs.Inventories.QuantitySemanticsStatuses.BaseUnitQuantityConfirmed
+                            : x.QuantitySemanticsStatus == InventoryQuantitySemanticsStatus.LegacyBatch
+                                ? CafeChain.Application.DTOs.Inventories.QuantitySemanticsStatuses.LegacyBatchQuantity
+                                : x.QuantitySemanticsStatus == InventoryQuantitySemanticsStatus.Incompatible
+                                    ? CafeChain.Application.DTOs.Inventories.QuantitySemanticsStatuses.UnitIncompatible
+                                    : CafeChain.Application.DTOs.Inventories.QuantitySemanticsStatuses.Unknown,
 
                     AvailableQty = x.AvailableQty,
                     ReservedQty = x.ReservedQty,
@@ -435,6 +439,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
                     IngredientId = x.StoreInventory.IngredientId,
                     RecipeId = x.StoreInventory.RecipeId,
                     PreparedItemId = x.StoreInventory.PreparedItemId,
+                    QuantitySemanticsStatus = x.StoreInventory.QuantitySemanticsStatus,
                     IngredientName = x.StoreInventory.IngredientId.HasValue
                         ? x.StoreInventory.Ingredient.Name
                         : null,
@@ -445,7 +450,6 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
                                x.StoreInventory.Ingredient.BaseUnit != null
                         ? x.StoreInventory.Ingredient.BaseUnit.UnitCode
                         : x.StoreInventory.PreparedItemId.HasValue &&
-                          !x.StoreInventory.RecipeId.HasValue &&
                           x.StoreInventory.PreparedItem.BaseUnit != null
                             ? x.StoreInventory.PreparedItem.BaseUnit.UnitCode
                             : string.Empty,
@@ -490,9 +494,13 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
                                 : string.Empty,
                     QuantitySemanticsStatus = x.IngredientId.HasValue
                         ? CafeChain.Application.DTOs.Inventories.QuantitySemanticsStatuses.NotApplicable
-                        : x.RecipeId.HasValue
-                            ? CafeChain.Application.DTOs.Inventories.QuantitySemanticsStatuses.Unknown
-                            : CafeChain.Application.DTOs.Inventories.QuantitySemanticsStatuses.BaseUnitQuantityConfirmed,
+                        : x.QuantitySemanticsStatus == InventoryQuantitySemanticsStatus.BaseUnitConfirmed
+                            ? CafeChain.Application.DTOs.Inventories.QuantitySemanticsStatuses.BaseUnitQuantityConfirmed
+                            : x.QuantitySemanticsStatus == InventoryQuantitySemanticsStatus.LegacyBatch
+                                ? CafeChain.Application.DTOs.Inventories.QuantitySemanticsStatuses.LegacyBatchQuantity
+                                : x.QuantitySemanticsStatus == InventoryQuantitySemanticsStatus.Incompatible
+                                    ? CafeChain.Application.DTOs.Inventories.QuantitySemanticsStatuses.UnitIncompatible
+                                    : CafeChain.Application.DTOs.Inventories.QuantitySemanticsStatuses.Unknown,
 
                     TypeName = x.Type.ToString(),
                     StockStatusName = x.StockStatus.ToString(),

@@ -32,8 +32,7 @@ namespace CafeChain.Data.Configurations.Drinks.DrinkInfos
 
             entity.HasData(
                 new DrinkCategory { CategoryId = 1, Name = "Coffee", CategoryCode = "COFFEE", Icon = "☕", Active = true },
-                new DrinkCategory { CategoryId = 2, Name = "Trà sữa", CategoryCode = "TRASUA", Icon = "🧋", Active = true },
-                new DrinkCategory { CategoryId = 3, Name = "Nước ngọt", CategoryCode = "NUOCNGOT", Icon = "🥤", Active = true }
+                new DrinkCategory { CategoryId = 2, Name = "Trà sữa", CategoryCode = "TRASUA", Icon = "🧋", Active = true }
             );
         }
     }

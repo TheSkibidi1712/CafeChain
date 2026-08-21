@@ -42,6 +42,17 @@ public sealed class StaffHubController : Controller
         _lateOpenApprovals = lateOpenApprovals;
     }
 
+    [HttpGet]
+    public async Task<IActionResult> ScheduleFragment(DateTime? date, CancellationToken ct = default)
+    {
+        if (!int.TryParse(User.FindFirstValue("StaffId"), out var staffId) || staffId <= 0)
+            return Unauthorized();
+
+        var result = await _scheduleService.GetAsync(staffId, date ?? DateTime.Today, ct);
+        if (!result.IsSuccess || result.Data == null) return NotFound();
+        return PartialView("_ScheduleRegion", result.Data);
+    }
+
     public async Task<IActionResult> Index(
         DateTime? date,
         bool openPos = false,

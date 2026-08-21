@@ -9,9 +9,17 @@ document.addEventListener('click', async event => {
                 headers: { 'Content-Type': 'application/json', RequestVerificationToken: token },
                 body: JSON.stringify(payload)
             });
-            if (response.ok) { location.reload(); return; }
-            const body = await response.json();
+            const body = await response.json().catch(() => ({}));
+            if (response.ok) return body;
+            if (response.status === 409) {
+                await Swal.fire({ icon: 'warning', title: 'Dữ liệu đã thay đổi', text: body.message || 'Tín hiệu đã được cập nhật. Hãy tải lại dữ liệu trước khi thao tác tiếp.' });
+                return null;
+            }
             await Swal.fire({ icon: 'error', title: 'Không thể cập nhật', text: body.message || 'Dữ liệu đã thay đổi.' });
+            return null;
+        } catch (error) {
+            await Swal.fire({ icon: 'error', title: 'Lỗi kết nối', text: 'Không thể lưu thao tác lúc này. Vui lòng thử lại.' });
+            return null;
         } finally {
             button.disabled = false;
         }
@@ -23,6 +31,20 @@ document.addEventListener('click', async event => {
         const explanation = document.createElement('p');
         explanation.textContent = body.data?.explanation || body.message || 'Không thể giải thích tín hiệu.';
         wrapper.appendChild(explanation);
+
+        const contextBlocks = [
+            ['Ảnh hưởng có thể xảy ra:', body.presentation?.impactSummary],
+            ['Vì sao có thông báo:', body.presentation?.whyDetected]
+        ];
+        contextBlocks.forEach(([title, value]) => {
+            if (!value) return;
+            const heading = document.createElement('strong');
+            heading.textContent = title;
+            wrapper.appendChild(heading);
+            const paragraph = document.createElement('p');
+            paragraph.textContent = value;
+            wrapper.appendChild(paragraph);
+        });
 
         const checks = body.presentation?.suggestedChecks || [];
         if (checks.length) {
@@ -38,6 +60,24 @@ document.addEventListener('click', async event => {
             wrapper.appendChild(list);
         }
 
+        const actionGroups = [
+            ['Việc cần làm ngay:', body.presentation?.immediateActions],
+            ['Hồ sơ cần chuẩn bị:', body.presentation?.preparationChecklist]
+        ];
+        actionGroups.forEach(([title, values]) => {
+            if (!values?.length) return;
+            const heading = document.createElement('strong');
+            heading.textContent = title;
+            wrapper.appendChild(heading);
+            const list = document.createElement('ul');
+            values.forEach(value => {
+                const item = document.createElement('li');
+                item.textContent = value;
+                list.appendChild(item);
+            });
+            wrapper.appendChild(list);
+        });
+
         const warning = document.createElement('p');
         warning.className = 'small text-muted mb-0';
         warning.textContent = 'Đây chỉ là tín hiệu hỗ trợ kiểm tra, chưa đủ cơ sở kết luận nguyên nhân, sai phạm hoặc trách nhiệm cá nhân.';
@@ -47,9 +87,9 @@ document.addEventListener('click', async event => {
 
     const explain = event.target.closest('[data-explain]');
     if (explain) {
-        const originalText = explain.innerHTML;
+        const originalText = explain.textContent;
         explain.disabled = true;
-        explain.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Đang phân tích...';
+        explain.textContent = 'Đang phân tích...';
 
         // Show loading Swal
         Swal.fire({
@@ -82,14 +122,14 @@ document.addEventListener('click', async event => {
             });
         } finally {
             explain.disabled = false;
-            explain.innerHTML = originalText;
+            explain.textContent = originalText;
         }
         return;
     }
 
     const ack = event.target.closest('[data-ack]');
     if (ack) {
-        await postAction(ack, { id: Number(ack.dataset.ack), action: 'ACKNOWLEDGE', rowVersion: ack.dataset.version });
+        if (await postAction(ack, { id: Number(ack.dataset.ack), action: 'ACKNOWLEDGE', rowVersion: ack.dataset.version })) location.reload();
         return;
     }
 
@@ -104,7 +144,7 @@ document.addEventListener('click', async event => {
             cancelButtonText: 'Hủy'
         });
         if (answer.isConfirmed)
-            await postAction(resolve, { id: Number(resolve.dataset.resolve), action: 'RESOLVE', rowVersion: resolve.dataset.version, note: answer.value });
+            if (await postAction(resolve, { id: Number(resolve.dataset.resolve), action: 'RESOLVE', rowVersion: resolve.dataset.version, note: answer.value })) location.reload();
         return;
     }
 
@@ -118,7 +158,18 @@ document.addEventListener('click', async event => {
             confirmButtonText: 'Gửi phản hồi',
             cancelButtonText: 'Hủy'
         });
-        if (answer.isConfirmed)
-            await postAction(feedback, { id: Number(feedback.dataset.feedback), action: 'FEEDBACK', rowVersion: feedback.dataset.version, feedback: answer.value });
+        if (answer.isConfirmed) {
+            const result = await postAction(feedback, { id: Number(feedback.dataset.feedback), action: 'FEEDBACK', rowVersion: feedback.dataset.version, feedback: answer.value });
+            if (result?.success) {
+                const data = result.data || {};
+                feedback.dataset.version = data.rowVersion || feedback.dataset.version;
+                feedback.textContent = data.feedbackDisplay || result.message || 'Đã ghi nhận phản hồi';
+                feedback.classList.add('is-completed');
+                feedback.disabled = true;
+                const status = document.querySelector(`[data-feedback-status="${feedback.dataset.feedback}"]`);
+                if (status) status.textContent = data.feedbackDisplay || result.message || 'Đã ghi nhận phản hồi';
+                await Swal.fire({ icon: 'success', title: 'Đã ghi nhận phản hồi', text: result.message || 'Phản hồi đã được lưu.', timer: 1600, showConfirmButton: false });
+            }
+        }
     }
 });
