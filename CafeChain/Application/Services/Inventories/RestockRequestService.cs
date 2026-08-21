@@ -429,13 +429,23 @@ namespace CafeChain.Application.Services.Inventories
                     "Tồn kho đã thay đổi. Vui lòng tải lại để xem nhu cầu mới nhất.",
                     errorCode: "PREPARED_ITEM_STOCK_CHANGED");
             }
-            if (!current.Data.TargetStockBase.HasValue)
+            var isManualDemand = alert.AlertType == StockAlertTypes.ManualReview
+                && alert.ThresholdSnapshot.HasValue;
+            var decisionTargetBase = isManualDemand
+                ? alert.ThresholdSnapshot!.Value
+                : current.Data.TargetStockBase;
+            if (!decisionTargetBase.HasValue)
                 return ServiceResult<CreateRestockRequestResultDto>.Failure("Cần cấu hình mức tồn mục tiêu trước khi tạo nhu cầu bổ sung.");
-            if (!current.Data.IsLow)
+
+            var grossNeedBase = Math.Max(decisionTargetBase.Value - current.Data.UsableBase, 0m);
+            var netNeedBase = Math.Max(
+                grossNeedBase - current.Data.OpenProductionCoverageBase.GetValueOrDefault(),
+                0m);
+            if (!isManualDemand && !current.Data.IsLow)
                 return ServiceResult<CreateRestockRequestResultDto>.Failure("Tồn khả dụng hiện không thấp hơn ngưỡng cảnh báo.");
-            if (!current.Data.NetNeedBase.HasValue)
+            if (!isManualDemand && !current.Data.NetNeedBase.HasValue)
                 return ServiceResult<CreateRestockRequestResultDto>.Failure(current.Data.BusinessMessageVi);
-            if (current.Data.NetNeedBase.Value <= 0m)
+            if (netNeedBase <= 0m)
                 return ServiceResult<CreateRestockRequestResultDto>.Failure("Nguồn sản xuất đang mở đã bao phủ nhu cầu hiện tại.");
 
             var noteText = Clean(note, MaxNoteLength);
@@ -450,15 +460,17 @@ namespace CafeChain.Application.Services.Inventories
                 RecipeId = null,
                 SourceType = RestockRequestSourceTypes.StockAlert,
                 SourceReferenceId = alert.StockAlertId.ToString(CultureInfo.InvariantCulture),
-                RequestedQuantity = current.Data.NetNeedBase.Value,
-                SuggestedQuantity = current.Data.NetNeedBase.Value,
-                RequestedProcurementQuantity = current.Data.NetNeedBase.Value,
+                RequestedQuantity = netNeedBase,
+                SuggestedQuantity = netNeedBase,
+                RequestedProcurementQuantity = netNeedBase,
                 ProcurementUnitId = current.Data.BaseUnitId,
-                TargetStockProcurementQuantity = current.Data.TargetStockBase,
+                TargetStockProcurementQuantity = decisionTargetBase,
                 SuggestionAvailableSnapshot = current.Data.UsableBase,
-                SuggestionMinLevelSnapshot = current.Data.LowThresholdBase,
+                SuggestionMinLevelSnapshot = isManualDemand ? null : current.Data.LowThresholdBase,
                 SuggestionIncomingQuantitySnapshot = current.Data.OpenProductionCoverageBase,
-                SuggestionReason = $"Nhu cầu bổ sung: mục tiêu {current.Data.TargetStockBase:N3} - tồn khả dụng {current.Data.UsableBase:N3} - nguồn sản xuất đang mở {current.Data.OpenProductionCoverageBase.GetValueOrDefault():N3}.",
+                SuggestionReason = isManualDemand
+                    ? $"Nhu cầu bổ sung ngoài ngưỡng đã được quản lý xác nhận: mục tiêu {decisionTargetBase:N3} - tồn khả dụng {current.Data.UsableBase:N3} - nguồn sản xuất đang mở {current.Data.OpenProductionCoverageBase.GetValueOrDefault():N3}."
+                    : $"Nhu cầu bổ sung: mục tiêu {decisionTargetBase:N3} - tồn khả dụng {current.Data.UsableBase:N3} - nguồn sản xuất đang mở {current.Data.OpenProductionCoverageBase.GetValueOrDefault():N3}.",
                 SourcingStatus = RestockSourcingStatuses.Unallocated,
                 Status = RestockRequestStatuses.Draft,
                 Priority = ResolvePriority(priority, alert.AlertType),
