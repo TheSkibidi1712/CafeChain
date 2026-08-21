@@ -21,6 +21,14 @@
         : $" {Model.ProcurementUnitName}";
     var replenishment = ViewBag.PreparedItemReplenishment as PreparedItemReplenishmentDto;
     var isPreparedItemDemand = replenishment != null;
+    var isManualPreparedItemDemand = isPreparedItemDemand
+        && Model.IsOutOfThresholdManualDemand
+        && Model.DecisionTargetBaseQuantity.HasValue;
+    var preparedItemDemandBase = isManualPreparedItemDemand
+        ? Math.Max(
+            Model.DecisionTargetBaseQuantity!.Value - replenishment!.UsableBase - replenishment.OpenProductionCoverageBase.GetValueOrDefault(),
+            0m)
+        : replenishment?.NetNeedBase;
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
@@ -241,7 +249,7 @@
                                         <div><span class="ops-data-label">Ngưỡng cảnh báo tồn thấp</span><span class="ops-data-value">@(replenishment.LowThresholdBase?.ToString("N3") ?? "Chưa cấu hình")</span></div>
                                         <div><span class="ops-data-label">Mức tồn mục tiêu</span><span class="ops-data-value">@(replenishment.TargetStockBase?.ToString("N3") ?? "Chưa cấu hình")</span></div>
                                         <div><span class="ops-data-label">Nguồn sản xuất đang mở</span><span class="ops-data-value">@(replenishment.OpenProductionCoverageBase?.ToString("N3") ?? "Chưa xác định")</span></div>
-                                        <div><span class="ops-data-label">Còn cần bổ sung</span><span class="ops-data-value">@(replenishment.NetNeedBase?.ToString("N3") ?? "Chưa thể tính") @replenishment.BaseUnitCode</span></div>
+                                        <div><span class="ops-data-label">Còn cần bổ sung</span><span class="ops-data-value">@(preparedItemDemandBase?.ToString("N3") ?? "Chưa thể tính") @replenishment.BaseUnitCode</span></div>
                                     </div>
                                     @if (!replenishment.NetNeedBase.HasValue)
                                     {
@@ -281,7 +289,7 @@
                                 <label class="ops-form-label" for="note">Ghi chú</label>
                                 <textarea id="note" name="note" class="ops-textarea" maxlength="500" placeholder="Thông tin cần lưu ý cho bộ phận kho..."></textarea>
                             </div>
-                            <button type="submit" class="ops-btn ops-btn-primary w-100" disabled="@(isPreparedItemDemand ? replenishment!.NetNeedBase is not > 0 : suggestedProcurement is not > 0 || !Model.ProcurementUnitId.HasValue ? "disabled" : null)"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> @(isPreparedItemDemand ? "Xác nhận nhu cầu bổ sung" : "Gửi yêu cầu nhập")</button>
+                            <button type="submit" class="ops-btn ops-btn-primary w-100" disabled="@(isPreparedItemDemand ? preparedItemDemandBase is not > 0 : suggestedProcurement is not > 0 || !Model.ProcurementUnitId.HasValue ? "disabled" : null)"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> @(isPreparedItemDemand ? "Xác nhận nhu cầu bổ sung" : "Gửi yêu cầu nhập")</button>
                         </form>
                         <details class="ops-danger-disclosure">
                             <summary>Đóng cảnh báo mà không tạo yêu cầu</summary>

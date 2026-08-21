@@ -429,13 +429,23 @@ namespace CafeChain.Application.Services.Inventories
                     "Tồn kho đã thay đổi. Vui lòng tải lại để xem nhu cầu mới nhất.",
                     errorCode: "PREPARED_ITEM_STOCK_CHANGED");
             }
-            if (!current.Data.TargetStockBase.HasValue)
+            var isManualDemand = alert.AlertType == StockAlertTypes.ManualReview
+                && alert.ThresholdSnapshot.HasValue;
+            var decisionTargetBase = isManualDemand
+                ? alert.ThresholdSnapshot!.Value
+                : current.Data.TargetStockBase;
+            if (!decisionTargetBase.HasValue)
                 return ServiceResult<CreateRestockRequestResultDto>.Failure("Cần cấu hình mức tồn mục tiêu trước khi tạo nhu cầu bổ sung.");
-            if (!current.Data.IsLow)
+
+            var grossNeedBase = Math.Max(decisionTargetBase.Value - current.Data.UsableBase, 0m);
+            var netNeedBase = Math.Max(
+                grossNeedBase - current.Data.OpenProductionCoverageBase.GetValueOrDefault(),
+                0m);
+            if (!isManualDemand && !current.Data.IsLow)
                 return ServiceResult<CreateRestockRequestResultDto>.Failure("Tồn khả dụng hiện không thấp hơn ngưỡng cảnh báo.");
-            if (!current.Data.NetNeedBase.HasValue)
+            if (!isManualDemand && !current.Data.NetNeedBase.HasValue)
                 return ServiceResult<CreateRestockRequestResultDto>.Failure(current.Data.BusinessMessageVi);
-            if (current.Data.NetNeedBase.Value <= 0m)
+            if (netNeedBase <= 0m)
                 return ServiceResult<CreateRestockRequestResultDto>.Failure("Nguồn sản xuất đang mở đã bao phủ nhu cầu hiện tại.");
 
             var noteText = Clean(note, MaxNoteLength);
@@ -450,15 +460,17 @@ namespace CafeChain.Application.Services.Inventories
                 RecipeId = null,
                 SourceType = RestockRequestSourceTypes.StockAlert,
                 SourceReferenceId = alert.StockAlertId.ToString(CultureInfo.InvariantCulture),
-                RequestedQuantity = current.Data.NetNeedBase.Value,
-                SuggestedQuantity = current.Data.NetNeedBase.Value,
-                RequestedProcurementQuantity = current.Data.NetNeedBase.Value,
+                RequestedQuantity = netNeedBase,
+                SuggestedQuantity = netNeedBase,
+                RequestedProcurementQuantity = netNeedBase,
                 ProcurementUnitId = current.Data.BaseUnitId,
-                TargetStockProcurementQuantity = current.Data.TargetStockBase,
+                TargetStockProcurementQuantity = decisionTargetBase,
                 SuggestionAvailableSnapshot = current.Data.UsableBase,
-                SuggestionMinLevelSnapshot = current.Data.LowThresholdBase,
+                SuggestionMinLevelSnapshot = isManualDemand ? null : current.Data.LowThresholdBase,
                 SuggestionIncomingQuantitySnapshot = current.Data.OpenProductionCoverageBase,
-                SuggestionReason = $"Nhu cầu bổ sung: mục tiêu {current.Data.TargetStockBase:N3} - tồn khả dụng {current.Data.UsableBase:N3} - nguồn sản xuất đang mở {current.Data.OpenProductionCoverageBase.GetValueOrDefault():N3}.",
+                SuggestionReason = isManualDemand
+                    ? $"Nhu cầu bổ sung ngoài ngưỡng đã được quản lý xác nhận: mục tiêu {decisionTargetBase:N3} - tồn khả dụng {current.Data.UsableBase:N3} - nguồn sản xuất đang mở {current.Data.OpenProductionCoverageBase.GetValueOrDefault():N3}."
+                    : $"Nhu cầu bổ sung: mục tiêu {decisionTargetBase:N3} - tồn khả dụng {current.Data.UsableBase:N3} - nguồn sản xuất đang mở {current.Data.OpenProductionCoverageBase.GetValueOrDefault():N3}.",
                 SourcingStatus = RestockSourcingStatuses.Unallocated,
                 Status = RestockRequestStatuses.Draft,
                 Priority = ResolvePriority(priority, alert.AlertType),
@@ -759,8 +771,7 @@ namespace CafeChain.Application.Services.Inventories
                             - fulfillmentRows.Sum(),
                         0m);
                     var activeRequestCoverageBase = demand.SourcingAllocations
-                        .Where(x => x.Status is RestockSourcingAllocationStatuses.Active
-                            or RestockSourcingAllocationStatuses.PendingPurchaseAdvice)
+                        .Where(IsEffectiveActiveAllocation)
                         .Sum(x => x.ProcurementQuantity);
                     var activeRequestUnallocatedBase = Math.Max(
                         remainingRequestDemandBase - activeRequestCoverageBase,
@@ -937,6 +948,15 @@ namespace CafeChain.Application.Services.Inventories
                 }
             }
 
+            if (decision == RestockSourcingDecisionTypes.Transfer)
+            {
+                var transferValidation = await ValidateTransferSourceAsync(demand, request);
+                if (!transferValidation.IsSuccess)
+                    return ServiceResult<SourcingAllocationDto>.Failure(
+                        transferValidation.Message ?? "Nguồn điều chuyển chưa có phiếu thực hiện hợp lệ.",
+                        errorCode: transferValidation.ErrorCode);
+            }
+
             if (decision == RestockSourcingDecisionTypes.Production)
             {
                 if (!request.RequestKey.HasValue || request.RequestKey.Value == Guid.Empty)
@@ -994,8 +1014,7 @@ namespace CafeChain.Application.Services.Inventories
             }
 
             var allocated = demand.SourcingAllocations
-                .Where(x => x.Status is RestockSourcingAllocationStatuses.Active
-                    or RestockSourcingAllocationStatuses.PendingPurchaseAdvice)
+                .Where(IsEffectiveActiveAllocation)
                 .Sum(x => x.ProcurementQuantity);
             var requested = demand.RequestedProcurementQuantity ?? demand.RequestedQuantity;
             var currentUncovered = Math.Max(0m, requested - allocated);
@@ -1030,6 +1049,9 @@ namespace CafeChain.Application.Services.Inventories
                 SourceDocumentType = decision,
                 SourceDocumentId = request.SourceDocumentId,
                 SourceDocumentLineId = request.SourceDocumentLineId,
+                InventoryTransferId = decision == RestockSourcingDecisionTypes.Transfer
+                    ? request.SourceDocumentId
+                    : null,
                 Reason = Clean(request.Reason, 500),
                 CreatedByStaffId = actorStaffId,
                 CreatedAtUtc = now
@@ -1103,6 +1125,36 @@ namespace CafeChain.Application.Services.Inventories
                 IngredientId = demand.IngredientId,
                 PreparedItemId = demand.PreparedItemId
             });
+        }
+
+        private async Task<ServiceResult> ValidateTransferSourceAsync(
+            RestockRequest demand,
+            SourcingDecisionRequest request)
+        {
+            if (!request.SourceDocumentId.HasValue || !request.SourceDocumentLineId.HasValue)
+                return ServiceResult.Failure(
+                    "Điều chuyển nội bộ chỉ được xác nhận sau khi đã có phiếu và dòng điều chuyển gắn với yêu cầu.");
+
+            var detail = await _context.InventoryTransferDetails
+                .AsNoTracking()
+                .Include(x => x.InventoryTransfer)
+                .SingleOrDefaultAsync(x => x.InventoryTransferDetailId == request.SourceDocumentLineId.Value
+                    && x.InventoryTransferId == request.SourceDocumentId.Value
+                    && x.RestockRequestId == demand.RestockRequestId);
+            if (detail == null
+                || detail.InventoryTransfer.ToStoreId != demand.StoreId
+                || detail.InventoryTransfer.Status == Models.Enums.Inventory.InventoryTransferStatus.CANCELLED)
+                return ServiceResult.Failure(
+                    "Phiếu điều chuyển không thuộc cửa hàng nhận hoặc chưa gắn đúng yêu cầu bổ sung.");
+
+            var identityMatches = demand.IngredientId.HasValue
+                ? detail.IngredientId == demand.IngredientId && !detail.PreparedItemId.HasValue
+                : detail.PreparedItemId == demand.PreparedItemId && !detail.IngredientId.HasValue;
+            if (!identityMatches || detail.BaseQuantity < request.ProcurementQuantity)
+                return ServiceResult.Failure(
+                    "Dòng điều chuyển không khớp mặt hàng hoặc không đủ số lượng phân bổ.");
+
+            return ServiceResult.Success();
         }
 
         private async Task<ServiceResult<SourcingAllocationDto>?> FindProductionAllocationReplayAsync(
@@ -1202,8 +1254,7 @@ namespace CafeChain.Application.Services.Inventories
                 }
 
                 allocated = demand.SourcingAllocations
-                    .Where(x => x.Status is RestockSourcingAllocationStatuses.Active
-                        or RestockSourcingAllocationStatuses.PendingPurchaseAdvice)
+                    .Where(IsEffectiveActiveAllocation)
                     .Sum(x => x.ProcurementQuantity);
                 requested = demand.RequestedProcurementQuantity ?? demand.RequestedQuantity;
                 var transactionUncovered = Math.Max(0m, requested - allocated);
@@ -1616,9 +1667,14 @@ namespace CafeChain.Application.Services.Inventories
 
         private static decimal ActiveAllocatedProcurementQuantity(RestockRequest demand) =>
             demand.SourcingAllocations
-                .Where(x => x.Status is RestockSourcingAllocationStatuses.Active
-                    or RestockSourcingAllocationStatuses.PendingPurchaseAdvice)
+                .Where(IsEffectiveActiveAllocation)
                 .Sum(x => x.ProcurementQuantity);
+
+        private static bool IsEffectiveActiveAllocation(RestockSourcingAllocation allocation) =>
+            (allocation.Status is RestockSourcingAllocationStatuses.Active
+                or RestockSourcingAllocationStatuses.PendingPurchaseAdvice)
+            && (allocation.DecisionType != RestockSourcingDecisionTypes.Transfer
+                || (allocation.InventoryTransferId.HasValue && allocation.SourceDocumentId.HasValue));
 
         private static RestockDemandAdjustmentResultDto MapAdjustmentResult(
             RestockRequest demand,

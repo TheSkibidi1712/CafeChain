@@ -5,6 +5,7 @@ using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Data;
+using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Operations;
 using Microsoft.EntityFrameworkCore;
@@ -708,11 +709,13 @@ namespace CafeChain.Application.Services.Inventories
             var remaining = Math.Max(0m, target - received);
             var sourcingEntities = await _context.RestockSourcingAllocations
                 .AsNoTracking()
-                .Where(x => x.RestockRequestId == r.RestockRequestId
-                    && (x.Status == RestockSourcingAllocationStatuses.Active
-                        || x.Status == RestockSourcingAllocationStatuses.PendingPurchaseAdvice))
+                .Include(x => x.ProductionRun)
+                .Where(x => x.RestockRequestId == r.RestockRequestId)
                 .OrderBy(x => x.RestockSourcingAllocationId)
                 .ToListAsync();
+            var activeSourcingEntities = sourcingEntities
+                .Where(IsEffectiveActiveAllocation)
+                .ToList();
             var procurementFactor = r.RequestedProcurementQuantity.GetValueOrDefault() > 0m
                 && r.RequestedQuantity > 0m
                     ? r.RequestedQuantity / r.RequestedProcurementQuantity!.Value
@@ -724,16 +727,16 @@ namespace CafeChain.Application.Services.Inventories
                 ? r.ClosedRemainingQuantity / procurementFactor
                 : (decimal?)null;
             var transferProcurement = SumSourcing(
-                sourcingEntities,
+                activeSourcingEntities,
                 RestockSourcingDecisionTypes.Transfer);
             var purchaseProcurement = SumSourcing(
-                sourcingEntities,
+                activeSourcingEntities,
                 RestockSourcingDecisionTypes.Purchase);
             var productionProcurement = SumSourcing(
-                sourcingEntities,
+                activeSourcingEntities,
                 RestockSourcingDecisionTypes.Production);
             var rejectedProcurement = SumSourcing(
-                sourcingEntities,
+                activeSourcingEntities,
                 RestockSourcingDecisionTypes.Reject);
             var totalSourcedProcurement = transferProcurement
                 + purchaseProcurement
@@ -881,7 +884,7 @@ namespace CafeChain.Application.Services.Inventories
                     RowVersion = Convert.ToBase64String(x.RowVersion)
                 })
                 .ToListAsync();
-            var hasOrphanPurchaseAllocation = sourcingEntities.Any(x =>
+            var hasOrphanPurchaseAllocation = activeSourcingEntities.Any(x =>
                 x.DecisionType == RestockSourcingDecisionTypes.Purchase
                 && x.Status == RestockSourcingAllocationStatuses.Active
                 && x.PurchaseAdviceLineId == null
@@ -1052,7 +1055,20 @@ namespace CafeChain.Application.Services.Inventories
             static RestockWorkflowStepDto Step(string label, string status, string description) =>
                 new() { Label = label, Status = status, Description = description };
             var rejected = request.Status is RestockRequestStatuses.Rejected or RestockRequestStatuses.Cancelled;
-            var hasSourcing = allocations.Count > 0;
+            var effectiveAllocations = allocations.Where(IsEffectiveActiveAllocation).ToList();
+            var hasSourcing = effectiveAllocations.Count > 0;
+            var productionAllocations = effectiveAllocations
+                .Where(x => x.DecisionType == RestockSourcingDecisionTypes.Production)
+                .ToList();
+            var hasProduction = productionAllocations.Count > 0;
+            var productionRuns = productionAllocations
+                .Where(x => x.ProductionRun != null)
+                .Select(x => x.ProductionRun!)
+                .ToList();
+            var hasPurchase = effectiveAllocations.Any(x => x.DecisionType == RestockSourcingDecisionTypes.Purchase)
+                || advices.Count > 0
+                || orders.Count > 0
+                || receipts.Count > 0;
             var hasPa = advices.Count > 0;
             var hasPo = orders.Count > 0;
             var sent = orders.Any(x => x.Status == PurchaseOrderStatuses.MarkedAsSent
@@ -1060,16 +1076,53 @@ namespace CafeChain.Application.Services.Inventories
                 || x.Status == PurchaseOrderStatuses.Completed);
             var hasReceipt = receipts.Count > 0;
             var posted = postings.Count > 0;
-            return new()
+            var shared = new List<RestockWorkflowStepDto>
             {
                 Step("Yêu cầu bổ sung", rejected ? "REJECTED" : "COMPLETED", rejected ? "Đã hủy hoặc từ chối" : "Đã tạo yêu cầu"),
-                Step("Xét nguồn cung", rejected ? "REJECTED" : hasSourcing ? "COMPLETED" : request.Status == RestockRequestStatuses.Submitted || request.Status == RestockRequestStatuses.Processing ? "ACTIVE" : "PENDING", hasSourcing ? "Đã ghi nhận nguồn cung" : "Chưa xác định nguồn"),
+                Step("Xét nguồn đáp ứng", rejected ? "REJECTED" : hasSourcing ? "COMPLETED" : request.Status == RestockRequestStatuses.Submitted || request.Status == RestockRequestStatuses.Processing ? "ACTIVE" : "PENDING", hasSourcing ? "Đã ghi nhận nguồn thực hiện" : "Chưa xác định nguồn")
+            };
+            if (!hasSourcing || rejected)
+                return shared;
+
+            if (hasProduction)
+            {
+                var planned = productionRuns.Count > 0;
+                var released = productionRuns.Any(x => x.Status is ProductionRunStatus.Released
+                    or ProductionRunStatus.InProgress
+                    or ProductionRunStatus.AwaitingAcceptance
+                    or ProductionRunStatus.AwaitingVarianceApproval
+                    or ProductionRunStatus.Completed);
+                var started = productionRuns.Any(x => x.Status is ProductionRunStatus.InProgress
+                    or ProductionRunStatus.AwaitingAcceptance
+                    or ProductionRunStatus.AwaitingVarianceApproval
+                    or ProductionRunStatus.Completed);
+                var actualRecorded = productionRuns.Any(x => x.Status is ProductionRunStatus.AwaitingAcceptance
+                    or ProductionRunStatus.AwaitingVarianceApproval
+                    or ProductionRunStatus.Completed);
+                var completed = productionRuns.Any(x => x.Status == ProductionRunStatus.Completed);
+                var productionPosted = postings.Any(x => x.SourceDocumentType == "PRODUCTION_RUN");
+                shared.AddRange([
+                    Step("Lập kế hoạch sản xuất", planned ? "COMPLETED" : "ACTIVE", planned ? "Đã tạo lệnh sản xuất" : "Chưa tạo lệnh sản xuất"),
+                    Step("Phát hành", released ? "COMPLETED" : planned ? "ACTIVE" : "PENDING", released ? "Đã phát hành lệnh" : "Chờ phát hành"),
+                    Step("Thực hiện", started ? "COMPLETED" : released ? "ACTIVE" : "PENDING", started ? "Đã bắt đầu sản xuất" : "Chờ bắt đầu"),
+                    Step("Ghi nhận thực tế", actualRecorded ? "COMPLETED" : started ? "ACTIVE" : "PENDING", actualRecorded ? "Đã ghi nhận sản lượng thực tế" : "Chờ ghi nhận"),
+                    Step("Chấp nhận đầu ra", completed ? "COMPLETED" : actualRecorded ? "ACTIVE" : "PENDING", completed ? "Đã chấp nhận sản lượng" : "Chờ chấp nhận"),
+                    Step("Nhập tồn", productionPosted ? "COMPLETED" : completed ? "ACTIVE" : "PENDING", productionPosted ? "Đã nhập sản lượng đạt vào tồn kho" : "Chưa phát sinh nhập tồn")
+                ]);
+                return shared;
+            }
+
+            if (hasPurchase)
+            {
+                shared.AddRange([
                 Step("Đề nghị mua", hasPa ? "COMPLETED" : hasSourcing ? "ACTIVE" : "PENDING", hasPa ? "Đã liên kết đề nghị mua" : "Chưa có đề nghị mua liên kết"),
                 Step("Đơn đặt hàng", hasPo ? "COMPLETED" : hasPa ? "ACTIVE" : "PENDING", hasPo ? "Đã tạo đơn đặt hàng" : "Chưa có đơn đặt hàng liên kết"),
                 Step("Gửi nhà cung cấp", sent ? "COMPLETED" : hasPo ? "ACTIVE" : "PENDING", sent ? "Đã ghi nhận gửi nhà cung cấp" : "Thực hiện trên đơn đặt hàng đã duyệt"),
                 Step("Nhận hàng", hasReceipt ? "COMPLETED" : sent ? "ACTIVE" : "PENDING", hasReceipt ? "Đã có chứng từ nhận hàng" : "Chưa có chứng từ nhận hàng"),
                 Step("Nhập kho", posted ? "COMPLETED" : hasReceipt ? "ACTIVE" : "PENDING", posted ? "Đã phát sinh số lượng nhận hợp lệ" : "Chưa phát sinh số lượng nhận hợp lệ")
-            };
+                ]);
+            }
+            return shared;
         }
 
         private static decimal SumSourcing(
@@ -1082,6 +1135,12 @@ namespace CafeChain.Application.Services.Inventories
                     StringComparison.OrdinalIgnoreCase))
                 .Sum(x => x.ProcurementQuantity);
 
+        private static bool IsEffectiveActiveAllocation(RestockSourcingAllocation allocation) =>
+            (allocation.Status == RestockSourcingAllocationStatuses.Active
+                || allocation.Status == RestockSourcingAllocationStatuses.PendingPurchaseAdvice)
+            && (allocation.DecisionType != RestockSourcingDecisionTypes.Transfer
+                || (allocation.InventoryTransferId.HasValue && allocation.SourceDocumentId.HasValue));
+
         private static SourcingAllocationDto MapSourcingAllocation(
             RestockSourcingAllocation allocation) => new()
         {
@@ -1093,6 +1152,9 @@ namespace CafeChain.Application.Services.Inventories
             Status = allocation.Status,
             PurchaseAdviceLineId = allocation.PurchaseAdviceLineId,
             PurchaseOrderLineId = allocation.PurchaseOrderLineId,
+            InventoryTransferId = allocation.InventoryTransferId,
+            SourceDocumentId = allocation.SourceDocumentId,
+            SourceDocumentLineId = allocation.SourceDocumentLineId,
             Reason = allocation.Reason,
             CreatedAtUtc = allocation.CreatedAtUtc
         };

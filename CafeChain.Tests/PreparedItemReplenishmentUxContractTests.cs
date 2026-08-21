@@ -74,6 +74,85 @@ public sealed class PreparedItemReplenishmentUxContractTests
     }
 
     [Fact]
+    public void PreparedItemRestock_DoesNotAssumePurchaseWorkflow()
+    {
+        var workflow = Read("CafeChain/Application/Services/Inventories/RestockRequestWorkflowService.cs");
+        var view = Read("CafeChain/Areas/Admin/Views/AdminRestockRequests/Details.cshtml");
+
+        Assert.Contains("Xét nguồn đáp ứng", workflow, StringComparison.Ordinal);
+        Assert.Contains("if (!hasSourcing || rejected)", workflow, StringComparison.Ordinal);
+        Assert.Contains("if (hasProduction)", workflow, StringComparison.Ordinal);
+        Assert.Contains("if (hasPurchase)", workflow, StringComparison.Ordinal);
+        Assert.Contains("usesPurchaseBranch", view, StringComparison.Ordinal);
+        Assert.Contains("@if (usesPurchaseBranch)", view, StringComparison.Ordinal);
+        Assert.Contains("aria-label=\"Tiến trình đáp ứng nhu cầu\"", view, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ProductionSource_ShowsCurrentRunHandoffWithoutPurchaseDocuments()
+    {
+        var workflow = Read("CafeChain/Application/Services/Inventories/RestockRequestWorkflowService.cs");
+        var view = Read("CafeChain/Areas/Admin/Views/AdminRestockRequests/Details.cshtml");
+
+        Assert.Contains("Lập kế hoạch sản xuất", workflow, StringComparison.Ordinal);
+        Assert.Contains("Chấp nhận đầu ra", workflow, StringComparison.Ordinal);
+        Assert.Contains("PRODUCTION_RUN", workflow, StringComparison.Ordinal);
+        Assert.Contains("AdminProductionOrder", view, StringComparison.Ordinal);
+        Assert.Contains("Xem lệnh sản xuất", view, StringComparison.Ordinal);
+        Assert.Contains("Mở lệnh sản xuất", view, StringComparison.Ordinal);
+        Assert.Contains("không cần đề nghị mua, đơn đặt hàng", view, StringComparison.Ordinal);
+        Assert.Contains("DecisionType == RestockSourcingDecisionTypes.Production", view, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PreparedItemTransfer_RequiresValidExecutionSource()
+    {
+        var service = Read("CafeChain/Application/Services/Inventories/RestockRequestService.cs");
+
+        Assert.Contains("ValidateTransferSourceAsync", service, StringComparison.Ordinal);
+        Assert.Contains("SourceDocumentLineId.HasValue", service, StringComparison.Ordinal);
+        Assert.Contains("InventoryTransfer.Status == Models.Enums.Inventory.InventoryTransferStatus.CANCELLED", service, StringComparison.Ordinal);
+        Assert.Contains("x.RestockRequestId == demand.RestockRequestId", service, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NoExecutionDocument_DoesNotPretendTransferFulfillmentExists()
+    {
+        var service = Read("CafeChain/Application/Services/Inventories/RestockRequestService.cs");
+        var workflow = Read("CafeChain/Application/Services/Inventories/RestockRequestWorkflowService.cs");
+        var view = Read("CafeChain/Areas/Admin/Views/AdminRestockRequests/Details.cshtml");
+
+        Assert.Contains("IsEffectiveActiveAllocation", service, StringComparison.Ordinal);
+        Assert.Contains("allocation.InventoryTransferId.HasValue", service, StringComparison.Ordinal);
+        Assert.Contains("orphanTransferAllocations", view, StringComparison.Ordinal);
+        Assert.Contains("chưa có chứng từ thực hiện", view, StringComparison.Ordinal);
+        Assert.Contains("Where(IsEffectiveActiveAllocation)", workflow, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OrphanTransfer_DoesNotHideReplacementSourceOptions()
+    {
+        var view = Read("CafeChain/Areas/Admin/Views/AdminRestockRequests/Details.cshtml");
+
+        Assert.Contains("if (orphanTransferAllocations.Count > 0)", view, StringComparison.Ordinal);
+        Assert.Contains("if (remainingSource <= 0)", view, StringComparison.Ordinal);
+        Assert.Contains("data-source-option=\"PRODUCTION\"", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("else if (remainingSource <= 0)", view, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RestockTraceability_IncludesReleasedProductionAllocations()
+    {
+        var workflow = Read("CafeChain/Application/Services/Inventories/RestockRequestWorkflowService.cs");
+
+        Assert.Contains(".Include(x => x.ProductionRun)", workflow, StringComparison.Ordinal);
+        Assert.Contains("var activeSourcingEntities", workflow, StringComparison.Ordinal);
+        Assert.Contains("SourcingAllocations = sourcingEntities.Select", workflow, StringComparison.Ordinal);
+        Assert.Contains("SumSourcing(", workflow, StringComparison.Ordinal);
+        Assert.Contains("activeSourcingEntities", workflow, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PreparedItemDemandAdjustment_UsesCurrentFulfillmentAndActiveCoverage()
     {
         var controller = Read("CafeChain/Areas/Admin/Controllers/AdminRestockRequestsController.cs");
