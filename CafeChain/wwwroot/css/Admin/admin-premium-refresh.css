@@ -1570,6 +1570,99 @@ body.admin-premium-shell :is(.inventory-export-option, .create-purpose-card, .ne
     line-height: 1.35 !important;
 }
 
+/* Redesign Chọn định dạng xuất (Export options selection modal) to be clean, modern, and compact */
+body.admin-premium-shell .inventory-export-option::before {
+    display: none !important; /* Delete the brown bar on the left edge */
+}
+
+body.admin-premium-shell .inventory-export-option-check {
+    display: none !important; /* Remove redundant top-right checkmark */
+}
+
+body.admin-premium-shell .inventory-export-option {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 16px !important;
+    padding: 16px 20px !important;
+    border: 1.5px solid var(--cc-border-strong, #d8c5b6) !important;
+    border-radius: 16px !important;
+    background: #ffffff !important;
+    box-shadow: 0 2px 6px rgba(32, 24, 18, 0.04) !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    cursor: pointer !important;
+    position: relative !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+}
+
+body.admin-premium-shell .inventory-export-option:hover {
+    border-color: var(--cc-brown-500, #8b6247) !important;
+    background: var(--cc-surface-active, #f4e9df) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 14px rgba(112, 72, 47, 0.08) !important;
+}
+
+body.admin-premium-shell .inventory-export-option:has(input:checked) {
+    border-color: var(--cc-brown-600, #70482f) !important;
+    background: var(--cc-warning-bg, #fcf4e8) !important;
+    box-shadow: 0 4px 12px rgba(112, 72, 47, 0.12) !important;
+    border-top-left-radius: 16px !important;
+    border-bottom-left-radius: 16px !important;
+}
+
+body.admin-premium-shell .inventory-export-option-copy {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+}
+
+body.admin-premium-shell .inventory-export-option-heading {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-wrap: wrap !important;
+}
+
+body.admin-premium-shell .inventory-export-option strong {
+    font-size: 15.5px !important;
+    font-weight: 800 !important;
+    color: var(--cc-brown-900, #3d2418) !important;
+}
+
+body.admin-premium-shell .inventory-export-option-heading em {
+    font-style: normal !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.03em !important;
+    padding: 2px 8px !important;
+    border-radius: 6px !important;
+    display: inline-block !important;
+}
+
+body.admin-premium-shell .inventory-export-option:has(#pdfExport) em {
+    background: #fee4e2 !important;
+    color: #b42318 !important;
+}
+
+body.admin-premium-shell .inventory-export-option:has(#wordExport) em {
+    background: #e0f2fe !important;
+    color: #0369a1 !important;
+}
+
+body.admin-premium-shell .inventory-export-option small {
+    font-size: 12.5px !important;
+    color: var(--cc-text-muted, #8c7b70) !important;
+    line-height: 1.35 !important;
+    margin: 0 !important;
+    margin-top: 2px !important;
+}
+
 /* 33. Align ingredient row metadata horizontally to reduce row height and prevent vertical bloat */
 body.admin-premium-shell .ingredient-row-meta {
     display: flex !important;
