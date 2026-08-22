@@ -1521,3 +1521,103 @@
 @media(prefers-reduced-motion:reduce){.perm-page *{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important;}}
 /* Fix contract: unified permission actions and matrix alignment. */
 .perm-page table th,.perm-page table td{vertical-align:middle;text-align:center}.perm-page .perm-primary-button{min-height:44px;border-color:var(--cc-brown-600,#70482F)!important;background:var(--cc-brown-600,#70482F)!important;color:#fff!important}.perm-page :is(.perm-outline-button,.perm-ghost-button){min-height:44px;border-color:var(--cc-border-strong,#D8C5B6);background:var(--cc-surface,#FFFDFB);color:var(--cc-brown-700,#3D2418)}.perm-page .perm-icon-button{width:40px;height:40px}
+
+/* Force left-alignment and comfortable spacing for staff card list in permission page */
+.perm-page .perm-side {
+    background: #F7F4F0 !important;
+}
+
+.perm-page .perm-toolbar-compact {
+    padding: 22px 22px 10px 22px !important;
+    background: transparent !important;
+    border-bottom: none !important;
+}
+
+.perm-page .perm-staff-list {
+    padding: 10px 22px !important;
+}
+
+.perm-page .perm-staff-item {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    min-height: 68px !important;
+    padding: 16px 22px !important;
+    margin-bottom: 14px !important;
+    border-radius: 14px !important;
+    border: 1px solid var(--cc-border-strong, #d8c5b6) !important;
+    background: #ffffff !important;
+    box-shadow: 0 3px 8px rgba(32, 24, 18, 0.05) !important;
+    text-align: left !important;
+}
+
+.perm-page .perm-staff-item:hover {
+    background: var(--cc-surface-active, #f4e9df) !important;
+    border-color: var(--cc-brown-500, #8b6247) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 18px rgba(112, 72, 47, 0.14) !important;
+}
+
+.perm-page .perm-staff-item.is-active {
+    background: var(--cc-warning-bg, #fcf4e8) !important;
+    border-color: var(--cc-brown-600, #70482f) !important;
+    box-shadow: 0 6px 18px rgba(112, 72, 47, 0.18) !important;
+    border-left: 6px solid var(--cc-brown-600, #70482f) !important;
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+}
+
+.perm-page .perm-staff-copy {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    text-align: left !important;
+    gap: 5px !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.perm-page .perm-staff-item .perm-name {
+    font-size: 15.5px !important;
+    font-weight: 800 !important;
+    color: var(--cc-brown-900, #3d2418) !important;
+    text-align: left !important;
+    align-self: flex-start !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    line-height: 1.25 !important;
+    margin: 0 !important;
+    display: block !important;
+}
+
+.perm-page .perm-staff-item .perm-subtext {
+    font-size: 13px !important;
+    color: var(--cc-text-muted, #8c7b70) !important;
+    text-align: left !important;
+    align-self: flex-start !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    line-height: 1.25 !important;
+    margin: 0 !important;
+    display: block !important;
+}
+
+.perm-page .perm-staff-item > i {
+    color: var(--cc-primary, #70482f) !important;
+    flex-shrink: 0 !important;
+    margin-left: 14px !important;
+    font-size: 15px !important;
+}
+
+.perm-page .perm-pagination {
+    padding: 10px 22px 22px 22px !important;
+}
