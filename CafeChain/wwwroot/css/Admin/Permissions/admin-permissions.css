@@ -1621,3 +1621,11 @@
 .perm-page .perm-pagination {
     padding: 10px 22px 22px 22px !important;
 }
+
+.perm-page-button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 0 !important;
+}
