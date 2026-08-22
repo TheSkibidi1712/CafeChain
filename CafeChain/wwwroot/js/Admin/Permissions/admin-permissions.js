@@ -20,8 +20,8 @@
         roles: { pageIndex: 1, pageSize: 10, search: "", totalPages: 1 },
         staff: {
             assign: { pageIndex: 1, pageSize: 10, search: "", totalPages: 1 },
-            override: { pageIndex: 1, pageSize: 8, search: "", totalPages: 1 },
-            scope: { pageIndex: 1, pageSize: 8, search: "", totalPages: 1 }
+            override: { pageIndex: 1, pageSize: 5, search: "", totalPages: 1 },
+            scope: { pageIndex: 1, pageSize: 5, search: "", totalPages: 1 }
         },
         selectedRoleId: null,
         selectedStaffRoleId: null,
@@ -406,12 +406,12 @@
     function renderStaffListItem(staff, context, selectedId) {
         const staffId = get(staff, "staffId", 0);
         return `
-            <button type="button" class="perm-staff-item ${selectedId === staffId ? "is-active" : ""}" data-action="select-${context}-staff" data-staff-id="${staffId}">
-                <span class="perm-staff-copy">
-                    <span class="perm-name">${escapeHtml(get(staff, "fullName", ""))}</span>
-                    <span class="perm-subtext">${escapeHtml(get(staff, "email", ""))}</span>
+            <button type="button" class="perm-staff-item ${selectedId === staffId ? "is-active" : ""}" data-action="select-${context}-staff" data-staff-id="${staffId}" style="display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; text-align: left !important; padding: 18px 24px !important; min-height: 78px !important; width: 100% !important; border-radius: 16px !important; margin-bottom: 14px !important;">
+                <span class="perm-staff-copy" style="display: flex !important; flex-direction: column !important; align-items: flex-start !important; justify-content: center !important; text-align: left !important; flex: 1 1 auto !important; min-width: 0 !important; gap: 6px !important; margin: 0 !important; padding: 0 !important;">
+                    <span class="perm-name" style="font-size: 15.5px !important; font-weight: 800 !important; color: #3d2418 !important; text-align: left !important; align-self: flex-start !important; width: 100% !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; line-height: 1.25 !important; margin: 0 !important; display: block !important;">${escapeHtml(get(staff, "fullName", ""))}</span>
+                    <span class="perm-subtext" style="font-size: 13px !important; color: #8c7b70 !important; text-align: left !important; align-self: flex-start !important; width: 100% !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; line-height: 1.25 !important; margin: 0 !important; display: block !important;">${escapeHtml(get(staff, "email", ""))}</span>
                 </span>
-                <i class="fas fa-chevron-right"></i>
+                <i class="fas fa-chevron-right" style="color: #70482f !important; flex-shrink: 0 !important; margin-left: 16px !important; font-size: 15px !important;"></i>
             </button>
         `;
     }
