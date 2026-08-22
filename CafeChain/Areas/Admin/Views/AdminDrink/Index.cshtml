@@ -389,25 +389,14 @@
                         <span class="drink-image-file-name" id="uploadFileName">Chưa chọn file nào</span>
                     </div>
 
-                    <div class="drink-image-upload-actions">
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input"
-                                   type="checkbox"
-                                   role="switch"
-                                   id="uploadDefaultSwitch" />
-
-                            <label class="form-check-label small"
-                                   for="uploadDefaultSwitch">
-                                Đặt làm mặc định
-                            </label>
-                        </div>
-
-                        <button type="button"
-                                class="btn drink-image-upload-btn"
-                                id="btnUploadDrinkImage">
-                            <i class="fas fa-upload me-1"></i>
-                            Tải ảnh
-                        </button>
+                    <div class="drink-image-upload-actions d-flex align-items-center justify-content-between">
+                        <label class="drink-default-switch-label mb-0" title="Đặt ảnh này làm đại diện mặc định">
+                            <input type="checkbox" id="uploadDefaultSwitch" class="drink-default-switch-input" />
+                            <span class="drink-default-switch-custom">
+                                <i class="far fa-star"></i>
+                                <span>Đặt làm mặc định</span>
+                            </span>
+                        </label>
                     </div>
                 </div>
 

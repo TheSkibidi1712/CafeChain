@@ -520,37 +520,71 @@
     </div>
 </div>
 
-
+<!-- ================= PREMIUM PRICE MODAL ================= -->
 <div class="modal fade size-module-modal" id="priceModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content border-0 shadow">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content price-modal-card">
 
-            <div class="modal-header border-bottom">
-                <div class="d-flex align-items-center gap-2">
-                    <div class="size-modal-icon is-edit" style="width: 32px; height: 32px; flex: 0 0 32px; font-size: 14px;">
-                        <i class="fas fa-tag"></i>
+            <div class="modal-header price-modal-header border-0">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="price-modal-icon">
+                        <i class="fas fa-tags"></i>
                     </div>
-                    <h6 class="fw-bold mb-0 text-dark">Nhập giá bán</h6>
+                    <div>
+                        <h5 class="modal-title mb-0">Cấu hình Giá Bán Sản Phẩm</h5>
+                        <small class="text-white-50" style="font-size:12px;">
+                            Nhập đơn giá niêm yết (VNĐ)
+                        </small>
+                    </div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <div class="modal-body p-3">
-                <label for="priceInput" class="form-label small text-muted">Giá bán (VNĐ)</label>
-                <div class="input-group">
-                    <input type="number" id="priceInput" class="form-control" placeholder="Ví dụ: 35000" min="1000" step="1000" />
-                    <span class="input-group-text bg-light text-muted">đ</span>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label for="priceInput" class="form-label fw-bold text-dark">Giá bán sản phẩm <span class="text-danger">*</span></label>
+
+                    <div class="mb-3">
+                        <input type="number"
+                               id="priceInput"
+                               class="form-control"
+                               placeholder="VD: 35000"
+                               min="0"
+                               step="500"
+                               autocomplete="off" />
+                    </div>
+
+                    <!-- Quick price presets -->
+                    <div class="d-flex align-items-center gap-1.5 flex-wrap mt-2 mb-3">
+                        <span class="small text-muted me-1 fw-semibold" style="font-size:11px;">Gợi ý nhanh:</span>
+                        <button type="button" class="price-preset-chip" onclick="selectPresetPrice(25000)">25.000đ</button>
+                        <button type="button" class="price-preset-chip" onclick="selectPresetPrice(30000)">30.000đ</button>
+                        <button type="button" class="price-preset-chip" onclick="selectPresetPrice(35000)">35.000đ</button>
+                        <button type="button" class="price-preset-chip" onclick="selectPresetPrice(40000)">40.000đ</button>
+                        <button type="button" class="price-preset-chip" onclick="selectPresetPrice(45000)">45.000đ</button>
+                    </div>
+
+                    <!-- Dynamic preview badge -->
+                    <div class="price-preview-badge">
+                        <span class="small text-muted fw-semibold">Hiển thị niêm yết:</span>
+                        <span id="priceFormattedPreview" class="fw-bold text-primary fs-6">0 VNĐ</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="modal-footer border-top bg-light p-2">
-                <button type="button" class="btn btn-light btn-sm px-3" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-orange btn-sm px-3" onclick="confirmAssign()"><i class="fas fa-check me-1"></i>Xác nhận</button>
+            <div class="modal-footer border-top bg-light p-3">
+                <button type="button" class="btn btn-light px-3" data-bs-dismiss="modal">Hủy bỏ</button>
+                <button type="button" class="btn btn-orange px-4" onclick="confirmAssign()">
+                    <i class="fas fa-check-circle me-1"></i> Xác nhận Gán Giá
+                </button>
             </div>
 
         </div>
     </div>
 </div>
+
+
+
 
 @section Scripts {
     @{
