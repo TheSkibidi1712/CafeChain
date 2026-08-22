@@ -1,6 +1,7 @@
 using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Data;
+using CafeChain.Models.Enums.Inventory;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Application.Services.Inventories
@@ -87,9 +88,13 @@ namespace CafeChain.Application.Services.Inventories
                     BaseUnitId = inventory.PreparedItem?.BaseUnitId,
                     BaseUnitCode = inventory.PreparedItem?.BaseUnit?.UnitCode,
                     HasCompatibilityRecipe = hasRecipe,
-                    QuantitySemanticsStatus = hasRecipe
-                        ? QuantitySemanticsStatuses.Unknown
-                        : QuantitySemanticsStatuses.BaseUnitQuantityConfirmed,
+                    QuantitySemanticsStatus = inventory.QuantitySemanticsStatus switch
+                    {
+                        InventoryQuantitySemanticsStatus.BaseUnitConfirmed => QuantitySemanticsStatuses.BaseUnitQuantityConfirmed,
+                        InventoryQuantitySemanticsStatus.LegacyBatch => QuantitySemanticsStatuses.LegacyBatchQuantity,
+                        InventoryQuantitySemanticsStatus.Incompatible => QuantitySemanticsStatuses.UnitIncompatible,
+                        _ => hasRecipe ? QuantitySemanticsStatuses.Unknown : QuantitySemanticsStatuses.BaseUnitQuantityConfirmed
+                    },
                     ValidationIssues = issues.OrderBy(x => x, StringComparer.Ordinal).ToList()
                 };
             }

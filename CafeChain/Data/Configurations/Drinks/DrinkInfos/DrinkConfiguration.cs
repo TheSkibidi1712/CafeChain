@@ -107,30 +107,6 @@ namespace CafeChain.Data.Configurations.Drinks.DrinkInfos
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1),
                     CalculatedCogs = 0 // Giá vốn sẽ được tính tự động từ BOM, nên để 0 khi seed
-                },
-                new Drink
-                {
-                    DrinkId = 5,
-                    CategoryId = 3,
-                    DrinkCode = "STING",
-                    ProductTypeId = 2,
-                    Name = "Sting",
-                    Description = "Sting mát lạnh",
-                    Active = true,
-                    CreatedAt = new DateTime(2025, 1, 1),
-                    CalculatedCogs = 0 // Giá vốn sẽ được tính tự động từ BOM, nên để 0 khi seed
-                },
-                new Drink
-                {
-                    DrinkId = 6,
-                    CategoryId = 3,
-                    DrinkCode = "COCA",
-                    ProductTypeId = 2,
-                    Name = "Coca-cola",
-                    Description = "Coca-cola mát lạnh",
-                    Active = true,
-                    CreatedAt = new DateTime(2025, 1, 1),
-                    CalculatedCogs = 0 // Giá vốn sẽ được tính tự động từ BOM, nên để 0 khi seed
                 }
             );
         }

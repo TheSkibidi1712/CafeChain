@@ -751,6 +751,32 @@
             }
         }
 
+        let scheduleRefreshInFlight = null;
+
+        async function refreshScheduleRegion() {
+            if (scheduleRefreshInFlight) return scheduleRefreshInFlight;
+            const url = root.dataset.scheduleFragmentUrl;
+            const region = document.getElementById("staffHubScheduleRegion");
+            if (!url || !region) return;
+            const weekStart = region.dataset.weekStart || "";
+            const requestUrl = `${url}?date=${encodeURIComponent(weekStart)}`;
+            scheduleRefreshInFlight = fetch(requestUrl, {
+                credentials: "same-origin",
+                headers: { Accept: "text/html", "X-Requested-With": "XMLHttpRequest" }
+            }).then(response => {
+                if (!response.ok) throw new Error("Schedule refresh failed");
+                return response.text();
+            }).then(html => {
+                const template = document.createElement("template");
+                template.innerHTML = html.trim();
+                const updated = template.content.firstElementChild;
+                if (updated?.id === "staffHubScheduleRegion") region.replaceWith(updated);
+            }).catch(error => {
+                console.warn("[StaffHub schedule realtime] Refresh failed.", error);
+            }).finally(() => { scheduleRefreshInFlight = null; });
+            return scheduleRefreshInFlight;
+        }
+
         function initializeRealtime() {
             if (!window.signalR?.HubConnectionBuilder) return;
             realtimeConnection = new signalR.HubConnectionBuilder()
@@ -793,8 +819,15 @@
                 .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
                 .build();
             workShiftRealtimeConnection.on("LateOpenApprovalChanged", handleLateApprovalChanged);
+            workShiftRealtimeConnection.on("StaffScheduleChanged", event => {
+                const eventStaffId = Number(read(event, "staffId", "StaffId") || 0);
+                const currentStaffId = Number(root.dataset.staffId || 0);
+                if (eventStaffId && currentStaffId && eventStaffId !== currentStaffId) return;
+                void refreshScheduleRegion();
+            });
             workShiftRealtimeConnection.onreconnected(() => {
                 if (lateOpenApprovalPublicId) void refreshLateOpenApproval();
+                void refreshScheduleRegion();
             });
             workShiftRealtimeConnection.start().catch(error => {
                 console.warn("[StaffHub WorkShift realtime] Polling fallback remains active.", error);

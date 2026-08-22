@@ -16,5 +16,5 @@ public interface IAnomalyDetectionService
     Task AnalyzeStoreAsync(int storeId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<OperationalAnomalyDto>> GetOpenAsync(AdminActorContext actor, int storeId, CancellationToken cancellationToken = default);
     Task<AnomalyExplanationContextDto> GetExplanationContextAsync(AdminActorContext actor, int anomalyId, CancellationToken cancellationToken = default);
-    Task RecordFeedbackAsync(AdminActorContext actor, AnomalyFeedbackDto input, CancellationToken cancellationToken = default);
+    Task<AnomalyFeedbackResultDto> RecordFeedbackAsync(AdminActorContext actor, AnomalyFeedbackDto input, CancellationToken cancellationToken = default);
 }

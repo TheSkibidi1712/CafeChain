@@ -14,11 +14,13 @@ namespace CafeChain.Application.DTOs.Admin.Drinks
         [StringLength(200, ErrorMessage = "Tên không được vượt quá 200 ký tự")]
         public string Name { get; set; }
 
+        [Required(ErrorMessage = "Vui lòng chọn danh mục")]
         [Range(1, int.MaxValue, ErrorMessage = "Vui lòng chọn danh mục")]
-        public int CategoryId { get; set; }
+        public int? CategoryId { get; set; }
 
+        [Required(ErrorMessage = "Vui lòng chọn loại sản phẩm")]
         [Range(1, int.MaxValue, ErrorMessage = "Vui lòng chọn loại sản phẩm")]
-        public int ProductTypeId { get; set; }
+        public int? ProductTypeId { get; set; }
 
         [StringLength(1000, ErrorMessage = "Mô tả không được vượt quá 1000 ký tự")]
         public string Description { get; set; }

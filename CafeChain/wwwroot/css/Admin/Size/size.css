@@ -759,7 +759,138 @@
 .catalog-pagination a.active { border-color: var(--cc-brown-600, #70482f); background: var(--cc-brown-600, #70482f); color: #fff; }
 .catalog-pagination a.disabled { pointer-events: none; opacity: .5; }
 
-@media (max-width: 720px) {
-    .catalog-table-footer { align-items: stretch; flex-direction: column; }
-    .catalog-pagination { max-width: 100%; overflow-x: auto; padding-bottom: 4px; }
+
+/* ==========================================================================
+   PRICE MODAL PREMIUM STYLING
+   ========================================================================== */
+#priceModal .modal-dialog {
+    max-width: 440px !important;
 }
+
+.price-modal-card {
+    border-radius: var(--cc-radius-modal, 18px) !important;
+    border: 1px solid var(--cc-border-strong, #d8c5b6) !important;
+    box-shadow: 0 20px 50px rgba(32, 24, 18, 0.18) !important;
+    background: #ffffff !important;
+    overflow: hidden;
+}
+
+.price-modal-header {
+    background: linear-gradient(135deg, #3d2418 0%, #70482f 100%) !important;
+    padding: 20px 24px !important;
+    color: #ffffff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.price-modal-header .modal-title {
+    color: #ffffff !important;
+    font-size: 17px;
+    font-weight: 750;
+    letter-spacing: -0.01em;
+}
+
+.price-modal-header .price-modal-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--cc-radius-md, 12px);
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffd700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+
+.price-modal-header .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+    opacity: 0.8;
+}
+
+.price-modal-header .btn-close:hover {
+    opacity: 1;
+}
+
+.cc-price-input-group {
+    border-radius: var(--cc-radius-control, 10px) !important;
+    overflow: hidden !important;
+}
+
+.size-module-modal .cc-price-input-group .form-control {
+    border: 1.5px solid var(--cc-border-strong, #d8c5b6) !important;
+    border-right: none !important;
+    border-top-left-radius: var(--cc-radius-control, 10px) !important;
+    border-bottom-left-radius: var(--cc-radius-control, 10px) !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: #3d2418 !important;
+    background-color: #ffffff !important;
+    padding-left: 16px !important;
+    box-shadow: none !important;
+}
+
+.size-module-modal .cc-price-input-group .form-control:focus {
+    border-color: var(--cc-brown-600, #70482f) !important;
+    box-shadow: 0 0 0 3px rgba(112, 72, 47, 0.18) !important;
+}
+
+.size-module-modal .cc-price-input-group .cc-price-addon {
+    background: linear-gradient(135deg, #70482f, #3d2418) !important;
+    color: #ffffff !important;
+    border: 1.5px solid #70482f !important;
+    border-top-right-radius: var(--cc-radius-control, 10px) !important;
+    border-bottom-right-radius: var(--cc-radius-control, 10px) !important;
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    font-weight: 800 !important;
+    font-size: 14px !important;
+    letter-spacing: 0.05em;
+    padding: 0 20px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.price-preset-chip {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    background: var(--cc-surface-muted, #fbf7f2);
+    color: var(--cc-brown-700, #5c3b27);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.price-preset-chip:hover {
+    background: var(--cc-brown-600, #70482f);
+    color: #ffffff;
+    border-color: var(--cc-brown-600, #70482f);
+    transform: translateY(-1px);
+}
+
+.price-preview-badge {
+    background: var(--cc-surface-active, #f4e9df);
+    border: 1px dashed var(--cc-border-strong, #d8c5b6);
+    border-radius: var(--cc-radius-control, 10px);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.price-sql-note {
+    font-size: 11.5px;
+    color: var(--cc-text-muted, #8c7b70);
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+

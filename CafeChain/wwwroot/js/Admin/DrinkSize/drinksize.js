@@ -158,29 +158,57 @@ function openDrinkModal(sizeId, sizeName) {
 }
 
 // =========================
-// OPEN PRICE MODAL
+// OPEN PRICE MODAL (PREMIUM)
 // =========================
-
 function openPriceModal(drinkId) {
     selectedDrinkId = drinkId;
-
-    document.getElementById("priceInput").value = "";
+    const input = document.getElementById("priceInput");
+    if (input) {
+        input.value = "";
+        updatePricePreview(0);
+    }
 
     if (!priceModalInstance) {
         priceModalInstance = bootstrap.Modal.getOrCreateInstance(document.getElementById('priceModal'));
     }
 
     priceModalInstance.show();
+    setTimeout(() => input?.focus(), 300);
 }
+
+function selectPresetPrice(val) {
+    const input = document.getElementById("priceInput");
+    if (input) {
+        input.value = val;
+        updatePricePreview(val);
+    }
+}
+
+function updatePricePreview(val) {
+    const preview = document.getElementById("priceFormattedPreview");
+    if (!preview) return;
+    const num = Number(val || 0);
+    preview.innerText = num.toLocaleString('vi-VN') + " VNĐ";
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    const input = document.getElementById("priceInput");
+    if (input) {
+        input.addEventListener("input", function () {
+            updatePricePreview(this.value);
+        });
+    }
+});
 
 // =========================
 // CONFIRM ASSIGN
 // =========================
 function confirmAssign() {
-    let price = document.getElementById("priceInput").value;
+    const priceVal = document.getElementById("priceInput")?.value;
+    const price = Number(priceVal);
 
-    if (!price || price <= 0) {
-        toast("Giá không hợp lệ", "warning");
+    if (isNaN(price) || price < 0 || priceVal === "") {
+        toast("Vui lòng nhập giá bán hợp lệ (VNĐ)", "warning");
         return;
     }
 
@@ -199,14 +227,13 @@ function confirmAssign() {
             }
         })
         .then(() => {
-            priceModalInstance.hide();
-            toast("Gán thành công", "success");
-
+            priceModalInstance?.hide();
+            toast("Gán sản phẩm và thiết lập giá bán thành công!", "success");
             return fetch(`/Admin/AdminSize/GetDrinks?sizeId=${currentSizeId}`);
         })
         .then(res => res.json())
         .then(data => renderDrinkUI(data))
-        .catch(err => toast(err.message || "Lỗi khi gán", "error"));
+        .catch(err => toast(err.message || "Lỗi khi gán giá bán", "error"));
 }
 // =========================
 // EDIT PRICE INLINE

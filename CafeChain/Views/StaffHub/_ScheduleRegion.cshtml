@@ -1,0 +1,42 @@
+@model CafeChain.ViewModels.StaffHub.StaffHubScheduleVM
+@using System.Globalization
+@{
+    var days = Enumerable.Range(0, 7).Select(i => Model.WeekStart.AddDays(i)).ToList();
+    var activeSchedules = Model.Schedules.Where(x => x.StatusCode != "CANCELLED").ToList();
+    var workingDayCount = activeSchedules.Select(x => x.WorkDate.Date).Distinct().Count();
+    var cancelledScheduleCount = Model.Schedules.Count(x => x.StatusCode == "CANCELLED");
+}
+<div id="staffHubScheduleRegion" data-week-start="@Model.WeekStart.ToString("yyyy-MM-dd")">
+    <section class="staffhub-summary" aria-label="Tổng quan lịch làm việc">
+        <div class="staffhub-summary-card"><span class="staffhub-summary-icon"><i class="bi bi-calendar2-check"></i></span><span><strong>@activeSchedules.Count</strong><small>Ca được xếp</small></span></div>
+        <div class="staffhub-summary-card"><span class="staffhub-summary-icon is-days"><i class="bi bi-calendar-week"></i></span><span><strong>@workingDayCount</strong><small>Ngày có lịch</small></span></div>
+        <div class="staffhub-summary-card"><span class="staffhub-summary-icon is-cancelled"><i class="bi bi-calendar2-x"></i></span><span><strong>@cancelledScheduleCount</strong><small>Ca đã hủy</small></span></div>
+    </section>
+
+    <section class="staffhub-schedule-panel">
+        <header class="staffhub-schedule-header">
+            <div class="staffhub-section-heading"><span class="staffhub-section-icon"><i class="bi bi-calendar3"></i></span><div><span>Lịch cá nhân</span><h2>@Model.WeekStart.ToString("dd/MM") – @Model.WeekStart.AddDays(6).ToString("dd/MM/yyyy")</h2></div></div>
+            <nav class="staffhub-week-nav" aria-label="Điều hướng tuần">
+                <a href="?date=@Model.WeekStart.AddDays(-7).ToString("yyyy-MM-dd")" aria-label="Xem tuần trước"><i class="bi bi-chevron-left" aria-hidden="true"></i><span>Tuần trước</span></a>
+                <a href="?date=@Model.WeekStart.AddDays(7).ToString("yyyy-MM-dd")" aria-label="Xem tuần sau"><span>Tuần sau</span><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+            </nav>
+        </header>
+        <div class="staffhub-calendar-grid">
+        @foreach (var day in days)
+        {
+            var schedules = Model.Schedules.Where(x => x.WorkDate.Date == day.Date).ToList();
+            var isToday = day.Date == DateTime.Today;
+            <article class="schedule-day @(isToday ? "today" : "")">
+                <header class="schedule-day-header"><div><span class="schedule-weekday">@day.ToString("dddd", new CultureInfo("vi-VN"))</span><time datetime="@day.ToString("yyyy-MM-dd")" @(isToday ? "aria-current=date" : "")>@day.ToString("dd/MM/yyyy")</time></div>@if (isToday) { <span class="schedule-today-badge">Hôm nay</span> }</header>
+                <div class="schedule-day-body">
+                @foreach (var item in schedules)
+                {
+                    <div class="schedule-item @(item.StatusCode == "CANCELLED" ? "cancelled" : "")"><div class="schedule-item-top"><strong>@item.ShiftName</strong>@if (item.StatusCode == "CANCELLED") { <span class="schedule-cancelled-badge">Đã hủy</span> }</div><div class="schedule-time"><i class="bi bi-clock" aria-hidden="true"></i><span>@item.PlannedStartLocal.ToString("HH:mm") – @item.PlannedEndLocal.ToString("HH:mm")</span>@if (item.IsOvernight) { <span class="schedule-overnight-badge">Qua đêm · +1 ngày</span> }</div></div>
+                }
+                @if (!schedules.Any()) { <div class="schedule-empty"><span class="schedule-empty-icon"><i class="bi bi-cup-hot" aria-hidden="true"></i></span><strong>Chưa có lịch</strong><small>Thời gian nghỉ hoặc chưa được phân ca.</small></div> }
+                </div>
+            </article>
+        }
+        </div>
+    </section>
+</div>

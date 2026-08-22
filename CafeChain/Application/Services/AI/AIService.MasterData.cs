@@ -19,9 +19,6 @@ public sealed partial class AIService
         ("Cà phê đen đá", "COFFEE", "HANDCRAFTED", "Cà phê đen đá nguyên bản với hương vị mạnh mẽ."),
         ("Trà sữa trân châu", "TRASUA", "HANDCRAFTED", "Trà sữa thơm dịu, vị béo nhẹ và phù hợp dùng lạnh."),
         ("Trà sữa đường đen", "TRASUA", "HANDCRAFTED", "Trà sữa đường đen thơm caramel, vị ngọt hài hòa."),
-        ("Trà đào cam sả", "NUOCNGOT", "HANDCRAFTED", "Trà đào cam sả thanh mát, phù hợp dùng lạnh."),
-        ("Nước cam chai 300ml", "NUOCNGOT", "RETAIL", "Nước cam đóng chai dung tích 300ml, tiện lợi để mang theo."),
-        ("Trà chanh chai 300ml", "NUOCNGOT", "RETAIL", "Trà chanh đóng chai vị thanh nhẹ, dùng ngon khi uống lạnh."),
         ("Cà phê sữa chai 250ml", "COFFEE", "RETAIL", "Cà phê sữa đóng chai dung tích 250ml, tiện lợi và đậm vị.")
     ];
 
@@ -519,7 +516,7 @@ public sealed partial class AIService
         var key = AISuggestionUniquenessPolicy.NormalizeTextKey(name);
         var desiredCode = key.Contains("CAPHE") || key.Contains("BACXIU") ? "COFFEE"
             : key.Contains("TRASUA") ? "TRASUA"
-            : "NUOCNGOT";
+            : "COFFEE";
         return FindCategory(values, desiredCode);
     }
 

@@ -84,7 +84,7 @@ namespace CafeChain.Application.Services.Admin.Drinks
             var name = Normalize(dto.Name);
             var description = Normalize(dto.Description);
 
-            ValidateDrinkCore(drinkCode, name, dto.CategoryId, dto.ProductTypeId);
+            ValidateDrinkCore(drinkCode, name, dto.CategoryId ?? 0, dto.ProductTypeId ?? 0);
 
             if (await _drinkRepository.IsDrinkCodeExistsAsync(drinkCode))
             {
@@ -101,7 +101,7 @@ namespace CafeChain.Application.Services.Admin.Drinks
                 DrinkCode = drinkCode,
                 Name = name,
                 CategoryId = dto.CategoryId,
-                ProductTypeId = dto.ProductTypeId,
+                ProductTypeId = dto.ProductTypeId ?? 0,
                 Description = description,
                 Active = true,
                 CreatedAt = DateTime.Now
@@ -173,7 +173,7 @@ namespace CafeChain.Application.Services.Admin.Drinks
             var name = Normalize(updateDTO.Name);
             var description = Normalize(updateDTO.Description);
 
-            ValidateDrinkCore(drinkCode, name, updateDTO.CategoryId, updateDTO.ProductTypeId);
+            ValidateDrinkCore(drinkCode, name, updateDTO.CategoryId ?? 0, updateDTO.ProductTypeId ?? 0);
 
             if (await _drinkRepository.IsDrinkCodeExistsAsync(drinkCode, updateDTO.DrinkId))
             {
@@ -190,8 +190,8 @@ namespace CafeChain.Application.Services.Admin.Drinks
 
             drink.DrinkCode = drinkCode;
             drink.Name = name;
-            drink.CategoryId = updateDTO.CategoryId == 0 ? null : updateDTO.CategoryId;
-            drink.ProductTypeId = updateDTO.ProductTypeId;
+            drink.CategoryId = updateDTO.CategoryId == 0 || updateDTO.CategoryId == null ? null : updateDTO.CategoryId;
+            drink.ProductTypeId = updateDTO.ProductTypeId ?? 0;
             drink.Description = description;
             await _drinkRepository.UpdateDrinkAsync(drink);
 
