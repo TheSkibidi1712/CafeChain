@@ -240,6 +240,11 @@
                 layers: [googleStreets] // Mặc định mở bản đồ 2D của Google
             });
 
+            // Sửa lỗi bản đồ bị xám xịt và chỉ hiển thị một góc nhỏ do Leaflet khởi tạo trước khi layout trình duyệt vẽ xong
+            setTimeout(function() {
+                map.invalidateSize();
+            }, 300);
+
             var baseMaps = {
                 "🗺️ Bản đồ Đường xá (Google)": googleStreets,
                 "🌍 Ảnh vệ tinh (Google)": googleSat

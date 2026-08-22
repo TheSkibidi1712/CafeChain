@@ -1027,3 +1027,41 @@
 .supplier-page .supplier-form-section legend::after { display: block; width: 36px; height: 3px; margin-top: 7px; border-radius: 99px; background: var(--cc-caramel-500, #A97750); content: ""; }
 .supplier-page .supplier-form-section label > span { display: block; margin-bottom: 7px; color: var(--cc-text-secondary, #66584F); font-size: 12.5px; font-weight: 700; }
 .supplier-page .supplier-form-section textarea { line-height: 1.5; }
+
+/* Align Add Phone Form inputs and buttons to equal heights */
+#addPhoneForm {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    width: 100% !important;
+}
+
+#addPhoneForm #newPhone {
+    flex: 1 1 auto !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    box-sizing: border-box !important;
+    border-radius: 10px !important;
+}
+
+#addPhoneForm button {
+    flex: 0 0 auto !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 16px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    border-radius: 10px !important;
+}
+
+/* Fix Vietnamese text cut-off at the bottom of select elements */
+.supplier-page select,
+.supplier-modal select,
+.supplier-detail select {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    line-height: normal !important;
+}

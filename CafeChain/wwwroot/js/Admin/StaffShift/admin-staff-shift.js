@@ -169,6 +169,7 @@
         function clearDragState() {
             document.querySelectorAll(".drag-over").forEach(zone => zone.classList.remove("drag-over"));
             document.querySelectorAll(".is-dragging").forEach(item => item.classList.remove("is-dragging"));
+            document.body.classList.remove("is-dragging-template");
             draggedTemplate = null;
         }
 
@@ -235,6 +236,7 @@
                         name: template.dataset.templateName
                     };
                     template.classList.add("is-dragging");
+                    document.body.classList.add("is-dragging-template");
                     event.dataTransfer.effectAllowed = "copy";
                     event.dataTransfer.setData("application/x-cafechain-shift", JSON.stringify(draggedTemplate));
                     event.dataTransfer.setData("text/plain", draggedTemplate.shiftId);
@@ -243,6 +245,11 @@
             });
 
             root.querySelectorAll(".schedule-drop-zone").forEach(zone => {
+                zone.addEventListener("dragenter", event => {
+                    if (!draggedTemplate) return;
+                    event.preventDefault();
+                    zone.classList.add("drag-over");
+                });
                 zone.addEventListener("dragover", event => {
                     if (!draggedTemplate) return;
                     event.preventDefault();
@@ -250,7 +257,7 @@
                     zone.classList.add("drag-over");
                 });
                 zone.addEventListener("dragleave", event => {
-                    if (!zone.contains(event.relatedTarget)) zone.classList.remove("drag-over");
+                    zone.classList.remove("drag-over");
                 });
                 zone.addEventListener("drop", event => {
                     event.preventDefault();
