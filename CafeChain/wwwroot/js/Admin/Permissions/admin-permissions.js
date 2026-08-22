@@ -288,18 +288,50 @@
         container.innerHTML = "";
         if (!totalPages || totalPages <= 1) return;
 
-        const pages = new Set([1, totalPages, pageIndex, pageIndex - 1, pageIndex + 1]);
-        [...pages]
-            .filter(page => page >= 1 && page <= totalPages)
-            .sort((a, b) => a - b)
-            .forEach(page => {
-                const button = document.createElement("button");
-                button.type = "button";
-                button.className = `perm-page-button ${page === pageIndex ? "is-active" : ""}`;
-                button.textContent = page;
-                button.addEventListener("click", () => onChange(page));
-                container.appendChild(button);
-            });
+        // 1. Prev Arrow
+        const prevButton = document.createElement("button");
+        prevButton.type = "button";
+        prevButton.className = "perm-page-button prev-btn";
+        prevButton.innerHTML = '<i class="fas fa-chevron-left"></i>';
+        prevButton.disabled = pageIndex <= 1;
+        prevButton.addEventListener("click", () => {
+            if (pageIndex > 1) onChange(pageIndex - 1);
+        });
+        container.appendChild(prevButton);
+
+        // 2. Sliding window of 3 pages starting at current pageIndex
+        let startPage = pageIndex;
+        if (startPage + 2 > totalPages) {
+            startPage = Math.max(1, totalPages - 2);
+        }
+
+        const visiblePages = [];
+        for (let i = 0; i < 3; i++) {
+            const p = startPage + i;
+            if (p <= totalPages) {
+                visiblePages.push(p);
+            }
+        }
+
+        visiblePages.forEach(page => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = `perm-page-button ${page === pageIndex ? "is-active" : ""}`;
+            button.textContent = page;
+            button.addEventListener("click", () => onChange(page));
+            container.appendChild(button);
+        });
+
+        // 3. Next Arrow
+        const nextButton = document.createElement("button");
+        nextButton.type = "button";
+        nextButton.className = "perm-page-button next-btn";
+        nextButton.innerHTML = '<i class="fas fa-chevron-right"></i>';
+        nextButton.disabled = pageIndex >= totalPages;
+        nextButton.addEventListener("click", () => {
+            if (pageIndex < totalPages) onChange(pageIndex + 1);
+        });
+        container.appendChild(nextButton);
     }
 
     function roleNamesHtml(roleNames) {
