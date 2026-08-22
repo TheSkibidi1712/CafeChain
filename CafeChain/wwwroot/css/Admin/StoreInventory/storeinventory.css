@@ -5,52 +5,7 @@
     color: var(--cc-text, #201812);
 }
 
-.inventory-header {
-    position: relative;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-    margin-bottom: 24px;
-    padding: 26px 30px;
-    min-height: 140px;
-    overflow: hidden;
-    border: 1px solid var(--cc-border, #E9DED4);
-    border-radius: var(--cc-radius-header, 20px);
-    background:
-        radial-gradient(circle at 92% 4%, rgba(201, 158, 125, .16), transparent 260px),
-        linear-gradient(135deg, var(--cc-surface-raised, #FFFFFF) 0%, var(--cc-surface, #FFFDFB) 54%, var(--cc-brown-50, #FAF6F2) 100%);
-    box-shadow: var(--cc-shadow-md);
-}
 
-.inventory-header::before {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 5px;
-    border-top-left-radius: var(--cc-radius-header, 20px);
-    border-bottom-left-radius: var(--cc-radius-header, 20px);
-    background: linear-gradient(180deg, var(--cc-brown-600, #70482F), var(--cc-caramel-500, #A97750));
-    box-shadow: 3px 0 12px rgba(112, 72, 47, .18);
-    content: "";
-}
-
-.inventory-header h1,
-.inventory-header h2 {
-    margin: 0;
-    color: var(--cc-text, #201812);
-    font-size: clamp(1.6rem, 2.8vw, 2.2rem);
-    font-weight: 800;
-    letter-spacing: -.02em;
-}
-
-.inventory-subtitle {
-    margin: 6px 0 0;
-    color: var(--cc-text-secondary, #66584F);
-    font-size: 0.88rem;
-    line-height: 1.55;
-}
 
 .header-actions,
 .search-form,

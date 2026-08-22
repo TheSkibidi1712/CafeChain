@@ -12,7 +12,7 @@
 
 <main class="pa-page pa-batch-index-page cc-warehouse-page">
     <header class="pa-header cc-warehouse-header">
-        <div><div class="pa-eyebrow">Kho &amp; Cung ứng / Đơn đặt hàng gộp</div><h1>Đơn đặt hàng gộp</h1><p class="pa-subtitle">Theo dõi đơn tổng hợp gửi Nhà cung cấp và tiến độ giao về từng chi nhánh.</p></div>
+        <div><div class="pa-eyebrow">Kho &amp; Cung ứng / Đơn đặt hàng gộp</div><h1><i class="fa-solid fa-cubes me-2 text-warning" aria-hidden="true"></i>Đơn đặt hàng gộp</h1><p class="pa-subtitle">Theo dõi đơn tổng hợp gửi Nhà cung cấp và tiến độ giao về từng chi nhánh.</p></div>
         <a class="pa-action pa-action-primary" asp-controller="AdminPurchaseAdviceConsolidation" asp-action="Index"><i class="fas fa-layer-group"></i> Tổng hợp đề nghị mua</a>
     </header>
     @if (TempData["Error"] is string error) { <div class="pa-alert" role="alert">@error</div> }

@@ -25,12 +25,12 @@
 
 @section Styles {
     <style>
-        :root { --accent: #e8643c; --accent-light: #fff3ef; }
+        :root { --accent: var(--cc-primary, #70482f); --accent-light: var(--cc-brown-50, #faf6f2); }
 
         .profile-page { max-width: 900px; margin: 0 auto; }
 
         .profile-header {
-            background: linear-gradient(135deg, #e8643c 0%, #f59e0b 100%);
+            background: linear-gradient(135deg, var(--cc-primary, #70482f) 0%, var(--cc-primary-hover, #3d2418) 100%);
             border-radius: 16px;
             padding: 36px 32px;
             color: white;
@@ -38,7 +38,7 @@
             align-items: center;
             gap: 28px;
             margin-bottom: 24px;
-            box-shadow: 0 8px 32px rgba(232,100,60,0.2);
+            box-shadow: 0 8px 32px rgba(112, 72, 47, 0.2);
         }
         .profile-header .avatar-wrap {
             position: relative;
@@ -154,7 +154,7 @@
             cursor: pointer;
             transition: all 0.2s;
         }
-        .btn-accent:hover { background: #d4572f; color: white; }
+        .btn-accent:hover { background: var(--cc-primary-hover, #3d2418); color: white; }
 
         .btn-outline-accent {
             background: var(--accent-light);

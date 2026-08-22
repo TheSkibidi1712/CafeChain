@@ -636,12 +636,16 @@
                             : Model.RemainingToReceiveQuantity > 0))
                     {
                         <a class="ops-btn w-100 mb-3" asp-area="Admin" asp-controller="AdminInventoryTransfer" asp-action="Create" asp-route-restockRequestId="@Model.RestockRequestId" asp-route-toStoreId="@Model.StoreId"><i class="fa-solid fa-truck-ramp-box" aria-hidden="true"></i> Tạo điều chuyển phần còn lại</a>
-                        <form method="post" asp-action="CloseRemaining" asp-route-id="@Model.RestockRequestId">
+                        <form method="post" asp-action="CloseRemaining" asp-route-id="@Model.RestockRequestId" class="mt-3 pt-3 border-top">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
-                            <label class="ops-form-label" for="closeRemainingReason">Đóng phần còn lại</label>
-                            <textarea id="closeRemainingReason" name="reason" class="ops-textarea" required placeholder="Lý do không tiếp tục nhận phần còn lại..."></textarea>
-                            <button type="submit" class="ops-btn w-100 mt-2">Đóng phần còn lại</button>
+                            <div class="mb-3">
+                                <label class="ops-form-label fw-bold mb-2" for="closeRemainingReason" style="display: block; font-size: 13px !important; color: #5C3F2B !important; height: auto !important; line-height: 1.5 !important;">Lý do đóng phần còn lại</label>
+                                <textarea id="closeRemainingReason" name="reason" class="ops-textarea" required 
+                                          placeholder="Nhập lý do không tiếp tục nhận số lượng còn lại..." 
+                                          style="min-height: 80px !important; height: 80px !important; font-size: 13px !important; padding: 10px !important; width: 100% !important; border-radius: 8px !important; border: 1px solid #D8C5B6 !important; background-color: #FFFDFB !important; resize: none !important;"></textarea>
+                            </div>
+                            <button type="submit" class="ops-btn w-100" style="background-color: #C65A43 !important; color: white !important; font-weight: 700 !important; border: none !important; height: 40px !important; min-height: 40px !important; border-radius: 8px !important; display: flex !important; align-items: center !important; justify-content: center !important;">Đóng phần còn lại</button>
                         </form>
                     }
                     @if ((!canWarehouse || Model.Status is not ("SUBMITTED" or "PROCESSING" or "PARTIALLY_RECEIVED")) && !(canCancel && Model.Status is "DRAFT" or "SUBMITTED") && !(canSubmit && Model.Status == "DRAFT"))

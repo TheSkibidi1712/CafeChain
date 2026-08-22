@@ -42,9 +42,9 @@
                 <div class="row g-3">
                 <div class="col-md-6"><label asp-for="FullName" class="form-label">Họ và tên *</label><input asp-for="FullName" class="form-control" /><span asp-validation-for="FullName" class="text-danger"></span></div>
                 <div class="col-md-6"><label asp-for="Email" class="form-label">Email *</label><input asp-for="Email" class="form-control" /><span asp-validation-for="Email" class="text-danger"></span></div>
-                <div class="col-md-4"><label asp-for="CCCD" class="form-label">CCCD</label><input asp-for="CCCD" class="form-control" /></div>
+                <div class="col-md-4"><label asp-for="CCCD" class="form-label">CCCD *</label><input asp-for="CCCD" class="form-control" /></div>
                 <div class="col-md-4"><label asp-for="Gender" class="form-label">Giới tính</label><select asp-for="Gender" class="form-select"><option value="0">Nữ</option><option value="1">Nam</option><option value="2">Khác</option></select></div>
-                <div class="col-md-4"><label asp-for="DateOfBirth" class="form-label">Ngày sinh</label><input asp-for="DateOfBirth" type="date" class="form-control" /></div>
+                <div class="col-md-4"><label asp-for="DateOfBirth" class="form-label">Ngày sinh *</label><input asp-for="DateOfBirth" type="date" class="form-control" /></div>
                 <div class="col-md-4"><label asp-for="StartDate" class="form-label">Ngày bắt đầu</label><input asp-for="StartDate" type="date" class="form-control" /></div>
                 <div class="col-md-4"><label asp-for="EmployeeStatus" class="form-label">Trạng thái nhân sự</label><select asp-for="EmployeeStatus" class="form-select"><option value="1">Thử việc</option><option value="2">Chính thức</option><option value="3">Nghỉ việc</option></select></div>
                 <div class="col-md-4"><label class="form-label">Số điện thoại</label><input name="Phones[0]" value="@(Model.Phones.FirstOrDefault())" class="form-control" /></div>
@@ -148,6 +148,40 @@
         const wardVersion = ++wardRequestVersion;
         await load(ward, wardsEndpoint, 'provinceId', provinceId, '-- Chọn Xã/Phường/Đặc khu --', initialWard, () => wardVersion === wardRequestVersion && province.value === provinceId);
     })();
+
+    const editForm = document.getElementById('editStaffForm');
+    const editCccdField = document.getElementById('CCCD');
+    const editDobField = document.getElementById('DateOfBirth');
+
+    editCccdField?.addEventListener('input', e => e.target.setCustomValidity(''));
+    editDobField?.addEventListener('input', e => e.target.setCustomValidity(''));
+
+    editForm?.addEventListener('submit', e => {
+        if (editCccdField) {
+            const val = editCccdField.value.trim();
+            if (!val) {
+                editCccdField.setCustomValidity('Vui lòng nhập căn cước công dân.');
+            } else if (!/^\d{12}$/.test(val)) {
+                editCccdField.setCustomValidity('Căn cước công dân không hợp lệ (phải gồm đúng 12 chữ số).');
+            } else {
+                editCccdField.setCustomValidity('');
+            }
+        }
+
+        if (editDobField) {
+            const val = editDobField.value;
+            if (!val) {
+                editDobField.setCustomValidity('Vui lòng chọn ngày sinh.');
+            } else {
+                editDobField.setCustomValidity('');
+            }
+        }
+
+        if (!editForm.checkValidity()) {
+            e.preventDefault();
+            editForm.reportValidity();
+        }
+    });
 
 })();
 </script>

@@ -134,7 +134,9 @@
 }
 
 .perm-toolbar-compact {
-    padding: 14px;
+    padding: 22px 22px 10px 22px !important;
+    background: transparent !important;
+    border-bottom: none !important;
 }
 
 .perm-search {
@@ -647,7 +649,7 @@
     display: flex;
     justify-content: flex-end;
     gap: 6px;
-    padding: 16px 20px;
+    padding: 10px 22px 22px 22px !important;
 }
 
 .perm-page-button {
@@ -677,60 +679,79 @@
 
 .perm-split {
     display: grid;
-    grid-template-columns: minmax(320px, 380px) 1fr;
+    grid-template-columns: minmax(360px, 440px) 1fr;
     min-height: 560px;
 }
 
 .perm-side {
-    border-right: 1px solid #E9DED4;
-    background: #FBF7F2;
+    border-right: 1px solid #E9DED4 !important;
+    background: #F7F4F0 !important;
 }
 
 .perm-staff-list {
-    padding: 14px;
+    padding: 10px 22px !important;
 }
 
 .perm-staff-item {
-    width: 100%;
-    border: 1px solid #E9DED4;
-    background: #FFFDFB;
-    border-radius: var(--cc-radius-control, 10px);
-    padding: 14px;
-    text-align: left;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 8px;
-    transition: all 140ms ease;
+    width: 100% !important;
+    border: 1px solid var(--cc-border-strong, #d8c5b6) !important;
+    background: #ffffff !important;
+    border-radius: 14px !important;
+    min-height: 68px !important;
+    padding: 16px 22px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin-bottom: 14px !important;
+    box-shadow: 0 3px 8px rgba(32, 24, 18, 0.05) !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    text-align: left !important;
 }
 
 .perm-staff-copy {
-    display: grid;
-    gap: 4px;
-    min-width: 0;
-    flex: 1 1 auto;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    text-align: left !important;
+    gap: 5px !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 .perm-staff-item .perm-name,
 .perm-staff-item .perm-subtext {
-    display: block;
-    min-width: 0;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    display: block !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    text-align: left !important;
+    align-self: flex-start !important;
+    margin: 0 !important;
+    line-height: 1.25 !important;
+}
+
+.perm-staff-item .perm-name {
+    font-size: 15.5px !important;
+    font-weight: 800 !important;
+    color: var(--cc-brown-900, #3d2418) !important;
 }
 
 .perm-staff-item .perm-subtext {
-    margin-top: 0;
-    line-height: 1.35;
-    color: #66584F;
+    font-size: 13px !important;
+    color: var(--cc-text-muted, #8c7b70) !important;
 }
 
 .perm-staff-item > i {
-    flex: 0 0 auto;
-    color: #70482F;
+    flex: 0 0 auto !important;
+    color: var(--cc-primary, #70482f) !important;
+    margin-left: 14px !important;
+    font-size: 15px !important;
 }
 
 .perm-staff-item:hover,
@@ -1500,3 +1521,111 @@
 @media(prefers-reduced-motion:reduce){.perm-page *{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important;}}
 /* Fix contract: unified permission actions and matrix alignment. */
 .perm-page table th,.perm-page table td{vertical-align:middle;text-align:center}.perm-page .perm-primary-button{min-height:44px;border-color:var(--cc-brown-600,#70482F)!important;background:var(--cc-brown-600,#70482F)!important;color:#fff!important}.perm-page :is(.perm-outline-button,.perm-ghost-button){min-height:44px;border-color:var(--cc-border-strong,#D8C5B6);background:var(--cc-surface,#FFFDFB);color:var(--cc-brown-700,#3D2418)}.perm-page .perm-icon-button{width:40px;height:40px}
+
+/* Force left-alignment and comfortable spacing for staff card list in permission page */
+.perm-page .perm-side {
+    background: #F7F4F0 !important;
+}
+
+.perm-page .perm-toolbar-compact {
+    padding: 22px 22px 10px 22px !important;
+    background: transparent !important;
+    border-bottom: none !important;
+}
+
+.perm-page .perm-staff-list {
+    padding: 10px 22px !important;
+}
+
+.perm-page .perm-staff-item {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    min-height: 68px !important;
+    padding: 16px 22px !important;
+    margin-bottom: 14px !important;
+    border-radius: 14px !important;
+    border: 1px solid var(--cc-border-strong, #d8c5b6) !important;
+    background: #ffffff !important;
+    box-shadow: 0 3px 8px rgba(32, 24, 18, 0.05) !important;
+    text-align: left !important;
+}
+
+.perm-page .perm-staff-item:hover {
+    background: var(--cc-surface-active, #f4e9df) !important;
+    border-color: var(--cc-brown-500, #8b6247) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 18px rgba(112, 72, 47, 0.14) !important;
+}
+
+.perm-page .perm-staff-item.is-active {
+    background: var(--cc-warning-bg, #fcf4e8) !important;
+    border-color: var(--cc-brown-600, #70482f) !important;
+    box-shadow: 0 6px 18px rgba(112, 72, 47, 0.18) !important;
+    border-left: 6px solid var(--cc-brown-600, #70482f) !important;
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+}
+
+.perm-page .perm-staff-copy {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    text-align: left !important;
+    gap: 5px !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.perm-page .perm-staff-item .perm-name {
+    font-size: 15.5px !important;
+    font-weight: 800 !important;
+    color: var(--cc-brown-900, #3d2418) !important;
+    text-align: left !important;
+    align-self: flex-start !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    line-height: 1.25 !important;
+    margin: 0 !important;
+    display: block !important;
+}
+
+.perm-page .perm-staff-item .perm-subtext {
+    font-size: 13px !important;
+    color: var(--cc-text-muted, #8c7b70) !important;
+    text-align: left !important;
+    align-self: flex-start !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    line-height: 1.25 !important;
+    margin: 0 !important;
+    display: block !important;
+}
+
+.perm-page .perm-staff-item > i {
+    color: var(--cc-primary, #70482f) !important;
+    flex-shrink: 0 !important;
+    margin-left: 14px !important;
+    font-size: 15px !important;
+}
+
+.perm-page .perm-pagination {
+    padding: 10px 22px 22px 22px !important;
+}
+
+.perm-page-button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 0 !important;
+}

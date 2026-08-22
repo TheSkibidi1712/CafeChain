@@ -58,7 +58,7 @@
                                          <div class="col-md-6"><label asp-for="FullName" class="form-label">Họ và tên <span class="text-danger">*</span></label><input asp-for="FullName" class="form-control" placeholder="Nguyễn Văn A" /><span asp-validation-for="FullName" class="text-danger small"></span></div>
                                          <div class="col-md-6"><label asp-for="CCCD" class="form-label">Căn cước công dân <span class="text-danger">*</span></label><input asp-for="CCCD" class="form-control" inputmode="numeric" maxlength="12" placeholder="12 chữ số" /><span asp-validation-for="CCCD" class="text-danger small"></span></div>
                                         <div class="col-md-4"><label asp-for="Gender" class="form-label">Giới tính</label><select asp-for="Gender" class="form-select"><option value="0">Nữ</option><option value="1">Nam</option><option value="2">Khác</option></select></div>
-                                        <div class="col-md-4"><label asp-for="DateOfBirth" class="form-label">Ngày sinh</label><input asp-for="DateOfBirth" type="date" class="form-control" /></div>
+                                        <div class="col-md-4"><label asp-for="DateOfBirth" class="form-label">Ngày sinh <span class="text-danger">*</span></label><input asp-for="DateOfBirth" type="date" class="form-control" /></div>
                                         <div class="col-md-4"><label class="form-label" for="createPhone">Số điện thoại</label><input name="Phones[0]" id="createPhone" class="form-control" autocomplete="tel" placeholder="09xx xxx xxx" /></div>
                                     </div>
                                     <div class="section-title mt-4"><i class="fas fa-map-marker-alt me-1"></i> Địa chỉ thường trú</div>
@@ -111,7 +111,7 @@
                             <div class="row g-3">
                                 <div class="col-md-6"><label asp-for="Email" class="form-label">Email đăng nhập <span class="text-danger">*</span></label><input asp-for="Email" class="form-control" autocomplete="off" placeholder="staff@cafechain.vn" /><span asp-validation-for="Email" class="text-danger small"></span></div>
                                 <div class="col-md-6"><label asp-for="Password" class="form-label">Mật khẩu ban đầu <span class="text-danger">*</span></label><div class="input-group"><input asp-for="Password" id="createPassword" type="password" class="form-control" autocomplete="new-password" /><button type="button" class="btn btn-outline-secondary" id="toggleCreatePassword" aria-label="Hiện hoặc ẩn mật khẩu"><i class="fas fa-eye"></i></button></div><span asp-validation-for="Password" class="text-danger small"></span><small class="text-muted">Nhân viên có thể chủ động đổi mật khẩu sau khi đăng nhập.</small></div>
-                                <div class="col-md-4"><label asp-for="StartDate" class="form-label">Ngày bắt đầu</label><input asp-for="StartDate" type="date" class="form-control" /></div>
+                                <div class="col-md-4"><label asp-for="StartDate" class="form-label">Ngày bắt đầu <span class="text-danger">*</span></label><input asp-for="StartDate" type="date" class="form-control" /></div>
                                 <div class="col-md-4"><label asp-for="EmployeeStatus" class="form-label">Trạng thái nhân sự</label><select asp-for="EmployeeStatus" class="form-select"><option value="1">Thử việc</option><option value="2">Chính thức</option><option value="3">Đã nghỉ việc</option></select></div>
                             </div>
                         </div>
@@ -298,9 +298,121 @@
     removeAvatar?.addEventListener('click', () => { avatarInput.value = ''; avatarPreview.removeAttribute('src'); avatarPreview.style.display = 'none'; avatarPlaceholder.style.display = ''; removeAvatar.classList.add('d-none'); });
     document.getElementById('toggleCreatePassword')?.addEventListener('click', e => { const input = document.getElementById('createPassword'); input.type = input.type === 'password' ? 'text' : 'password'; e.currentTarget.querySelector('i').classList.toggle('fa-eye'); e.currentTarget.querySelector('i').classList.toggle('fa-eye-slash'); });
 
+    form.querySelectorAll('input, select, textarea').forEach(control => {
+        control.addEventListener('input', () => control.setCustomValidity(''));
+        control.addEventListener('change', () => control.setCustomValidity(''));
+    });
+
     form.addEventListener('submit', async e => {
         e.preventDefault();
         e.stopPropagation();
+
+        const nameInput = document.getElementById('FullName');
+        if (nameInput) {
+            if (!nameInput.value.trim()) {
+                nameInput.setCustomValidity('Vui lòng nhập họ và tên.');
+            } else {
+                nameInput.setCustomValidity('');
+            }
+        }
+
+        const cccdField = document.getElementById('CCCD');
+        if (cccdField) {
+            const val = cccdField.value.trim();
+            if (!val) {
+                cccdField.setCustomValidity('Vui lòng nhập căn cước công dân.');
+            } else if (!/^\d{12}$/.test(val)) {
+                cccdField.setCustomValidity('Căn cước công dân không hợp lệ (phải gồm đúng 12 chữ số).');
+            } else {
+                cccdField.setCustomValidity('');
+            }
+        }
+
+        const dobField = document.getElementById('DateOfBirth');
+        if (dobField) {
+            const val = dobField.value;
+            if (!val) {
+                dobField.setCustomValidity('Vui lòng chọn ngày sinh.');
+            } else {
+                dobField.setCustomValidity('');
+            }
+        }
+
+        const roleSelect = document.getElementById('createRole');
+        if (roleSelect) {
+            if (!roleSelect.value) {
+                roleSelect.setCustomValidity('Vui lòng chọn vai trò.');
+            } else {
+                roleSelect.setCustomValidity('');
+            }
+        }
+
+        const scopeTypeSelect = document.getElementById('createScopeType');
+        if (scopeTypeSelect && !scopeTypeSelect.disabled) {
+            if (!scopeTypeSelect.value) {
+                scopeTypeSelect.setCustomValidity('Vui lòng chọn loại phạm vi.');
+            } else {
+                scopeTypeSelect.setCustomValidity('');
+            }
+        } else if (scopeTypeSelect) {
+            scopeTypeSelect.setCustomValidity('');
+        }
+
+        const scopeRefSelect = document.getElementById('createScopeRef');
+        if (scopeRefSelect && !scopeRefSelect.disabled) {
+            if (!scopeRefSelect.value) {
+                scopeRefSelect.setCustomValidity('Vui lòng chọn phạm vi được cấp.');
+            } else {
+                scopeRefSelect.setCustomValidity('');
+            }
+        } else if (scopeRefSelect) {
+            scopeRefSelect.setCustomValidity('');
+        }
+
+        const storeSelect = document.getElementById('createStore');
+        if (storeSelect && !storeSelect.disabled) {
+            if (!storeSelect.value) {
+                storeSelect.setCustomValidity('Vui lòng chọn cửa hàng chính.');
+            } else {
+                storeSelect.setCustomValidity('');
+            }
+        } else if (storeSelect) {
+            storeSelect.setCustomValidity('');
+        }
+
+        const emailInput = document.getElementById('Email');
+        if (emailInput) {
+            const emailVal = emailInput.value.trim();
+            if (!emailVal) {
+                emailInput.setCustomValidity('Vui lòng nhập email đăng nhập.');
+            } else if (!/^[a-zA-Z0-9._%+-]+@@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(emailVal)) {
+                emailInput.setCustomValidity('Địa chỉ email không đúng định dạng (Ví dụ: example@domain.com).');
+            } else {
+                emailInput.setCustomValidity('');
+            }
+        }
+
+        const passwordInput = document.getElementById('createPassword');
+        if (passwordInput) {
+            const pwVal = passwordInput.value;
+            if (!pwVal) {
+                passwordInput.setCustomValidity('Vui lòng nhập mật khẩu ban đầu.');
+            } else if (pwVal.length < 6) {
+                passwordInput.setCustomValidity('Mật khẩu phải chứa ít nhất 6 ký tự.');
+            } else {
+                passwordInput.setCustomValidity('');
+            }
+        }
+
+        const startDateInput = document.querySelector('#create-account input[type="date"]');
+        if (startDateInput) {
+            if (!startDateInput.value) {
+                startDateInput.setCustomValidity('Vui lòng chọn ngày bắt đầu làm việc.');
+            } else {
+                startDateInput.setCustomValidity('');
+            }
+        }
+
         if (!form.checkValidity()) {
             form.classList.add('was-validated');
             const invalidFields = [...form.querySelectorAll(':invalid')];

@@ -89,6 +89,43 @@
         return /^\d{10}(-\d{3})?$/.test(compact) ? compact : undefined;
     }
 
+    function isValidEmail(email) {
+        if (!email) return true;
+        return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.trim());
+    }
+
+    function isValidPhone(phone) {
+        if (!phone) return true;
+        const clean = phone.replace(/[\s.\-\+()]/g, '');
+        return /^\d{8,11}$/.test(clean);
+    }
+
+    function validateEmailInput(input, labelName = 'Email') {
+        if (!input) return true;
+        const val = input.value.trim();
+        if (val && !isValidEmail(val)) {
+            input.setCustomValidity(`Địa chỉ ${labelName.toLowerCase()} không đúng định dạng (Ví dụ: example@domain.com).`);
+            return false;
+        }
+        input.setCustomValidity('');
+        return true;
+    }
+
+    function validatePhoneInput(input, isRequired = false, labelName = 'Số điện thoại') {
+        if (!input) return true;
+        const val = input.value.trim();
+        if (isRequired && !val) {
+            input.setCustomValidity(`Vui lòng nhập ${labelName.toLowerCase()}.`);
+            return false;
+        }
+        if (val && !isValidPhone(val)) {
+            input.setCustomValidity(`${labelName} không hợp lệ (yêu cầu từ 8 đến 11 chữ số).`);
+            return false;
+        }
+        input.setCustomValidity('');
+        return true;
+    }
+
     function setFieldError(input, error, message) {
         if (!input || !error) return;
         input.classList.toggle('is-invalid', Boolean(message));
@@ -360,8 +397,33 @@
         event.preventDefault();
         if (!canMutate) return;
         const form = event.currentTarget;
-        const taxCode = validateTaxCodeInput($('#overviewTaxCode'), $('#overviewTaxCodeError'));
-        if (taxCode === undefined) return;
+        const nameInput = $('#overviewName');
+        const taxCodeInput = $('#overviewTaxCode');
+
+        if (nameInput) {
+            if (!nameInput.value.trim()) {
+                nameInput.setCustomValidity('Vui lòng nhập tên nhà cung cấp.');
+            } else {
+                nameInput.setCustomValidity('');
+            }
+        }
+
+        const taxCode = validateTaxCodeInput(taxCodeInput, $('#overviewTaxCodeError'));
+        if (taxCode === undefined) {
+            if (taxCodeInput) {
+                taxCodeInput.setCustomValidity('Mã số thuế không đúng định dạng.');
+                form.reportValidity();
+            }
+            return;
+        } else if (taxCodeInput) {
+            taxCodeInput.setCustomValidity('');
+        }
+
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
         setBusy(form, true);
         try {
             await api('/Update', { method: 'POST', body: {
@@ -388,9 +450,14 @@
     $('#addPhoneForm')?.addEventListener('submit', async event => {
         event.preventDefault();
         const form = event.currentTarget;
+        const phoneInput = $('#newPhone');
+        if (!validatePhoneInput(phoneInput, true, 'Số điện thoại mới')) {
+            form.reportValidity();
+            return;
+        }
         setBusy(form, true);
         try {
-            await api('/AddPhone', { method: 'POST', body: { supplierId: state.supplierId, phoneNumber: $('#newPhone').value.trim() } });
+            await api('/AddPhone', { method: 'POST', body: { supplierId: state.supplierId, phoneNumber: phoneInput.value.trim() } });
             $('#newPhone').value = '';
             await refreshDetailData();
             toast('Đã thêm số điện thoại.');
@@ -429,12 +496,34 @@
     $('#contactForm')?.addEventListener('submit', async event => {
         event.preventDefault();
         const id = Number($('#contactId').value || 0);
+
+        const nameInput = $('#contactName');
+        if (nameInput) {
+            if (!nameInput.value.trim()) {
+                nameInput.setCustomValidity('Vui lòng nhập họ tên người liên hệ.');
+            } else {
+                nameInput.setCustomValidity('');
+            }
+        }
+
+        const emailInput = $('#contactEmail');
+        validateEmailInput(emailInput, 'Email người liên hệ');
+
+        const phoneInput = $('#contactPhone');
+        validatePhoneInput(phoneInput, false, 'Số điện thoại người liên hệ');
+
+        const form = event.currentTarget;
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
         const body = {
             supplierContactId: id || undefined,
             supplierId: state.supplierId,
             name: $('#contactName').value.trim(),
-            phone: $('#contactPhone').value.trim() || null,
-            email: $('#contactEmail').value.trim() || null,
+            phone: phoneInput.value.trim() || null,
+            email: emailInput.value.trim() || null,
             position: $('#contactPosition').value.trim() || null,
             active: true
         };
@@ -849,8 +938,51 @@
     });
 
     function buildCreateBody(confirmDuplicate) {
-        const taxCode = validateTaxCodeInput($('#createTaxCode'), $('#createTaxCodeError'));
-        if (taxCode === undefined) return null;
+        const form = $('#createSupplierForm');
+        if (!form) return null;
+
+        const nameInput = $('#createName');
+        if (nameInput) {
+            if (!nameInput.value.trim()) {
+                nameInput.setCustomValidity('Vui lòng nhập tên nhà cung cấp.');
+            } else {
+                nameInput.setCustomValidity('');
+            }
+        }
+
+        const taxCodeInput = $('#createTaxCode');
+        const taxCode = validateTaxCodeInput(taxCodeInput, $('#createTaxCodeError'));
+        if (taxCode === undefined) {
+            if (taxCodeInput) {
+                taxCodeInput.setCustomValidity('Mã số thuế không đúng định dạng.');
+            }
+        } else if (taxCodeInput) {
+            taxCodeInput.setCustomValidity('');
+        }
+
+        const phoneInput = $('#createPhone');
+        validatePhoneInput(phoneInput, true, 'Số điện thoại chính');
+
+        const contactNameInput = $('#createContactName');
+        if (contactNameInput) {
+            if (!contactNameInput.value.trim()) {
+                contactNameInput.setCustomValidity('Vui lòng nhập tên người liên hệ chính.');
+            } else {
+                contactNameInput.setCustomValidity('');
+            }
+        }
+
+        const contactPhoneInput = $('#createContactPhone');
+        validatePhoneInput(contactPhoneInput, false, 'Số điện thoại đầu mối');
+
+        const contactEmailInput = $('#createContactEmail');
+        validateEmailInput(contactEmailInput, 'Email đầu mối');
+
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return null;
+        }
+
         return {
             name: $('#createName').value.trim(),
             taxCode,
@@ -928,10 +1060,12 @@
         });
     }
 
-    $$('#createSupplierForm input, #createSupplierForm textarea').forEach(control => {
-        if (control.id === 'duplicateReason') return;
+    $$('input, textarea, select').forEach(control => {
         control.addEventListener('input', () => {
-            if (duplicatePanel && !duplicatePanel.classList.contains('is-hidden')) resetDuplicateWarning();
+            control.setCustomValidity('');
+            if (control.closest('#createSupplierForm') && control.id !== 'duplicateReason') {
+                if (duplicatePanel && !duplicatePanel.classList.contains('is-hidden')) resetDuplicateWarning();
+            }
         });
     });
 
