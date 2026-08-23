@@ -9,71 +9,91 @@
 }
 
 <div class="store-admin-page store-admin-form-page">
-<div class="store-admin-header">
-    <div>
-        <span class="store-admin-kicker">Quản lý cửa hàng</span>
-        <h1 class="store-admin-title">Cập nhật cửa hàng</h1>
-        <p class="store-admin-subtitle">Chỉnh sửa thông tin chi nhánh và cập nhật vị trí GPS trên bản đồ.</p>
+    <div class="store-admin-header">
+        <div>
+            <span class="store-admin-kicker">Quản lý cửa hàng</span>
+            <h1 class="store-admin-title">Cập nhật cửa hàng</h1>
+            <p class="store-admin-subtitle">Chỉnh sửa thông tin chi nhánh và cập nhật vị trí GPS trên bản đồ.</p>
+        </div>
+        <a asp-action="Index" class="store-admin-btn store-admin-btn-ghost"><i class="fas fa-arrow-left"></i> Quay lại
+            danh sách</a>
     </div>
-    <a asp-action="Index" class="store-admin-btn store-admin-btn-ghost"><i class="fas fa-arrow-left"></i> Quay lại danh sách</a>
-</div>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<style>
-    #admin-map {
-        height: 480px;
-        width: 100%;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-    }
-    /* Google-style Floating Action Button */
-    .leaflet-control-locate {
-        background: #fff;
-        border: none;
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        cursor: pointer;
-        box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-    }
-    .leaflet-control-locate:hover {
-        background: #f4f4f4;
-    }
-    .leaflet-control-locate i {
-        font-size: 1.3rem; 
-        color: #f97316;
-    }
-    /* Red Dot Pulse Animation */
-    .user-location-dot {
-        width: 14px;
-        height: 14px;
-        background-color: #ff4d4d;
-        border: 2px solid #fff;
-        border-radius: 50%;
-        box-shadow: 0 0 5px rgba(0,0,0,0.3);
-    }
-    .user-location-dot::after {
-        content: "";
-        position: absolute;
-        top: -10px; left: -10px; right: -10px; bottom: -10px;
-        border: 4px solid #ff4d4d;
-        border-radius: 50%;
-        animation: pulse 1.8s infinite;
-        opacity: 0;
-    }
-    @@keyframes pulse {
-        0% { transform: scale(0.5); opacity: 0; }
-        50% { opacity: 0.4; }
-        100% { transform: scale(1.5); opacity: 0; }
-    }
-</style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        #admin-map {
+            height: 480px;
+            width: 100%;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
 
-<div class="store-admin-form-grid">
+        /* Google-style Floating Action Button */
+        .leaflet-control-locate {
+            background: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .leaflet-control-locate:hover {
+            background: #f4f4f4;
+        }
+
+        .leaflet-control-locate i {
+            font-size: 1.3rem;
+            color: #f97316;
+        }
+
+        /* Red Dot Pulse Animation */
+        .user-location-dot {
+            width: 14px;
+            height: 14px;
+            background-color: #ff4d4d;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .user-location-dot::after {
+            content: "";
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            border: 4px solid #ff4d4d;
+            border-radius: 50%;
+            animation: pulse 1.8s infinite;
+            opacity: 0;
+        }
+
+        @@keyframes pulse {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+    </style>
+
+    <div class="store-admin-form-grid">
         <form asp-action="Edit" class="store-admin-card store-admin-form-card">
             <input type="hidden" asp-for="StoreId" />
             <input type="hidden" id="Latitude" name="Latitude" value="@Model.Latitude" />
@@ -84,11 +104,12 @@
                 <input asp-for="Name" class="form-control" />
                 <span asp-validation-for="Name" class="text-danger"></span>
             </div>
-            
+
             <div class="row mb-3">
                 <div class="col-6">
                     <label asp-for="ProvinceId">Tỉnh/TP</label>
-                    <select asp-for="ProvinceId" id="ProvinceId" class="form-control" asp-items="ViewBag.Provinces" required>
+                    <select asp-for="ProvinceId" id="ProvinceId" class="form-control" asp-items="ViewBag.Provinces"
+                        required>
                         <option value="">-- Tỉnh/TP --</option>
                     </select>
                 </div>
@@ -114,11 +135,13 @@
             <div class="row mb-3">
                 <div class="col-6">
                     <label title="Latitude">Vĩ độ</label>
-                    <input id="DisplayLatitude" value="@Model.Latitude" class="form-control store-admin-readonly-control" readonly />
+                    <input id="DisplayLatitude" value="@Model.Latitude"
+                        class="form-control store-admin-readonly-control" readonly />
                 </div>
                 <div class="col-6">
                     <label title="Longitude">Kinh độ</label>
-                    <input id="DisplayLongitude" value="@Model.Longitude" class="form-control store-admin-readonly-control" readonly />
+                    <input id="DisplayLongitude" value="@Model.Longitude"
+                        class="form-control store-admin-readonly-control" readonly />
                 </div>
                 <div class="col-12">
                     <small class="store-admin-readonly-help">
@@ -142,15 +165,15 @@
                 <a asp-action="Index" class="store-admin-btn store-admin-btn-ghost">Quay lại</a>
             </div>
         </form>
-    
-    <section class="store-admin-card store-admin-map-card">
-        <h5><i class="fas fa-map-location-dot text-warning"></i> Bản đồ cửa hàng</h5>
-        <div class="store-admin-map-hint">
-            Click hoặc kéo ghim trên bản đồ để chọn tọa độ chính xác.
-        </div>
-        <div id="admin-map"></div>
-    </section>
-</div>
+
+        <section class="store-admin-card store-admin-map-card">
+            <h5><i class="fas fa-map-location-dot text-warning"></i> Bản đồ cửa hàng</h5>
+            <div class="store-admin-map-hint">
+                Click hoặc kéo ghim trên bản đồ để chọn tọa độ chính xác.
+            </div>
+            <div id="admin-map"></div>
+        </section>
+    </div>
 </div>
 
 <!-- Truyền sẵn Model values vào JS để load default dropdowns -->
@@ -158,9 +181,24 @@
 <input type="hidden" id="SelectedWardId" value="@Model.WardId" />
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
+            // Helper để hiển thị thông báo SweetAlert2 đồng bộ với dự án
+            function showSwal(title, text, icon = 'info') {
+                Swal.fire({
+                    title: title,
+                    text: text,
+                    icon: icon,
+                    confirmButtonText: 'Đồng ý',
+                    confirmButtonColor: '#70482F', // Màu nâu thương hiệu của CafeChain
+                    background: '#FFFDFB',
+                    customClass: {
+                        popup: 'rounded-4 shadow-sm border'
+                    }
+                });
+            }
             var selectedProvince = $('#SelectedProvinceId').val();
             var selectedWard = $('#SelectedWardId').val();
 
@@ -180,13 +218,13 @@
                 var cleanedTarget = cleanVNName(targetName);
                 var foundId = null;
 
-                $select.find('option').each(function() {
+                $select.find('option').each(function () {
                     var optionText = $(this).text();
                     var cleanedOption = cleanVNName(optionText);
-                    
+
                     if (cleanedOption.includes(cleanedTarget) || cleanedTarget.includes(cleanedOption)) {
                         foundId = $(this).val();
-                        return false; 
+                        return false;
                     }
                 });
 
@@ -204,8 +242,8 @@
                 var $ward = $('#WardId');
                 $ward.empty().append('<option value="">-- Phường/Xã --</option>').prop('disabled', false);
 
-                $.get('/Customer/GetWards', { provinceId: provinceId }, function(data) {
-                    $.each(data, function(index, item) {
+                $.get('/Customer/GetWards', { provinceId: provinceId }, function (data) {
+                    $.each(data, function (index, item) {
                         var option = $('<option/>', { value: item.code, text: item.name });
                         if (wardIdToSelect && item.code == wardIdToSelect) option.prop('selected', true);
                         $ward.append(option);
@@ -221,7 +259,7 @@
             }
 
             // Events cho Admin thao tác tay
-            $('#ProvinceId').change(function() {
+            $('#ProvinceId').change(function () {
                 var pId = $(this).val();
                 if (pId && !window._isMapAutoLoading) {
                     apiLoadWards(pId, null);
@@ -235,7 +273,7 @@
             // ==========================================
             var currentLat = $('#Latitude').val();
             var currentLng = $('#Longitude').val();
-            
+
             var lat = (currentLat && parseFloat(currentLat) != 0) ? parseFloat(currentLat) : 10.8231;
             var lng = (currentLng && parseFloat(currentLng) != 0) ? parseFloat(currentLng) : 106.6297;
 
@@ -256,10 +294,15 @@
                 layers: [googleStreets] // Mặc định mở bản đồ 2D của Google
             });
 
-            // Sửa lỗi bản đồ bị xám xịt và chỉ hiển thị một góc nhỏ do Leaflet khởi tạo trước khi layout trình duyệt vẽ xong
-            setTimeout(function() {
-                map.invalidateSize();
-            }, 300);
+            // Sửa lỗi bản đồ bị xám xịt/hiển thị một góc do Leaflet khởi tạo trước khi CSS/Layout hoàn tất
+            setTimeout(function() { map.invalidateSize(); }, 100);
+            setTimeout(function() { map.invalidateSize(); }, 300);
+            setTimeout(function() { map.invalidateSize(); }, 600);
+            setTimeout(function() { map.invalidateSize(); }, 1200);
+            
+            window.addEventListener('load', function() {
+                setTimeout(function() { map.invalidateSize(); }, 200);
+            });
 
             var baseMaps = {
                 "🗺️ Bản đồ Đường xá (Google)": googleStreets,
@@ -268,10 +311,10 @@
             L.control.layers(baseMaps).addTo(map);
 
             var cafeIcon = L.icon({
-                iconUrl: 'https://cdn-icons-png.flaticon.com/512/5695/5695648.png',
-                iconSize: [45, 45],
-                iconAnchor: [22, 45],
-                popupAnchor: [0, -45]
+                iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzODQgNTEyIj48cGF0aCBmaWxsPSIjNzA0ODJGIiBkPSJNMTcyLjI2OCA1MDEuNjdDMjYuOTcgMjkxLjAzMSAwIDI2OS40MTMgMCAxOTIgMCA4NS45NjEgODUuOTYxIDAgMTkyIDBzMTkyIDg1Ljk2MSAxOTIgMTkyYzAgNzcuNDEzLTI2Ljk3IDk5LjAzMS0xNzIuMjY4IDMwOS42Ny05LjUzNSAxMy43NzQtMjkuOTMgMTMuNzczLTM5LjQ2NCAweiIvPjxjaXJjbGUgY3g9IjE5MiIgY3k9IjE5MiIgcj0iNzUiIGZpbGw9IiNGRkYiLz48cGF0aCBmaWxsPSIjQTk3NzUwIiBkPSJNMTQwIDEzOGg4OGMxMCAwIDE4IDggMTggMTh2MzJjMCAyNC0yMCA0NC00NCA0NGgtMThjLTI0IDAtNDQtMjAtNDQtNDR2LTMyYzAtMTAgOC0xOCAxOC0xOHptMTA2IDE4aC0xMnYyNmgxMmM2IDAgMTEtNSAxMS0xMXMtNS0xMS0xMS0xMXptLTExOCA3OGgxMTJ2MTBjMCA2LTUgMTEtMTEgMTFoLTkwYy02IDAtMTEtNS0xMS0xMXYtMTB6Ii8+PC9zdmc+',
+                iconSize: [58, 58],
+                iconAnchor: [29, 58],
+                popupAnchor: [0, -58]
             });
 
             var marker = L.marker([lat, lng], { icon: cafeIcon, draggable: true }).addTo(map);
@@ -282,26 +325,26 @@
             var userLocationMarker = null;
 
             L.Control.Locate = L.Control.extend({
-                onAdd: function(map) {
+                onAdd: function (map) {
                     var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
                     var button = L.DomUtil.create('a', 'leaflet-control-locate', container);
                     button.innerHTML = '<i class="bi bi-crosshair"></i>';
                     button.title = "Định vị vị trí của tôi";
 
-                    L.DomEvent.on(button, 'click', function(e) {
+                    L.DomEvent.on(button, 'click', function (e) {
                         L.DomEvent.stopPropagation(e);
                         L.DomEvent.preventDefault(e);
                         if (button.dataset.locating === 'true') return;
-                        
+
                         if (!navigator.geolocation) {
-                            alert("Trình duyệt không hỗ trợ định vị.");
+                            showSwal("Lỗi định vị", "Trình duyệt của bạn không hỗ trợ định vị GPS.", "error");
                             return;
                         }
 
                         button.dataset.locating = 'true';
                         $(button).attr('aria-busy', 'true').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
-                        
-                        navigator.geolocation.getCurrentPosition(function(pos) {
+
+                        navigator.geolocation.getCurrentPosition(function (pos) {
                             var lt = pos.coords.latitude;
                             var lg = pos.coords.longitude;
 
@@ -309,7 +352,7 @@
                             marker.setLatLng([lt, lg]);
                             $('#Latitude').val(lt); $('#Longitude').val(lg);
                             $('#DisplayLatitude').val(lt.toFixed(6)); $('#DisplayLongitude').val(lg.toFixed(6));
-                            
+
                             // Cắm 'Red Dot' chuẩn Google
                             var redDotIcon = L.divIcon({
                                 className: 'user-location-dot-container',
@@ -324,12 +367,12 @@
                                 userLocationMarker = L.marker([lt, lg], { icon: redDotIcon }).addTo(map);
                             }
 
-                            performReverseGeocoding(lt, lg, function() {
+                            performReverseGeocoding(lt, lg, function () {
                                 button.dataset.locating = 'false';
                                 $(button).removeAttr('aria-busy').html('<i class="bi bi-crosshair"></i>');
                             });
-                        }, function() {
-                            alert("⚠️ Bạn chưa cấp quyền vị trí cho trình duyệt. Vui lòng bật trong cài đặt!");
+                        }, function () {
+                            showSwal("Quyền vị trí", "Bạn chưa cấp quyền truy cập vị trí cho trình duyệt. Vui lòng bật trong cài đặt!", "warning");
                             $(button).html('<i class="bi bi-crosshair"></i>');
                             button.dataset.locating = 'false';
                             $(button).removeAttr('aria-busy');
@@ -348,19 +391,23 @@
                 var url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}&language=vi&limit=1`;
 
                 $('#Address').val('... Đang quét vị trí ...').addClass('text-info');
-                window._isMapAutoLoading = true; 
+                window._isMapAutoLoading = true;
 
                 $.ajax({
                     url: url,
                     type: 'GET',
-                    success: function(data) {
+                    success: function (data) {
                         if (data && data.features && data.features.length > 0) {
                             var feature = data.features[0];
-                            
+
                             // 1. Cập nhật Địa chỉ chi tiết
                             var fullPlace = feature.place_name;
                             var shortAddress = fullPlace.split(',')[0].trim();
                             $('#Address').val(shortAddress).removeClass('text-info');
+
+                            // Hiển thị địa chỉ trực tiếp trên ghim bản đồ
+                            marker.unbindPopup();
+                            marker.bindPopup(`<div style="font-weight:bold;font-size:12px;color:#70482F;text-align:center;"><i class="fas fa-location-dot me-1"></i>${shortAddress}</div>`, { closeButton: false }).openPopup();
 
                             // 2. Phân tích context
                             var province = null, ward = null;
@@ -374,13 +421,13 @@
                             // 3. Chuỗi Promise automation
                             var pIdSelected = fuzzySelect($('#ProvinceId'), province);
                             if (pIdSelected) {
-                                apiLoadWards(pIdSelected, null).then(function() {
+                                apiLoadWards(pIdSelected, null).then(function () {
                                     if (!fuzzySelect($('#WardId'), ward))
-                                        alert('Đã lấy tọa độ nhưng chưa đối chiếu được Xã/Phường/Đặc khu. Vui lòng chọn thủ công.');
+                                        showSwal("Đối chiếu địa chỉ", "Đã lấy tọa độ nhưng chưa đối chiếu tự động được Xã/Phường/Đặc khu. Vui lòng chọn thủ công.", "info");
                                     window._isMapAutoLoading = false;
                                 });
                             } else {
-                                alert('Đã lấy tọa độ nhưng chưa đối chiếu được Tỉnh/Thành phố. Vui lòng chọn thủ công.');
+                                showSwal("Đối chiếu địa chỉ", "Đã lấy tọa độ nhưng chưa đối chiếu tự động được Tỉnh/Thành phố. Vui lòng chọn thủ công.", "info");
                                 window._isMapAutoLoading = false;
                             }
                         } else {
@@ -388,11 +435,11 @@
                             window._isMapAutoLoading = false;
                         }
                     },
-                    error: function() {
+                    error: function () {
                         $('#Address').val('').removeClass('text-info');
                         window._isMapAutoLoading = false;
                     },
-                    complete: function() {
+                    complete: function () {
                         if (typeof onComplete !== 'function') return;
                         var attempts = 0;
                         (function waitForAddressCascade() {
@@ -407,7 +454,7 @@
                 });
             }
 
-            marker.on('dragend', function(e) {
+            marker.on('dragend', function (e) {
                 var pos = marker.getLatLng();
                 document.getElementById('Latitude').value = pos.lat;
                 document.getElementById('Longitude').value = pos.lng;
@@ -418,7 +465,7 @@
                 performReverseGeocoding(pos.lat, pos.lng);
             });
 
-            map.on('click', function(e) {
+            map.on('click', function (e) {
                 marker.setLatLng(e.latlng);
                 document.getElementById('Latitude').value = e.latlng.lat;
                 document.getElementById('Longitude').value = e.latlng.lng;
@@ -432,19 +479,19 @@
             // ==========================================
             // 3. FULL SMART FALLBACK GEOCODING
             // ==========================================
-            $('#btnGeocode').click(function() {
+            $('#btnGeocode').click(function () {
                 var detail = $('#Address').val() || '';
                 var wardName = $('#WardId option:selected').text();
                 var provinceName = $('#ProvinceId option:selected').text();
-                
+
                 if (wardName.includes('--')) wardName = '';
                 if (provinceName.includes('--')) provinceName = '';
 
                 var fullAddress = [detail, wardName, provinceName, 'Việt Nam'].filter(Boolean).join(', ');
                 var fallbackAddress = [wardName, provinceName, 'Việt Nam'].filter(Boolean).join(', ');
-                
+
                 if (!fallbackAddress) {
-                    alert('Vui lòng nhập/chọn địa chỉ đầy đủ (Ít nhất Phường, Quận, Tỉnh) trước khi tìm kiếm!');
+                    showSwal("Thiếu thông tin", "Vui lòng nhập/chọn địa chỉ đầy đủ (Ít nhất Phường, Quận, Tỉnh) trước khi tìm kiếm!", "warning");
                     return;
                 }
 
@@ -453,41 +500,46 @@
 
                 function doGeocode(searchQuery) {
                     var MAPBOX_TOKEN = 'pk.eyJ1Ijoibmd1eWVucGh1YzA1MDQiLCJhIjoiY21ubzF3bjJxMjBtOTJwcTJtZW9hOHhlcCJ9.0v8s3Xy-6HKnOrvz9pa48w'; // Token chính thức từ bác Tech Lead
-                    
+
                     var url = 'https://api.mapbox.com/geocoding/v5/mapbox.places/' + encodeURIComponent(searchQuery) + '.json?access_token=' + MAPBOX_TOKEN + '&country=vn&limit=1';
 
                     $.ajax({
                         url: url,
                         type: 'GET',
-                        success: function(data) {
+                        success: function (data) {
                             if (data && data.features && data.features.length > 0) {
                                 var feature = data.features[0];
                                 var lonFound = feature.center[0];
                                 var latFound = feature.center[1];
-                                
+
                                 document.getElementById('Latitude').value = latFound;
                                 document.getElementById('Longitude').value = lonFound;
                                 $('#DisplayLatitude').val(latFound.toFixed(6));
                                 $('#DisplayLongitude').val(lonFound.toFixed(6));
-                                
+
                                 map.flyTo([latFound, lonFound], 18, { duration: 1.5 });
-                                setTimeout(function() {
+                                setTimeout(function () {
                                     marker.setLatLng([latFound, lonFound]);
+                                    // Hiển thị địa chỉ trực tiếp trên ghim bản đồ
+                                    var fullPlace = feature.place_name;
+                                    var shortAddress = fullPlace.split(',')[0].trim();
+                                    marker.unbindPopup();
+                                    marker.bindPopup(`<div style="font-weight:bold;font-size:12px;color:#70482F;text-align:center;"><i class="fas fa-location-dot me-1"></i>${shortAddress}</div>`, { closeButton: false }).openPopup();
                                 }, 1500);
-                                
+
                                 $btn.prop('disabled', false).html('📍 Tìm vị trí trên bản đồ');
                             } else {
-                                alert('Mapbox không tìm thấy vị trí chính xác. Vui lòng di chuyển ghim thủ công!');
+                                showSwal("Không tìm thấy", "Mapbox không tìm thấy vị trí chính xác. Vui lòng di chuyển ghim thủ công!", "question");
                                 $btn.prop('disabled', false).html('📍 Tìm vị trí trên bản đồ');
                             }
                         },
-                        error: function() {
-                            alert('Lỗi kết nối tới Mapbox Geocoding.');
+                        error: function () {
+                            showSwal("Lỗi kết nối", "Lỗi kết nối tới máy chủ Mapbox Geocoding.", "error");
                             $btn.prop('disabled', false).html('📍 Tìm vị trí trên bản đồ');
                         }
                     });
                 }
-                
+
                 doGeocode(fullAddress);
             });
         });

@@ -2848,6 +2848,10 @@ body.admin-premium-shell img {
     position: relative !important;
 }
 
+body.admin-premium-shell .leaflet-container img {
+    position: absolute !important;
+}
+
 body.admin-premium-shell :is(.preview-img, #edit-preview, #create-preview, .img-thumbnail)::after {
     content: "📷 Chưa có ảnh" !important;
     display: flex !important;
