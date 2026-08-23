@@ -1,12 +1,15 @@
 using System.Text.Json;
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.StaffHub;
 using CafeChain.Application.Interfaces.Admin.Staffs;
+using CafeChain.Application.Interfaces.StaffHub;
 using CafeChain.Application.Results;
 using CafeChain.Infrastructure.Interfaces.Admin.Staffs;
 using CafeChain.Models.Inventories.Auditing;
 using CafeChain.Models.Staffs;
 using CafeChain.ViewModels.Admin.Staffs;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace CafeChain.Application.Services.Admin.Staffs;
 
@@ -15,8 +18,18 @@ public sealed class AdminStaffShiftService : IAdminStaffShiftService
     private const string Scheduled = "SCHEDULED";
     private const string Cancelled = "CANCELLED";
     private readonly IAdminStaffShiftRepository _repository;
+    private readonly IStaffScheduleNotificationPublisher? _notifications;
+    private readonly ILogger<AdminStaffShiftService> _logger;
 
-    public AdminStaffShiftService(IAdminStaffShiftRepository repository) => _repository = repository;
+    public AdminStaffShiftService(
+        IAdminStaffShiftRepository repository,
+        IStaffScheduleNotificationPublisher? notifications = null,
+        ILogger<AdminStaffShiftService>? logger = null)
+    {
+        _repository = repository;
+        _notifications = notifications;
+        _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AdminStaffShiftService>.Instance;
+    }
 
     public async Task<StaffShiftManagementVM> GetPageAsync(
         int storeId,
@@ -88,6 +101,7 @@ public sealed class AdminStaffShiftService : IAdminStaffShiftService
                 AddAudit("StaffShifts", existing.StaffShiftId, "RESTORE", before, Snapshot(existing), actorStaffId);
                 await _repository.SaveChangesAsync(ct);
                 await _repository.CommitTransactionAsync(ct);
+                await PublishScheduleChangedSafeAsync(existing, storeId, Scheduled, "RESTORED", ct);
                 return Success("Đã khôi phục và cập nhật lịch làm việc.", existing.StaffShiftId);
             }
 
@@ -105,6 +119,7 @@ public sealed class AdminStaffShiftService : IAdminStaffShiftService
             AddAudit("StaffShifts", staffShift.StaffShiftId, "CREATE", null, Snapshot(staffShift), actorStaffId);
             await _repository.SaveChangesAsync(ct);
             await _repository.CommitTransactionAsync(ct);
+            await PublishScheduleChangedSafeAsync(staffShift, storeId, Scheduled, "ASSIGNED", ct);
             return Success("Đã phân lịch làm việc.", staffShift.StaffShiftId);
         }
         catch (DbUpdateConcurrencyException)
@@ -143,7 +158,9 @@ public sealed class AdminStaffShiftService : IAdminStaffShiftService
         schedule.CustomStartTime = customStart;
         schedule.CustomEndTime = customEnd;
         AddAudit("StaffShifts", schedule.StaffShiftId, "UPDATE", before, Snapshot(schedule), actorStaffId);
-        return await SaveMutationAsync("Đã cập nhật lịch làm việc.", schedule.StaffShiftId, ct);
+        var updated = await SaveMutationAsync("Đã cập nhật lịch làm việc.", schedule.StaffShiftId, ct);
+        if (updated.IsSuccess) await PublishScheduleChangedSafeAsync(schedule, storeId, Scheduled, "UPDATED", ct);
+        return updated;
     }
 
     public async Task<ServiceResult> CancelAsync(int storeId, int actorStaffId, CancelStaffShiftRequest request, CancellationToken ct = default)
@@ -160,7 +177,9 @@ public sealed class AdminStaffShiftService : IAdminStaffShiftService
         schedule.StatusId = (await RequireStatusAsync(Cancelled, ct)).StaffShiftStatusId;
         AddAudit("StaffShifts", schedule.StaffShiftId, "CANCEL", before,
             new { Schedule = Snapshot(schedule), Reason = reason }, actorStaffId);
-        return await SaveMutationAsync("Đã hủy lịch và giữ lại lịch sử.", schedule.StaffShiftId, ct);
+        var cancelled = await SaveMutationAsync("Đã hủy lịch và giữ lại lịch sử.", schedule.StaffShiftId, ct);
+        if (cancelled.IsSuccess) await PublishScheduleChangedSafeAsync(schedule, storeId, Cancelled, "CANCELLED", ct);
+        return cancelled;
     }
 
     public async Task<ServiceResult> CreateTemplateAsync(int storeId, int actorStaffId, CreateShiftTemplateRequest request, CancellationToken ct = default)
@@ -262,6 +281,36 @@ public sealed class AdminStaffShiftService : IAdminStaffShiftService
         catch (DbUpdateConcurrencyException)
         {
             return Conflict();
+        }
+    }
+
+    private async Task PublishScheduleChangedSafeAsync(
+        StaffShift schedule,
+        int storeId,
+        string status,
+        string eventType,
+        CancellationToken ct)
+    {
+        if (_notifications == null) return;
+        try
+        {
+            await _notifications.PublishAsync(new StaffScheduleChangedDto
+            {
+                StaffShiftId = schedule.StaffShiftId,
+                StoreId = storeId,
+                StaffId = schedule.StaffId,
+                EventType = eventType,
+                WorkDate = schedule.WorkDate,
+                Status = status,
+                RowVersion = Convert.ToBase64String(schedule.RowVersion ?? Array.Empty<byte>()),
+                ServerNowUtc = DateTime.UtcNow
+            }, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "STAFF_SCHEDULE_NOTIFICATION_FAILED | StaffShiftId={StaffShiftId} EventType={EventType}",
+                schedule.StaffShiftId, eventType);
         }
     }
 

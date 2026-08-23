@@ -243,6 +243,7 @@ $(document).ready(function () {
 
         $(document).on('change', 'input[name="createDefaultImage"]', function () {
             setCreateDefaultIndex(Number(this.value));
+            renderCreatePreview();
         });
 
         $form.on('submit', function (e) {
@@ -308,6 +309,7 @@ $(document).ready(function () {
 
     function renderCreatePreview() {
         const $container = $('#previewContainer');
+        const $note = $('#createDefaultNote');
 
         if (!$container.length) {
             return;
@@ -317,8 +319,11 @@ $(document).ready(function () {
 
         if (!selectedCreateFiles.length) {
             setCreateDefaultIndex(null);
+            $note.addClass('d-none');
             return;
         }
+
+        $note.removeClass('d-none');
 
         let defaultIndex = getCreateDefaultIndex();
 
@@ -329,26 +334,32 @@ $(document).ready(function () {
 
         selectedCreateFiles.forEach((file, index) => {
             const previewUrl = URL.createObjectURL(file);
-            const checked = index === defaultIndex ? 'checked' : '';
+            const isDefault = index === defaultIndex;
+            const checked = isDefault ? 'checked' : '';
+            const cardBorderClass = isDefault ? 'is-default-selected' : '';
 
             $container.append(`
-                <div class="col-6 col-md-4 position-relative">
-                    <div class="border rounded overflow-hidden bg-white">
-                        <img
-                            src="${previewUrl}"
-                            class="w-100"
-                            style="aspect-ratio:1/1; object-fit:cover;"
-                            alt="Ảnh nước uống ${index + 1}">
+                <div class="col-6 position-relative">
+                    <div class="drink-create-img-card ${cardBorderClass}">
+                        <div class="position-relative overflow-hidden">
+                            <img
+                                src="${previewUrl}"
+                                class="w-100 drink-create-img"
+                                alt="Ảnh nước uống ${index + 1}">
+                        </div>
 
-                        <div class="d-flex align-items-center justify-content-between gap-2 px-2 py-2">
-                            <label class="form-check-label small d-flex align-items-center gap-1 mb-0">
+                        <div class="drink-create-card-footer">
+                            <label class="drink-default-radio-label ${isDefault ? 'is-active' : ''}" title="Đặt làm ảnh mặc định">
                                 <input
                                     type="radio"
                                     name="createDefaultImage"
                                     value="${index}"
-                                    class="form-check-input mt-0"
+                                    class="drink-default-radio-input"
                                     ${checked}>
-                                Mặc định
+                                <span class="drink-default-radio-custom">
+                                    <i class="${isDefault ? 'fas fa-star' : 'far fa-star'}"></i>
+                                    <span>Mặc định</span>
+                                </span>
                             </label>
 
                             <button
@@ -488,9 +499,81 @@ $(document).ready(function () {
     }
 
     function initImageManager() {
-        $(document).on('change', '#uploadImageInput', function () {
-            const fileName = this.files && this.files[0] ? this.files[0].name : 'Chưa chọn file nào';
-            $('#uploadFileName').text(fileName);
+        $(document).on('change', '#uploadImageInput', async function () {
+            const drinkId = $('#currentDrinkId').val();
+            const file = this.files && this.files[0];
+
+            if (!file) {
+                $('#uploadFileName').text('Chưa chọn file nào');
+                return;
+            }
+
+            if (!drinkId) {
+                notify('Không tìm thấy nước uống cần thêm ảnh', 'error');
+                return;
+            }
+
+            if (!validateFile(file)) {
+                $('#uploadImageInput').val('');
+                $('#uploadFileName').text('Chưa chọn file nào');
+                return;
+            }
+
+            const $label = $('.drink-image-file-label');
+            const originalLabelHtml = $label.html();
+            $('#uploadFileName').text(file.name);
+
+            try {
+                $label.addClass('disabled').css('pointer-events', 'none')
+                    .html('<i class="fas fa-spinner fa-spin me-1"></i> Đang tải...');
+
+                const croppedFile = await cropImageToSquare(file);
+                const formData = new FormData();
+
+                formData.append('drinkId', drinkId);
+                formData.append('imageFile', croppedFile);
+                formData.append('isDefault', $('#uploadDefaultSwitch').is(':checked'));
+
+                $.ajax({
+                    url: '/Admin/AdminDrink/UploadImage',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (res) {
+                        $label.removeClass('disabled').css('pointer-events', '').html(originalLabelHtml);
+
+                        if (res.success) {
+                            notify(res.message || 'Thêm ảnh thành công', 'success');
+                            resetUploadControls();
+                            loadImages(drinkId);
+                            reloadDrinkTable();
+                            return;
+                        }
+
+                        notify(res.message || 'Thêm ảnh thất bại', 'error');
+                        resetUploadControls();
+                    },
+                    error: function () {
+                        $label.removeClass('disabled').css('pointer-events', '').html(originalLabelHtml);
+                        notify('Có lỗi xảy ra khi tải ảnh', 'error');
+                        resetUploadControls();
+                    }
+                });
+            } catch {
+                $label.removeClass('disabled').css('pointer-events', '').html(originalLabelHtml);
+                notify('Không thể xử lý ảnh', 'error');
+                resetUploadControls();
+            }
+        });
+
+        $(document).on('change', '#uploadDefaultSwitch', function () {
+            const $icon = $(this).siblings('.drink-default-switch-custom').find('i');
+            if (this.checked) {
+                $icon.removeClass('far fa-star').addClass('fas fa-star');
+            } else {
+                $icon.removeClass('fas fa-star').addClass('far fa-star');
+            }
         });
 
         $(document).on('click', '.btn-manage-images', function () {
@@ -659,69 +742,6 @@ $(document).ready(function () {
                 notify('Không thể xử lý ảnh', 'error');
             }
         });
-
-        $('#btnUploadDrinkImage').on('click', async function () {
-            const drinkId = $('#currentDrinkId').val();
-            const input = document.getElementById('uploadImageInput');
-            const file = input?.files[0];
-
-            if (!drinkId) {
-                notify('Không tìm thấy nước uống cần thêm ảnh', 'error');
-                return;
-            }
-
-            if (!validateFile(file)) {
-                return;
-            }
-
-            const $btn = $(this);
-
-            try {
-                const croppedFile = await cropImageToSquare(file);
-                const formData = new FormData();
-
-                formData.append('drinkId', drinkId);
-                formData.append('imageFile', croppedFile);
-                formData.append('isDefault', $('#uploadDefaultSwitch').is(':checked'));
-
-                $btn
-                    .prop('disabled', true)
-                    .html('<i class="fas fa-spinner fa-spin me-1"></i> Đang tải...');
-
-                $.ajax({
-                    url: '/Admin/AdminDrink/UploadImage',
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function (res) {
-                        $btn
-                            .prop('disabled', false)
-                            .html('<i class="fas fa-upload me-1"></i> Tải ảnh');
-
-                        if (res.success) {
-                            notify(res.message || 'Thêm ảnh thành công', 'success');
-                            resetUploadControls();
-                            loadImages(drinkId);
-                            reloadDrinkTable();
-                            return;
-                        }
-
-                        notify(res.message || 'Thêm ảnh thất bại', 'error');
-                    },
-                    error: function () {
-                        $btn
-                            .prop('disabled', false)
-                            .html('<i class="fas fa-upload me-1"></i> Tải ảnh');
-
-                        notify('Có lỗi xảy ra khi tải ảnh', 'error');
-                    }
-                });
-            }
-            catch {
-                notify('Không thể xử lý ảnh', 'error');
-            }
-        });
     }
 
     function loadImages(drinkId) {
@@ -770,37 +790,27 @@ $(document).ready(function () {
         images.forEach(function (img) {
             const defaultBadge = img.isDefault
                 ? '<span class="drink-card-badge-default"><i class="fas fa-check-circle me-1"></i>Mặc định</span>'
-                : '';
-
-            const defaultButton = img.isDefault
-                ? ''
-                : `
-                    <button
-                        type="button"
-                        class="btn btn-sm drink-card-btn drink-card-btn-default flex-grow-1 btn-set-default"
-                        data-imgid="${img.drinkImageId}"
-                        title="Đặt làm ảnh mặc định">
-                        <i class="fas fa-check"></i>
-                        <span>Mặc định</span>
-                    </button>`;
+                : '<button type="button" class="drink-card-badge-set-default btn-set-default" data-imgid="' + img.drinkImageId + '" title="Bấm để đặt làm ảnh mặc định"><i class="far fa-star me-1"></i>Đặt mặc định</button>';
 
             const editButton = `
                 <button
                     type="button"
-                    class="btn btn-sm drink-card-btn drink-card-btn-edit ${img.isDefault ? 'flex-grow-1' : ''} btn-edit-img"
+                    class="btn btn-sm drink-card-btn drink-card-btn-edit flex-grow-1 btn-edit-img"
                     data-imgid="${img.drinkImageId}"
                     data-imgurl="${escapeHtml(img.imageUrl)}"
                     title="Chỉnh sửa ảnh">
-                    <i class="fas fa-pen"></i>${img.isDefault ? '<span>Sửa</span>' : ''}
+                    <i class="fas fa-pen me-1"></i>
+                    <span>Sửa</span>
                 </button>`;
 
             const deleteButton = `
                 <button
                     type="button"
-                    class="btn btn-sm drink-card-btn drink-card-btn-delete ${img.isDefault ? 'flex-grow-1' : ''} btn-delete-img"
+                    class="btn btn-sm drink-card-btn drink-card-btn-delete flex-grow-1 btn-delete-img"
                     data-imgid="${img.drinkImageId}"
                     title="Xóa ảnh">
-                    <i class="fas fa-trash"></i>${img.isDefault ? '<span>Xóa</span>' : ''}
+                    <i class="fas fa-trash me-1"></i>
+                    <span>Xóa</span>
                 </button>`;
 
             $container.append(`
@@ -816,7 +826,6 @@ $(document).ready(function () {
 
                         <div class="drink-gallery-card-body">
                             <div class="d-flex align-items-center gap-1 w-100">
-                                ${defaultButton}
                                 ${editButton}
                                 ${deleteButton}
                             </div>
@@ -841,7 +850,7 @@ $(document).ready(function () {
     function resetUploadControls() {
         $('#uploadImageInput').val('');
         $('#uploadFileName').text('Chưa chọn file nào');
-        $('#uploadDefaultSwitch').prop('checked', false);
+        $('#uploadDefaultSwitch').prop('checked', false).trigger('change');
     }
 
     function hideModal(id) {

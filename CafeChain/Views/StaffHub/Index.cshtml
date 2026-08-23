@@ -31,6 +31,7 @@
 <div id="staffHubApp"
      class="staffhub-page"
      data-store-id="@((int?)ViewBag.CurrentStoreId ?? 0)"
+     data-staff-id="@Model.StaffId"
      data-store-name="@Model.StoreName"
      data-preview-pos-url="@Url.Action("PreviewOpenPos", "StaffHub")"
      data-issue-pos-url="@Url.Action("IssuePosToken", "StaffHub")"
@@ -46,6 +47,7 @@
      data-verify-otp-url="@Url.Action("VerifyOperationalOtp", "StaffHub")"
      data-resend-otp-url="@Url.Action("ResendOperationalOtp", "StaffHub")"
      data-set-operator-pin-url="@Url.Action("SetOperatorPin", "StaffHub")"
+     data-schedule-fragment-url="@Url.Action("ScheduleFragment", "StaffHub")"
      data-operator-pin-configured="@Model.OperatorPinConfigured.ToString().ToLowerInvariant()"
      >
     <span id="staffHubLaunchOptions"
@@ -126,6 +128,7 @@
             </nav>
         </section>
 
+        <div id="staffHubScheduleRegion" data-week-start="@Model.WeekStart.ToString("yyyy-MM-dd")">
         <section class="staffhub-summary" aria-label="Tổng quan lịch làm việc">
             <div class="staffhub-summary-card">
                 <span class="staffhub-summary-icon"><i class="bi bi-calendar2-check"></i></span>
@@ -223,6 +226,8 @@
                 }
             </div>
         </section>
+
+        </div>
 
         <aside class="staffhub-note">
             <span class="staffhub-note-icon"><i class="bi bi-info-circle-fill" aria-hidden="true"></i></span>

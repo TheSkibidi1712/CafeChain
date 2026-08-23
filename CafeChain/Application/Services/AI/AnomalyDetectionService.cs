@@ -114,11 +114,18 @@ public sealed class AnomalyDetectionService : IAnomalyDetectionService
             BaselineValueDisplay = presentation.BaselineValueDisplay,
             DirectionDescription = presentation.DirectionDescription,
             ReasonSummaries = presentation.ReasonSummaries,
-            SuggestedChecks = presentation.SuggestedChecks
+            SuggestedChecks = presentation.SuggestedChecks,
+            PercentageDeviation = row.PercentageDeviation,
+            AbsolutePercentageDeviation = Math.Abs(row.PercentageDeviation),
+            PercentageDeviationDisplay = presentation.DeviationDisplay,
+            ImpactSummary = presentation.ImpactSummary,
+            WhyDetected = presentation.WhyDetected,
+            ImmediateActions = presentation.ImmediateActions,
+            PreparationChecklist = presentation.PreparationChecklist
         };
     }
 
-    public async Task RecordFeedbackAsync(AdminActorContext actor, AnomalyFeedbackDto input, CancellationToken ct = default)
+    public async Task<AnomalyFeedbackResultDto> RecordFeedbackAsync(AdminActorContext actor, AnomalyFeedbackDto input, CancellationToken ct = default)
     {
         var requestedAction = input.Action.Trim().ToUpperInvariant();
         var requiredPermission = requestedAction switch
@@ -159,6 +166,21 @@ public sealed class AnomalyDetectionService : IAnomalyDetectionService
             NewData = JsonSerializer.Serialize(new { row.Status, row.Feedback, Note = input.Note })
         });
         await _repository.SaveChangesAsync(ct);
+        return new AnomalyFeedbackResultDto
+        {
+            Id = row.OperationalAnomalyId,
+            Feedback = row.Feedback ?? string.Empty,
+            Note = row.FeedbackNote,
+            RowVersion = Convert.ToBase64String(row.RowVersion),
+            UpdatedAtUtc = row.UpdatedAtUtc,
+            FeedbackDisplay = row.Feedback switch
+            {
+                "Useful" => "Đã ghi nhận: Hữu ích",
+                "NotUseful" => "Đã ghi nhận: Chưa hữu ích",
+                "FalsePositive" => "Đã ghi nhận: Cảnh báo không phù hợp",
+                _ => "Đã ghi nhận phản hồi"
+            }
+        };
     }
 
     private async Task EnsureScope(AdminActorContext actor, int storeId) { if (actor.StaffId <= 0 || !await _scope.CanAccessStoreAsync(actor.StaffId, storeId)) throw new UnauthorizedAccessException("Bạn không có quyền truy cập cửa hàng này."); }
@@ -252,6 +274,13 @@ public sealed class AnomalyDetectionService : IAnomalyDetectionService
             ConfidenceDisplay = presentation.ConfidenceDisplay,
             ReasonSummaries = presentation.ReasonSummaries,
             SuggestedChecks = presentation.SuggestedChecks,
+            FeedbackDisplay = x.Feedback switch
+            {
+                "Useful" => "Hữu ích",
+                "NotUseful" => "Chưa hữu ích",
+                "FalsePositive" => "Cảnh báo không phù hợp",
+                _ => string.Empty
+            },
             CreatedAtUtc = x.CreatedAtUtc,
             RowVersion = Convert.ToBase64String(x.RowVersion)
         };

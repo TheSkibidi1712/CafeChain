@@ -60,7 +60,8 @@ namespace CafeChain.Data.Configurations.Drinks.DrinkInfos
                 });
 
             // ================= SEED DATA ================= 
-            entity.HasData(
+            entity.HasData(new[]
+            {
                 new DrinkImage { DrinkImageId = 1, DrinkId = 1, IsDefault = true, ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803239/cps1_ip9ciu.jpg", PublicId = "cps1_ip9ciu", CreatedAt = new DateTime(2025, 1, 1) },
                 new DrinkImage { DrinkImageId = 2, DrinkId = 1, IsDefault = false, ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803240/cps2_zd0pyd.jpg", PublicId = "cps2_zd0pyd", CreatedAt = new DateTime(2025, 1, 1) },
                 new DrinkImage { DrinkImageId = 3, DrinkId = 1, IsDefault = false, ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803240/cps3_guo9om.jpg", PublicId = "cps3_guo9om", CreatedAt = new DateTime(2025, 1, 1) },
@@ -77,15 +78,7 @@ namespace CafeChain.Data.Configurations.Drinks.DrinkInfos
                 new DrinkImage { DrinkImageId = 14, DrinkId = 4, IsDefault = false, ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779802891/trasuasocola2_m9yp1i.jpg", PublicId = "trasuasocola2_m9yp1i", CreatedAt = new DateTime(2025, 1, 1) },
                 new DrinkImage { DrinkImageId = 15, DrinkId = 4, IsDefault = false, ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779802892/trasuasocola3_t8nr2b.jpg", PublicId = "trasuasocola3_t8nr2b", CreatedAt = new DateTime(2025, 1, 1) },
                 new DrinkImage { DrinkImageId = 16, DrinkId = 4, IsDefault = false, ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779802950/trasuasocola4_kju0s7.jpg", PublicId = "trasuasocola4_kju0s7", CreatedAt = new DateTime(2025, 1, 1) },
-                new DrinkImage { DrinkImageId = 17, DrinkId = 5, IsDefault = true, ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803393/sting1_tcita4.jpg", PublicId = "sting1_tcita4", CreatedAt = new DateTime(2025, 1, 1) },
-                new DrinkImage { DrinkImageId = 18, DrinkId = 5, IsDefault = false, ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803314/sting2_axipva.jpg", PublicId = "sting2_axipva", CreatedAt = new DateTime(2025, 1, 1) },
-                new DrinkImage { DrinkImageId = 19, DrinkId = 5, IsDefault = false, ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803314/sting3_rv03ev.jpg", PublicId = "sting3_rv03ev", CreatedAt = new DateTime(2025, 1, 1) },
-                new DrinkImage { DrinkImageId = 20, DrinkId = 5, IsDefault = false, ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803316/sting4_yzaesh.jpg", PublicId = "sting4_yzaesh", CreatedAt = new DateTime(2025, 1, 1) },
-                new DrinkImage { DrinkImageId = 21, DrinkId = 6, IsDefault = true, ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803080/coca1_qum0eb.jpg", PublicId = "coca1_qum0eb", CreatedAt = new DateTime(2025, 1, 1) },
-                new DrinkImage { DrinkImageId = 22, DrinkId = 6, IsDefault = false, ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803081/coca2_ctcrt0.jpg", PublicId = "coca2_ctcrt0", CreatedAt = new DateTime(2025, 1, 1) },
-                new DrinkImage { DrinkImageId = 23, DrinkId = 6, IsDefault = false, ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803082/coca3_mp28bz.jpg", PublicId = "coca3_mp28bz", CreatedAt = new DateTime(2025, 1, 1) },
-                new DrinkImage { DrinkImageId = 24, DrinkId = 6, IsDefault = false, ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803082/coca4_xbh74i.jpg", PublicId = "coca4_xbh74i", CreatedAt = new DateTime(2025, 1, 1) }
-            );
+            });
         }
     }
 }
