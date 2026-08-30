@@ -2852,13 +2852,13 @@ body.admin-premium-shell .admin-premium-refresh .admin-page-body:not(:has(.ai-im
 body.admin-premium-shell .admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) .production-bom-page :is(.cc-page-hero, .cc-page-header) {
     position: relative !important;
     min-height: 140px !important;
-    padding-top: 36px !important;
-    padding-bottom: 28px !important;
+    padding-top: 24px !important;
+    padding-bottom: 24px !important;
 }
 
 body.admin-premium-shell .admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) .production-bom-page :is(.cc-page-hero, .cc-page-header) :is(.cc-page-hero__eyebrow, .analytics-eyebrow, .cc-page-kicker, .drink-eyebrow, .shift-page-kicker, .supplier-eyebrow, .store-eyebrow, .perm-eyebrow, .ops-eyebrow, .category-eyebrow) {
     position: static !important;
     display: inline-flex !important;
-    margin-top: 6px !important;
+    margin-top: 0 !important;
     margin-bottom: 12px !important;
 }

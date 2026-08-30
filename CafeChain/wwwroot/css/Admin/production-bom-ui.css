@@ -1977,7 +1977,7 @@
 .production-bom-page .cc-page-hero :is(.category-eyebrow, .ops-eyebrow, .cc-page-hero__eyebrow) {
     position: static !important;
     display: inline-flex !important;
-    margin-top: 6px !important;
+    margin-top: 0 !important;
     margin-bottom: 12px !important;
 }
 
