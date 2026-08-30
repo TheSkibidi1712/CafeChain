@@ -1,6 +1,6 @@
 @model CafeChain.ViewModels.Admin.Shared.AdminPageHeroVM
 
-<header class="category-page-header ops-header cc-warehouse-header cc-page-hero" style="align-items: flex-start !important; padding-top: 24px !important; padding-bottom: 24px !important;">
+<header class="category-page-header ops-header cc-warehouse-header cc-page-hero" style="align-items: flex-start !important; padding-top: 24px !important; padding-bottom: 24px !important; height: auto !important; overflow: hidden !important;">
     <div class="cc-page-hero__accent"></div>
     <div class="cc-page-hero__content">
         <div class="category-eyebrow ops-eyebrow">@Model.Eyebrow</div>
@@ -18,11 +18,6 @@
         </h1>
 
         <p class="ops-subtitle">@Model.Description</p>
-        @if (Model.Breadcrumbs.Count > 0)
-        {
-            <nav class="cc-page-hero__breadcrumbs" aria-label="Điều hướng trang"
-                 style="display:flex!important;flex-direction:row!important;align-items:center!important;flex-wrap:nowrap!important;gap:8px!important;margin-top:10px!important;font-size:13px!important;white-space:nowrap!important;overflow:hidden!important;">@for (var index = 0; index < Model.Breadcrumbs.Count; index++){var item = Model.Breadcrumbs[index];@if (!string.IsNullOrWhiteSpace(item.Url)){<a href="@item.Url" style="display:inline!important;float:none!important;width:auto!important;margin:0!important;white-space:nowrap!important;text-decoration:none!important;border-bottom:none!important;box-shadow:none!important;color:inherit!important;">@item.Label</a>}else{<span aria-current="page" style="display:inline!important;float:none!important;width:auto!important;margin:0!important;white-space:nowrap!important;">@item.Label</span>}@if (index < Model.Breadcrumbs.Count - 1){<i class="fas fa-chevron-right" aria-hidden="true" style="display:inline!important;width:auto!important;height:auto!important;margin:0!important;font-size:10px!important;"></i>}}</nav>
-        }
     </div>
 
     @if (Model.Actions.Count > 0)
