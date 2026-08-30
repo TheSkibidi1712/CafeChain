@@ -1,7 +1,8 @@
 @model CafeChain.ViewModels.Admin.Shared.AdminPageHeroVM
 
-<header class="category-page-header ops-header cc-warehouse-header cc-page-hero">
-    <div>
+<header class="category-page-header ops-header cc-warehouse-header cc-page-hero" style="align-items: flex-start !important; padding-top: 24px !important; padding-bottom: 24px !important; height: auto !important; overflow: hidden !important;">
+    <div class="cc-page-hero__accent"></div>
+    <div class="cc-page-hero__content">
         <div class="category-eyebrow ops-eyebrow">@Model.Eyebrow</div>
 
         <h1 class="ops-title">
@@ -17,27 +18,6 @@
         </h1>
 
         <p class="ops-subtitle">@Model.Description</p>
-        @if (Model.Breadcrumbs.Count > 0)
-        {
-            <nav class="cc-page-hero__breadcrumbs" aria-label="Điều hướng trang">
-                @for (var index = 0; index < Model.Breadcrumbs.Count; index++)
-                {
-                    var item = Model.Breadcrumbs[index];
-                    @if (!string.IsNullOrWhiteSpace(item.Url))
-                    {
-                        <a href="@item.Url">@item.Label</a>
-                    }
-                    else
-                    {
-                        <span aria-current="page">@item.Label</span>
-                    }
-                    @if (index < Model.Breadcrumbs.Count - 1)
-                    {
-                        <i class="fas fa-chevron-right" aria-hidden="true"></i>
-                    }
-                }
-            </nav>
-        }
     </div>
 
     @if (Model.Actions.Count > 0)
@@ -45,7 +25,9 @@
         <div class="cc-page-hero__actions ops-actions" aria-label="Thao tác trang">
             @foreach (var action in Model.Actions)
             {
-                <a id="@action.Id" class="btn cc-page-hero__action @(action.IsPrimary ? "btn-primary category-primary-btn" : "btn-outline-secondary")" href="@action.Url">
+                <a id="@action.Id"
+                    class="btn cc-page-hero__action @(action.IsPrimary ? "btn-primary category-primary-btn" : "btn-outline-secondary")"
+                    href="@action.Url">
                     <i class="@action.IconClass" aria-hidden="true"></i>
                     <span>@action.Label</span>
                 </a>
