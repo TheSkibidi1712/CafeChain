@@ -284,13 +284,11 @@
 }
 
 /* Unified module layout wrappers to match Dashboard size and shell exactly */
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    .analytics-page, .category-page, .pf-page, .rb-page, .po-page,
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.analytics-page, .category-page, .pf-page, .rb-page, .po-page,
     .admin-wo-page, .perm-page, .supplier-page, .staff-page, .staff-shift-page,
     .ops-shell, .cc-warehouse-page, .category-form-page, .drink-page, .ops-page,
     .notification-page, .purchase-advice-page, .purchase-order-page, .reorder-page,
-    .restock-page, .store-menu-page, .voucher-page, .wheel-page, .workshift-page
-) {
+    .restock-page, .store-menu-page, .voucher-page, .wheel-page, .workshift-page) {
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
@@ -305,12 +303,10 @@
     overflow-x: clip;
 }
 
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.admin-page-header, .page-header, .staff-page-header, .perm-page-header,
     .ops-page-header, .notification-page-header, .category-page-header,
     .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
-    .pf-header, .sm-header, .ops-header, .sales-history-header
-) {
+    .pf-header, .sm-header, .ops-header, .sales-history-header) {
     position: relative !important;
     min-height: 132px !important;
     padding: 24px 30px !important;
@@ -327,10 +323,8 @@
     letter-spacing: -.035em;
 }
 
-.admin-premium-refresh .admin-page-body :is(
-    .card, .content-card, .table-card, .filter-card, .filter-section,
-    .table-container, .summary-card, .kpi-card, .stats-card
-) {
+.admin-premium-refresh .admin-page-body :is(.card, .content-card, .table-card, .filter-card, .filter-section,
+    .table-container, .summary-card, .kpi-card, .stats-card) {
     border-color: var(--cc-refresh-line) !important;
     border-radius: 16px !important;
     background-color: var(--cc-refresh-surface) !important;
@@ -348,10 +342,8 @@
     min-height: 40px;
 }
 
-.admin-premium-refresh .admin-page-body :is(
-    .drink-search-btn, .catalog-search-button, .action-btn, .table-action,
-    .btn-icon, .icon-button, .ingredient-icon-button, .supplier-icon-button
-) {
+.admin-premium-refresh .admin-page-body :is(.drink-search-btn, .catalog-search-button, .action-btn, .table-action,
+    .btn-icon, .icon-button, .ingredient-icon-button, .supplier-icon-button) {
     min-width: 40px;
     min-height: 40px;
 }
@@ -392,10 +384,8 @@
     background: #f0ebe5 !important;
 }
 
-.admin-premium-refresh .admin-page-body :is(
-    .btn-primary, .btn-save, .btn-edit, .btn-apply, .btn-search,
-    .ops-btn-primary, .category-btn-primary
-) {
+.admin-premium-refresh .admin-page-body :is(.btn-primary, .btn-save, .btn-edit, .btn-apply, .btn-search,
+    .ops-btn-primary, .category-btn-primary) {
     border-color: var(--cc-refresh-espresso-2) !important;
     background: var(--cc-refresh-espresso-2) !important;
     color: #fff !important;
@@ -422,7 +412,7 @@
     background: #f7f4f0;
 }
 
-.admin-premium-refresh .admin-page-body .pagination .active > .page-link {
+.admin-premium-refresh .admin-page-body .pagination .active>.page-link {
     border-color: var(--cc-refresh-espresso-2) !important;
     background: var(--cc-refresh-espresso-2) !important;
     color: #fff !important;
@@ -451,18 +441,17 @@
         padding: 18px 14px 40px;
     }
 
-    .admin-premium-refresh .admin-page-body :is(
-        .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
+    .admin-premium-refresh .admin-page-body :is(.admin-page-header, .page-header, .staff-page-header, .perm-page-header,
         .ops-page-header, .notification-page-header, .category-page-header,
         .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
-        .pf-header, .sm-header, .ops-header
-    ) {
+        .pf-header, .sm-header, .ops-header) {
         min-height: 0 !important;
         padding: 22px 20px !important;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
+
     .admin-premium-refresh *,
     .admin-premium-refresh *::before,
     .admin-premium-refresh *::after {
@@ -479,7 +468,8 @@
 .admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.table, table, .production-data-table) :is(thead th, tbody td) {
     padding: 6px 10px !important;
     font-size: 12px !important;
-    text-align: center; /* Default centering; allows text-align utility classes or .pf-number to override */
+    text-align: center;
+    /* Default centering; allows text-align utility classes or .pf-number to override */
     vertical-align: middle !important;
 }
 
@@ -489,19 +479,15 @@
 }
 
 /* 2. Global Card Spacing & Inner Paddings */
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    .card, .content-card, .table-card, .filter-card, .filter-section,
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.card, .content-card, .table-card, .filter-card, .filter-section,
     .table-container, .summary-card, .kpi-card, .stats-card, .rb-card, .po-main-card,
     .history-card, .admin-wo-card, .perm-panel, .cc-warehouse-panel, .ops-panel,
-    .pa-panel, .ice-panel, .category-card, .drink-card
-) {
+    .pa-panel, .ice-panel, .category-card, .drink-card) {
     margin-bottom: 12px !important;
     padding: 12px !important;
 }
 
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    .card-body, .rb-card-body, .card-content, .panel-body
-) {
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.card-body, .rb-card-body, .card-content, .panel-body) {
     padding: 0 !important;
 }
 
@@ -598,8 +584,7 @@ body:not(:has(.ai-import-page)),
 }
 
 /* 2. All cards, panels, containers */
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    .card, .content-card, .table-card, .filter-card, .filter-section,
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.card, .content-card, .table-card, .filter-card, .filter-section,
     .table-container, .summary-card, .kpi-card, .stats-card,
     .rb-card, .po-main-card, .history-card, .admin-wo-card,
     .perm-panel, .cc-warehouse-panel, .ops-panel, .pa-panel, .ice-panel,
@@ -607,29 +592,24 @@ body:not(:has(.ai-import-page)),
     .supplier-page-header, .supplier-metrics, .supplier-subform,
     .supplier-stack-item, .supplier-duplicate-item, .supplier-empty-inline,
     .supplier-toast, .supplier-detail-header, .supplier-tabs,
-    .card-body, .rb-card-body, .card-content, .panel-body
-) {
+    .card-body, .rb-card-body, .card-content, .panel-body) {
     background: #f7f4f0 !important;
     background-color: #f7f4f0 !important;
 }
 
 /* 3. Modal and Offcanvas backgrounds */
-.admin-premium-refresh:not(:has(.ai-import-page)) :is(
-    .modal-content, .modal-body, .modal-footer,
+.admin-premium-refresh:not(:has(.ai-import-page)) :is(.modal-content, .modal-body, .modal-footer,
     .offcanvas, .offcanvas-body, .offcanvas-footer,
-    .sm-drawer, .pf-drawer, .swal2-popup
-) {
+    .sm-drawer, .pf-drawer, .swal2-popup) {
     background: #f7f4f0 !important;
     background-color: #f7f4f0 !important;
 }
 
 /* 4. Form controls — inputs, selects, textareas */
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    input, select, textarea,
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(input, select, textarea,
     .form-control, .form-select,
     .select2-selection, .select2-container--default .select2-selection--single,
-    .select2-dropdown
-) {
+    .select2-dropdown) {
     background: #f7f4f0 !important;
     background-color: #f7f4f0 !important;
 }
@@ -641,21 +621,17 @@ body:not(:has(.ai-import-page)),
 }
 
 /* 6. Page hero / header sections */
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.admin-page-header, .page-header, .staff-page-header, .perm-page-header,
     .ops-page-header, .notification-page-header, .category-page-header,
     .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
     .pf-header, .sm-header, .ops-header, .sales-history-header,
-    .cc-page-header
-) {
+    .cc-page-header) {
     background: radial-gradient(circle at 92% 4%, rgba(201, 158, 125, 0.12), transparent 280px), linear-gradient(135deg, #fffdfb 0%, #faf6f2 54%, #f7f4f0 100%) !important;
 }
 
 /* 7. Buttons — outline/light variants */
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    .btn-outline-secondary, .btn-light, .btn-secondary,
-    .swal2-cancel, .btn-swal-cancel
-) {
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.btn-outline-secondary, .btn-light, .btn-secondary,
+    .swal2-cancel, .btn-swal-cancel) {
     background: #f7f4f0 !important;
     background-color: #f7f4f0 !important;
 }
@@ -667,9 +643,7 @@ body:not(:has(.ai-import-page)),
 }
 
 /* 9. Workshift approvals */
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    .workshift-approval-card, .workshift-section, .workshift-item
-) {
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.workshift-approval-card, .workshift-section, .workshift-item) {
     background: #f7f4f0 !important;
     background-color: #f7f4f0 !important;
 }
@@ -682,8 +656,7 @@ body:not(:has(.ai-import-page)),
    ==================================================================== */
 
 /* 10. Unified header — base layout (all header types) */
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    .cc-page-hero, .cc-page-header, .analytics-header,
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.cc-page-hero, .cc-page-header, .analytics-header,
     .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
     .ops-page-header, .notification-page-header, .category-page-header,
     .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
@@ -692,8 +665,7 @@ body:not(:has(.ai-import-page)),
     .notification-header, .drink-form-heading,
     .topping-page-heading, .size-page-heading, .supplier-page-header, .store-admin-header,
     .uc-page-header, .shift-page-header, .pa-header, .work-shift-open-approvals-header,
-    .anomalies-header, .ice-page-header
-) {
+    .anomalies-header, .ice-page-header) {
     position: relative !important;
     display: flex !important;
     align-items: center !important;
@@ -711,8 +683,7 @@ body:not(:has(.ai-import-page)),
 }
 
 /* 11. Unified header — title typography */
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    .cc-page-hero, .cc-page-header, .analytics-header,
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.cc-page-hero, .cc-page-header, .analytics-header,
     .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
     .ops-page-header, .notification-page-header, .category-page-header,
     .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
@@ -721,8 +692,7 @@ body:not(:has(.ai-import-page)),
     .notification-header, .drink-form-heading,
     .topping-page-heading, .size-page-heading, .supplier-page-header, .store-admin-header,
     .uc-page-header, .shift-page-header, .pa-header, .work-shift-open-approvals-header,
-    .anomalies-header, .ice-page-header
-) :is(h1, h2, .page-title, [class*="-title"], [class*="-heading"]) {
+    .anomalies-header, .ice-page-header) :is(h1, h2, .page-title, [class*="-title"], [class*="-heading"]) {
     margin-top: 6px !important;
     margin-bottom: 4px !important;
     font-size: clamp(20px, 2.2vw, 24px) !important;
@@ -733,8 +703,7 @@ body:not(:has(.ai-import-page)),
 }
 
 /* 12. Unified header — description */
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    .cc-page-hero, .cc-page-header, .analytics-header,
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.cc-page-hero, .cc-page-header, .analytics-header,
     .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
     .ops-page-header, .notification-page-header, .category-page-header,
     .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
@@ -743,8 +712,7 @@ body:not(:has(.ai-import-page)),
     .notification-header, .drink-form-heading,
     .topping-page-heading, .size-page-heading, .supplier-page-header, .store-admin-header,
     .uc-page-header, .shift-page-header, .pa-header, .work-shift-open-approvals-header,
-    .anomalies-header, .ice-page-header
-) :is(p, .ops-subtitle, [class*="-subtitle"], [class*="-description"]) {
+    .anomalies-header, .ice-page-header) :is(p, .ops-subtitle, [class*="-subtitle"], [class*="-description"]) {
     margin: 0 !important;
     font-size: 13px !important;
     color: var(--cc-text-secondary, #66584F) !important;
@@ -752,8 +720,7 @@ body:not(:has(.ai-import-page)),
 }
 
 /* 13. Unified header — eyebrow / kicker */
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    .cc-page-hero, .cc-page-header, .analytics-header,
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.cc-page-hero, .cc-page-header, .analytics-header,
     .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
     .ops-page-header, .notification-page-header, .category-page-header,
     .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
@@ -762,11 +729,8 @@ body:not(:has(.ai-import-page)),
     .notification-header, .drink-form-heading,
     .topping-page-heading, .size-page-heading, .supplier-page-header, .store-admin-header,
     .uc-page-header, .shift-page-header, .pa-header, .work-shift-open-approvals-header,
-    .anomalies-header, .ice-page-header
-) :is(
-    .cc-page-hero__eyebrow, .analytics-eyebrow, .cc-page-kicker, .drink-eyebrow,
-    [class*="-eyebrow"], [class*="-kicker"]
-) {
+    .anomalies-header, .ice-page-header) :is(.cc-page-hero__eyebrow, .analytics-eyebrow, .cc-page-kicker, .drink-eyebrow,
+    [class*="-eyebrow"], [class*="-kicker"]) {
     display: inline-flex !important;
     align-items: center !important;
     padding: 5px 10px !important;
@@ -781,8 +745,7 @@ body:not(:has(.ai-import-page)),
 }
 
 /* 13b. Unified header — title icon force warning color */
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    .cc-page-hero, .cc-page-header, .analytics-header,
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.cc-page-hero, .cc-page-header, .analytics-header,
     .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
     .ops-page-header, .notification-page-header, .category-page-header,
     .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
@@ -791,8 +754,7 @@ body:not(:has(.ai-import-page)),
     .notification-header, .drink-form-heading,
     .topping-page-heading, .size-page-heading, .supplier-page-header, .store-admin-header,
     .uc-page-header, .shift-page-header, .pa-header, .work-shift-open-approvals-header,
-    .anomalies-header, .ice-page-header
-) :is(h1, h2, .page-title, [class*="-title"], [class*="-heading"]) :is(i, svg) {
+    .anomalies-header, .ice-page-header) :is(h1, h2, .page-title, [class*="-title"], [class*="-heading"]) :is(i, svg) {
     color: var(--cc-warning, #99623B) !important;
     margin-right: 8px !important;
 }
@@ -812,18 +774,14 @@ body:not(:has(.ai-import-page)),
 }
 
 /* 16. Unified header — actions */
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    .cc-page-hero__actions, .analytics-header__actions
-) {
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.cc-page-hero__actions, .analytics-header__actions) {
     display: flex !important;
     flex-wrap: wrap !important;
     justify-content: flex-end !important;
     gap: 10px !important;
 }
 
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    .cc-page-hero__action, .analytics-button
-) {
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.cc-page-hero__action, .analytics-button) {
     min-height: 38px !important;
     height: 38px !important;
     padding: 0 16px !important;
@@ -832,22 +790,41 @@ body:not(:has(.ai-import-page)),
 }
 
 /* 17. Unified header — breadcrumbs */
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) .cc-page-hero__breadcrumbs {
+:is(.cc-page-hero, .cc-page-header) .cc-page-hero__breadcrumbs {
     display: flex !important;
     align-items: center !important;
-    gap: 6px !important;
-    margin-top: 6px !important;
-    font-size: 12px !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    margin-top: 10px !important;
+    font-size: 13px !important;
+    color: var(--cc-text-muted, #7a6c62) !important;
+    white-space: nowrap !important;
+}
+
+:is(.cc-page-hero, .cc-page-header) .cc-page-hero__breadcrumbs > * {
+    display: inline-block !important;
+    float: none !important;
+    width: auto !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+}
+
+:is(.cc-page-hero, .cc-page-header) .cc-page-hero__breadcrumbs i {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 10px !important;
+    color: var(--cc-text-muted, #7a6c62) !important;
+    width: auto !important;
+    height: auto !important;
 }
 
 /* 18. Direct aggressive layout reset to override later-loaded stylesheets and unify widths */
-body:not(:has(.ai-import-page)) :is(
-    .analytics-page, .category-page, .pf-page, .rb-page, .po-page,
+body:not(:has(.ai-import-page)) :is(.analytics-page, .category-page, .pf-page, .rb-page, .po-page,
     .admin-wo-page, .perm-page, .supplier-page, .staff-page, .staff-shift-page,
     .ops-shell, .cc-warehouse-page, .category-form-page, .drink-page, .ops-page,
     .notification-page, .purchase-advice-page, .purchase-order-page, .reorder-page,
-    .restock-page, .store-menu-page, .voucher-page, .wheel-page, .workshift-page
-) {
+    .restock-page, .store-menu-page, .voucher-page, .wheel-page, .workshift-page) {
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
@@ -858,29 +835,21 @@ body:not(:has(.ai-import-page)) :is(
 }
 
 /* 19. Unified search input boxes — position icons/buttons at the right end to prevent overlap */
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    .category-search-field, .drink-search-box, .catalog-search-box,
-    .sm-search-box, .ops-search-field, .inventory-search-field, .search-box
-) {
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.category-search-field, .drink-search-box, .catalog-search-box,
+    .sm-search-box, .ops-search-field, .inventory-search-field, .search-box) {
     position: relative !important;
 }
 
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    .category-search-field, .drink-search-box, .catalog-search-box,
-    .sm-search-box, .ops-search-field, .inventory-search-field, .search-box
-) input {
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.category-search-field, .drink-search-box, .catalog-search-box,
+    .sm-search-box, .ops-search-field, .inventory-search-field, .search-box) input {
     padding-left: 14px !important;
     padding-right: 42px !important;
 }
 
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    .category-search-field, .drink-search-box, .catalog-search-box,
-    .sm-search-box, .ops-search-field, .inventory-search-field, .search-box
-) :is(
-    i, .fa-search, .bi-search, button,
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.category-search-field, .drink-search-box, .catalog-search-box,
+    .sm-search-box, .ops-search-field, .inventory-search-field, .search-box) :is(i, .fa-search, .bi-search, button,
     .category-search-btn, .drink-search-btn, .catalog-search-button,
-    .search-btn, .ops-search-icon, .inventory-search-icon
-) {
+    .search-btn, .ops-search-icon, .inventory-search-icon) {
     position: absolute !important;
     right: 14px !important;
     left: auto !important;
@@ -891,12 +860,8 @@ body:not(:has(.ai-import-page)) :is(
     background: transparent !important;
 }
 
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(
-    .category-search-field, .drink-search-box, .catalog-search-box,
-    .sm-search-box, .ops-search-field, .inventory-search-field, .search-box
-) :is(
-    button, .category-search-btn, .drink-search-btn, .catalog-search-button, .search-btn
-):hover {
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) :is(.category-search-field, .drink-search-box, .catalog-search-box,
+    .sm-search-box, .ops-search-field, .inventory-search-field, .search-box) :is(button, .category-search-btn, .drink-search-btn, .catalog-search-button, .search-btn):hover {
     transform: translateY(-50%) scale(1.1) !important;
 }
 
@@ -928,7 +893,7 @@ body:not(:has(.ai-import-page)) :is(
 }
 
 /* Ensure headings text are positioned on top of the circles */
-.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) .drink-form-heading > * {
+.admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) .drink-form-heading>* {
     position: relative !important;
     z-index: 2 !important;
 }
@@ -942,12 +907,10 @@ body:not(:has(.ai-import-page)) :is(
 }
 
 /* 21. Premium Offcanvas & Modal form field layouts to prevent text-overlap, add breathing room, and ensure uniform full width (excluding checkbox/radio toggle switches & custom card options) */
-body.admin-premium-shell :is(.offcanvas-body, .sm-drawer-body, .pf-drawer-body, .modal-body) :is(
-    label:not(.inventory-export-option):not(.create-purpose-card):not(.negative-stock-mode-card), 
+body.admin-premium-shell :is(.offcanvas-body, .sm-drawer-body, .pf-drawer-body, .modal-body) :is(label:not(.inventory-export-option):not(.create-purpose-card):not(.negative-stock-mode-card),
     input:not([type="checkbox"]):not([type="radio"]), textarea, select,
     .sm-control, .ops-input, .ops-select, .ops-textarea,
-    #storeMenuPriceFields, #storeMenuOrderFields
-) {
+    #storeMenuPriceFields, #storeMenuOrderFields) {
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
@@ -959,7 +922,7 @@ body.admin-premium-shell :is(.offcanvas-body, .sm-drawer-body, .pf-drawer-body, 
     margin-bottom: 10px !important;
 }
 
-body.admin-premium-shell :is(.offcanvas-body, .sm-drawer-body, .pf-drawer-body, .modal-body) label:not(.inventory-export-option):not(.create-purpose-card):not(.negative-stock-mode-card) > span:first-child {
+body.admin-premium-shell :is(.offcanvas-body, .sm-drawer-body, .pf-drawer-body, .modal-body) label:not(.inventory-export-option):not(.create-purpose-card):not(.negative-stock-mode-card)>span:first-child {
 
     display: block !important;
     margin-bottom: 6px !important;
@@ -977,18 +940,14 @@ body.admin-premium-shell :is(.offcanvas-body, .sm-drawer-body, .pf-drawer-body, 
 }
 
 /* 22. Creative focus state — completely remove outer outlines/shadows with high specificity to override later-loaded css files */
-body.admin-premium-shell :is(
-    input, select, textarea,
+body.admin-premium-shell :is(input, select, textarea,
     .form-control, .form-select,
     .sm-control, .ops-input, .ops-select, .ops-textarea,
-    .select2-selection, .select2-container--default .select2-selection--single
-):focus,
-body.admin-premium-shell :is(
-    input, select, textarea,
+    .select2-selection, .select2-container--default .select2-selection--single):focus,
+body.admin-premium-shell :is(input, select, textarea,
     .form-control, .form-select,
     .sm-control, .ops-input, .ops-select, .ops-textarea,
-    .select2-selection, .select2-container--default .select2-selection--single
-):focus-visible {
+    .select2-selection, .select2-container--default .select2-selection--single):focus-visible {
     outline: none !important;
     outline-offset: 0 !important;
     box-shadow: none !important;
@@ -1010,7 +969,7 @@ body.admin-premium-shell input[type="file"].form-control:focus-visible {
 }
 
 /* Make the label text light up and become bold when the child input/textarea is focused */
-body.admin-premium-shell label:has(:is(input, select, textarea):focus) > span:first-child {
+body.admin-premium-shell label:has(:is(input, select, textarea):focus)>span:first-child {
     color: var(--cc-brown-900, #3D2418) !important;
     font-weight: 850 !important;
     letter-spacing: 0.01em !important;
@@ -1019,24 +978,20 @@ body.admin-premium-shell label:has(:is(input, select, textarea):focus) > span:fi
 }
 
 /* 23. Aggressive layout alignment — ensure textareas have auto height/min-height 80px, while inputs are uniformly 38px */
-body.admin-premium-shell :is(
-    textarea,
+body.admin-premium-shell :is(textarea,
     textarea.sm-control,
     textarea.ops-textarea,
-    .sm-control[rows]
-) {
+    .sm-control[rows]) {
     min-height: 80px !important;
     height: auto !important;
 }
 
-body.admin-premium-shell :is(
-    input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+body.admin-premium-shell :is(input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
     select,
     .form-control:not(textarea),
     .form-select,
     .sm-control:not(textarea),
-    .ops-input:not(textarea)
-) {
+    .ops-input:not(textarea)) {
     height: 38px !important;
     min-height: 38px !important;
 }
@@ -1055,7 +1010,7 @@ body.admin-premium-shell :is(.production-bom-page, .production-bom-shell) {
 /* 25. Align Recipe (BOM) page hero styling and layout alignment with other modules */
 body.admin-premium-shell .production-bom-page .cc-page-hero {
     background: radial-gradient(circle at 92% 4%, rgba(201, 158, 125, 0.14), transparent 280px),
-                linear-gradient(135deg, #fffdfb 0%, #faf6f2 54%, #f7f4f0 100%) !important;
+        linear-gradient(135deg, #fffdfb 0%, #faf6f2 54%, #f7f4f0 100%) !important;
     border: 1px solid var(--cc-border, #E9DED4) !important;
     border-left: 5px solid var(--cc-refresh-espresso-2, #5c3f2b) !important;
     border-radius: var(--cc-radius-header, 20px) !important;
@@ -1154,7 +1109,8 @@ body.admin-premium-shell .rb-modal-section-heading i {
     height: 32px !important;
     min-width: 32px !important;
     border-radius: 50% !important;
-    background: #faf6f2 !important; /* Soft cream background */
+    background: #faf6f2 !important;
+    /* Soft cream background */
     color: var(--cc-brown-600, #70482f) !important;
     font-size: 13px !important;
     border: 1px solid var(--cc-border, #e9ded4) !important;
@@ -1229,13 +1185,11 @@ body.admin-premium-shell .modal-footer .btn-rb-save:hover {
 
 /* 28. Extra Modal Form Elements Refinements */
 /* Uniform inputs, selects, textareas inside modals when not focused */
-body.admin-premium-shell :is(.rb-modal, .modal-content) :is(
-    input:not([type="checkbox"]):not([type="radio"]),
+body.admin-premium-shell :is(.rb-modal, .modal-content) :is(input:not([type="checkbox"]):not([type="radio"]),
     select,
     textarea,
     .form-control,
-    .form-select
-) {
+    .form-select) {
     border: 1.5px solid var(--cc-border-strong, #D8C5B6) !important;
     border-radius: var(--cc-radius-control, 10px) !important;
     background-color: #ffffff !important;
@@ -1315,14 +1269,13 @@ body.admin-premium-shell .rb-modal-section .row {
 }
 
 /* Add clean spacing inside input columns to prevent touching borders */
-body.admin-premium-shell .rb-modal-section .row > [class*="col-"] {
+body.admin-premium-shell .rb-modal-section .row>[class*="col-"] {
     padding-left: 10px !important;
     padding-right: 10px !important;
 }
 
 /* 30. Move search magnifying glass icon to the end (right side) of search bars to prevent overlapping text */
-body.admin-premium-shell :is(
-    .uc-search-control,
+body.admin-premium-shell :is(.uc-search-control,
     .ingredient-search-control,
     .supplier-search-control,
     .sm-search-box,
@@ -1333,13 +1286,11 @@ body.admin-premium-shell :is(
     .perm-search,
     .ops-search-field,
     .search-box,
-    .drink-search-box
-) {
+    .drink-search-box) {
     position: relative !important;
 }
 
-body.admin-premium-shell :is(
-    .uc-search-control,
+body.admin-premium-shell :is(.uc-search-control,
     .ingredient-search-control,
     .supplier-search-control,
     .sm-search-box,
@@ -1350,8 +1301,7 @@ body.admin-premium-shell :is(
     .perm-search,
     .ops-search-field,
     .search-box,
-    .drink-search-box
-) :is(i, .fa-search, .fa-magnifying-glass, svg) {
+    .drink-search-box) :is(i, .fa-search, .fa-magnifying-glass, svg) {
     position: absolute !important;
     right: 14px !important;
     left: auto !important;
@@ -1362,8 +1312,7 @@ body.admin-premium-shell :is(
     color: var(--cc-text-muted, #8c7b70) !important;
 }
 
-body.admin-premium-shell :is(
-    .uc-search-control,
+body.admin-premium-shell :is(.uc-search-control,
     .ingredient-search-control,
     .supplier-search-control,
     .sm-search-box,
@@ -1374,8 +1323,7 @@ body.admin-premium-shell :is(
     .perm-search,
     .ops-search-field,
     .search-box,
-    .drink-search-box
-) :is(input, .form-control) {
+    .drink-search-box) :is(input, .form-control) {
     padding-left: 14px !important;
     padding-right: 38px !important;
 }
@@ -1396,25 +1344,21 @@ body.admin-premium-shell .ingredient-page .ingredient-filter-grid {
 }
 
 /* Push filter action buttons down by exactly label-height (18px) + margin-bottom (6px) = 24px so they align with the select/input below the label */
-body.admin-premium-shell :is(.supplier-page, .ingredient-page) :is(
-    .supplier-filter-actions,
-    .ingredient-filter-actions
-) {
+body.admin-premium-shell :is(.supplier-page, .ingredient-page) :is(.supplier-filter-actions,
+    .ingredient-filter-actions) {
     padding-top: 24px !important;
     align-self: auto !important;
 }
 
 /* Filter interactive elements: inputs, selects, and buttons forced to 38px */
-body.admin-premium-shell :is(.supplier-page, .ingredient-page) :is(
-    .supplier-search-control input,
+body.admin-premium-shell :is(.supplier-page, .ingredient-page) :is(.supplier-search-control input,
     .supplier-filter-field select,
     .supplier-filter-actions .supplier-btn,
     .supplier-filter-actions :is(a, button),
     .ingredient-search-control input,
     .ingredient-filter-field select,
     .ingredient-filter-actions .ingredient-btn,
-    .ingredient-filter-actions :is(a, button)
-) {
+    .ingredient-filter-actions :is(a, button)) {
     height: 38px !important;
     min-height: 38px !important;
     max-height: 38px !important;
@@ -1422,22 +1366,18 @@ body.admin-premium-shell :is(.supplier-page, .ingredient-page) :is(
 }
 
 /* Search control wrapper spans match the input height */
-body.admin-premium-shell :is(.supplier-page, .ingredient-page) :is(
-    .supplier-search-control,
-    .ingredient-search-control
-) {
+body.admin-premium-shell :is(.supplier-page, .ingredient-page) :is(.supplier-search-control,
+    .ingredient-search-control) {
     height: 38px !important;
     min-height: 38px !important;
     display: block !important;
 }
 
 /* Ensure inner inputs and select boxes inside the wrapper elements have correct padding and line-height */
-body.admin-premium-shell :is(.supplier-page, .ingredient-page) :is(
-    .supplier-search-control input,
+body.admin-premium-shell :is(.supplier-page, .ingredient-page) :is(.supplier-search-control input,
     .supplier-filter-field select,
     .ingredient-search-control input,
-    .ingredient-filter-field select
-) {
+    .ingredient-filter-field select) {
     padding-top: 6px !important;
     padding-bottom: 6px !important;
     padding-left: 14px !important;
@@ -1446,12 +1386,10 @@ body.admin-premium-shell :is(.supplier-page, .ingredient-page) :is(
 }
 
 /* Center text and icons inside action buttons perfectly at 38px height */
-body.admin-premium-shell :is(.supplier-page, .ingredient-page) :is(
-    .supplier-filter-actions .supplier-btn,
+body.admin-premium-shell :is(.supplier-page, .ingredient-page) :is(.supplier-filter-actions .supplier-btn,
     .supplier-filter-actions :is(a, button),
     .ingredient-filter-actions .ingredient-btn,
-    .ingredient-filter-actions :is(a, button)
-) {
+    .ingredient-filter-actions :is(a, button)) {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -1572,11 +1510,13 @@ body.admin-premium-shell :is(.inventory-export-option, .create-purpose-card, .ne
 
 /* Redesign Chọn định dạng xuất (Export options selection modal) to be clean, modern, and compact */
 body.admin-premium-shell .inventory-export-option::before {
-    display: none !important; /* Delete the brown bar on the left edge */
+    display: none !important;
+    /* Delete the brown bar on the left edge */
 }
 
 body.admin-premium-shell .inventory-export-option-check {
-    display: none !important; /* Remove redundant top-right checkmark */
+    display: none !important;
+    /* Remove redundant top-right checkmark */
 }
 
 body.admin-premium-shell .inventory-export-option {
@@ -1750,7 +1690,7 @@ body.admin-premium-shell .inventory-export-option:has(input:checked) .inventory-
 }
 
 /* Modal header icon - Warm Coffee/Espresso gradient badge */
-body.admin-premium-shell .inventory-export-title > span {
+body.admin-premium-shell .inventory-export-title>span {
     background: linear-gradient(135deg, var(--cc-brown-600, #70482f) 0%, var(--cc-brown-800, #3d2418) 100%) !important;
     color: #ffffff !important;
     box-shadow: 0 6px 16px rgba(112, 72, 47, 0.25) !important;
@@ -2124,7 +2064,7 @@ body.admin-premium-shell .rb-health-table :is(th, td) {
     vertical-align: middle !important;
 }
 
-body.admin-premium-shell .rb-health-table td > * {
+body.admin-premium-shell .rb-health-table td>* {
     margin-left: auto !important;
     margin-right: auto !important;
     justify-content: center !important;
@@ -2155,9 +2095,12 @@ body.admin-premium-shell .sidebar-flow-group {
 body.admin-premium-shell .sidebar-flow-group::before {
     content: '' !important;
     position: absolute !important;
-    left: 23px !important; /* Center of the node dots */
-    top: 14px !important;  /* Start slightly below the first node center */
-    bottom: 14px !important; /* End slightly above the last node center */
+    left: 23px !important;
+    /* Center of the node dots */
+    top: 14px !important;
+    /* Start slightly below the first node center */
+    bottom: 14px !important;
+    /* End slightly above the last node center */
     width: 2px !important;
     background-color: rgba(211, 160, 113, 0.22) !important;
     z-index: 1 !important;
@@ -2166,21 +2109,25 @@ body.admin-premium-shell .sidebar-flow-group::before {
 /* Indent and align flow items with high specificity to prevent text overlap */
 body.admin-premium-shell .sidebar .sidebar-sub a.sidebar-flow-item {
     position: relative !important;
-    padding-left: 36px !important; /* Move text to the right to clear the line */
+    padding-left: 36px !important;
+    /* Move text to the right to clear the line */
 }
 
 /* Redesign nodes: hide FontAwesome icon and draw a custom CSS hollow ring */
 body.admin-premium-shell .sidebar .sidebar-sub a.sidebar-flow-item i.sidebar-flow-node::before {
-    content: "" !important; /* Hide solid dot text glyph */
+    content: "" !important;
+    /* Hide solid dot text glyph */
 }
 
 body.admin-premium-shell .sidebar .sidebar-sub a.sidebar-flow-item i.sidebar-flow-node {
     position: absolute !important;
-    left: 20px !important; /* Mathematically centered on the 2px vertical line at 24px center */
+    left: 20px !important;
+    /* Mathematically centered on the 2px vertical line at 24px center */
     top: 50% !important;
     transform: translateY(-50%) !important;
     width: 8px !important;
-    height: 2px !important; /* Horizontal sleek progress tick mark instead of circle */
+    height: 2px !important;
+    /* Horizontal sleek progress tick mark instead of circle */
     background-color: var(--cc-border-strong, #aa8f7d) !important;
     border: none !important;
     border-radius: 1px !important;
@@ -2208,15 +2155,13 @@ body.admin-premium-shell .sidebar .sidebar-sub a.sidebar-flow-item[class*="activ
 }
 
 /* 52. Align and standardize filter dropdowns and action buttons to be exactly the same size and height (38px) */
-body.admin-premium-shell :is(.supplier-page, .ingredient-page, .admin-page-body) :is(
-    .ingredient-filter-actions .ingredient-btn,
+body.admin-premium-shell :is(.supplier-page, .ingredient-page, .admin-page-body) :is(.ingredient-filter-actions .ingredient-btn,
     .supplier-filter-actions .supplier-btn,
     .ingredient-filter-actions button,
     .supplier-filter-actions button,
     .supplier-filter-actions a,
     #btnReset,
-    #btnFilter
-) {
+    #btnFilter) {
     height: 38px !important;
     min-height: 38px !important;
     max-height: 38px !important;
@@ -2235,12 +2180,10 @@ body.admin-premium-shell :is(.supplier-page, .ingredient-page, .admin-page-body)
     line-height: 1 !important;
 }
 
-body.admin-premium-shell :is(.supplier-page, .ingredient-page, .admin-page-body) :is(
-    .ingredient-filter-field select,
+body.admin-premium-shell :is(.supplier-page, .ingredient-page, .admin-page-body) :is(.ingredient-filter-field select,
     .supplier-filter-field select,
     select#statusFilter,
-    select#supplierStatusFilter
-) {
+    select#supplierStatusFilter) {
     height: 38px !important;
     min-height: 38px !important;
     max-height: 38px !important;
@@ -2372,7 +2315,8 @@ body .swal2-container,
 }
 
 body.admin-premium-shell .ai-import-page {
-    padding: 0 !important; /* Reset padding to 0, exactly matching Category and Dashboard pages */
+    padding: 0 !important;
+    /* Reset padding to 0, exactly matching Category and Dashboard pages */
     min-height: auto !important;
     box-sizing: border-box !important;
     width: 100% !important;
@@ -2455,16 +2399,14 @@ body.admin-premium-shell .analytics-page {
     box-sizing: border-box !important;
 }
 
-.admin-premium-refresh .admin-page-body .ai-import-header > * {
+.admin-premium-refresh .admin-page-body .ai-import-header>* {
     position: relative !important;
     z-index: 2 !important;
 }
 
 /* Synchronize header heights to match Category header standard (162px) on desktop viewports */
 @media (min-width: 1025px) {
-    .admin-premium-refresh .admin-page-body :is(
-        .category-page-header, .analytics-header, .ai-import-header
-    ) {
+    .admin-premium-refresh .admin-page-body :is(.category-page-header, .analytics-header, .ai-import-header) {
         height: 162px !important;
         min-height: 162px !important;
         max-height: 162px !important;
@@ -2545,11 +2487,12 @@ body.admin-premium-shell :is(.rb-modal, .modal-content) .form-label {
 
 /* Restrict modal widths to look compact, neat, and elegant on desktop */
 @media (min-width: 576px) {
+
     /* Category Modals */
     body.admin-premium-shell :is(#createCategoryModal, #editCategoryModal) .modal-dialog {
         max-width: 460px !important;
     }
-    
+
     /* Size Modals */
     body.admin-premium-shell :is(#createModal, #editModal) .modal-dialog {
         max-width: 540px !important;
@@ -2562,12 +2505,11 @@ body.admin-premium-shell :is(.rb-modal, .modal-content) .form-label {
 }
 
 /* Restructure and override all default white backgrounds to Category-standard warm cream (#FAF6F2) */
-body.admin-premium-shell :is(
-    .card, 
-    .cc-card, 
-    .rb-card, 
-    .table-card, 
-    .preview-card, 
+body.admin-premium-shell :is(.card,
+    .cc-card,
+    .rb-card,
+    .table-card,
+    .preview-card,
     .history-card,
     .summary-card,
     .drink-summary-card,
@@ -2583,25 +2525,21 @@ body.admin-premium-shell :is(
     .topping-admin-page .main-card,
     .size-admin-page .main-card,
     .drink-toolbar,
-    .catalog-list-toolbar
-) {
+    .catalog-list-toolbar) {
     background: #FAF6F2 !important;
     background-color: #FAF6F2 !important;
     border-color: #E9DED5 !important;
 }
 
-body.admin-premium-shell :is(
-    .card-body, 
+body.admin-premium-shell :is(.card-body,
     .rb-card-body,
-    .modal-body
-) {
+    .modal-body) {
     background: transparent !important;
     background-color: transparent !important;
 }
 
-body.admin-premium-shell :is(
-    .table, 
-    .preview-table, 
+body.admin-premium-shell :is(.table,
+    .preview-table,
     .preview-row,
     .category-table,
     .drink-table,
@@ -2611,15 +2549,13 @@ body.admin-premium-shell :is(
     tbody,
     tr,
     td,
-    th
-) {
+    th) {
     background-color: #FAF6F2 !important;
     background: #FAF6F2 !important;
 }
 
-body.admin-premium-shell :is(
-    input:not([type="checkbox"]):not([type="radio"]), 
-    select, 
+body.admin-premium-shell :is(input:not([type="checkbox"]):not([type="radio"]),
+    select,
     textarea,
     .form-control,
     .form-select,
@@ -2674,8 +2610,7 @@ body.admin-premium-shell :is(
     .session-readonly-banner,
     .pagination button:not(.active),
     .drink-pagination,
-    .catalog-pagination
-) {
+    .catalog-pagination) {
     background-color: #FAF6F2 !important;
     background: #FAF6F2 !important;
     border-color: #E9DED5 !important;
@@ -2687,8 +2622,7 @@ body.admin-premium-shell :is(.modal-content, .rb-modal) {
 }
 
 /* Force all page header cards to use the standard cream gradient (no white highlights) */
-body.admin-premium-shell :is(
-    .cc-page-hero, .cc-page-header, .analytics-header,
+body.admin-premium-shell :is(.cc-page-hero, .cc-page-header, .analytics-header,
     .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
     .ops-page-header, .notification-page-header, .category-page-header,
     .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
@@ -2696,23 +2630,20 @@ body.admin-premium-shell :is(
     .cc-warehouse-header, .inventory-header, .reorder-header,
     .notification-header, .drink-form-heading, .ai-import-header,
     .topping-page-heading, .topping-page-header, .size-page-heading,
-    .size-page-header, .ingredient-page-heading, .ingredient-page-header
-) {
-    background: radial-gradient(circle at 92% 4%, rgba(201, 158, 125, 0.12), transparent 280px), 
-                linear-gradient(135deg, #fffdfb 0%, #faf6f2 54%, #f7f4f0 100%) !important;
+    .size-page-header, .ingredient-page-heading, .ingredient-page-header) {
+    background: radial-gradient(circle at 92% 4%, rgba(201, 158, 125, 0.12), transparent 280px),
+        linear-gradient(135deg, #fffdfb 0%, #faf6f2 54%, #f7f4f0 100%) !important;
     border-color: #E9DED5 !important;
 }
 
 /* Force all list/table card headers to have a cream background instead of white */
-body.admin-premium-shell :is(
-    .drink-list-heading,
+body.admin-premium-shell :is(.drink-list-heading,
     .supplier-list-heading,
     .ingredient-list-heading,
     .uc-list-heading,
     .category-list-heading,
     [class*="-list-heading"],
-    [class*="-list-header"]
-) {
+    [class*="-list-header"]) {
     background: #FAF6F2 !important;
     background-color: #FAF6F2 !important;
     border-bottom: 1px solid var(--cc-border, #E9DED5) !important;
@@ -2779,8 +2710,7 @@ body.admin-premium-shell :is(.offcanvas-body, .sm-drawer-body, .pf-drawer-body, 
 }
 
 /* Force all header circle decoration lines to be a warm cream/beige */
-body.admin-premium-shell :is(
-    .cc-page-hero, .cc-page-header, .analytics-header,
+body.admin-premium-shell :is(.cc-page-hero, .cc-page-header, .analytics-header,
     .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
     .ops-page-header, .notification-page-header, .category-page-header,
     .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
@@ -2788,10 +2718,8 @@ body.admin-premium-shell :is(
     .cc-warehouse-header, .inventory-header, .reorder-header,
     .notification-header, .drink-form-heading, .ai-import-header,
     .topping-page-heading, .topping-page-header, .size-page-heading,
-    .size-page-header, .ingredient-page-heading, .ingredient-page-header
-)::before,
-body.admin-premium-shell :is(
-    .cc-page-hero, .cc-page-header, .analytics-header,
+    .size-page-header, .ingredient-page-heading, .ingredient-page-header)::before,
+body.admin-premium-shell :is(.cc-page-hero, .cc-page-header, .analytics-header,
     .admin-page-header, .page-header, .staff-page-header, .perm-page-header,
     .ops-page-header, .notification-page-header, .category-page-header,
     .drink-page-header, .admin-wo-hero, .rb-page-header, .po-title-section,
@@ -2799,8 +2727,7 @@ body.admin-premium-shell :is(
     .cc-warehouse-header, .inventory-header, .reorder-header,
     .notification-header, .drink-form-heading, .ai-import-header,
     .topping-page-heading, .topping-page-header, .size-page-heading,
-    .size-page-header, .ingredient-page-heading, .ingredient-page-header
-)::after {
+    .size-page-header, .ingredient-page-heading, .ingredient-page-header)::after {
     border-color: rgba(180, 130, 90, 0.22) !important;
 }
 
@@ -2825,11 +2752,13 @@ body.admin-premium-shell input[type="file"] {
     min-height: 46px !important;
     padding: 4px !important;
     padding-right: 12px !important;
-    background-color: #70482f !important; /* Rich coffee brown background */
+    background-color: #70482f !important;
+    /* Rich coffee brown background */
     background: #70482f !important;
     border: 1.5px solid #5c3a21 !important;
     border-radius: 12px !important;
-    color: #FAF6F2 !important; /* Cream text color for high contrast readability */
+    color: #FAF6F2 !important;
+    /* Cream text color for high contrast readability */
     font-size: 13px !important;
     font-weight: 600 !important;
     line-height: 36px !important;
@@ -2846,7 +2775,8 @@ body.admin-premium-shell input[type="file"]:focus,
 body.admin-premium-shell input[type="file"].form-control:focus-visible,
 body.admin-premium-shell input[type="file"]:focus-visible {
     border-color: #3d2418 !important;
-    background-color: #5c3a21 !important; /* Slightly darker brown on focus */
+    background-color: #5c3a21 !important;
+    /* Slightly darker brown on focus */
     background: #5c3a21 !important;
     outline: none !important;
     box-shadow: 0 0 0 3px rgba(112, 72, 47, 0.25) !important;
@@ -2859,11 +2789,13 @@ body.admin-premium-shell input[type="file"]:focus-visible {
 body.admin-premium-shell input[type="file"].form-control::file-selector-button,
 body.admin-premium-shell input[type="file"]::file-selector-button {
     height: 36px !important;
-    padding: 0 14px !important; /* Compact padding to prevent overflow in narrow column layouts */
+    padding: 0 14px !important;
+    /* Compact padding to prevent overflow in narrow column layouts */
     margin: 0 10px 0 0 !important;
     border: none !important;
     border-radius: 8px !important;
-    background: linear-gradient(135deg, #4d311e, #2e1a0f) !important; /* Elegant dark chocolate gradient */
+    background: linear-gradient(135deg, #4d311e, #2e1a0f) !important;
+    /* Elegant dark chocolate gradient */
     color: #ffffff !important;
     font-weight: 700 !important;
     font-size: 12.5px !important;
@@ -2916,20 +2848,20 @@ body.admin-premium-shell :is(.preview-img, #edit-preview, #create-preview, .img-
     color: #8c7b70 !important;
     border: 1.5px dashed #d8c5b6 !important;
     border-radius: inherit !important;
-    font-size: 12px !important; /* Slightly smaller to fit smaller thumbnail sizes */
+    font-size: 12px !important;
+    /* Slightly smaller to fit smaller thumbnail sizes */
     font-weight: 600 !important;
     box-sizing: border-box !important;
     box-shadow: inset 0 2px 8px rgba(32, 24, 18, 0.03) !important;
-    white-space: nowrap !important; /* CRITICAL FIX: prevents text from wrapping to the next line */
+    white-space: nowrap !important;
+    /* CRITICAL FIX: prevents text from wrapping to the next line */
     overflow: hidden !important;
     text-overflow: ellipsis !important;
 }
 
 /* Unify primary add/action buttons in headers to use the premium coffee-brown theme */
-body.admin-premium-shell :is(
-    .size-page-heading, .topping-page-heading, .topping-page-header, .size-page-header,
-    .ops-header, .category-page-header, .drink-page-header, .ingredient-page-header
-) .ops-actions :is(.btn-orange, .btn-primary),
+body.admin-premium-shell :is(.size-page-heading, .topping-page-heading, .topping-page-header, .size-page-header,
+    .ops-header, .category-page-header, .drink-page-header, .ingredient-page-header) .ops-actions :is(.btn-orange, .btn-primary),
 body.admin-premium-shell :is(.ops-actions, .category-header, .drink-header-actions) :is(.btn-orange, .btn-primary, [class*="-primary-btn"]) {
     background-color: var(--cc-brown-600, #70482f) !important;
     background: var(--cc-brown-600, #70482f) !important;
@@ -2938,10 +2870,8 @@ body.admin-premium-shell :is(.ops-actions, .category-header, .drink-header-actio
     box-shadow: 0 4px 12px rgba(112, 72, 47, 0.18) !important;
 }
 
-body.admin-premium-shell :is(
-    .size-page-heading, .topping-page-heading, .topping-page-header, .size-page-header,
-    .ops-header, .category-page-header, .drink-page-header, .ingredient-page-header
-) .ops-actions :is(.btn-orange, .btn-primary):hover,
+body.admin-premium-shell :is(.size-page-heading, .topping-page-heading, .topping-page-header, .size-page-header,
+    .ops-header, .category-page-header, .drink-page-header, .ingredient-page-header) .ops-actions :is(.btn-orange, .btn-primary):hover,
 body.admin-premium-shell :is(.ops-actions, .category-header, .drink-header-actions) :is(.btn-orange, .btn-primary, [class*="-primary-btn"]):hover {
     background-color: var(--cc-brown-900, #3d2418) !important;
     background: var(--cc-brown-900, #3d2418) !important;
@@ -2968,33 +2898,21 @@ body.admin-premium-shell #currentToppingBadge {
     display: inline !important;
 }
 
+/* Custom styling overrides with high specificity for Production BOM pages (Recipe and Production Order Edit & Details) to prevent clipping and align breadcrumbs */
+body.admin-premium-shell .admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) .production-bom-page {
+    margin-top: 16px !important;
+}
 
+body.admin-premium-shell .admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) .production-bom-page :is(.cc-page-hero, .cc-page-header) {
+    position: relative !important;
+    min-height: 140px !important;
+    padding-top: 24px !important;
+    padding-bottom: 24px !important;
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+body.admin-premium-shell .admin-premium-refresh .admin-page-body:not(:has(.ai-import-page)) .production-bom-page :is(.cc-page-hero, .cc-page-header) :is(.cc-page-hero__eyebrow, .analytics-eyebrow, .cc-page-kicker, .drink-eyebrow, .shift-page-kicker, .supplier-eyebrow, .store-eyebrow, .perm-eyebrow, .ops-eyebrow, .category-eyebrow) {
+    position: static !important;
+    display: inline-flex !important;
+    margin-top: 0 !important;
+    margin-bottom: 12px !important;
+}

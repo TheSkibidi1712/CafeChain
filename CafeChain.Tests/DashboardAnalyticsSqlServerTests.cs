@@ -209,9 +209,9 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.Vouchers;", 3L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.WheelConfigs WHERE Name=N'DEMO_COVERAGE_V17_WHEEL';", 0L);
+            "SELECT COUNT_BIG(1) FROM dbo.WheelConfigs WHERE Name=N'COVERAGE_V17_WHEEL';", 0L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.RatingImages WHERE PublicId=N'demo_coverage_v17_rating';", 0L);
+            "SELECT COUNT_BIG(1) FROM dbo.RatingImages WHERE PublicId=N'coverage_v17_rating';", 0L);
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.RolePermissions rp JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE p.Code=N'App.AdminDashboard' AND r.Name IN(N'Chủ doanh nghiệp',N'Quản lý vùng',N'Quản lý chi nhánh',N'Kế toán/kho');", 4L);
         await AssertScalarAsync(connection,
@@ -227,9 +227,9 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.RolePermissions rp JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE p.Code=N'Restock.Create' AND r.Name IN(N'Quản lý chi nhánh',N'Kế toán/kho');", 2L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.Orders WHERE Source=N'DEMO_DASHBOARD_V13';", 6L);
+            "SELECT COUNT_BIG(1) FROM dbo.Orders WHERE Source=N'DASHBOARD_V13';", 6L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.Payments p JOIN dbo.Orders o ON o.OrderId=p.OrderId WHERE o.Source=N'DEMO_DASHBOARD_V13' AND p.CashSessionId IS NOT NULL;", 0L);
+            "SELECT COUNT_BIG(1) FROM dbo.Payments p JOIN dbo.Orders o ON o.OrderId=p.OrderId WHERE o.Source=N'DASHBOARD_V13' AND p.CashSessionId IS NOT NULL;", 0L);
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.WorkShifts WHERE StoreId=1 AND StartTimeUtc IN ('2026-01-14T23:00:00','2026-01-15T05:00:00','2026-01-15T23:00:00');", 3L);
         await AssertScalarAsync(connection,
@@ -251,29 +251,29 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.ProductionRuns WHERE ProductionRunId BETWEEN 1 AND 11;", 11L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1';", 30L);
+            "SELECT COUNT_BIG(1) FROM dbo.Orders WHERE Source=N'AI_DASHBOARD_ROLLING_V1';", 30L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND StoreId=1;", 15L);
+            "SELECT COUNT_BIG(1) FROM dbo.Orders WHERE Source=N'AI_DASHBOARD_ROLLING_V1' AND StoreId=1;", 15L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND StoreId=3;", 15L);
+            "SELECT COUNT_BIG(1) FROM dbo.Orders WHERE Source=N'AI_DASHBOARD_ROLLING_V1' AND StoreId=3;", 15L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND OrderStatusId=6;", 7L);
+            "SELECT COUNT_BIG(1) FROM dbo.Orders WHERE Source=N'AI_DASHBOARD_ROLLING_V1' AND OrderStatusId=6;", 7L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.OrderRefunds r JOIN dbo.Orders o ON o.OrderId=r.OrderId WHERE o.Source=N'DEMO_AI_DASHBOARD_ROLLING_V1';", 4L);
+            "SELECT COUNT_BIG(1) FROM dbo.OrderRefunds r JOIN dbo.Orders o ON o.OrderId=r.OrderId WHERE o.Source=N'AI_DASHBOARD_ROLLING_V1';", 4L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.OrderDetails od JOIN dbo.Orders o ON o.OrderId=od.OrderId WHERE o.Source=N'DEMO_AI_DASHBOARD_ROLLING_V1';", 30L);
+            "SELECT COUNT_BIG(1) FROM dbo.OrderDetails od JOIN dbo.Orders o ON o.OrderId=od.OrderId WHERE o.Source=N'AI_DASHBOARD_ROLLING_V1';", 30L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.Payments p JOIN dbo.Orders o ON o.OrderId=p.OrderId WHERE o.Source=N'DEMO_AI_DASHBOARD_ROLLING_V1';", 23L);
+            "SELECT COUNT_BIG(1) FROM dbo.Payments p JOIN dbo.Orders o ON o.OrderId=p.OrderId WHERE o.Source=N'AI_DASHBOARD_ROLLING_V1';", 23L);
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.OrderDetails od LEFT JOIN dbo.Orders o ON o.OrderId=od.OrderId WHERE od.Note=N'AI Dashboard rolling analytics fixture' AND o.OrderId IS NULL;", 0L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.Payments p LEFT JOIN dbo.Orders o ON o.OrderId=p.OrderId WHERE p.TransactionCode LIKE N'DEMO_AI_DASHBOARD_ROLLING_V1_%' AND o.OrderId IS NULL;", 0L);
+            "SELECT COUNT_BIG(1) FROM dbo.Payments p LEFT JOIN dbo.Orders o ON o.OrderId=p.OrderId WHERE p.TransactionCode LIKE N'AI_DASHBOARD_ROLLING_V1_%' AND o.OrderId IS NULL;", 0L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.RestockRequests WHERE Note LIKE N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S%';", 2L);
+            "SELECT COUNT_BIG(1) FROM dbo.RestockRequests WHERE Note LIKE N'AI_DASHBOARD_ROLLING_V1_RESTOCK_S%';", 2L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.PurchaseOrders WHERE Note=N'DEMO_AI_DASHBOARD_ROLLING_V1';", 2L);
+            "SELECT COUNT_BIG(1) FROM dbo.PurchaseOrders WHERE Note=N'AI_DASHBOARD_ROLLING_V1';", 2L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.StoreInventories si JOIN dbo.Ingredients i ON i.IngredientId=si.IngredientId WHERE si.StoreId=1 AND i.Code=N'DEMO_ING_CHIA_SEED' AND si.MinStockLevel-(si.AvailableQty-si.ReservedQty)=10000;", 1L);
+            "SELECT COUNT_BIG(1) FROM dbo.StoreInventories si JOIN dbo.Ingredients i ON i.IngredientId=si.IngredientId WHERE si.StoreId=1 AND i.Code=N'ING_CHIA_SEED' AND si.MinStockLevel-(si.AvailableQty-si.ReservedQty)=10000;", 1L);
 
         await using (var reorderContext = CreateContext())
         {
@@ -290,7 +290,7 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
 
             Assert.True(calculated.IsSuccess, calculated.Message);
             var chia = Assert.Single(calculated.Data!.Items.Where(x =>
-                x.IngredientCode == "DEMO_ING_CHIA_SEED"));
+                x.IngredientCode == "ING_CHIA_SEED"));
             Assert.Equal(ReorderRecommendationLevels.Urgent, chia.SuggestionStatus);
             Assert.True(chia.AverageDailyConsumption > 0m);
             Assert.NotNull(chia.IngredientSupplierId);
@@ -343,7 +343,7 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
             var reorderRows = Assert.IsAssignableFrom<IReadOnlyList<InventoryReorderRow>>(
                 widgets.Widgets[DashboardAnalyticsWidget.InventoryReorderSuggestions].Rows);
             Assert.Contains(reorderRows, x =>
-                x.IngredientCode == "DEMO_ING_CHIA_SEED"
+                x.IngredientCode == "ING_CHIA_SEED"
                 && x.SuggestionStatus == ReorderRecommendationLevels.Urgent
                 && x.FinalSuggestedQuantity > 0m);
         }
