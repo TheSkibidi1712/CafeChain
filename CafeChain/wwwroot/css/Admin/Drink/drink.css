@@ -384,7 +384,7 @@
 .drink-tab.active {
     border-color: var(--cc-brown-600);
     background: var(--cc-brown-600);
-    color: var(--cc-text-inverse);
+    color: #FFFFFF !important;
     text-decoration: none;
 }
 
