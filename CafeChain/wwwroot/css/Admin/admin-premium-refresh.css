@@ -2562,16 +2562,48 @@ body.admin-premium-shell :is(input:not([type="checkbox"]):not([type="radio"]),
     .catalog-search-box input,
     .drink-search-box input,
     .drink-page-size select,
-    .drink-status-tabs a:not(.active),
-    .catalog-filter-tabs a:not(.active),
-    .catalog-filter-tab:not(.active)) {
+    .drink-status-tabs a:not(.active):not(:hover):not(:focus-visible),
+    .catalog-filter-tabs a:not(.active):not(:hover):not(:focus-visible),
+    .catalog-filter-tab:not(.active):not(:hover):not(:focus-visible)
+) {
     background-color: #FAF6F2 !important;
     background: #FAF6F2 !important;
     border-color: #D8C5B6 !important;
 }
 
-body.admin-premium-shell :is(.pagination,
-    .category-table-footer,
+/* Drink & Catalog Filter Tabs - Active & Hover States */
+body.admin-premium-shell :is(
+    .drink-status-tabs a.active,
+    .drink-tab.active,
+    .catalog-filter-tabs a.active,
+    .catalog-filter-tab.active
+) {
+    background-color: var(--cc-brown-600, #70482f) !important;
+    background: var(--cc-brown-600, #70482f) !important;
+    border-color: var(--cc-brown-600, #70482f) !important;
+    color: #ffffff !important;
+}
+
+body.admin-premium-shell :is(
+    .drink-status-tabs a:hover,
+    .drink-status-tabs a:focus-visible,
+    .drink-tab:hover,
+    .drink-tab:focus-visible,
+    .catalog-filter-tabs a:hover,
+    .catalog-filter-tabs a:focus-visible,
+    .catalog-filter-tab:hover,
+    .catalog-filter-tab:focus-visible
+) {
+    background-color: var(--cc-brown-700, #5c3f2b) !important;
+    background: var(--cc-brown-700, #5c3f2b) !important;
+    border-color: var(--cc-brown-700, #5c3f2b) !important;
+    color: #ffffff !important;
+    text-decoration: none !important;
+}
+
+body.admin-premium-shell :is(
+    .pagination, 
+    .category-table-footer, 
     .catalog-table-footer,
     .table-footer,
     .preview-toolbar,
@@ -2618,16 +2650,38 @@ body.admin-premium-shell :is(.drink-list-heading,
 }
 
 /* Sync all filter/action buttons inside headers to have a cream background and border */
-body.admin-premium-shell :is(.drink-filter-btn,
-    .drink-header-actions .btn:not(.drink-primary-btn),
-    .ops-actions .btn:not([class*="-primary-btn"]),
-    .cc-warehouse-actions .btn:not([class*="-primary-btn"]),
-    .btn-outline-secondary,
-    .btn-light) {
+body.admin-premium-shell :is(
+    .drink-filter-btn:not(:hover):not(:focus-visible),
+    .drink-header-actions .btn:not(.drink-primary-btn):not(:hover):not(:focus-visible),
+    .ops-actions .btn:not([class*="-primary-btn"]):not(:hover):not(:focus-visible),
+    .cc-warehouse-actions .btn:not([class*="-primary-btn"]):not(:hover):not(:focus-visible),
+    .btn-outline-secondary:not(:hover):not(:focus-visible),
+    .btn-light:not(:hover):not(:focus-visible)
+) {
     background-color: #FAF6F2 !important;
     background: #FAF6F2 !important;
     border-color: #D8C5B6 !important;
     color: var(--cc-text-secondary, #66584f) !important;
+}
+
+body.admin-premium-shell :is(
+    .drink-filter-btn:hover,
+    .drink-filter-btn:focus-visible,
+    .drink-header-actions .btn:not(.drink-primary-btn):hover,
+    .drink-header-actions .btn:not(.drink-primary-btn):focus-visible,
+    .ops-actions .btn:not([class*="-primary-btn"]):hover,
+    .ops-actions .btn:not([class*="-primary-btn"]):focus-visible,
+    .cc-warehouse-actions .btn:not([class*="-primary-btn"]):hover,
+    .cc-warehouse-actions .btn:not([class*="-primary-btn"]):focus-visible,
+    .btn-outline-secondary:hover,
+    .btn-outline-secondary:focus-visible,
+    .btn-light:hover,
+    .btn-light:focus-visible
+) {
+    background-color: #F4E9DF !important;
+    background: #F4E9DF !important;
+    border-color: #70482F !important;
+    color: #3D2418 !important;
 }
 
 /* Sync user profile card in topbar */
