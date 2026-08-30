@@ -119,7 +119,7 @@ public sealed class SupplierIntelligenceVietnamesePresentationTests
         var view = File.ReadAllText(Path.Combine(root, "CafeChain", "Areas", "Admin", "Views",
             "AdminPurchaseAdviceConsolidation", "Index.cshtml"));
 
-        Assert.Contains("DEMO_SUPPLIER_COMPARISON_HISTORY_V1", seed, StringComparison.Ordinal);
+        Assert.Contains("SUPPLIER_COMPARISON_HISTORY_V1", seed, StringComparison.Ordinal);
         Assert.Contains("(1,155),(2,125),(3,95),(4,65),(5,35)", seed, StringComparison.Ordinal);
         Assert.Contains("receiptLine.InventoryTransactionId IS NULL", seed, StringComparison.Ordinal);
         Assert.Contains("NOT EXISTS", seed, StringComparison.Ordinal);
@@ -227,8 +227,8 @@ public sealed class SupplierIntelligenceVietnamesePresentationTests
         {
             SupplierId = supplierId,
             Name = supplierId == 35
-                ? "Đối tác Demo Topping & Syrup TP.HCM"
-                : "Đối tác Demo Topping & Syrup Bình Dương",
+                ? "Đối tác Topping & Syrup TP.HCM"
+                : "Đối tác Topping & Syrup Bình Dương",
             Active = true
         }
     };

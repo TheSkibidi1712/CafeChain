@@ -15,11 +15,11 @@ public sealed class SeedAllPackagingUnitContractTests
             "DECLARE @UnitConversionSeed TABLE",
             "SET IDENTITY_INSERT dbo.UnitConversions ON;");
 
-        Assert.Contains("(14, N'DEMO_CARTON'", sql, StringComparison.Ordinal);
+        Assert.Contains("(14, N'CARTON'", sql, StringComparison.Ordinal);
         foreach (var ingredientId in PackagingIngredientIds)
         {
             Assert.Matches(
-                new Regex($@"\({ingredientId},\s*N'DEMO_ING_[^']+',\s*N'[^']+',\s*9,\s*1\)"),
+                new Regex($@"\({ingredientId},\s*N'ING_[^']+',\s*N'[^']+',\s*9,\s*1\)"),
                 sql);
         }
 
