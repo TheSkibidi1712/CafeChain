@@ -2115,19 +2115,25 @@
 
 /* ---- Purchase Order Panel (Synchronized with History/Permission) ---- */
 .purchase-order-index-page .po-panel {
-    overflow: hidden;
-    border: 1px solid var(--cc-border, #E9DED4);
-    border-radius: var(--cc-radius-card, 16px);
-    background: #FFFDFB;
-    box-shadow: var(--cc-shadow-sm);
-    min-height: 560px;
-    margin-top: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    min-height: auto;
+    margin-top: 20px;
 }
 
 .purchase-order-index-page .po-filter-toolbar {
-    padding: 18px 22px;
-    background: #FFFDFB;
-    border-left: 3px solid var(--po-accent);
+    padding: 16px 22px;
+    background: var(--cc-surface-raised, #FFFFFF);
+    border: 1px solid var(--cc-border, #E9DED4);
+    border-radius: var(--cc-radius-card, 16px);
+    box-shadow: var(--cc-shadow-xs, 0 1px 3px rgba(0,0,0,0.04));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .purchase-order-index-page .po-filter-grid {
@@ -2142,31 +2148,53 @@
     gap: 12px;
 }
 
+.purchase-order-index-page .po-field label {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--cc-brown-800, #4D3021);
+    white-space: nowrap;
+    margin-bottom: 0;
+}
+
 .purchase-order-index-page .po-select {
-    min-height: 44px;
-    border-color: #D8C5B6;
+    min-height: 40px;
+    height: 40px;
+    border: 1px solid var(--cc-border-strong, #D8C5B6);
     border-radius: var(--cc-radius-control, 10px);
-    background-color: #FFFDFB;
-    color: #201812;
+    background-color: var(--cc-surface, #FFFDFB);
+    color: var(--cc-text, #201812);
     padding: 0 14px;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
+    font-weight: 600;
     transition: all 0.2s ease;
-    border: 1px solid #D8C5B6;
     min-width: 240px;
+    cursor: pointer;
+}
+
+.purchase-order-index-page .po-select:hover {
+    border-color: var(--cc-brown-600, #70482F);
+    background-color: var(--cc-surface-raised, #FFFFFF);
 }
 
 .purchase-order-index-page .po-select:focus {
-    border-color: #70482F;
+    border-color: var(--cc-brown-600, #70482F);
     outline: none;
-    box-shadow: 0 0 0 3px rgba(112, 72, 47, 0.22);
+    box-shadow: 0 0 0 3px rgba(112, 72, 47, 0.2);
 }
 
 .purchase-order-index-page .po-empty-wrap {
     padding: 40px 20px;
+    background: var(--cc-surface-raised, #FFFFFF);
+    border: 1px solid var(--cc-border, #E9DED4);
+    border-radius: var(--cc-radius-card, 16px);
+    box-shadow: var(--cc-shadow-sm);
 }
 
 .purchase-order-index-page .po-table-wrap {
-    overflow-x: auto;
+    overflow: hidden;
     width: 100%;
-    border-top: 3px solid var(--cc-brown-600, #70482F);
+    border: 1px solid var(--cc-border, #E9DED4);
+    border-radius: var(--cc-radius-card, 16px);
+    background: var(--cc-surface-raised, #FFFFFF);
+    box-shadow: var(--cc-shadow-sm);
 }
