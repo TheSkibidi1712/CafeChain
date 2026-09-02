@@ -1,18 +1,20 @@
 @using CafeChain.Application.DTOs.Admin.Procurement
 @using CafeChain.ViewModels.Admin.Shared
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<ProcurementResource> L
 @model UpdatePurchaseAdviceRequest
 @{
-    ViewData["Title"] = "Sửa đề nghị mua";
+    ViewData["Title"] = L["PurchaseAdvice.Edit.Title"];
     var detail = (PurchaseAdviceDetailDto)ViewBag.Detail;
 }
 @section Styles { <link rel="stylesheet" href="~/css/Admin/PurchaseAdvice/purchase-advice.css" asp-append-version="true" /> }
 <div class="pa-page pa-advice-form-page cc-warehouse-page">
-    <header class="pa-header cc-warehouse-header cc-warehouse-header--compact"><div><div class="pa-eyebrow">@detail.AdviceNumber</div><h1>Sửa đề nghị mua hàng nháp</h1><p class="pa-subtitle">Nguồn yêu cầu nhập được giữ nguyên; hệ thống kiểm tra lại số lượng còn có thể mua khi lưu.</p></div><a class="pa-action" asp-action="Details" asp-route-id="@Model.PurchaseAdviceId"><i class="fas fa-arrow-left"></i> Quay lại</a></header>
+    <header class="pa-header cc-warehouse-header cc-warehouse-header--compact"><div><div class="pa-eyebrow">@detail.AdviceNumber</div><h1>@L["PurchaseAdvice.Edit.Heading"]</h1><p class="pa-subtitle">@L["PurchaseAdvice.Edit.Subtitle"]</p></div><a class="pa-action" asp-action="Details" asp-route-id="@Model.PurchaseAdviceId"><i class="fas fa-arrow-left"></i> @L["PurchaseAdvice.Edit.Back"]</a></header>
     <div asp-validation-summary="All" class="pa-alert cc-warehouse-alert cc-warehouse-alert-danger" role="alert"></div>
     <form method="post">
         @Html.AntiForgeryToken()<input type="hidden" asp-for="PurchaseAdviceId" /><input type="hidden" asp-for="RowVersion" />
-    <section class="pa-band"><div class="pa-filter-grid pa-filter-grid-three"><div class="pa-field"><label>Ngày cần hàng</label><input asp-for="NeededByDate" type="date" lang="vi" required /><span class="pa-muted">Ngày/tháng/năm</span></div><div class="pa-field"><label>Ưu tiên</label><select asp-for="Priority"><option value="NORMAL">Bình thường</option><option value="HIGH">Cao</option><option value="URGENT">Khẩn cấp</option></select></div><div class="pa-field"><label>Ghi chú</label><input asp-for="Note" maxlength="1000" /></div></div></section>
-        <div class="pa-table-wrap cc-warehouse-table-shell"><table class="pa-table"><thead><tr><th>Nguồn</th><th>Phân bổ</th><th>Còn khả dụng khi sửa</th><th>Số lượng</th><th>Ngày cần / ghi chú</th></tr></thead><tbody>
+    <section class="pa-band"><div class="pa-filter-grid pa-filter-grid-three"><div class="pa-field"><label>@L["PurchaseAdvice.NeededBy"]</label><input asp-for="NeededByDate" type="date" lang="vi" required /><span class="pa-muted">@L["PurchaseAdvice.Create.DateHelp"]</span></div><div class="pa-field"><label>@L["Common.Priority"]</label><select asp-for="Priority"><option value="NORMAL">@L["Priority.NORMAL"]</option><option value="HIGH">@L["Priority.HIGH"]</option><option value="URGENT">@L["Priority.URGENT"]</option></select></div><div class="pa-field"><label>@L["Common.Notes"]</label><input asp-for="Note" maxlength="1000" /></div></div></section>
+        <div class="pa-table-wrap cc-warehouse-table-shell"><table class="pa-table"><thead><tr><th>@L["PurchaseAdvice.Edit.ColSource"]</th><th>@L["PurchaseAdvice.Edit.ColAlloc"]</th><th>@L["PurchaseAdvice.Edit.ColAvailable"]</th><th>@L["PurchaseAdvice.Edit.ColQty"]</th><th>@L["PurchaseAdvice.Edit.ColNeedNote"]</th></tr></thead><tbody>
         @for (var i = 0; i < Model.Lines.Count; i++)
         {
             var source = detail.Lines.Single(x => x.PurchaseAdviceLineId == Model.Lines[i].PurchaseAdviceLineId);
@@ -22,7 +24,7 @@
                 ? source.RemainingToPurchaseProcurementQuantity!.Value
                 : source.RemainingToPurchaseQuantity;
             var unitName = AdminStatusDisplay.Unit(usesProcurement ? source.ProcurementUnitName : source.BaseUnitName);
-            <tr><td><strong>@source.IngredientName</strong><div class="pa-muted">@AdminStatusDisplay.RestockReference(source.RestockReferenceCode, source.RestockRequestId)</div><input type="hidden" asp-for="Lines[i].PurchaseAdviceLineId" /><input type="hidden" asp-for="Lines[i].RowVersion" /></td><td><div class="pa-muted">Điều chuyển @AdminStatusDisplay.Quantity(usesProcurement ? source.TransferAllocatedProcurementQuantity.GetValueOrDefault() : source.TransferAllocatedQuantity) @unitName · Đề nghị khác @AdminStatusDisplay.Quantity(usesProcurement ? source.ExistingPurchaseAdviceProcurementQuantity.GetValueOrDefault() : source.ExistingPurchaseAdviceQuantity) @unitName · Đã đặt hàng @AdminStatusDisplay.Quantity(usesProcurement ? source.ExistingPurchaseOrderProcurementQuantity.GetValueOrDefault() : source.ExistingPurchaseOrderQuantity) @unitName</div></td><td><strong>@AdminStatusDisplay.Quantity(available) @unitName</strong></td><td class="pa-field">
+            <tr><td><strong>@source.IngredientName</strong><div class="pa-muted">@AdminStatusDisplay.RestockReference(source.RestockReferenceCode, source.RestockRequestId)</div><input type="hidden" asp-for="Lines[i].PurchaseAdviceLineId" /><input type="hidden" asp-for="Lines[i].RowVersion" /></td><td><div class="pa-muted">@L["PurchaseAdvice.Edit.AllocMeta", AdminStatusDisplay.Quantity(usesProcurement ? source.TransferAllocatedProcurementQuantity.GetValueOrDefault() : source.TransferAllocatedQuantity), unitName, AdminStatusDisplay.Quantity(usesProcurement ? source.ExistingPurchaseAdviceProcurementQuantity.GetValueOrDefault() : source.ExistingPurchaseAdviceQuantity), AdminStatusDisplay.Quantity(usesProcurement ? source.ExistingPurchaseOrderProcurementQuantity.GetValueOrDefault() : source.ExistingPurchaseOrderQuantity)]</div></td><td><strong>@AdminStatusDisplay.Quantity(available) @unitName</strong></td><td class="pa-field">
                 @if (usesProcurement)
                 {
                     <input type="hidden" asp-for="Lines[i].RequestedPurchaseBaseQuantity" />
@@ -32,9 +34,9 @@
                 {
                     <input asp-for="Lines[i].RequestedPurchaseBaseQuantity" type="number" min="0.001" max="@available" step="0.001" />
                 }
-                </td><td><div class="pa-field"><input asp-for="Lines[i].NeededByDate" type="date" lang="vi" /><span class="pa-muted">Ngày/tháng/năm</span></div><div class="pa-field pa-field-spaced"><input asp-for="Lines[i].Note" maxlength="500" /></div></td></tr>
+                </td><td><div class="pa-field"><input asp-for="Lines[i].NeededByDate" type="date" lang="vi" /><span class="pa-muted">@L["PurchaseAdvice.Create.DateHelp"]</span></div><div class="pa-field pa-field-spaced"><input asp-for="Lines[i].Note" maxlength="500" /></div></td></tr>
         }
         </tbody></table></div>
-    <div class="pa-actions pa-actions-spaced"><button class="pa-action pa-action-primary" type="submit"><i class="fas fa-save"></i> Lưu thay đổi</button><a class="pa-action" asp-action="Details" asp-route-id="@Model.PurchaseAdviceId">Hủy</a></div>
+    <div class="pa-actions pa-actions-spaced"><button class="pa-action pa-action-primary" type="submit"><i class="fas fa-save"></i> @L["PurchaseAdvice.Edit.Save"]</button><a class="pa-action" asp-action="Details" asp-route-id="@Model.PurchaseAdviceId">@L["Common.Cancel"]</a></div>
     </form>
 </div>

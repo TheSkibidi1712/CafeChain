@@ -1,5 +1,7 @@
 @model CafeChain.ViewModels.Admin.InventoryDocuments.Create.AdminInventoryDocumentCreateVM
 @using CafeChain.Models.Enums.Inventory
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<InventoryResource> L
 
 @{
     var hideMoneySummary =
@@ -7,47 +9,47 @@
         || Model.Type == InventoryDocumentType.WASTE;
 }
 
-<section class="create-summary-strip" aria-label="Tổng hợp phiếu kho">
+<section class="create-summary-strip" aria-label="@L["InvDoc.Create.SummaryAria"]">
 
     <div class="create-summary-strip-head">
         <span class="create-summary-icon">
             <i class="fas fa-receipt"></i>
         </span>
         <div>
-            <span>Bước 3 · Tổng hợp phiếu</span>
-            <strong>Cập nhật theo chi tiết nguyên liệu</strong>
+            <span>@L["InvDoc.Create.Step3"]</span>
+            <strong>@L["InvDoc.Create.SummaryHint"]</strong>
         </div>
     </div>
 
     <div class="create-summary-list">
 
         <div class="create-summary-row">
-            <span>Dòng</span>
+            <span>@L["InvDoc.Create.Lines"]</span>
             <strong id="summaryItems">@Model.Summary.TotalItems</strong>
         </div>
 
         <div class="create-summary-row">
-            <span>Số lượng</span>
+            <span>@L["InvDoc.Qty.Default"]</span>
             <strong id="summaryQty">@Model.Summary.TotalQuantity.ToString("N0")</strong>
         </div>
 
         <div class="create-summary-row">
-            <span>Quy đổi base</span>
+            <span>@L["InvDoc.Create.BaseQty"]</span>
             <strong id="summaryBaseQty">@Model.Summary.BaseQuantityText</strong>
         </div>
 
         <div class="create-summary-row @(hideMoneySummary ? "d-none" : "")">
-            <span>Tổng tiền</span>
+            <span>@L["InvDoc.Summary.Total"]</span>
             <strong id="summaryTotal">@Model.Summary.TotalAmount.ToString("N0")</strong>
         </div>
 
         <div class="create-summary-row @(hideMoneySummary ? "d-none" : "")">
-            <span>VAT</span>
+            <span>@L["InvDoc.Summary.Vat"]</span>
             <strong id="summaryVat">@Model.Summary.VatAmount.ToString("N0")</strong>
         </div>
 
         <div class="create-summary-row create-summary-final @(hideMoneySummary ? "d-none" : "")">
-            <span>Thành tiền</span>
+            <span>@L["InvDoc.Summary.Final"]</span>
             <strong id="summaryFinal">@Model.Summary.FinalAmount.ToString("N0")</strong>
         </div>
 

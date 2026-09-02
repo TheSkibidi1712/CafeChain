@@ -3,6 +3,11 @@ let currentSizeName = ""; // 🔥 thêm dòng này
 let selectedDrinkId = 0;
 let drinkModalInstance = null;
 let priceModalInstance = null;
+const sizeCatalog = window.CafeChainUiCatalog.read('sizeUiCatalog');
+const sizeText = (key, values) => window.CafeChainUiCatalog.text(sizeCatalog, key, values);
+const sizeLocale = document.documentElement.dataset.culture || 'vi-VN';
+const sizeNumber = new Intl.NumberFormat(sizeLocale);
+const sizeCurrency = new Intl.NumberFormat(sizeLocale, { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
 
 function getSizeAntiForgeryToken() {
     return document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
@@ -26,14 +31,14 @@ function getSizeTypeLabel(value) {
     const normalized = normalizeSizeTypeValue(value);
 
     if (normalized === '1') {
-        return 'Ly';
+        return sizeText('Size.Cup');
     }
 
     if (normalized === '2') {
-        return 'Dung tích';
+        return sizeText('Size.Volume');
     }
 
-    return 'Chưa xác định';
+    return sizeText('Size.Js.Unknown');
 }
 
 // =========================
@@ -45,8 +50,8 @@ function renderDrinkUI(data) {
     let unassignedHtml = "";
 
     if (!data || data.length === 0) {
-        document.getElementById("assignedList").innerHTML = '<div class="text-center py-4 text-muted small"><i class="fas fa-info-circle me-1"></i>Không có dữ liệu đồ uống</div>';
-        document.getElementById("unassignedList").innerHTML = '<div class="text-center py-4 text-muted small"><i class="fas fa-info-circle me-1"></i>Không có dữ liệu đồ uống</div>';
+        document.getElementById("assignedList").innerHTML = `<div class="text-center py-4 text-muted small"><i class="fas fa-info-circle me-1"></i>${sizeText('Size.Js.NoDrinkData')}</div>`;
+        document.getElementById("unassignedList").innerHTML = `<div class="text-center py-4 text-muted small"><i class="fas fa-info-circle me-1"></i>${sizeText('Size.Js.NoDrinkData')}</div>`;
         return;
     }
 
@@ -54,8 +59,8 @@ function renderDrinkUI(data) {
 
         let image = d.imageUrl || "/Images/DrinkImages/no-image.jpg";
         let canAssign = d.canAssign !== false;
-        let assignmentBlockReason = d.assignmentBlockReason || "Size không phù hợp với loại sản phẩm";
-        let formattedPrice = Number(d.price || 0).toLocaleString('vi-VN');
+        let assignmentBlockReason = d.assignmentBlockReason || sizeText('Size.Js.Incompatible');
+        let formattedPrice = sizeCurrency.format(Number(d.price || 0));
 
         // ===== ĐÃ GÁN =====
         if (d.isAssigned) {
@@ -64,19 +69,19 @@ function renderDrinkUI(data) {
                     <img src="${image}" class="drink-img" alt="${d.name}" />
                     <div class="drink-info">
                         <h6 class="fw-bold text-dark mb-1 text-truncate" title="${d.name}">${d.name}</h6>
-                        <small class="text-muted d-block text-truncate mb-1">${d.categoryName || "Khác"} · ${d.productTypeName || ""}</small>
+                        <small class="text-muted d-block text-truncate mb-1">${d.categoryName || sizeText('Size.Js.Other')} · ${d.productTypeName || ""}</small>
                         <div class="d-flex align-items-center gap-2 mt-1">
-                            <span class="badge bg-light text-dark border fw-semibold">${formattedPrice} đ</span>
-                            <a href="/Admin/AdminDrinkProfitability" class="small text-decoration-none text-primary" title="Quản lý vốn & lợi nhuận">
-                                <i class="fas fa-edit me-1"></i>Giá
+                            <span class="badge bg-light text-dark border fw-semibold">${formattedPrice}</span>
+                            <a href="/Admin/AdminDrinkProfitability" class="small text-decoration-none text-primary" title="${sizeText('Size.Js.Profitability')}">
+                                <i class="fas fa-edit me-1"></i>${sizeText('Size.Js.Price')}
                             </a>
                         </div>
                     </div>
                     <div class="drink-action">
                         <button class="btn btn-sm ${d.active ? "btn-outline-danger" : "btn-outline-success"} text-nowrap px-2.5 py-1.5"
                                 onclick="toggleDrinkSize(${d.drinkSizeId})"
-                                title="${d.active ? "Tắt size cho đồ uống này" : "Kích hoạt lại size"}">
-                            <i class="fas ${d.active ? "fa-ban" : "fa-check"} me-1"></i>${d.active ? "Tắt" : "Bật"}
+                                title="${d.active ? sizeText('Size.Js.DisableHint') : sizeText('Size.Js.EnableHint')}">
+                            <i class="fas ${d.active ? "fa-ban" : "fa-check"} me-1"></i>${d.active ? sizeText('Size.Js.Disable') : sizeText('Size.Js.Enable')}
                         </button>
                     </div>
                 </div>
@@ -90,7 +95,7 @@ function renderDrinkUI(data) {
                     <img src="${image}" class="drink-img" alt="${d.name}" />
                     <div class="drink-info">
                         <h6 class="fw-bold text-dark mb-1 text-truncate" title="${d.name}">${d.name}</h6>
-                        <small class="text-muted d-block text-truncate mb-1">${d.categoryName || "Khác"} · ${d.productTypeName || ""}</small>
+                        <small class="text-muted d-block text-truncate mb-1">${d.categoryName || sizeText('Size.Js.Other')} · ${d.productTypeName || ""}</small>
                         ${!canAssign ? `<small class="text-danger d-block text-truncate" title="${assignmentBlockReason}"><i class="fas fa-exclamation-triangle me-1"></i>${assignmentBlockReason}</small>` : ''}
                     </div>
                     <div class="drink-action">
@@ -98,11 +103,11 @@ function renderDrinkUI(data) {
                             canAssign
                                 ? `<button class="btn btn-sm btn-orange text-nowrap px-3 py-1.5"
                                            onclick="openPriceModal(${d.drinkId})">
-                                       <i class="fas fa-plus me-1"></i>Gán
+                                       <i class="fas fa-plus me-1"></i>${sizeText('Size.Js.Assign')}
                                    </button>`
                                 : `<button class="btn btn-sm disabled-action-btn text-nowrap px-2 py-1.5"
                                            disabled title="${assignmentBlockReason}">
-                                       <i class="fas fa-lock me-1"></i>Không hợp lệ
+                                       <i class="fas fa-lock me-1"></i>${sizeText('Size.Js.Invalid')}
                                    </button>`
                         }
                     </div>
@@ -112,11 +117,11 @@ function renderDrinkUI(data) {
     });
 
     if (!assignedHtml) {
-        assignedHtml = '<div class="text-center py-4 text-muted small"><i class="fas fa-inbox d-block fa-2x mb-2 opacity-50"></i>Chưa có đồ uống nào được gán size này</div>';
+        assignedHtml = `<div class="text-center py-4 text-muted small"><i class="fas fa-inbox d-block fa-2x mb-2 opacity-50"></i>${sizeText('Size.Js.NoAssigned')}</div>`;
     }
 
     if (!unassignedHtml) {
-        unassignedHtml = '<div class="text-center py-4 text-muted small"><i class="fas fa-check-circle d-block fa-2x mb-2 text-success opacity-50"></i>Tất cả đồ uống phù hợp đã được gán</div>';
+        unassignedHtml = `<div class="text-center py-4 text-muted small"><i class="fas fa-check-circle d-block fa-2x mb-2 text-success opacity-50"></i>${sizeText('Size.Js.AllAssigned')}</div>`;
     }
 
     document.getElementById("assignedList").innerHTML = assignedHtml;
@@ -138,7 +143,7 @@ function openDrinkModal(sizeId, sizeName) {
 
     const titleEl = document.getElementById("drinkModalTitle");
     if (titleEl) {
-        titleEl.innerText = `Quản lý Đồ uống - Size ${sizeName}`;
+        titleEl.innerText = sizeText('Size.Js.ManageTitle', { name: sizeName });
     }
 
     const badgeEl = document.getElementById("currentSizeBadge");
@@ -154,7 +159,7 @@ function openDrinkModal(sizeId, sizeName) {
             return res.json();
         })
         .then(data => renderDrinkUI(data))
-        .catch(err => toast(err.message || "Lỗi tải dữ liệu", "error"));
+        .catch(err => toast(err.message || sizeText('Size.Js.LoadError'), "error"));
 }
 
 // =========================
@@ -188,7 +193,7 @@ function updatePricePreview(val) {
     const preview = document.getElementById("priceFormattedPreview");
     if (!preview) return;
     const num = Number(val || 0);
-    preview.innerText = num.toLocaleString('vi-VN') + " VNĐ";
+    preview.innerText = sizeNumber.format(num) + " VND";
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -208,7 +213,7 @@ function confirmAssign() {
     const price = Number(priceVal);
 
     if (isNaN(price) || price < 0 || priceVal === "") {
-        toast("Vui lòng nhập giá bán hợp lệ (VNĐ)", "warning");
+        toast(sizeText('Size.Js.InvalidPrice'), "warning");
         return;
     }
 
@@ -228,12 +233,12 @@ function confirmAssign() {
         })
         .then(() => {
             priceModalInstance?.hide();
-            toast("Gán sản phẩm và thiết lập giá bán thành công!", "success");
+            toast(sizeText('Size.Js.AssignSuccess'), "success");
             return fetch(`/Admin/AdminSize/GetDrinks?sizeId=${currentSizeId}`);
         })
         .then(res => res.json())
         .then(data => renderDrinkUI(data))
-        .catch(err => toast(err.message || "Lỗi khi gán giá bán", "error"));
+        .catch(err => toast(err.message || sizeText('Size.Js.AssignError'), "error"));
 }
 // =========================
 // EDIT PRICE INLINE
@@ -248,17 +253,17 @@ function toggleEdit(drinkSizeId) {
 async function toggleDrinkSize(id) {
     if (window.Swal) {
         const result = await window.Swal.fire({
-            title: 'Xác nhận',
-            text: 'Bạn có chắc muốn thay đổi trạng thái size đồ uống này?',
+            title: sizeText('Size.Js.ConfirmTitle'),
+            text: sizeText('Size.Js.DrinkStatusConfirm'),
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#70482f',
             cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Đồng ý',
-            cancelButtonText: 'Hủy'
+            confirmButtonText: sizeText('Size.Js.Confirm'),
+            cancelButtonText: sizeText('Common.Cancel')
         });
         if (!result.isConfirmed) return;
-    } else if (!confirm("Bạn có chắc muốn thay đổi trạng thái size đồ uống này?")) {
+    } else if (!confirm(sizeText('Size.Js.DrinkStatusConfirm'))) {
         return;
     }
 
@@ -272,7 +277,7 @@ async function toggleDrinkSize(id) {
             }
 
             // ✅ CHỈ TOAST KHI REQUEST THÀNH CÔNG
-            toast("Thay đổi trạng thái thành công.", "success");
+            toast(sizeText('Size.Js.StatusSuccess'), "success");
 
             return fetch(`/Admin/AdminSize/GetDrinks?sizeId=${currentSizeId}`);
         })
@@ -283,7 +288,7 @@ async function toggleDrinkSize(id) {
             return res.json();
         })
         .then(data => renderDrinkUI(data))
-        .catch(err => toast(err.message || "Lỗi cập nhật", "error"));
+        .catch(err => toast(err.message || sizeText('Size.Js.UpdateError'), "error"));
 }
 
 // =========================
@@ -292,17 +297,17 @@ async function toggleDrinkSize(id) {
 async function toggleSize(id) {
     if (window.Swal) {
         const result = await window.Swal.fire({
-            title: 'Xác nhận',
-            text: 'Bạn có chắc muốn thay đổi trạng thái size này?',
+            title: sizeText('Size.Js.ConfirmTitle'),
+            text: sizeText('Size.Js.SizeStatusConfirm'),
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#70482f',
             cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Đồng ý',
-            cancelButtonText: 'Hủy'
+            confirmButtonText: sizeText('Size.Js.Confirm'),
+            cancelButtonText: sizeText('Common.Cancel')
         });
         if (!result.isConfirmed) return;
-    } else if (!confirm("Bạn có chắc muốn thay đổi trạng thái size này?")) {
+    } else if (!confirm(sizeText('Size.Js.SizeStatusConfirm'))) {
         return;
     }
 
@@ -320,14 +325,14 @@ async function toggleSize(id) {
             }
 
             try {
-                sessionStorage.setItem('toast_message', 'Thay đổi trạng thái thành công.');
+                sessionStorage.setItem('toast_message', sizeText('Size.Js.StatusSuccess'));
                 sessionStorage.setItem('toast_type', 'success');
             } catch (e) {
                 // Fallback
             }
             location.reload();
         })
-        .catch(err => toast(err.message || "Lỗi cập nhật", "error"));
+        .catch(err => toast(err.message || sizeText('Size.Js.UpdateError'), "error"));
 }
 
 
@@ -352,22 +357,22 @@ function openEditModal(id, sizeCode, name, description, sizeType) {
 
 function validateSizeForm(sizeCode, name) {
     if (!sizeCode) {
-        toast("Mã size không được để trống", "warning");
+        toast(sizeText('Size.Js.CodeRequired'), "warning");
         return false;
     }
 
     if (sizeCode.length > 20) {
-        toast("Mã size tối đa 20 ký tự", "warning");
+        toast(sizeText('Size.Js.CodeMax'), "warning");
         return false;
     }
 
     if (!name) {
-        toast("Tên size không được để trống", "warning");
+        toast(sizeText('Size.Js.NameRequired'), "warning");
         return false;
     }
 
     if (name.length > 50) {
-        toast("Tên size tối đa 50 ký tự", "warning");
+        toast(sizeText('Size.Js.NameMax'), "warning");
         return false;
     }
 
@@ -384,7 +389,7 @@ async function readJsonResult(response) {
             success: false,
             message: window.AdminFeedback.resolveMessage(
                 { message: text },
-                { status: response.status, fallback: "Phản hồi từ máy chủ không hợp lệ." })
+                { status: response.status, fallback: sizeText('Size.Js.InvalidResponse') })
         };
     }
 
@@ -395,7 +400,7 @@ async function readJsonResult(response) {
             success: false,
             message: window.AdminFeedback.resolveMessage(result, {
                 status: response.status,
-                fallback: "Không thể thực hiện thao tác với size."
+                fallback: sizeText('Size.Js.ActionFailed')
             })
         };
     }
@@ -432,7 +437,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const sizeType = Number(document.getElementById("edit-size-type").value);
 
         if (!sizeId || sizeId <= 0) {
-            toast("Không tìm thấy size", "warning");
+            toast(sizeText('Size.Js.NotFound'), "warning");
             return;
         }
 
@@ -454,7 +459,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 throw new Error(result.message);
             }
 
-            toast(result.message || "Cập nhật size thành công", "success");
+            toast(result.message || sizeText('Size.Js.UpdateSuccess'), "success");
 
             const modal = bootstrap.Modal.getInstance(
                 document.getElementById("editModal")
@@ -485,13 +490,13 @@ document.addEventListener("DOMContentLoaded", function initSizeAiSuggestion() {
     const clear = () => { suggestion = null; panel.classList.add('d-none'); };
 
     button.addEventListener('click', async () => {
-        if (!name.value.trim()) return toast('Vui lòng nhập tên size.', 'error');
+        if (!name.value.trim()) return toast(sizeText('Size.Js.AiNameRequired'), 'error');
         controller?.abort();
         controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 15000);
         const original = button.innerHTML;
         button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Đang gợi ý...';
+        button.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i>${sizeText('Size.Js.AiLoading')}`;
         clear();
         try {
             const response = await fetch('/Admin/AdminSize/AiSuggestion', {
@@ -501,7 +506,7 @@ document.addEventListener("DOMContentLoaded", function initSizeAiSuggestion() {
                 signal: controller.signal
             });
             const result = await response.json();
-            if (!response.ok || !result.success) throw new Error(result.message || 'Không thể tạo gợi ý.');
+            if (!response.ok || !result.success) throw new Error(result.message || sizeText('Size.Js.AiFailed'));
             suggestion = result.data;
             document.getElementById('sizeAiCode').textContent = suggestion.sizeCode;
             panel.classList.remove('d-none');
@@ -515,10 +520,10 @@ document.addEventListener("DOMContentLoaded", function initSizeAiSuggestion() {
     });
     document.getElementById('btnApplySizeAi').addEventListener('click', () => {
         if (!suggestion) return;
-        if (code.value.trim() && !window.confirm('Ghi đè mã size hiện tại?')) return;
+        if (code.value.trim() && !window.confirm(sizeText('Size.Js.AiOverwriteCode'))) return;
         code.value = suggestion.sizeCode;
         clear();
-        toast('Đã điền mã gợi ý. Dữ liệu chưa được lưu.', 'success');
+        toast(sizeText('Size.Js.AiCodeApplied'), 'success');
     });
     document.getElementById('btnDismissSizeAi').addEventListener('click', clear);
     [name, description].forEach(x => x.addEventListener('input', clear));
@@ -561,7 +566,7 @@ document.addEventListener('DOMContentLoaded', function initFullSizeAiSuggestion(
             card.type = 'button';
             card.className = 'ai-option-card text-start';
             const title = document.createElement('strong');
-            title.textContent = option.title || fields.name || 'Gợi ý size';
+            title.textContent = option.title || fields.name || sizeText('Size.Js.AiTitle');
             const meta = document.createElement('div');
             meta.className = 'small text-muted mt-1';
             meta.textContent = `${fields.sizeCode || ''} · ${getSizeTypeLabel(fields.sizeType)}`;
@@ -584,7 +589,7 @@ document.addEventListener('DOMContentLoaded', function initFullSizeAiSuggestion(
         const timeout = setTimeout(() => activeController.abort(), 130000);
         const original = button.innerHTML;
         button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Đang gợi ý...';
+        button.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i>${sizeText('Size.Js.AiLoading')}`;
         clear();
         try {
             const currentSizeType = normalizeSizeTypeValue(sizeType.value);
@@ -601,7 +606,7 @@ document.addEventListener('DOMContentLoaded', function initFullSizeAiSuggestion(
                 }), signal: activeController.signal
             });
             const result = await response.json();
-            if (!response.ok || !result.success) throw new Error(result.message || 'Không thể tạo gợi ý.');
+            if (!response.ok || !result.success) throw new Error(result.message || sizeText('Size.Js.AiFailed'));
             renderOptions(result);
         } catch (error) {
             if (error.name !== 'AbortError') toast(error.message, 'error');
@@ -611,21 +616,21 @@ document.addEventListener('DOMContentLoaded', function initFullSizeAiSuggestion(
         }
     });
     applyButton.addEventListener('click', () => {
-        if (!selectedOption?.canApply) return toast('Vui lòng chọn một gợi ý hợp lệ.', 'error');
+        if (!selectedOption?.canApply) return toast(sizeText('Size.Js.AiChooseValid'), 'error');
         const suggestion = selectedOption.fields;
         const suggestedSizeType = normalizeSizeTypeValue(suggestion.sizeType);
         if (!suggestedSizeType) {
-            return toast('Loại size do AI gợi ý không hợp lệ. Vui lòng chọn gợi ý khác.', 'error');
+            return toast(sizeText('Size.Js.AiInvalidType'), 'error');
         }
         if ([name, code, description].some(x => x.value.trim()) || sizeType.value) {
-            if (!window.confirm('Ghi đè dữ liệu size hiện tại bằng gợi ý AI?')) return;
+            if (!window.confirm(sizeText('Size.Js.AiOverwrite'))) return;
         }
         name.value = suggestion.name;
         code.value = suggestion.sizeCode;
         description.value = suggestion.description;
         sizeType.value = suggestedSizeType;
         clear();
-        toast('Đã áp dụng gợi ý vào form. Vui lòng kiểm tra trước khi lưu.', 'success');
+        toast(sizeText('Size.Js.AiApplied'), 'success');
     });
     document.getElementById('btnDismissSizeAi').addEventListener('click', clear);
     const invalidate = () => { controller?.abort(); clear(); };
@@ -655,7 +660,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const sizeTypeValue = normalizeSizeTypeValue(sizeTypeElement.value);
 
         if (!sizeTypeValue) {
-            toast("Vui lòng chọn loại size", "warning");
+            toast(sizeText('Size.Js.TypeRequired'), "warning");
             sizeTypeElement.focus();
             return;
         }
@@ -679,7 +684,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 throw new Error(result.message);
             }
 
-            toast(result.message || "Tạo size thành công", "success");
+            toast(result.message || sizeText('Size.Js.CreateSuccess'), "success");
 
             document.getElementById("create-code").value = "";
             document.getElementById("create-name").value = "";

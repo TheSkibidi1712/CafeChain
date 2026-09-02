@@ -1,6 +1,9 @@
 ﻿@model CafeChain.ViewModels.Admin.StoreInventories.InventoryIndexVM
 
-<nav class="store-tabs" aria-label="Chọn cửa hàng xem tồn kho">
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<InventoryResource> L
+
+<nav class="store-tabs" aria-label="@L["StoreInventory.SelectStoreAria"]">
     @if (Model.Stores != null && Model.Stores.Any())
     {
         foreach (var store in Model.Stores)
@@ -16,8 +19,8 @@
     {
         <div class="scope-empty">
             <i class="fa-solid fa-store-slash" aria-hidden="true"></i>
-            <strong>Chưa có phạm vi xem kho</strong>
-            <p>Tài khoản hiện tại chưa được cấp quyền xem tồn kho tại bất kỳ cửa hàng nào.</p>
+            <strong>@L["StoreInventory.NoScopeTitle"]</strong>
+            <p>@L["StoreInventory.NoScopeCopy"]</p>
         </div>
     }
 </nav>

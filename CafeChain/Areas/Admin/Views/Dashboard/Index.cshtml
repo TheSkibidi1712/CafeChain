@@ -1,19 +1,21 @@
 @model CafeChain.Application.DTOs.Admin.Dashboard.DashboardPageDto
 @using CafeChain.Application.DTOs.Admin.Dashboard
 @using System.Text.Json
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<CafeChain.SharedResource> SharedText
 @{
-    ViewData["Title"] = "Tổng quan phân tích";
+    ViewData["Title"] = SharedText["Dashboard.Title"];
     var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     var storesJson = JsonSerializer.Serialize(Model.Stores, jsonOptions);
     var contextJson = JsonSerializer.Serialize(Model.AnalysisContext, jsonOptions);
     var tabs = new[]
     {
-        ("Executive", "Điều hành", "bi-speedometer2"),
-        ("Operations", "POS / Ca làm việc", "bi-cash-stack"),
-        ("Inventory", "Kho", "bi-box-seam"),
-        ("Procurement", "Mua hàng", "bi-truck"),
-        ("Product", "Sản phẩm", "bi-cup-straw"),
-        ("Workforce", "Nhân sự & lịch dự kiến", "bi-people")
+        ("Executive", SharedText["Dashboard.Tab.Executive"].Value, "bi-speedometer2"),
+        ("Operations", SharedText["Dashboard.Tab.Operations"].Value, "bi-cash-stack"),
+        ("Inventory", SharedText["Dashboard.Tab.Inventory"].Value, "bi-box-seam"),
+        ("Procurement", SharedText["Dashboard.Tab.Procurement"].Value, "bi-truck"),
+        ("Product", SharedText["Dashboard.Tab.Product"].Value, "bi-cup-straw"),
+        ("Workforce", SharedText["Dashboard.Tab.Workforce"].Value, "bi-people")
     }.Where(tab => Enum.TryParse<DashboardSection>(tab.Item1, out var section)
         && Model.AllowedSections.Contains(section)).ToArray();
     var firstSection = tabs.First().Item1;
@@ -42,56 +44,56 @@
     <header class="analytics-header">
         <div class="analytics-header__copy">
             <span class="analytics-eyebrow">@Model.RoleName</span>
-            <h1><i class="fa-solid fa-chart-pie me-2 text-warning" aria-hidden="true"></i>Tổng quan phân tích</h1>
-            <p>Dữ liệu được giới hạn theo phạm vi cửa hàng bạn được cấp quyền.</p>
+            <h1><i class="fa-solid fa-chart-pie me-2 text-warning" aria-hidden="true"></i>@SharedText["Dashboard.Title"]</h1>
+            <p>@SharedText["Dashboard.ScopeDescription"]</p>
         </div>
         <div class="analytics-header__actions">
             <a class="analytics-button analytics-button--secondary text-decoration-none" asp-area="Admin" asp-controller="Dashboard" asp-action="Guide">
-                <i class="bi bi-question-circle"></i> Hướng dẫn bảng điều khiển &amp; AI
+                <i class="bi bi-question-circle"></i> @SharedText["Dashboard.Guide"]
             </a>
             <button type="button" class="analytics-button" id="dashboardApply">
                 <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
-                <span>Áp dụng</span>
+                <span>@SharedText["Dashboard.Apply"]</span>
             </button>
         </div>
     </header>
 
-    <section class="analytics-filter" aria-label="Bộ lọc bảng điều khiển">
+    <section class="analytics-filter" aria-label="@SharedText["Dashboard.Filter.Aria"]">
         <div class="analytics-filter__header">
             <div>
-                <span class="analytics-filter__kicker">Phạm vi dữ liệu</span>
-                <strong>Bộ lọc phân tích</strong>
+                <span class="analytics-filter__kicker">@SharedText["Dashboard.Filter.Scope"]</span>
+                <strong>@SharedText["Dashboard.Filter.Title"]</strong>
             </div>
-            <span class="analytics-filter__hint"><i class="bi bi-shield-check"></i> Theo phạm vi truy cập</span>
+            <span class="analytics-filter__hint"><i class="bi bi-shield-check"></i> @SharedText["Dashboard.Filter.AccessScope"]</span>
         </div>
         <div class="analytics-filter__grid">
-            <label>Từ ngày<input id="dashboardFromDate" type="date" value="@Model.Filter.FromDate.ToString("yyyy-MM-dd")" /></label>
-            <label>Đến ngày<input id="dashboardToDate" type="date" value="@Model.Filter.ToDate.ToString("yyyy-MM-dd")" /></label>
-            <label>Tỉnh/Thành<select id="dashboardProvince"><option value="">Tất cả</option></select></label>
-            <label>Xã/Phường/Đặc khu<select id="dashboardWard"><option value="">Tất cả</option></select></label>
-            <label>Cửa hàng<select id="dashboardStore"><option value="">Tất cả</option></select></label>
-            <label>Độ chi tiết
+            <label>@SharedText["Dashboard.Filter.From"]<input id="dashboardFromDate" type="date" value="@Model.Filter.FromDate.ToString("yyyy-MM-dd")" /></label>
+            <label>@SharedText["Dashboard.Filter.To"]<input id="dashboardToDate" type="date" value="@Model.Filter.ToDate.ToString("yyyy-MM-dd")" /></label>
+            <label>@SharedText["Dashboard.Filter.Province"]<select id="dashboardProvince"><option value="">@SharedText["Dashboard.Filter.All"]</option></select></label>
+            <label>@SharedText["Dashboard.Filter.Ward"]<select id="dashboardWard"><option value="">@SharedText["Dashboard.Filter.All"]</option></select></label>
+            <label>@SharedText["Dashboard.Filter.Store"]<select id="dashboardStore"><option value="">@SharedText["Dashboard.Filter.All"]</option></select></label>
+            <label>@SharedText["Dashboard.Filter.Granularity"]
                 <select id="dashboardGranularity">
-                    <option value="Hour" selected="@(Model.Filter.Granularity == "Hour")">Giờ</option>
-                    <option value="Day" selected="@(Model.Filter.Granularity == "Day")">Ngày</option>
-                    <option value="Week" selected="@(Model.Filter.Granularity == "Week")">Tuần</option>
-                    <option value="Month" selected="@(Model.Filter.Granularity == "Month")">Tháng</option>
+                    <option value="Hour" selected="@(Model.Filter.Granularity == "Hour")">@SharedText["Dashboard.Filter.Hour"]</option>
+                    <option value="Day" selected="@(Model.Filter.Granularity == "Day")">@SharedText["Dashboard.Filter.Day"]</option>
+                    <option value="Week" selected="@(Model.Filter.Granularity == "Week")">@SharedText["Dashboard.Filter.Week"]</option>
+                    <option value="Month" selected="@(Model.Filter.Granularity == "Month")">@SharedText["Dashboard.Filter.Month"]</option>
                 </select>
             </label>
-            <label>Số kết quả xếp hạng<input id="dashboardTop" type="number" min="1" max="100" value="@Model.Filter.Top" /></label>
-            <label>Tùy chọn lọc
+            <label>@SharedText["Dashboard.Filter.Top"]<input id="dashboardTop" type="number" min="1" max="100" value="@Model.Filter.Top" /></label>
+            <label>@SharedText["Dashboard.Filter.Preset"]
                 <select id="dashboardPreset">
-                    <option value="">Tùy chọn hiện tại</option>
-                    <option value="Today">Hôm nay</option>
-                    <option value="Last7Days">7 ngày gần nhất</option>
-                    <option value="Last30Days">30 ngày gần nhất</option>
-                    <option value="ThisMonth">Tháng hiện tại</option>
+                    <option value="">@SharedText["Dashboard.Filter.Current"]</option>
+                    <option value="Today">@SharedText["Dashboard.Filter.Today"]</option>
+                    <option value="Last7Days">@SharedText["Dashboard.Filter.Last7"]</option>
+                    <option value="Last30Days">@SharedText["Dashboard.Filter.Last30"]</option>
+                    <option value="ThisMonth">@SharedText["Dashboard.Filter.ThisMonth"]</option>
                 </select>
             </label>
         </div>
     </section>
 
-    <nav class="analytics-tabs" role="tablist" aria-label="Nhóm phân tích">
+    <nav class="analytics-tabs" role="tablist" aria-label="@SharedText["Dashboard.Tabs.Aria"]">
         @foreach (var tab in tabs)
         {
             <button type="button" role="tab" class="analytics-tab @(tab.Item1 == firstSection ? "is-active" : "")"
@@ -112,7 +114,7 @@
                 aria-controls="dashboardAiPanel"
                 aria-selected="false"
                 tabindex="-1">
-            <i class="bi bi-stars"></i><span>Hỏi AI</span>
+            <i class="bi bi-stars"></i><span>@SharedText["Dashboard.Tab.Ai"]</span>
         </button>
     </nav>
 
@@ -143,13 +145,13 @@
                     </svg>
                 </span>
                 <div>
-                    <span class="analytics-eyebrow">Trợ lý phân tích dựa trên bằng chứng</span>
-                    <h2 id="dashboardIntelligenceTitle">Hỏi dữ liệu bằng tiếng Việt</h2>
-                    <p>Đặt câu hỏi về dữ liệu trong bộ lọc hiện tại. Trợ lý chỉ đọc dữ liệu đã xác thực và luôn tuân theo phạm vi truy cập của nhân viên.</p>
+                    <span class="analytics-eyebrow">@SharedText["Dashboard.Ai.Eyebrow"]</span>
+                    <h2 id="dashboardIntelligenceTitle">@SharedText["Dashboard.Ai.Title"]</h2>
+                    <p>@SharedText["Dashboard.Ai.Description"]</p>
                 </div>
             </div>
             <div class="dashboard-intelligence__heading-actions">
-                <span class="dashboard-intelligence__safe"><i class="bi bi-lock"></i> Chỉ đọc</span>
+                <span class="dashboard-intelligence__safe"><i class="bi bi-lock"></i> @SharedText["Dashboard.Ai.ReadOnly"]</span>
                 <button type="button"
                         class="analytics-button analytics-button--secondary dashboard-intelligence__toggle"
                         id="dashboardAiToggleResult"
@@ -157,7 +159,7 @@
                         aria-expanded="false"
                         disabled>
                     <i class="bi bi-eye"></i>
-                    <span data-ai-toggle-label>Ẩn phân tích</span>
+                    <span data-ai-toggle-label>@SharedText["Dashboard.Ai.HideAnalysis"]</span>
                 </button>
             </div>
         </div>
@@ -166,11 +168,11 @@
                 <i class="bi bi-stars" aria-hidden="true"></i>
                 <input id="dashboardAiPrompt" maxlength="500" autocomplete="off" required
                        aria-describedby="dashboardAiStatus"
-                       placeholder="Ví dụ: So sánh doanh thu 7 ngày gần đây với kỳ trước và chỉ ra cửa hàng cần chú ý" />
+                       placeholder="@SharedText["Dashboard.Ai.Placeholder"]" />
             </div>
             <button type="button" class="analytics-button" id="dashboardAiParse">
                 <i class="bi bi-stars" data-ai-analyze-icon aria-hidden="true"></i>
-                <span data-ai-analyze-label>Phân tích</span>
+                <span data-ai-analyze-label>@SharedText["Dashboard.Ai.Analyze"]</span>
             </button>
         </div>
         <div class="dashboard-intelligence__scope" aria-label="Phạm vi phân tích hiện tại">

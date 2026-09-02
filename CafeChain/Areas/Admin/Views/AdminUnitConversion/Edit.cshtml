@@ -1,7 +1,10 @@
 @model CafeChain.ViewModels.Admin.UnitConversions.AdminUnitConversionFormPageVM
 @using CafeChain.Application.DTOs.Admin.UnitConversions
+@using Microsoft.Extensions.Localization
+@using System.Text.Json
+@inject IStringLocalizer<InventoryResource> L
 @{
-    ViewData["Title"] = "Sửa quy đổi đo lường";
+    ViewData["Title"] = L["UnitConversion.Edit.Title"].Value;
     var form = Model.Form;
     var ingredients = Model.Ingredients ?? new();
     var units = Model.Units ?? new();
@@ -15,11 +18,11 @@
 <div class="container-fluid px-4 pt-4 pb-5">
 <header class="cc-page-header cc-warehouse-header cc-warehouse-header--compact">
         <div class="cc-warehouse-header-main">
-            <p class="cc-page-kicker">Kho &amp; Cung ứng / Đơn vị và quy đổi</p>
-            <h1 class="uc-page-title cc-page-title">Sửa quy đổi đo lường #@form.UnitConversionId</h1>
-            <p class="cc-page-description">Hệ thống kiểm tra lại hệ số trước khi lưu và không thay đổi cấu trúc quy cách đóng gói.</p>
+            <p class="cc-page-kicker">@L["UnitConversion.Eyebrow"]</p>
+            <h1 class="uc-page-title cc-page-title">@L["UnitConversion.Edit.Heading", form.UnitConversionId]</h1>
+            <p class="cc-page-description">@L["UnitConversion.Edit.Description"]</p>
         </div>
-        <a asp-action="Index" class="btn btn-uc-ghost">Quay lại</a>
+        <a asp-action="Index" class="btn btn-uc-ghost">@L["Common.Back"]</a>
     </header>
 
     <div class="uc-phys-strip">
@@ -27,7 +30,7 @@
         {
             <span class="uc-phys-item me-2">@p.DisplayText</span>
         }
-        <span class="uc-status uc-status-ok">Vật lý chuẩn · chỉ đọc</span>
+        <span class="uc-status uc-status-ok">@L["UnitConversion.Edit.PhysicalStatus"]</span>
     </div>
 
     <form asp-action="Edit" method="post" id="conversionForm" class="uc-card cc-warehouse-form-section p-4">
@@ -41,14 +44,14 @@
         @if (eval != null && eval.IsMassVolumeCross)
         {
             <div class="alert alert-warning">
-                Hàng hiện tại là quy đổi khối lượng ↔ thể tích. Không sửa hệ số — chỉ được xóa.
+                @L["UnitConversion.Edit.CrossDimensionAlert"]
             </div>
         }
 
         <div class="row g-4">
             <div class="col-lg-7">
                 <div class="mb-3">
-                    <label class="form-label fw-semibold" for="ingredientSelect">Nguyên liệu</label>
+                    <label class="form-label fw-semibold" for="ingredientSelect">@L["UnitConversion.Edit.IngredientLabel"]</label>
                     <select name="IngredientId" id="ingredientSelect" class="form-select" required>
                         @foreach (var ing in ingredients)
                         {
@@ -60,28 +63,28 @@
                 </div>
                 <div class="row g-3 align-items-end mb-3">
                     <div class="col-md-2">
-                        <label class="form-label fw-semibold" for="FromQuantity">SL vào</label>
+                        <label class="form-label fw-semibold" for="FromQuantity">@L["UnitConversion.Edit.FromQtyLabel"]</label>
                         <input name="FromQuantity" id="FromQuantity" class="form-control text-end" type="number" step="any" value="@form.FromQuantity" />
                     </div>
                     <div class="col-md-5">
-                        <label class="form-label fw-semibold" for="FromUnitId">Đơn vị đầu vào</label>
-                        <select name="FromUnitId" id="FromUnitId" class="form-select" title="Chọn đơn vị đầu vào">
+                        <label class="form-label fw-semibold" for="FromUnitId">@L["UnitConversion.Edit.FromUnitLabel"]</label>
+                        <select name="FromUnitId" id="FromUnitId" class="form-select" title="@L["UnitConversion.Edit.FromUnitTitle"]">
                             @foreach (var u in units)
                             {
                                 <option value="@u.UnitId" selected="@(u.UnitId == form.FromUnitId)" data-code="@u.UnitCode" data-type="@u.Type" data-pack="@(u.IsPackagingCount ? "1" : "0")">
-                                    @u.Name (@u.UnitCode)@(u.IsPackagingCount ? " · đếm/đóng gói" : "")
+                                    @u.Name (@u.UnitCode)@(u.IsPackagingCount ? L["UnitConversion.Edit.PackagingSuffix"].Value : "")
                                 </option>
                             }
                         </select>
                     </div>
                     <div class="col-md-1 text-center fw-bold text-muted pb-2">=</div>
                     <div class="col-md-2">
-                        <label class="form-label fw-semibold" for="ToQuantity">SL ra</label>
+                        <label class="form-label fw-semibold" for="ToQuantity">@L["UnitConversion.Edit.ToQtyLabel"]</label>
                         <input name="ToQuantity" id="ToQuantity" class="form-control text-end" type="number" step="any" value="@form.ToQuantity" />
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label fw-semibold" for="ToUnitId">ĐVT ra</label>
-                        <select name="ToUnitId" id="ToUnitId" class="form-select" title="Chọn đơn vị đầu ra">
+                        <label class="form-label fw-semibold" for="ToUnitId">@L["UnitConversion.Edit.ToUnitLabel"]</label>
+                        <select name="ToUnitId" id="ToUnitId" class="form-select" title="@L["UnitConversion.Edit.ToUnitTitle"]">
                             @foreach (var u in units)
                             {
                                 <option value="@u.UnitId" selected="@(u.UnitId == form.ToUnitId)" data-code="@u.UnitCode" data-type="@u.Type" data-pack="@(u.IsPackagingCount ? "1" : "0")">
@@ -94,18 +97,18 @@
                 <div class="form-check mt-3" id="pkgAckWrap" style="display:none;">
                     <input class="form-check-input" name="PackageConflictAcknowledged" type="checkbox" value="true" id="PackageConflictAcknowledged" checked="@form.PackageConflictAcknowledged" />
                     <label class="form-check-label" for="PackageConflictAcknowledged">
-                        Xác nhận mâu thuẫn quy cách nhà cung cấp và vẫn lưu (quy cách đóng gói không đổi).
+                        @L["UnitConversion.Edit.PkgAckLabel"]
                     </label>
                 </div>
             </div>
             <div class="col-lg-5">
-                <div id="evalPanel" class="uc-eval-panel" aria-live="polite">Đang đánh giá…</div>
+                <div id="evalPanel" class="uc-eval-panel" aria-live="polite">@L["UnitConversion.Edit.EvalInitial"]</div>
             </div>
         </div>
 
         <div class="d-flex justify-content-end gap-2 mt-4 cc-warehouse-action-bar">
-            <a asp-action="Index" class="btn btn-uc-ghost">Hủy</a>
-            <button type="submit" class="btn btn-uc-primary" id="btnSave">Lưu</button>
+            <a asp-action="Index" class="btn btn-uc-ghost">@L["Common.Cancel"]</a>
+            <button type="submit" class="btn btn-uc-primary" id="btnSave">@L["Common.Save"]</button>
         </div>
     </form>
 </div>
@@ -118,7 +121,26 @@
         window.CafeChainUnitConversionForm.init({
             evaluateUrl: '@Url.Action("Evaluate", "AdminUnitConversion", new { area = "Admin" })',
             isEdit: true,
-            unitConversionId: @form.UnitConversionId
+            unitConversionId: @form.UnitConversionId,
+            locale: @Html.Raw(JsonSerializer.Serialize(System.Globalization.CultureInfo.CurrentUICulture.Name)),
+            text: @Html.Raw(JsonSerializer.Serialize(new Dictionary<string, string> {
+                ["insufficientData"] = L["UnitConversion.Form.Js.InsufficientData"].Value,
+                ["factorLabel"] = L["UnitConversion.Form.Js.FactorLabel"].Value,
+                ["factorFormula"] = L["UnitConversion.Form.Js.FactorFormula"].Value,
+                ["reverseNote"] = L["UnitConversion.Form.Js.ReverseNote"].Value,
+                ["direction"] = L["UnitConversion.Form.Js.Direction"].Value,
+                ["physicalConflict"] = L["UnitConversion.Form.Js.PhysicalConflict"].Value,
+                ["physicalNote"] = L["UnitConversion.Form.Js.PhysicalNote"].Value,
+                ["crossDimension"] = L["UnitConversion.Form.Js.CrossDimension"].Value,
+                ["packageConflict"] = L["UnitConversion.Form.Js.PackageConflict"].Value,
+                ["supplierSpec"] = L["UnitConversion.Form.Js.SupplierSpec"].Value,
+                ["impliedMeasuring"] = L["UnitConversion.Form.Js.ImpliedMeasuring"].Value,
+                ["baseCostNote"] = L["UnitConversion.Form.Js.BaseCostNote"].Value,
+                ["valid"] = L["UnitConversion.Form.Js.Valid"].Value,
+                ["needPackageAck"] = L["UnitConversion.Form.Js.NeedPackageAck"].Value,
+                ["loading"] = L["UnitConversion.Form.Js.Loading"].Value,
+                ["error"] = L["UnitConversion.Form.Js.Error"].Value
+            }))
         });
         $('#ingredientSelect').select2({ theme: 'bootstrap-5', width: '100%' });
     </script>

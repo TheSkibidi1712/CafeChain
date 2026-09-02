@@ -1,4 +1,5 @@
 @model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferDetailVM
+@inject Microsoft.Extensions.Localization.IStringLocalizer<CafeChain.InventoryResource> InventoryText
 
 @if (Model.Status == CafeChain.Models.Enums.Inventory.InventoryTransferStatus.DISPATCHED
     && (Model.CanReceive || Model.CanRequestReturn || Model.CanConfirmReturn || Model.CanResolveShortage || Model.CanCreateFollowUp))
@@ -15,24 +16,24 @@
         @Html.AntiForgeryToken()
         <div class="transfer-card-header">
             <div>
-                <span class="section-kicker"><i class="fas fa-route"></i> Xử lý chênh lệch</span>
-                <h2>Tiếp tục nhận hoặc kết thúc phần đang vận chuyển</h2>
-                <p>Mọi thao tác dùng đúng giá vốn từ lần xuất kho gốc.</p>
+                <span class="section-kicker"><i class="fas fa-route"></i> @InventoryText["Transfer.Resolution.Title"]</span>
+                <h2>@InventoryText["Transfer.Resolution.Heading"]</h2>
+                <p>@InventoryText["Transfer.Resolution.CostHint"]</p>
             </div>
-            <select id="transfer-resolution-action" class="transfer-input transfer-action-select" aria-label="Chọn thao tác">
-                <option value="">Chọn thao tác</option>
-                @if (Model.CanReceive) { <option value="receive">Nhận hàng tại kho đích</option> }
-                @if (Model.CanRequestReturn) { <option value="request-return">Yêu cầu hoàn trả kho nguồn</option> }
-                @if (Model.CanConfirmReturn) { <option value="confirm-return">Xác nhận kho nguồn đã nhận lại</option> }
-                @if (Model.CanResolveShortage) { <option value="write-off">Ghi nhận mất/hư hỏng</option> }
-                @if (Model.CanResolveShortage) { <option value="close-shortage">Đóng phần thiếu</option> }
-                @if (Model.CanCreateFollowUp) { <option value="follow-up">Tạo điều chuyển gửi bù</option> }
+            <select id="transfer-resolution-action" class="transfer-input transfer-action-select" aria-label="@InventoryText["Transfer.Resolution.SelectAction"]">
+                <option value="">@InventoryText["Transfer.Resolution.SelectAction"]</option>
+                @if (Model.CanReceive) { <option value="receive">@InventoryText["Transfer.Resolution.Receive"]</option> }
+                @if (Model.CanRequestReturn) { <option value="request-return">@InventoryText["Transfer.Resolution.RequestReturn"]</option> }
+                @if (Model.CanConfirmReturn) { <option value="confirm-return">@InventoryText["Transfer.Resolution.ConfirmReturn"]</option> }
+                @if (Model.CanResolveShortage) { <option value="write-off">@InventoryText["Transfer.Resolution.WriteOff"]</option> }
+                @if (Model.CanResolveShortage) { <option value="close-shortage">@InventoryText["Transfer.Resolution.CloseShortage"]</option> }
+                @if (Model.CanCreateFollowUp) { <option value="follow-up">@InventoryText["Transfer.Resolution.FollowUp"]</option> }
             </select>
         </div>
 
         <div class="transfer-resolution-warning">
             <i class="fas fa-triangle-exclamation"></i>
-            <span>Đóng chênh lệch chỉ kết thúc điều chuyển. Nhu cầu nhập hàng tại chi nhánh có thể vẫn còn thiếu.</span>
+            <span>@InventoryText["Transfer.Resolution.Warning"]</span>
         </div>
 
         <div class="transfer-resolution-lines">
@@ -45,32 +46,32 @@
                      data-pending-return="@item.PendingReturn.ToString(System.Globalization.CultureInfo.InvariantCulture)">
                     <div class="transfer-resolution-line-label">
                         <strong>@item.ItemName</strong>
-                        <span>Còn xử lý @item.InTransitOpen.ToString("0.###") @item.BaseUnitCode</span>
+                        <span>@InventoryText["Transfer.Resolution.PendingValue", item.InTransitOpen.ToString("0.###"), item.BaseUnitCode]</span>
                     </div>
                     <label class="transfer-action-field transfer-action-quantity">
-                        <span>Số lượng</span>
+                        <span>@InventoryText["Transfer.Resolution.Quantity"]</span>
                         <input class="transfer-input js-resolution-quantity" type="number" min="0" step="0.001" value="0" />
                     </label>
                     <label class="transfer-action-field transfer-receive-only">
-                        <span>Nhận hợp lệ</span>
+                        <span>@InventoryText["Transfer.Resolution.Accepted"]</span>
                         <input class="transfer-input js-accepted-quantity" type="number" min="0" step="0.001" value="0" />
                     </label>
                     <label class="transfer-action-field transfer-receive-only">
-                        <span>Từ chối/hư hỏng</span>
+                        <span>@InventoryText["Transfer.Resolution.Rejected"]</span>
                         <input class="transfer-input js-rejected-quantity" type="number" min="0" step="0.001" value="0" />
                     </label>
                     <label class="transfer-action-field transfer-receive-only transfer-rejection-field">
-                        <span>Loại chênh lệch</span>
+                        <span>@InventoryText["Transfer.Resolution.DiscrepancyType"]</span>
                         <select class="transfer-input js-rejection-type">
-                            <option value="">Chọn loại</option>
-                            <option value="DAMAGED">Hư hỏng</option>
-                            <option value="SHORTAGE">Giao thiếu</option>
-                            <option value="QUALITY_REJECTED">Không đạt chất lượng</option>
+                            <option value="">@InventoryText["Transfer.Resolution.SelectType"]</option>
+                            <option value="DAMAGED">@InventoryText["Transfer.Discrepancy.DAMAGED"]</option>
+                            <option value="SHORTAGE">@InventoryText["Transfer.Discrepancy.SHORTAGE"]</option>
+                            <option value="QUALITY_REJECTED">@InventoryText["Transfer.Discrepancy.QUALITY_REJECTED"]</option>
                         </select>
                     </label>
                     <label class="transfer-action-field transfer-receive-only transfer-rejection-field">
-                        <span>Lý do từ chối</span>
-                        <input class="transfer-input js-rejection-reason" maxlength="500" placeholder="Mô tả tình trạng" />
+                        <span>@InventoryText["Transfer.Resolution.RejectionReason"]</span>
+                        <input class="transfer-input js-rejection-reason" maxlength="500" placeholder="@InventoryText["Transfer.Resolution.ConditionPlaceholder"]" />
                     </label>
                 </div>
             }
@@ -78,14 +79,14 @@
 
         <div class="transfer-resolution-footer">
             <label class="transfer-field transfer-resolution-reason">
-                <span>Lý do / ghi chú thao tác</span>
-                <textarea id="transfer-resolution-reason" class="transfer-input" maxlength="500" rows="2" placeholder="Bắt buộc với hoàn trả, mất/hư hỏng và đóng thiếu"></textarea>
+                <span>@InventoryText["Transfer.Resolution.ActionReason"]</span>
+                <textarea id="transfer-resolution-reason" class="transfer-input" maxlength="500" rows="2" placeholder="@InventoryText["Transfer.Resolution.ActionReasonPlaceholder"]"></textarea>
             </label>
             <div class="transfer-resolution-submit-wrap">
                 <div id="transfer-resolution-message" class="transfer-resolution-message" role="status"></div>
                 <button id="transfer-resolution-submit" class="transfer-primary-button" type="button" disabled>
                     <i class="fas fa-check"></i>
-                    Xác nhận thao tác
+                    @InventoryText["Transfer.Resolution.ConfirmAction"]
                 </button>
             </div>
         </div>

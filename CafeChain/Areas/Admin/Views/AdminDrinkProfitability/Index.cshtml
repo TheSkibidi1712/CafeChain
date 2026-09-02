@@ -1,24 +1,32 @@
 @model CafeChain.ViewModels.Admin.Profitability.DrinkProfitabilityPageVM
+@using Microsoft.Extensions.Localization
+@using System.Text.Json
+@inject IStringLocalizer<CafeChain.ProductResource> ProductText
 @using CafeChain.ViewModels.Admin.Shared
 @{
-    ViewData["Title"] = "Vốn và lợi nhuận gộp dự kiến";
+    ViewData["Title"] = ProductText["Profit.Title"];
     var hero = new AdminPageHeroVM
     {
-        Eyebrow = "Sản phẩm / Phân tích giá vốn",
-        Title = "Vốn và lợi nhuận gộp dự kiến",
-        Description = "Đối chiếu giá vốn theo nhập trước - xuất trước (FIFO), giá bán và khả năng sinh lời theo từng size đồ uống.",
+        Eyebrow = ProductText["Profit.Eyebrow"],
+        Title = ProductText["Profit.Title"],
+        Description = ProductText["Profit.Description"],
         IconClass = "fas fa-chart-line",
-        Breadcrumbs = [new() { Label = "Sản phẩm" }, new() { Label = "Vốn và lợi nhuận" }],
+        Breadcrumbs = [new() { Label = ProductText["Profit.Breadcrumb.Products"] }, new() { Label = ProductText["Profit.Breadcrumb.Current"] }],
         Actions =
         [
             new()
             {
-                Label = "Mở công thức và BOM",
+                Label = ProductText["Profit.OpenBom"],
                 Url = Url.Action("Index", "AdminRecipe", new { area = "Admin" }) ?? "#",
                 IconClass = "fas fa-flask"
             }
         ]
     };
+    var profitabilityJsCatalog = JsonSerializer.Serialize(ProductText.GetAllStrings()
+        .Where(message => message.Name.StartsWith("Profit.Js.", StringComparison.Ordinal)
+            || message.Name.StartsWith("Profit.Status.", StringComparison.Ordinal)
+            || message.Name.StartsWith("Profit.Treatment.", StringComparison.Ordinal))
+        .ToDictionary(message => message.Name, message => message.Value));
 }
 
 @section Styles {
@@ -39,14 +47,14 @@
 
     <header class="pf-header ops-header cc-warehouse-header">
         <div>
-            <div class="ops-eyebrow">Sản phẩm / Phân tích giá vốn</div>
-            <h1 class="ops-title"><i class="fa-solid fa-calculator me-2 text-warning" aria-hidden="true"></i>Vốn và lợi nhuận gộp dự kiến</h1>
-            <p class="ops-subtitle">Đối chiếu giá vốn theo nhập trước - xuất trước (FIFO), giá bán và khả năng sinh lời theo từng size đồ uống.</p>
+            <div class="ops-eyebrow">@ProductText["Profit.Eyebrow"]</div>
+            <h1 class="ops-title"><i class="fa-solid fa-calculator me-2 text-warning" aria-hidden="true"></i>@ProductText["Profit.Title"]</h1>
+            <p class="ops-subtitle">@ProductText["Profit.Description"]</p>
         </div>
         <div class="ops-actions">
             <a class="pf-link-button ops-btn" asp-area="Admin" asp-controller="AdminRecipe" asp-action="Index">
                 <i class="fas fa-flask" aria-hidden="true"></i>
-                <span>Mở công thức và BOM</span>
+                <span>@ProductText["Profit.OpenBom"]</span>
             </a>
         </div>
     </header>
@@ -54,13 +62,13 @@
     <div class="pf-section-heading">
         <div>
             <span class="pf-section-icon"><i class="fas fa-sliders"></i></span>
-            <div><h2>Thiết lập mô phỏng</h2><p>Chọn phạm vi dữ liệu cần phân tích.</p></div>
+            <div><h2>@ProductText["Profit.Setup"]</h2><p>@ProductText["Profit.SetupHint"]</p></div>
         </div>
-        <span class="pf-section-note"><i class="fas fa-shield-halved"></i> Dữ liệu FIFO theo cửa hàng</span>
+        <span class="pf-section-note"><i class="fas fa-shield-halved"></i> @ProductText["Profit.ScopeNote"]</span>
     </div>
-    <section class="pf-filter-band" aria-label="Bộ lọc mô phỏng giá vốn">
+    <section class="pf-filter-band" aria-label="@ProductText["Profit.FilterAria"]">
         <label>
-            <span>Cửa hàng mô phỏng FIFO</span>
+            <span>@ProductText["Profit.Store"]</span>
             <select id="storeSelect" class="pf-control">
                 @foreach (var store in Model.Stores)
                 {
@@ -69,7 +77,7 @@
             </select>
         </label>
         <label>
-            <span>Đồ uống</span>
+            <span>@ProductText["Profit.Drink"]</span>
             <select id="drinkSelect" class="pf-control">
                 @foreach (var drink in Model.Drinks)
                 {
@@ -79,39 +87,39 @@
         </label>
         <button type="button" id="refreshPreview" class="pf-primary-button">
             <i class="fas fa-rotate" aria-hidden="true"></i>
-            Tải lại
+            @ProductText["Profit.Reload"]
         </button>
     </section>
 
     <aside class="pf-global-notice">
         <i class="fas fa-circle-info" aria-hidden="true"></i>
-        <strong>Giá bán áp dụng toàn hệ thống.</strong>
-        <span>Giá vốn được mô phỏng theo cửa hàng đang chọn.</span>
+        <strong>@ProductText["Profit.GlobalPrice"]</strong>
+        <span>@ProductText["Profit.StoreCostHint"]</span>
     </aside>
 
     <section class="pf-meta" id="previewMeta" hidden>
-        <div><span>Nguồn chi phí</span><strong>FIFO cửa hàng</strong></div>
-        <div><span>Thời điểm tính</span><strong id="costTimestamp">-</strong></div>
-        <div><span>Số size</span><strong id="sizeCount">0</strong></div>
-        <div><span>Dữ liệu hoàn chỉnh</span><strong id="readyCount">0</strong></div>
+        <div><span>@ProductText["Profit.CostSource"]</span><strong>@ProductText["Profit.StoreFifo"]</strong></div>
+        <div><span>@ProductText["Profit.CalculatedAt"]</span><strong id="costTimestamp">-</strong></div>
+        <div><span>@ProductText["Profit.SizeCount"]</span><strong id="sizeCount">0</strong></div>
+        <div><span>@ProductText["Profit.ReadyCount"]</span><strong id="readyCount">0</strong></div>
     </section>
 
     <section class="pf-result-band" aria-live="polite">
         <div class="pf-result-heading">
-            <div><span class="pf-section-icon"><i class="fas fa-table-list"></i></span><div><h2>Kết quả phân tích</h2><p>So sánh chi phí và khả năng sinh lời theo từng cấu hình size.</p></div></div>
+            <div><span class="pf-section-icon"><i class="fas fa-table-list"></i></span><div><h2>@ProductText["Profit.Result"]</h2><p>@ProductText["Profit.ResultHint"]</p></div></div>
         </div>
         <div id="loadingState" class="pf-state" hidden>
             <span class="pf-spinner" aria-hidden="true"></span>
-            <strong>Đang mô phỏng lớp giá FIFO...</strong>
+            <strong>@ProductText["Profit.Loading"]</strong>
         </div>
         <div id="errorState" class="pf-state pf-state-error" hidden>
             <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
-            <div><strong>Không tải được dữ liệu</strong><p id="errorMessage"></p></div>
-            <button type="button" id="retryPreview" class="pf-secondary-button">Thử lại</button>
+            <div><strong>@ProductText["Profit.LoadError"]</strong><p id="errorMessage"></p></div>
+            <button type="button" id="retryPreview" class="pf-secondary-button">@ProductText["Common.Retry"]</button>
         </div>
         <div id="emptyState" class="pf-state" hidden>
             <i class="fas fa-mug-saucer" aria-hidden="true"></i>
-            <strong>Chưa có size đang hoạt động cho đồ uống này.</strong>
+            <strong>@ProductText["Profit.Empty"]</strong>
         </div>
 
         <div class="pf-table-wrap" id="tableWrap" hidden>
@@ -128,14 +136,14 @@
                 </colgroup>
                 <thead>
                     <tr>
-                        <th>Size / Định mức nguyên liệu (BOM)</th>
-                        <th>Trạng thái chi phí</th>
-                        <th class="pf-number">Giá vốn FIFO</th>
-                        <th class="pf-number">Giá bán toàn hệ thống</th>
-                        <th class="pf-number">Lợi nhuận gộp</th>
-                        <th class="pf-number">Biên lợi nhuận gộp (Margin)</th>
-                        <th class="pf-number">Tỷ lệ cộng giá (Markup)</th>
-                        <th class="pf-action-header">Thao tác</th>
+                        <th>@ProductText["Profit.Table.SizeBom"]</th>
+                        <th>@ProductText["Profit.Table.CostStatus"]</th>
+                        <th class="pf-number">@ProductText["Profit.Table.FifoCost"]</th>
+                        <th class="pf-number">@ProductText["Profit.Table.GlobalPrice"]</th>
+                        <th class="pf-number">@ProductText["Profit.Table.GrossProfit"]</th>
+                        <th class="pf-number">@ProductText["Profit.Table.Margin"]</th>
+                        <th class="pf-number">@ProductText["Profit.Table.Markup"]</th>
+                        <th class="pf-action-header">@ProductText["Common.Actions"]</th>
                     </tr>
                 </thead>
                 <tbody id="profitabilityRows"></tbody>
@@ -145,71 +153,72 @@
 
     <aside class="offcanvas offcanvas-end pf-drawer" id="priceDrawer" tabindex="-1" aria-labelledby="priceDrawerTitle">
         <div class="pf-drawer-header">
-            <div><span class="cc-page-kicker">Giá bán toàn hệ thống</span><h2 class="cc-page-title" id="priceDrawerTitle">Cập nhật giá</h2></div>
-            <button type="button" class="pf-icon-button" data-bs-dismiss="offcanvas" title="Đóng"><i class="fas fa-xmark"></i></button>
+            <div><span class="cc-page-kicker">@ProductText["Profit.Price.Scope"]</span><h2 class="cc-page-title" id="priceDrawerTitle">@ProductText["Profit.Price.Update"]</h2></div>
+            <button type="button" class="pf-icon-button" data-bs-dismiss="offcanvas" title="@ProductText["Common.Close"]"><i class="fas fa-xmark"></i></button>
         </div>
         <div class="pf-drawer-body">
             <div class="pf-price-summary">
-                <div><span>Giá vốn FIFO</span><strong id="drawerCost">-</strong></div>
-                <div><span>Giá hiện tại</span><strong id="drawerCurrentPrice">-</strong></div>
+                <div><span>@ProductText["Profit.Price.FifoCost"]</span><strong id="drawerCost">-</strong></div>
+                <div><span>@ProductText["Profit.Price.Current"]</span><strong id="drawerCurrentPrice">-</strong></div>
             </div>
             <section class="pf-form-section">
-                <h3>Giá đề xuất</h3>
+                <h3>@ProductText["Profit.Price.Suggestion"]</h3>
                 <div class="pf-form-grid">
-                    <label><span>Mục tiêu</span><select id="targetMode" class="pf-control"><option value="MARGIN">Biên lợi nhuận gộp (Margin)</option><option value="MARKUP">Tỷ lệ cộng giá (Markup)</option><option value="PROFIT_AMOUNT">Tiền lời mong muốn</option></select></label>
-                    <label><span>Giá trị mục tiêu</span><input id="targetValue" class="pf-control" type="number" min="0" step="0.01" /></label>
-                    <label class="pf-span-2"><span>Quy tắc làm tròn giá</span><select id="roundingMode" class="pf-control"><option value="NONE">Không làm tròn</option><option value="NEAREST_500">Gần nhất 500đ</option><option value="CEILING_500">Làm tròn lên 500đ</option><option value="NEAREST_1000">Gần nhất 1.000đ</option><option value="CEILING_1000">Làm tròn lên 1.000đ</option></select></label>
+                    <label><span>@ProductText["Profit.Price.Target"]</span><select id="targetMode" class="pf-control"><option value="MARGIN">@ProductText["Profit.Price.TargetMargin"]</option><option value="MARKUP">@ProductText["Profit.Price.TargetMarkup"]</option><option value="PROFIT_AMOUNT">@ProductText["Profit.Price.TargetProfit"]</option></select></label>
+                    <label><span>@ProductText["Profit.Price.TargetValue"]</span><input id="targetValue" class="pf-control" type="number" min="0" step="0.01" /></label>
+                    <label class="pf-span-2"><span>@ProductText["Profit.Price.Rounding"]</span><select id="roundingMode" class="pf-control"><option value="NONE">@ProductText["Profit.Price.NoRounding"]</option><option value="NEAREST_500">@ProductText["Profit.Price.Nearest500"]</option><option value="CEILING_500">@ProductText["Profit.Price.Ceiling500"]</option><option value="NEAREST_1000">@ProductText["Profit.Price.Nearest1000"]</option><option value="CEILING_1000">@ProductText["Profit.Price.Ceiling1000"]</option></select></label>
                 </div>
-                <button type="button" id="calculateSuggestion" class="pf-secondary-button">Tính giá đề xuất</button>
+                <button type="button" id="calculateSuggestion" class="pf-secondary-button">@ProductText["Profit.Price.Calculate"]</button>
                 <div id="suggestionResult" class="pf-suggestion" hidden></div>
             </section>
             <section class="pf-form-section">
-                <h3>Giá bán mới</h3>
-                <label><span>Giá bán (VND)</span><input id="newSellingPrice" class="pf-control" type="number" min="1" step="500" /></label>
+                <h3>@ProductText["Profit.Price.New"]</h3>
+                <label><span>@ProductText["Profit.Price.Label"]</span><input id="newSellingPrice" class="pf-control" type="number" min="1" step="500" /></label>
                 <div class="pf-price-summary">
-                    <div><span>Phạm vi áp dụng</span><strong>Toàn hệ thống</strong></div>
-                    <div><span>Thời điểm hiệu lực</span><strong>Ngay khi xác nhận</strong></div>
+                    <div><span>@ProductText["Profit.Price.ApplyScope"]</span><strong>@ProductText["Profit.Price.SystemWide"]</strong></div>
+                    <div><span>@ProductText["Profit.Price.EffectiveAt"]</span><strong>@ProductText["Profit.Price.Immediate"]</strong></div>
                 </div>
-                <label><span>Lý do thay đổi <strong aria-hidden="true">*</strong></span><textarea id="priceReason" class="pf-control" rows="3" maxlength="500" required></textarea></label>
-                <label id="incompleteConfirmation" class="pf-check" hidden><input type="checkbox" id="confirmIncomplete" /><span>Tôi xác nhận giá vốn chưa đầy đủ và vẫn muốn lưu giá thủ công.</span></label>
+                <label><span>@ProductText["Profit.Reason"] <strong aria-hidden="true">*</strong></span><textarea id="priceReason" class="pf-control" rows="3" maxlength="500" required></textarea></label>
+                <label id="incompleteConfirmation" class="pf-check" hidden><input type="checkbox" id="confirmIncomplete" /><span>@ProductText["Profit.Price.IncompleteConfirm"]</span></label>
                 <div id="priceFormError" class="pf-inline-error" hidden></div>
             </section>
         </div>
         <div class="pf-drawer-footer">
-            <button type="button" class="pf-secondary-button" data-bs-dismiss="offcanvas">Hủy</button>
-            <button type="button" id="savePrice" class="pf-primary-button">Xác nhận áp dụng giá</button>
+            <button type="button" class="pf-secondary-button" data-bs-dismiss="offcanvas">@ProductText["Common.Cancel"]</button>
+            <button type="button" id="savePrice" class="pf-primary-button">@ProductText["Profit.Price.Apply"]</button>
         </div>
     </aside>
 
     <aside class="offcanvas offcanvas-end pf-drawer" id="policyDrawer" tabindex="-1" aria-labelledby="policyDrawerTitle">
         <div class="pf-drawer-header">
-            <div><span class="cc-page-kicker">Chính sách topping theo size</span><h2 class="cc-page-title" id="policyDrawerTitle">Topping cho món</h2></div>
-            <button type="button" class="pf-icon-button" data-bs-dismiss="offcanvas" title="Đóng"><i class="fas fa-xmark"></i></button>
+            <div><span class="cc-page-kicker">@ProductText["Profit.Policy.Eyebrow"]</span><h2 class="cc-page-title" id="policyDrawerTitle">@ProductText["Profit.Policy.Title"]</h2></div>
+            <button type="button" class="pf-icon-button" data-bs-dismiss="offcanvas" title="@ProductText["Common.Close"]"><i class="fas fa-xmark"></i></button>
         </div>
         <div class="pf-drawer-body">
             <div id="policyList" class="pf-policy-list"></div>
             <section class="pf-form-section" id="policyFormSection">
-                <h3 id="policyFormTitle">Thêm chính sách</h3>
+                <h3 id="policyFormTitle">@ProductText["Profit.Policy.Add"]</h3>
                 <input type="hidden" id="policyId" />
                 <input type="hidden" id="policyRowVersion" />
                 <label><span>Topping</span><select id="policyTopping" class="pf-control"></select></label>
-                <label><span>Xử lý giá bán</span><select id="priceTreatment" class="pf-control"><option value="INCLUDED_IN_BASE_PRICE">Đã gồm trong giá gốc</option><option value="ADD_TOPPING_PRICE">Cộng giá topping</option></select></label>
-                <label><span>Xử lý giá vốn</span><select id="costTreatment" class="pf-control"><option value="INCLUDED_IN_DRINK_RECIPE">Đã gồm trong BOM đồ uống</option><option value="ADD_TOPPING_RECIPE_COST">Cộng thêm giá vốn topping</option></select></label>
+                <label><span>@ProductText["Profit.Policy.PriceTreatment"]</span><select id="priceTreatment" class="pf-control"><option value="INCLUDED_IN_BASE_PRICE">@ProductText["Profit.Policy.PriceIncluded"]</option><option value="ADD_TOPPING_PRICE">@ProductText["Profit.Policy.PriceAdd"]</option></select></label>
+                <label><span>@ProductText["Profit.Policy.CostTreatment"]</span><select id="costTreatment" class="pf-control"><option value="INCLUDED_IN_DRINK_RECIPE">@ProductText["Profit.Policy.CostIncluded"]</option><option value="ADD_TOPPING_RECIPE_COST">@ProductText["Profit.Policy.CostAdd"]</option></select></label>
                 <div class="pf-field-pair">
-                    <label><span>Số lượng mỗi ly</span><input id="policyQuantity" class="pf-control" type="number" min="0.00001" step="0.01" value="1" /></label>
-                    <label><span>Đơn vị</span><select id="policyQuantityUnit" class="pf-control"><option value="RECIPE_PORTION">Phần công thức</option></select></label>
+                    <label><span>@ProductText["Profit.Policy.Quantity"]</span><input id="policyQuantity" class="pf-control" type="number" min="0.00001" step="0.01" value="1" /></label>
+                    <label><span>@ProductText["Profit.Policy.Unit"]</span><select id="policyQuantityUnit" class="pf-control"><option value="RECIPE_PORTION">@ProductText["Profit.Policy.RecipePortion"]</option></select></label>
                 </div>
-                <small>Một phần công thức tương ứng với một lần thực hiện BOM topping; nguyên liệu bên trong được quy đổi về đơn vị tồn kho.</small>
-                <label class="pf-check"><input type="checkbox" id="policyDefaultSelected" checked /><span>Chọn mặc định trên POS</span></label>
-                <label class="pf-check"><input type="checkbox" id="policyRequired" /><span>Bắt buộc chọn trên POS</span></label>
-                <label><span>Lý do thay đổi <strong aria-hidden="true">*</strong></span><textarea id="policyReason" class="pf-control" rows="2" maxlength="500" required></textarea></label>
+                <small>@ProductText["Profit.Policy.QuantityHint"]</small>
+                <label class="pf-check"><input type="checkbox" id="policyDefaultSelected" checked /><span>@ProductText["Profit.Policy.Default"]</span></label>
+                <label class="pf-check"><input type="checkbox" id="policyRequired" /><span>@ProductText["Profit.Policy.Required"]</span></label>
+                <label><span>@ProductText["Profit.Reason"] <strong aria-hidden="true">*</strong></span><textarea id="policyReason" class="pf-control" rows="2" maxlength="500" required></textarea></label>
                 <div id="policyFormError" class="pf-inline-error" hidden></div>
-                <button type="button" id="savePolicy" class="pf-primary-button">Lưu chính sách</button>
+                <button type="button" id="savePolicy" class="pf-primary-button">@ProductText["Profit.Policy.Save"]</button>
             </section>
         </div>
     </aside>
 </main>
 
 @section Scripts {
+    <script id="profitabilityUiCatalog" type="application/json">@Html.Raw(profitabilityJsCatalog)</script>
     <script src="~/js/Admin/Profitability/drink-profitability.js" asp-append-version="true"></script>
 }

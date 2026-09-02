@@ -2,10 +2,12 @@
 @using System.Security.Claims
 @using CafeChain.Application.Constants
 @using CafeChain.Application.Interfaces.Admin.Permissions
+@using Microsoft.Extensions.Localization
 @inject IAdminPermissionService PermissionService
+@inject IStringLocalizer<CafeChain.SharedResource> SharedText
 
 @{
-    ViewData["Title"] = "Quản lý danh mục";
+    ViewData["Title"] = SharedText["Category.Title"];
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 
     var canCreateCategory = false;
@@ -74,14 +76,14 @@
 <main class="category-page ops-shell cc-warehouse-page">
     <header class="category-page-header ops-header cc-warehouse-header">
         <div>
-            <div class="category-eyebrow ops-eyebrow">Cấu trúc thực đơn</div>
+            <div class="category-eyebrow ops-eyebrow">@SharedText["Category.Eyebrow"]</div>
 
             <h1 class="category-page-title ops-title">
-                <i class="fa-solid fa-folder-tree me-2 text-warning" aria-hidden="true"></i>Quản lý danh mục
+                <i class="fa-solid fa-folder-tree me-2 text-warning" aria-hidden="true"></i>@SharedText["Category.Title"]
             </h1>
 
             <p class="category-page-description ops-subtitle">
-                Quản lý và tổ chức các nhóm sản phẩm đồ uống của CafeChain
+                @SharedText["Category.Description"]
             </p>
         </div>
 
@@ -92,9 +94,9 @@
                         class="btn category-primary-btn category-add-btn"
                         data-bs-toggle="modal"
                         data-bs-target="#createCategoryModal"
-                        title="Thêm danh mục mới">
+                        title="@SharedText["Category.Add"]">
                     <i class="fas fa-plus me-2"></i>
-                    Thêm danh mục mới
+                    @SharedText["Category.Add"]
                 </button>
             }
         </div>
@@ -103,15 +105,15 @@
 <div class="category-summary-grid">
     <div class="category-summary-card category-summary-total">
         <span class="category-summary-icon"><i class="fas fa-layer-group"></i></span>
-        <span><strong>@Model.Categories.TotalCount</strong><small>Tổng danh mục</small></span>
+        <span><strong>@Model.Categories.TotalCount</strong><small>@SharedText["Category.Total"]</small></span>
     </div>
     <div class="category-summary-card category-summary-active">
         <span class="category-summary-icon"><i class="fas fa-eye"></i></span>
-        <span><strong>@activeCategoryCount</strong><small>Đang hiển thị trang này</small></span>
+        <span><strong>@activeCategoryCount</strong><small>@SharedText["Category.VisiblePage"]</small></span>
     </div>
     <div class="category-summary-card category-summary-hidden">
         <span class="category-summary-icon"><i class="fas fa-eye-slash"></i></span>
-        <span><strong>@inactiveCategoryCount</strong><small>Đang ẩn trang này</small></span>
+        <span><strong>@inactiveCategoryCount</strong><small>@SharedText["Category.HiddenPage"]</small></span>
     </div>
 </div>
 
@@ -124,12 +126,12 @@
       class="category-search-row pa-band pa-filter-grid cc-warehouse-filter">
 
     <div class="category-search-field">
-        <button type="submit" class="category-search-btn" title="Tìm kiếm" aria-label="Tìm kiếm danh mục">
+        <button type="submit" class="category-search-btn" title="@SharedText["Category.Search"]" aria-label="@SharedText["Category.SearchAria"]">
             <i class="fas fa-search" aria-hidden="true"></i>
         </button>
         <input asp-for="Filter.Keyword"
                class="form-control category-input"
-               placeholder="Tìm theo mã danh mục hoặc tên danh mục..." />
+               placeholder="@SharedText["Category.SearchPlaceholder"]" />
     </div>
 
     <div class="category-search-actions">
@@ -137,14 +139,14 @@
         {
             <a asp-action="Index" class="btn category-clear-btn">
                 <i class="fas fa-rotate-left"></i>
-                Xóa lọc
+                @SharedText["Category.Clear"]
             </a>
         }
 
         <button type="submit"
                 class="btn category-primary-btn">
             <i class="fas fa-search me-2"></i>
-            Tìm kiếm
+            @SharedText["Category.Search"]
         </button>
     </div>
 
@@ -155,10 +157,10 @@
     <div class="card-body p-0">
         <div class="category-list-heading">
             <div>
-                <h3>Danh sách danh mục</h3>
-                <p>Sắp xếp sản phẩm theo từng nhóm để khách hàng tìm món nhanh hơn.</p>
+                <h3>@SharedText["Category.List"]</h3>
+                <p>@SharedText["Category.ListDescription"]</p>
             </div>
-            <span class="category-result-pill">@Model.Categories.TotalCount kết quả</span>
+            <span class="category-result-pill">@SharedText["Category.Results", Model.Categories.TotalCount]</span>
         </div>
 
         <div class="table-responsive">
@@ -167,19 +169,19 @@
             <thead class="bg-light text-muted">
                 <tr>
                     <th class="border-0 py-3 text-center" style="width: 25%;">
-                        Mã danh mục
+                        @SharedText["Category.Code"]
                     </th>
                     <th class="border-0 py-3 text-center" style="width: 10%;">
                         Icon
                     </th>
                     <th class="border-0 py-3" style="width: 35%;">
-                        Tên danh mục
+                        @SharedText["Category.Name"]
                     </th>
                     <th class="border-0 py-3 text-center" style="width: 15%;">
-                        Trạng thái
+                        @SharedText["Common.Status"]
                     </th>
                     <th class="border-0 text-center py-3" style="width: 15%;">
-                        Hành động
+                        @SharedText["Common.Actions"]
                     </th>
                 </tr>
             </thead>
@@ -191,8 +193,8 @@
                         <td colspan="5"
                             class="category-empty-state">
                             <span class="category-empty-icon"><i class="fas fa-mug-hot"></i></span>
-                            <strong>@(hasKeyword ? "Không tìm thấy danh mục phù hợp" : "Chưa có danh mục nào")</strong>
-                            <small>@(hasKeyword ? "Thử một từ khóa khác hoặc xóa bộ lọc hiện tại." : "Tạo danh mục đầu tiên để bắt đầu tổ chức thực đơn.")</small>
+                            <strong>@(hasKeyword ? SharedText["Category.Empty.FilteredTitle"] : SharedText["Category.Empty.DefaultTitle"])</strong>
+                            <small>@(hasKeyword ? SharedText["Category.Empty.FilteredDetail"] : SharedText["Category.Empty.DefaultDetail"])</small>
                         </td>
                     </tr>
                 }
@@ -228,13 +230,13 @@
                             @if (item.Active)
                             {
                                 <span class="badge badge-active">
-                                    Hiển thị
+                                    @SharedText["Common.Visible"]
                                 </span>
                             }
                             else
                             {
                                 <span class="badge bg-light text-muted badge-inactive">
-                                    Ẩn
+                                    @SharedText["Common.Hidden"]
                                 </span>
                             }
                         </td>
@@ -248,7 +250,7 @@
                                         data-id="@item.CategoryId"
                                         data-bs-toggle="modal"
                                         data-bs-target="#editCategoryModal"
-                                        title="Sửa">
+                                        title="@SharedText["Common.Edit"]">
                                     <i class="fas fa-pen"></i>
                                 </button>
                                 }
@@ -258,7 +260,7 @@
                                 <button type="button"
                                         class="btn btn-sm category-action-btn @(item.Active ? "category-action-lock" : "category-action-unlock")"
                                         onclick="toggleCategory(@item.CategoryId)"
-                                        title="@(item.Active ? "Ẩn" : "Hiển thị")">
+                                        title="@(item.Active ? SharedText["Common.Hidden"] : SharedText["Common.Visible"])">
                                     <i class="fas @(item.Active ? "fa-lock" : "fa-unlock")"></i>
                                 </button>
                                 }
@@ -277,7 +279,7 @@
 
         <span class="text-muted">
 
-            Hiển thị @Model.Categories.TotalCount danh mục
+            @SharedText["Category.Footer.Count", Model.Categories.TotalCount]
 
         </span>
 
@@ -336,7 +338,7 @@
 
                 <h5 class="modal-title">
 
-                    Thêm danh mục mới
+                    @SharedText["Category.Add"]
 
                 </h5>
 
@@ -362,12 +364,12 @@
                                 aria-hidden="true"
                                 tabindex="-1"
                                 disabled>
-                            <i class="fas fa-wand-magic-sparkles me-2"></i>AI Gợi Ý
+                            <i class="fas fa-wand-magic-sparkles me-2"></i>@SharedText["Category.Form.AiSuggest"]
                         </button>
                     </div>
 
                     <div id="categoryAiSuggestions" class="category-ai-suggestions d-none mb-3" aria-live="polite">
-                        <div id="categoryAiSuggestionMessage" class="small text-muted mb-2">Chọn một gợi ý để điền vào form:</div>
+                        <div id="categoryAiSuggestionMessage" class="small text-muted mb-2">@SharedText["Category.Form.AiChoose"]</div>
                         <div id="categoryAiSuggestionList" class="category-ai-suggestion-list"></div>
                     </div>
 
@@ -375,7 +377,7 @@
 
                         <label class="form-label fw-semibold">
 
-                            Mã danh mục <span class="text-danger">*</span>
+                            @SharedText["Category.Form.Code.Label"] <span class="text-danger">*</span>
 
                         </label>
 
@@ -385,12 +387,12 @@
                         <input type="text"
                                name="CategoryCode"
                                class="form-control category-input custom-val"
-                               placeholder="Nhập mã danh mục..."
+                               placeholder="@SharedText["Category.Form.Code.Placeholder"]"
                                required
                                pattern="^.{1,50}$"
-                               title="Tối đa 50 ký tự" />
-                        <small class="text-danger d-none error-msg mt-1"><i class="fas fa-exclamation-circle me-1"></i> Mã danh mục không hợp lệ (tối đa 50 ký tự).</small>
-                        <small class="text-muted d-block mt-1">Tối đa 50 ký tự.</small>
+                               title="@SharedText["Category.Form.Code.Help"]" />
+                        <small class="text-danger d-none error-msg mt-1"><i class="fas fa-exclamation-circle me-1"></i> @SharedText["Category.Form.Code.Invalid"]</small>
+                        <small class="text-muted d-block mt-1">@SharedText["Category.Form.Code.Help"]</small>
 
                     </div>
 
@@ -398,19 +400,19 @@
 
                         <label class="form-label fw-semibold">
 
-                            Tên danh mục <span class="text-danger">*</span>
+                            @SharedText["Category.Form.Name.Label"] <span class="text-danger">*</span>
 
                         </label>
 
                         <input type="text"
                                name="Name"
                                class="form-control category-input custom-val"
-                               placeholder="Nhập tên danh mục..."
+                               placeholder="@SharedText["Category.Form.Name.Placeholder"]"
                                required
                                pattern="^.{1,100}$"
-                               title="Tối đa 100 ký tự" />
-                        <small class="text-danger d-none error-msg mt-1"><i class="fas fa-exclamation-circle me-1"></i> Tên danh mục không hợp lệ (tối đa 100 ký tự).</small>
-                        <small class="text-muted d-block mt-1">Không được nhập quá 100 ký tự.</small>
+                               title="@SharedText["Category.Form.Name.Help"]" />
+                        <small class="text-danger d-none error-msg mt-1"><i class="fas fa-exclamation-circle me-1"></i> @SharedText["Category.Form.Name.Invalid"]</small>
+                        <small class="text-muted d-block mt-1">@SharedText["Category.Form.Name.Help"]</small>
 
                     </div>
 
@@ -424,7 +426,7 @@
 
                         <div class="category-icon-picker" data-category-icon-picker>
                             <div class="input-group category-icon-toolbar">
-                                <span class="input-group-text category-icon-preview" data-icon-preview aria-label="Xem trước icon">—</span>
+                                <span class="input-group-text category-icon-preview" data-icon-preview aria-label="@SharedText["Category.Form.Icon.Preview"]">—</span>
                                 <input type="text"
                                        id="createCategoryIcon"
                                        name="Icon"
@@ -433,21 +435,21 @@
                                        class="form-control category-input"
                                        data-icon-input
                                        aria-describedby="createCategoryIconHelp"
-                                       placeholder="Ví dụ: ☕" />
+                                       placeholder="@SharedText["Category.Form.Icon.Example"]" />
                                 <button type="button" class="btn btn-outline-secondary" data-icon-toggle aria-expanded="false">
-                                    <i class="fas fa-icons me-1"></i>Chọn biểu tượng
+                                    <i class="fas fa-icons me-1"></i>@SharedText["Category.Form.Icon.Select"]
                                 </button>
-                                <button type="button" class="btn btn-outline-danger" data-icon-clear title="Xóa icon" aria-label="Xóa icon">
+                                <button type="button" class="btn btn-outline-danger" data-icon-clear title="@SharedText["Category.Form.Icon.Clear"]" aria-label="@SharedText["Category.Form.Icon.Clear"]">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
-                            <small id="createCategoryIconHelp" class="text-muted">Chọn hoặc nhập một biểu tượng Unicode.</small>
+                            <small id="createCategoryIconHelp" class="text-muted">@SharedText["Category.Form.Icon.Help"]</small>
                             <div class="category-icon-picker-panel d-none" data-icon-panel>
                                 <input type="search"
                                        class="form-control form-control-sm mb-2"
                                        data-icon-search
-                                       placeholder="Tìm cà phê, trà, trái cây..."
-                                       aria-label="Tìm biểu tượng" />
+                                       placeholder="@SharedText["Category.Form.Icon.Search"]"
+                                       aria-label="@SharedText["Category.Form.Icon.Select"]" />
                                 <div class="category-icon-groups" data-icon-groups></div>
                             </div>
                         </div>
@@ -464,7 +466,7 @@
 
                         <label class="form-check-label">
 
-                            Hoạt động
+                            @SharedText["Category.Form.Active"]
 
                         </label>
 
@@ -476,7 +478,7 @@
                                 class="btn btn-light"
                                 data-bs-dismiss="modal">
 
-                            Hủy
+                            @SharedText["Common.Cancel"]
 
                         </button>
 
@@ -485,11 +487,11 @@
                                 class="btn category-primary-btn"
                                 data-can-submit="@canCreateCategory.ToString().ToLowerInvariant()"
                                 disabled="@(!canCreateCategory)"
-                                title="@(canCreateCategory ? "Lưu danh mục" : "Bạn không có quyền thêm danh mục")">
+                                title="@(canCreateCategory ? SharedText["Category.Form.Save"] : SharedText["Category.Form.NoCreatePermission"])">
 
                             <i class="fas fa-save me-2"></i>
 
-                            Lưu danh mục
+                            @SharedText["Category.Form.Save"]
 
                         </button>
 
@@ -520,7 +522,7 @@
 
                 <h5 class="modal-title">
 
-                    Chỉnh sửa danh mục
+                    @SharedText["Category.Form.Edit.Title"]
 
                 </h5>
 
@@ -547,7 +549,7 @@
 
                         <label class="form-label fw-semibold">
 
-                            Mã danh mục <span class="text-danger">*</span>
+                            @SharedText["Category.Form.Code.Label"] <span class="text-danger">*</span>
 
                         </label>
 
@@ -555,12 +557,12 @@
                                id="editCategoryCode"
                                name="CategoryCode"
                                class="form-control category-input custom-val"
-                               placeholder="Nhập mã danh mục..."
+                               placeholder="@SharedText["Category.Form.Code.Placeholder"]"
                                required
                                pattern="^.{1,50}$"
-                               title="Tối đa 50 ký tự" />
-                        <small class="text-danger d-none error-msg mt-1"><i class="fas fa-exclamation-circle me-1"></i> Mã danh mục không hợp lệ (tối đa 50 ký tự).</small>
-                        <small class="text-muted d-block mt-1">Tối đa 50 ký tự.</small>
+                               title="@SharedText["Category.Form.Code.Help"]" />
+                        <small class="text-danger d-none error-msg mt-1"><i class="fas fa-exclamation-circle me-1"></i> @SharedText["Category.Form.Code.Invalid"]</small>
+                        <small class="text-muted d-block mt-1">@SharedText["Category.Form.Code.Help"]</small>
 
                     </div>
 
@@ -568,7 +570,7 @@
 
                         <label class="form-label fw-semibold">
 
-                            Tên danh mục <span class="text-danger">*</span>
+                            @SharedText["Category.Form.Name.Label"] <span class="text-danger">*</span>
 
                         </label>
 
@@ -576,12 +578,12 @@
                                id="editCategoryName"
                                name="Name"
                                class="form-control category-input custom-val"
-                               placeholder="Nhập tên danh mục..."
+                               placeholder="@SharedText["Category.Form.Name.Placeholder"]"
                                required
                                pattern="^.{1,100}$"
-                               title="Tối đa 100 ký tự" />
-                        <small class="text-danger d-none error-msg mt-1"><i class="fas fa-exclamation-circle me-1"></i> Tên danh mục không hợp lệ (tối đa 100 ký tự).</small>
-                        <small class="text-muted d-block mt-1">Không được nhập quá 100 ký tự.</small>
+                               title="@SharedText["Category.Form.Name.Help"]" />
+                        <small class="text-danger d-none error-msg mt-1"><i class="fas fa-exclamation-circle me-1"></i> @SharedText["Category.Form.Name.Invalid"]</small>
+                        <small class="text-muted d-block mt-1">@SharedText["Category.Form.Name.Help"]</small>
 
                     </div>
 
@@ -595,7 +597,7 @@
 
                         <div class="category-icon-picker" data-category-icon-picker>
                             <div class="input-group category-icon-toolbar">
-                                <span class="input-group-text category-icon-preview" data-icon-preview aria-label="Xem trước icon">—</span>
+                                <span class="input-group-text category-icon-preview" data-icon-preview aria-label="@SharedText["Category.Form.Icon.Preview"]">—</span>
                                 <input type="text"
                                        id="editCategoryIcon"
                                        name="Icon"
@@ -604,21 +606,21 @@
                                        class="form-control category-input"
                                        data-icon-input
                                        aria-describedby="editCategoryIconHelp"
-                                       placeholder="Ví dụ: ☕" />
+                                       placeholder="@SharedText["Category.Form.Icon.Example"]" />
                                 <button type="button" class="btn btn-outline-secondary" data-icon-toggle aria-expanded="false">
-                                    <i class="fas fa-icons me-1"></i>Chọn biểu tượng
+                                    <i class="fas fa-icons me-1"></i>@SharedText["Category.Form.Icon.Select"]
                                 </button>
-                                <button type="button" class="btn btn-outline-danger" data-icon-clear title="Xóa icon" aria-label="Xóa icon">
+                                <button type="button" class="btn btn-outline-danger" data-icon-clear title="@SharedText["Category.Form.Icon.Clear"]" aria-label="@SharedText["Category.Form.Icon.Clear"]">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
-                            <small id="editCategoryIconHelp" class="text-muted">Chọn hoặc nhập một biểu tượng Unicode.</small>
+                            <small id="editCategoryIconHelp" class="text-muted">@SharedText["Category.Form.Icon.Help"]</small>
                             <div class="category-icon-picker-panel d-none" data-icon-panel>
                                 <input type="search"
                                        class="form-control form-control-sm mb-2"
                                        data-icon-search
-                                       placeholder="Tìm cà phê, trà, trái cây..."
-                                       aria-label="Tìm biểu tượng" />
+                                       placeholder="@SharedText["Category.Form.Icon.Search"]"
+                                       aria-label="@SharedText["Category.Form.Icon.Select"]" />
                                 <div class="category-icon-groups" data-icon-groups></div>
                             </div>
                         </div>
@@ -635,7 +637,7 @@
 
                         <label class="form-check-label">
 
-                            Hoạt động
+                            @SharedText["Category.Form.Active"]
 
                         </label>
 
@@ -647,7 +649,7 @@
                                 class="btn btn-light"
                                 data-bs-dismiss="modal">
 
-                            Hủy
+                            @SharedText["Common.Cancel"]
 
                         </button>
 
@@ -656,11 +658,11 @@
                                 class="btn category-primary-btn"
                                 data-can-submit="@canUpdateCategory.ToString().ToLowerInvariant()"
                                 disabled="@(!canUpdateCategory)"
-                                title="@(canUpdateCategory ? "Cập nhật" : "Bạn không có quyền cập nhật danh mục")">
+                                title="@(canUpdateCategory ? SharedText["Category.Form.Update"] : SharedText["Category.Form.NoUpdatePermission"])">
 
                             <i class="fas fa-save me-2"></i>
 
-                            Cập nhật
+                            @SharedText["Category.Form.Update"]
 
                         </button>
 
@@ -678,5 +680,6 @@
 
 @section Scripts
 {
+    <partial name="_CategoryUiCatalog" />
     <script src="~/js/Admin/Category/Category.js" asp-append-version="true"></script>
 }

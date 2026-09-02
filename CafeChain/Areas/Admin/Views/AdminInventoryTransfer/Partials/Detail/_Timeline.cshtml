@@ -1,15 +1,16 @@
 @model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferDetailVM
+@inject Microsoft.Extensions.Localization.IStringLocalizer<CafeChain.InventoryResource> InventoryText
 
 <section class="transfer-card">
     <div class="transfer-card-header compact">
         <div>
-            <span class="section-kicker"><i class="fas fa-clock-rotate-left"></i> Nhật ký xử lý</span>
-            <h2>Receipt và chênh lệch</h2>
+            <span class="section-kicker"><i class="fas fa-clock-rotate-left"></i> @InventoryText["Transfer.Detail.Timeline"]</span>
+            <h2>@InventoryText["Transfer.Detail.ReceiptAndDiscrepancy"]</h2>
         </div>
     </div>
     @if (!Model.Timeline.Any())
     {
-        <p class="transfer-empty-timeline">Chưa có lần nhận hoặc xử lý chênh lệch.</p>
+        <p class="transfer-empty-timeline">@InventoryText["Transfer.Detail.NoTimeline"]</p>
     }
     else
     {
@@ -21,7 +22,7 @@
                     <div>
                         <strong>@item.EventType</strong>
                         <span>@item.ItemName · @item.Quantity.ToString("0.###") @item.UnitCode</span>
-                        <small>@item.OccurredAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · @(string.IsNullOrWhiteSpace(item.ActorName) ? "Hệ thống" : item.ActorName)</small>
+                        <small>@item.OccurredAt.ToLocalTime().ToString("g") · @(string.IsNullOrWhiteSpace(item.ActorName) ? InventoryText["Common.System"] : item.ActorName)</small>
                         @if (!string.IsNullOrWhiteSpace(item.Reason)) { <p>@item.Reason</p> }
                     </div>
                 </div>

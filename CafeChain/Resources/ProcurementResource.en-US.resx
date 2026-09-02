@@ -1,0 +1,1266 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Common.All" xml:space="preserve"><value>All</value></data>
+  <data name="Common.Apply" xml:space="preserve"><value>Apply</value></data>
+  <data name="Common.Branch" xml:space="preserve"><value>Branch</value></data>
+  <data name="Common.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Common.Supplier" xml:space="preserve"><value>Supplier</value></data>
+  <data name="Common.Priority" xml:space="preserve"><value>Priority</value></data>
+  <data name="Common.FromDate" xml:space="preserve"><value>From date</value></data>
+  <data name="Common.ToDate" xml:space="preserve"><value>To date</value></data>
+  <data name="Common.Value" xml:space="preserve"><value>Value</value></data>
+  <data name="Common.Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Common.Details" xml:space="preserve"><value>Details</value></data>
+  <data name="Common.CreatedAt" xml:space="preserve"><value>Created {0}</value></data>
+  <data name="PurchaseAdvice.Title" xml:space="preserve"><value>Purchase advice</value></data>
+  <data name="PurchaseAdvice.Eyebrow" xml:space="preserve"><value>INVENTORY &amp; SUPPLY</value></data>
+  <data name="PurchaseAdvice.Heading" xml:space="preserve"><value>Purchase advice by branch</value></data>
+  <data name="PurchaseAdvice.Subtitle" xml:space="preserve"><value>Select the outstanding demand that must be purchased from suppliers before accounting consolidates it.</value></data>
+  <data name="PurchaseAdvice.Create" xml:space="preserve"><value>Create purchase advice</value></data>
+  <data name="PurchaseAdvice.AllInScope" xml:space="preserve"><value>All within scope</value></data>
+  <data name="PurchaseAdvice.Code" xml:space="preserve"><value>Advice code</value></data>
+  <data name="PurchaseAdvice.BranchSource" xml:space="preserve"><value>Branch / request source</value></data>
+  <data name="PurchaseAdvice.RequestedBy" xml:space="preserve"><value>Requested by</value></data>
+  <data name="PurchaseAdvice.NeededBy" xml:space="preserve"><value>Needed by</value></data>
+  <data name="PurchaseAdvice.LineCount" xml:space="preserve"><value>Advice lines</value></data>
+  <data name="PurchaseAdvice.SourceRequest" xml:space="preserve"><value>Restock request {0}</value></data>
+  <data name="PurchaseAdvice.Empty" xml:space="preserve"><value>No purchase advice matches the filters.</value></data>
+  <data name="PurchaseOrder.Title" xml:space="preserve"><value>Purchase orders</value></data>
+  <data name="PurchaseOrder.Eyebrow" xml:space="preserve"><value>SUPPLIER PROCUREMENT</value></data>
+  <data name="PurchaseOrder.Subtitle" xml:space="preserve"><value>Track ordered quantities, receiving progress, and document value. Inventory changes only after a receipt is confirmed.</value></data>
+  <data name="PurchaseOrder.Create" xml:space="preserve"><value>Create purchase order</value></data>
+  <data name="PurchaseOrder.FilterAria" xml:space="preserve"><value>Filter purchase orders by branch</value></data>
+  <data name="PurchaseOrder.EmptyTitle" xml:space="preserve"><value>No purchase orders</value></data>
+  <data name="PurchaseOrder.EmptyCopy" xml:space="preserve"><value>Create an order from approved procurement demand, or create one directly when supplier information and permission are available.</value></data>
+  <data name="PurchaseOrder.ViewRequests" xml:space="preserve"><value>View restock requests</value></data>
+  <data name="PurchaseOrder.ListAria" xml:space="preserve"><value>Purchase order list</value></data>
+  <data name="PurchaseOrder.Code" xml:space="preserve"><value>Order code</value></data>
+  <data name="PurchaseOrder.OrderDate" xml:space="preserve"><value>Order date</value></data>
+  <data name="PurchaseOrderBatch.Title" xml:space="preserve"><value>Purchase order batches</value></data>
+  <data name="PurchaseOrderBatch.Eyebrow" xml:space="preserve"><value>INVENTORY &amp; SUPPLY / PURCHASE ORDER BATCHES</value></data>
+  <data name="PurchaseOrderBatch.Subtitle" xml:space="preserve"><value>Track consolidated orders sent to suppliers and delivery progress for each branch.</value></data>
+  <data name="PurchaseOrderBatch.Consolidate" xml:space="preserve"><value>Consolidate purchase advice</value></data>
+  <data name="PurchaseOrderBatch.Code" xml:space="preserve"><value>Batch code</value></data>
+  <data name="PurchaseOrderBatch.Progress" xml:space="preserve"><value>Progress</value></data>
+  <data name="PurchaseOrderBatch.DeliveryWindow" xml:space="preserve"><value>Delivery window</value></data>
+  <data name="PurchaseOrderBatch.BranchCount" xml:space="preserve"><value>{0} branches</value></data>
+  <data name="PurchaseOrderBatch.EmptyTitle" xml:space="preserve"><value>No matching purchase order batches</value></data>
+  <data name="PurchaseOrderBatch.EmptyCopy" xml:space="preserve"><value>Create a purchase order batch from the purchase advice consolidation screen.</value></data>
+  <data name="BranchReceipt.Title" xml:space="preserve"><value>Branch receipts</value></data>
+  <data name="BranchReceipt.Eyebrow" xml:space="preserve"><value>INVENTORY RECEIPT · BRANCH #{0}</value></data>
+  <data name="BranchReceipt.Subtitle" xml:space="preserve"><value>Track received goods and finalized cost. Only confirmed receipts update inventory.</value></data>
+  <data name="BranchReceipt.RestockRequests" xml:space="preserve"><value>Restock requests</value></data>
+  <data name="BranchReceipt.Create" xml:space="preserve"><value>Create receipt</value></data>
+  <data name="BranchReceipt.SelectBranchAria" xml:space="preserve"><value>Select branch</value></data>
+  <data name="BranchReceipt.FilterAria" xml:space="preserve"><value>Filter receipt status</value></data>
+  <data name="BranchReceipt.Draft" xml:space="preserve"><value>Draft</value></data>
+  <data name="BranchReceipt.Confirmed" xml:space="preserve"><value>Confirmed</value></data>
+  <data name="BranchReceipt.EmptyTitle" xml:space="preserve"><value>No matching receipts</value></data>
+  <data name="BranchReceipt.EmptyCopy" xml:space="preserve"><value>Select another status or create a receipt from an open restock request.</value></data>
+  <data name="BranchReceipt.ListAria" xml:space="preserve"><value>Branch receipt list</value></data>
+  <data name="BranchReceipt.Code" xml:space="preserve"><value>Receipt code</value></data>
+  <data name="BranchReceipt.LineCount" xml:space="preserve"><value>Lines</value></data>
+  <data name="BranchReceipt.ConvertedQuantity" xml:space="preserve"><value>Converted quantity</value></data>
+  <data name="BranchReceipt.ReceivedAt" xml:space="preserve"><value>Received at</value></data>
+  <data name="BranchReceipt.BranchNumber" xml:space="preserve"><value>Branch #{0}</value></data>
+  <data name="Status.DRAFT" xml:space="preserve"><value>Draft</value></data>
+  <data name="Status.SUBMITTED" xml:space="preserve"><value>Submitted</value></data>
+  <data name="Status.UNDER_REVIEW" xml:space="preserve"><value>Under review</value></data>
+  <data name="Status.ALLOCATED" xml:space="preserve"><value>Allocated</value></data>
+  <data name="Status.REJECTED" xml:space="preserve"><value>Rejected</value></data>
+  <data name="Status.CANCELLED" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="Status.PENDING_APPROVAL" xml:space="preserve"><value>Pending approval</value></data>
+  <data name="Status.APPROVED" xml:space="preserve"><value>Approved</value></data>
+  <data name="Status.PDF_GENERATED" xml:space="preserve"><value>PDF generated</value></data>
+  <data name="Status.SENT_TO_SUPPLIER" xml:space="preserve"><value>Sent to supplier</value></data>
+  <data name="Status.PARTIALLY_RECEIVED" xml:space="preserve"><value>Partially received</value></data>
+  <data name="Status.COMPLETED" xml:space="preserve"><value>Completed</value></data>
+  <data name="Status.CONFIRMED" xml:space="preserve"><value>Confirmed</value></data>
+  <data name="Priority.NORMAL" xml:space="preserve"><value>Normal</value></data>
+  <data name="Priority.HIGH" xml:space="preserve"><value>High</value></data>
+  <data name="Priority.URGENT" xml:space="preserve"><value>Urgent</value></data>
+  <data name="Status.PROCESSING" xml:space="preserve"><value>Processing</value></data>
+  <data name="Restock.Title" xml:space="preserve"><value>Restock requests</value></data><data name="Restock.Eyebrow" xml:space="preserve"><value>INVENTORY &amp; SUPPLY</value></data><data name="Restock.Subtitle" xml:space="preserve"><value>Track restock requests for {0}. Requests record demand only; inventory changes only through confirmed receipts or transfers.</value></data><data name="Restock.SelectedStore" xml:space="preserve"><value>the selected branch</value></data><data name="Restock.CreateManual" xml:space="preserve"><value>Create manually</value></data><data name="Restock.CentralPlan" xml:space="preserve"><value>Central plan</value></data><data name="Restock.StockAlerts" xml:space="preserve"><value>Stock alerts</value></data><data name="Restock.Receipts" xml:space="preserve"><value>Receipts</value></data><data name="Restock.SelectBranch" xml:space="preserve"><value>Select branch</value></data><data name="Restock.SummaryAria" xml:space="preserve"><value>Request summary for this page</value></data><data name="Restock.FilteredResults" xml:space="preserve"><value>Filtered results</value></data><data name="Restock.UrgentOnPage" xml:space="preserve"><value>Urgent on this page</value></data><data name="Restock.HighOnPage" xml:space="preserve"><value>High priority on this page</value></data><data name="Restock.CountOnPage" xml:space="preserve"><value>Requests on this page</value></data><data name="Restock.FilterStatus" xml:space="preserve"><value>Filter restock request status</value></data><data name="Restock.EmptyTitle" xml:space="preserve"><value>No matching restock requests</value></data><data name="Restock.EmptyCopy" xml:space="preserve"><value>Change the status filter, create a request manually, or open a confirmed alert to record new demand.</value></data><data name="Restock.Code" xml:space="preserve"><value>Code</value></data><data name="Restock.Item" xml:space="preserve"><value>Item</value></data><data name="Restock.Quantity" xml:space="preserve"><value>Quantity</value></data><data name="Restock.WorkflowStatus" xml:space="preserve"><value>Workflow status</value></data><data name="Restock.CreatedBy" xml:space="preserve"><value>Created by</value></data><data name="Restock.Time" xml:space="preserve"><value>Time</value></data><data name="Restock.DemandUnit" xml:space="preserve"><value>demand unit</value></data><data name="Restock.PageSummary" xml:space="preserve"><value>Page {0} / {1} · {2} requests total</value></data><data name="Common.Previous" xml:space="preserve"><value>Previous</value></data><data name="Common.Next" xml:space="preserve"><value>Next</value></data>
+  <data name="RestockForm.ManualTitle" xml:space="preserve"><value>Create restock request</value></data>
+  <data name="RestockForm.ManualEyebrow" xml:space="preserve"><value>INVENTORY &amp; SUPPLY / RESTOCK REQUEST</value></data>
+  <data name="RestockForm.ManualSubtitle" xml:space="preserve"><value>Record a new operational demand using a unit appropriate for the ingredient. This request does not create purchase advice until the responsible team selects an external source.</value></data>
+  <data name="RestockForm.CentralTitle" xml:space="preserve"><value>Create central restock plan</value></data>
+  <data name="RestockForm.CentralEyebrow" xml:space="preserve"><value>INVENTORY &amp; SUPPLY / CENTRAL PLAN</value></data>
+  <data name="RestockForm.CentralSubtitle" xml:space="preserve"><value>Record planned demand within the branches you can access. The responsible team must still review it and select a supply source.</value></data>
+  <data name="RestockForm.Back" xml:space="preserve"><value>Back to requests</value></data>
+  <data name="RestockForm.Information" xml:space="preserve"><value>Demand information</value></data>
+  <data name="RestockForm.PlanInformation" xml:space="preserve"><value>Plan information</value></data>
+  <data name="RestockForm.RequiredFields" xml:space="preserve"><value>Fields marked with * are required.</value></data>
+  <data name="RestockForm.DemandSection" xml:space="preserve"><value>Restock demand</value></data>
+  <data name="RestockForm.DemandSectionHelp" xml:space="preserve"><value>Select the item, unit, and operational quantity.</value></data>
+  <data name="RestockForm.PlanSection" xml:space="preserve"><value>Planned demand</value></data>
+  <data name="RestockForm.PlanSectionHelp" xml:space="preserve"><value>Select the item, unit, and target quantity.</value></data>
+  <data name="RestockForm.Ingredient" xml:space="preserve"><value>Ingredient</value></data>
+  <data name="RestockForm.SelectIngredient" xml:space="preserve"><value>Select an ingredient</value></data>
+  <data name="RestockForm.DemandUnit" xml:space="preserve"><value>Demand unit</value></data>
+  <data name="RestockForm.SelectIngredientFirst" xml:space="preserve"><value>Select an ingredient first</value></data>
+  <data name="RestockForm.SelectDemandUnit" xml:space="preserve"><value>Select a demand unit</value></data>
+  <data name="RestockForm.LoadingUnits" xml:space="preserve"><value>Loading units...</value></data>
+  <data name="RestockForm.UnitsUnavailable" xml:space="preserve"><value>Units could not be loaded</value></data>
+  <data name="RestockForm.UnitLoadError" xml:space="preserve"><value>Unable to load demand units.</value></data>
+  <data name="RestockForm.RequestedQuantity" xml:space="preserve"><value>Requested quantity</value></data>
+  <data name="RestockForm.TargetQuantity" xml:space="preserve"><value>Target quantity</value></data>
+  <data name="RestockForm.ScheduleSection" xml:space="preserve"><value>Required date and priority</value></data>
+  <data name="RestockForm.ScheduleHelp" xml:space="preserve"><value>Set the required date so inventory staff can arrange the supply source.</value></data>
+  <data name="RestockForm.RequiredDateSection" xml:space="preserve"><value>Required date</value></data>
+  <data name="RestockForm.RequiredDateHelp" xml:space="preserve"><value>Choose a deadline appropriate for the operating plan.</value></data>
+  <data name="RestockForm.NeedBy" xml:space="preserve"><value>Needed by</value></data>
+  <data name="RestockForm.DateHelp" xml:space="preserve"><value>Month/day/year</value></data>
+  <data name="RestockForm.RequestCode" xml:space="preserve"><value>Request code</value></data>
+  <data name="RestockForm.AutoCode" xml:space="preserve"><value>(Generated automatically after saving)</value></data>
+  <data name="RestockForm.AutoCodeHelp" xml:space="preserve"><value>Automatically generated in PR-YYYYMMDD-XXXX format</value></data>
+  <data name="RestockForm.ContextSection" xml:space="preserve"><value>Demand context</value></data>
+  <data name="RestockForm.ContextHelp" xml:space="preserve"><value>Explain the reason so the sourcing reviewer can make an informed decision.</value></data>
+  <data name="RestockForm.Note" xml:space="preserve"><value>Reason / notes</value></data>
+  <data name="RestockForm.NotePlaceholder" xml:space="preserve"><value>Explain what caused this demand...</value></data>
+  <data name="RestockForm.OneActiveHelp" xml:space="preserve"><value>Each branch can have only one active request for the same ingredient. Add demand to the existing request to keep sourcing and allocation history together.</value></data>
+  <data name="RestockForm.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="RestockForm.Create" xml:space="preserve"><value>Create restock request</value></data>
+  <data name="RestockForm.Creating" xml:space="preserve"><value>Creating request...</value></data>
+  <data name="RestockForm.ExistingTitle" xml:space="preserve"><value>This ingredient already has an active request</value></data>
+  <data name="RestockForm.NoDuplicate" xml:space="preserve"><value>Do not create a duplicate request.</value></data>
+  <data name="RestockForm.CurrentRequest" xml:space="preserve"><value>Current request</value></data>
+  <data name="RestockForm.TotalDemand" xml:space="preserve"><value>Total demand</value></data>
+  <data name="RestockForm.Allocated" xml:space="preserve"><value>Allocated</value></data>
+  <data name="RestockForm.Unsourced" xml:space="preserve"><value>Not yet sourced</value></data>
+  <data name="RestockForm.NotSet" xml:space="preserve"><value>Not set</value></data>
+  <data name="RestockForm.ViewCurrent" xml:space="preserve"><value>View current request</value></data>
+  <data name="RestockForm.AddDemand" xml:space="preserve"><value>Add demand</value></data>
+  <data name="RestockForm.ChooseAnother" xml:space="preserve"><value>Choose another ingredient</value></data>
+  <data name="RestockForm.CheckError" xml:space="preserve"><value>Unable to check for an active request.</value></data>
+  <data name="RestockForm.EvidenceSection" xml:space="preserve"><value>Evidence and context</value></data>
+  <data name="RestockForm.EvidenceHelp" xml:space="preserve"><value>Provide evidence for the sourcing reviewer to verify the plan.</value></data>
+  <data name="RestockForm.ForecastEvidence" xml:space="preserve"><value>Forecast / planning evidence</value></data>
+  <data name="RestockForm.ForecastPlaceholder" xml:space="preserve"><value>Describe the forecast, event, or operating plan that created this demand...</value></data>
+  <data name="RestockForm.GeneralNote" xml:space="preserve"><value>Notes</value></data>
+  <data name="RestockForm.GeneralNotePlaceholder" xml:space="preserve"><value>Information the sourcing reviewer should know...</value></data>
+  <data name="RestockForm.CreatePlan" xml:space="preserve"><value>Create restock plan</value></data>
+  <data name="Reorder.Title" xml:space="preserve"><value>Reorder suggestions</value></data>
+  <data name="Reorder.Eyebrow" xml:space="preserve"><value>INVENTORY &amp; SUPPLY / PLANNING</value></data>
+  <data name="Reorder.Subtitle" xml:space="preserve"><value>Compare inventory, demand, open purchasing, and supplier packaging in one decision.</value></data>
+  <data name="Reorder.ViewActionable" xml:space="preserve"><value>View low-stock ingredients</value></data>
+  <data name="Reorder.ActionableCountAria" xml:space="preserve"><value>{0} ingredients require action</value></data>
+  <data name="Reorder.ViewRequests" xml:space="preserve"><value>View restock requests</value></data>
+  <data name="Reorder.AnalysisPeriod" xml:space="preserve"><value>Analysis period</value></data>
+  <data name="Reorder.Days" xml:space="preserve"><value>{0} days</value></data>
+  <data name="Reorder.Recalculate" xml:space="preserve"><value>Recalculate</value></data>
+  <data name="Reorder.SummaryAria" xml:space="preserve"><value>Reorder suggestion summary</value></data>
+  <data name="Reorder.Actionable" xml:space="preserve"><value>Ready for action</value></data>
+  <data name="Reorder.ActionableHelp" xml:space="preserve"><value>Suggestions eligible for confirmation</value></data>
+  <data name="Reorder.ActiveRequests" xml:space="preserve"><value>Active requests</value></data>
+  <data name="Reorder.ActiveRequestsHelp" xml:space="preserve"><value>Continue with the current request</value></data>
+  <data name="Reorder.Incomplete" xml:space="preserve"><value>Missing data</value></data>
+  <data name="Reorder.IncompleteHelp" xml:space="preserve"><value>Input data must be completed</value></data>
+  <data name="Reorder.Reviewed" xml:space="preserve"><value>Reviewed</value></data>
+  <data name="Reorder.ReviewedHelp" xml:space="preserve"><value>No new action required</value></data>
+  <data name="Reorder.ConfirmationNote" xml:space="preserve"><value>Confirmation creates a draft restock request or adds demand to an open request. The system recalculates the data and rejects stale suggestions.</value></data>
+  <data name="Reorder.ListAria" xml:space="preserve"><value>Reorder suggestion list</value></data>
+  <data name="Reorder.EmptyTitle" xml:space="preserve"><value>No suggestion data</value></data>
+  <data name="Reorder.EmptyCopy" xml:space="preserve"><value>Select a branch with ingredient inventory to begin the analysis.</value></data>
+  <data name="Reorder.ScrollAria" xml:space="preserve"><value>Horizontal scrollbar for the reorder suggestion table</value></data>
+  <data name="Reorder.InProgress" xml:space="preserve"><value>In progress</value></data>
+  <data name="Reorder.FinalSuggestion" xml:space="preserve"><value>Final suggestion</value></data>
+  <data name="Reorder.Status.Urgent" xml:space="preserve"><value>Urgent restock</value></data>
+  <data name="Reorder.Status.NearReorder" xml:space="preserve"><value>Near reorder point</value></data>
+  <data name="Reorder.Status.Normal" xml:space="preserve"><value>No restock needed</value></data>
+  <data name="Reorder.Status.IncomingCoversDemand" xml:space="preserve"><value>Incoming stock covers demand</value></data>
+  <data name="Reorder.Status.ProcurementInProgress" xml:space="preserve"><value>Procurement in progress</value></data>
+  <data name="Reorder.Status.DataIncomplete" xml:space="preserve"><value>Missing data</value></data>
+  <data name="Common.Store" xml:space="preserve"><value>Branch</value></data>
+  <data name="Common.Ingredient" xml:space="preserve"><value>Ingredient</value></data>
+  <data name="Common.Inventory" xml:space="preserve"><value>Inventory</value></data>
+  <data name="Common.Demand" xml:space="preserve"><value>Demand</value></data>
+  <data name="Common.Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Common.Select" xml:space="preserve"><value>Select</value></data>
+  <data name="Common.SelectAll" xml:space="preserve"><value>Select all</value></data>
+  <data name="Common.Ready" xml:space="preserve"><value>Ready</value></data>
+  <data name="Common.ReloadData" xml:space="preserve"><value>Reload data</value></data>
+  <data name="Reorder.Available" xml:space="preserve"><value>{0} {1} available</value></data>
+  <data name="Reorder.OnHandReserved" xml:space="preserve"><value>On hand {0} · reserved {1}</value></data>
+  <data name="Reorder.Minimum" xml:space="preserve"><value>Minimum {0}</value></data>
+  <data name="Reorder.ReorderPoint" xml:space="preserve"><value>Reorder point {0}</value></data>
+  <data name="Reorder.ConsumptionLeadTime" xml:space="preserve"><value>Daily use {0} · estimated lead time {1} days</value></data>
+  <data name="Reorder.RawDemand" xml:space="preserve"><value>Gross demand {0}</value></data>
+  <data name="Reorder.Incoming" xml:space="preserve"><value>Incoming {0}</value></data>
+  <data name="Reorder.ProjectedStock" xml:space="preserve"><value>Projected stock {0}</value></data>
+  <data name="Reorder.Covered" xml:space="preserve"><value>Open orders cover {0}</value></data>
+  <data name="Reorder.Remaining" xml:space="preserve"><value>Remaining {0}</value></data>
+  <data name="Reorder.PackagesAndCost" xml:space="preserve"><value>{0} packages · {1} VND</value></data>
+  <data name="Reorder.PackageSize" xml:space="preserve"><value>{0} {1}/package</value></data>
+  <data name="Reorder.PackagePrice" xml:space="preserve"><value>{0} VND/package</value></data>
+  <data name="Reorder.PackageCount" xml:space="preserve"><value>{0} packages</value></data>
+  <data name="Reorder.PackageSizeLabel" xml:space="preserve"><value>Package size {0} {1}/package</value></data>
+  <data name="Reorder.EstimatedCost" xml:space="preserve"><value>Estimated {0} VND</value></data>
+  <data name="Reorder.Explain" xml:space="preserve"><value>Explain</value></data>
+  <data name="Reorder.ViewRequest" xml:space="preserve"><value>View request</value></data>
+  <data name="Reorder.AddDemand" xml:space="preserve"><value>Add demand</value></data>
+  <data name="Reorder.ConfirmRestock" xml:space="preserve"><value>Confirm restock</value></data>
+  <data name="Reorder.Modal.Eyebrow" xml:space="preserve"><value>AUTOMATIC ELIGIBILITY CHECK</value></data>
+  <data name="Reorder.Modal.Title" xml:space="preserve"><value>Ingredients requiring action at {0}</value></data>
+  <data name="Reorder.Modal.Subtitle" xml:space="preserve"><value>{0}-day analysis period · the system recalculates before every confirmation.</value></data>
+  <data name="Reorder.Modal.NoticeTitle" xml:space="preserve"><value>This is a suggestion list, not a document.</value></data>
+  <data name="Reorder.Modal.NoticeCopy" xml:space="preserve"><value>The system evaluates inventory, demand, and open orders; you remain the final approver.</value></data>
+  <data name="Reorder.Modal.SelectAllHelp" xml:space="preserve"><value>Apply to every eligible row</value></data>
+  <data name="Reorder.Modal.SelectedCount" xml:space="preserve"><value>Selected {0}/{1} ingredients</value></data>
+  <data name="Reorder.Modal.StockThreshold" xml:space="preserve"><value>Stock / threshold</value></data>
+  <data name="Reorder.Modal.SuggestedPurchase" xml:space="preserve"><value>Suggested purchase</value></data>
+  <data name="Reorder.Modal.Result" xml:space="preserve"><value>Result</value></data>
+  <data name="Reorder.Modal.SelectIngredient" xml:space="preserve"><value>Select {0}</value></data>
+  <data name="Reorder.Modal.Coverage" xml:space="preserve"><value>Covered {0}</value></data>
+  <data name="Reorder.Modal.NoActionTitle" xml:space="preserve"><value>No ingredients require a restock request</value></data>
+  <data name="Reorder.Modal.NoActionCopy" xml:space="preserve"><value>Inventory and open orders currently cover this branch's demand.</value></data>
+  <data name="Reorder.Modal.IncompleteCount" xml:space="preserve"><value>{0} ingredients have missing data</value></data>
+  <data name="Reorder.Modal.IncompleteHelp" xml:space="preserve"><value>These rows are for review only and cannot be confirmed.</value></data>
+  <data name="Reorder.Modal.CreateSelected" xml:space="preserve"><value>Create selected restock requests</value></data>
+  <data name="Reorder.Js.RequestFailed" xml:space="preserve"><value>Unable to process the request.</value></data>
+  <data name="Reorder.Js.Summary" xml:space="preserve"><value>Summary</value></data>
+  <data name="Reorder.Js.Explanation" xml:space="preserve"><value>Explanation</value></data>
+  <data name="Reorder.Js.Risk" xml:space="preserve"><value>Risk</value></data>
+  <data name="Reorder.Js.RecommendedAction" xml:space="preserve"><value>Recommended action</value></data>
+  <data name="Reorder.Js.None" xml:space="preserve"><value>None.</value></data>
+  <data name="Reorder.Js.AiExplanation" xml:space="preserve"><value>AI explanation</value></data>
+  <data name="Reorder.Js.RuleExplanation" xml:space="preserve"><value>Rule-based explanation</value></data>
+  <data name="Reorder.Js.CannotExplain" xml:space="preserve"><value>Unable to explain</value></data>
+  <data name="Reorder.Js.Reload" xml:space="preserve"><value>Reload data</value></data>
+  <data name="Reorder.Js.Later" xml:space="preserve"><value>Later</value></data>
+  <data name="Reorder.Js.Confirming" xml:space="preserve"><value>Confirming...</value></data>
+  <data name="Reorder.Js.Confirmed" xml:space="preserve"><value>Confirmed</value></data>
+  <data name="Reorder.Js.OpenRequest" xml:space="preserve"><value>Open request</value></data>
+  <data name="Reorder.Js.CannotConfirm" xml:space="preserve"><value>Unable to confirm</value></data>
+  <data name="Reorder.Js.SelectedCount" xml:space="preserve"><value>Selected {selected}/{total} ingredients</value></data>
+  <data name="Reorder.Js.RetrySelected" xml:space="preserve"><value>Retry selected rows</value></data>
+  <data name="Reorder.Js.ConfirmTitle" xml:space="preserve"><value>Confirm restock request creation</value></data>
+  <data name="Reorder.Js.ConfirmText" xml:space="preserve"><value>The system will confirm {count} ingredients one at a time. Continue?</value></data>
+  <data name="Reorder.Js.ConfirmCreate" xml:space="preserve"><value>Confirm creation</value></data>
+  <data name="Reorder.Js.ReviewAgain" xml:space="preserve"><value>Review again</value></data>
+  <data name="Reorder.Js.Processing" xml:space="preserve"><value>Processing {completed}/{total} ingredients...</value></data>
+  <data name="Reorder.Js.Created" xml:space="preserve"><value>Restock request created.</value></data>
+  <data name="Reorder.Js.ReloadPrefix" xml:space="preserve"><value>Reload required: </value></data>
+  <data name="Reorder.Js.ForbiddenPrefix" xml:space="preserve"><value>Permission denied: </value></data>
+  <data name="Reorder.Js.RetryPrefix" xml:space="preserve"><value>Retry available: </value></data>
+  <data name="Reorder.Js.Progress" xml:space="preserve"><value>Processing {completed}/{total}: {ingredient}</value></data>
+  <data name="Reorder.Js.Completed" xml:space="preserve"><value>Completed: {count} succeeded</value></data>
+  <data name="Reorder.Js.Retryable" xml:space="preserve"><value>{count} can be retried</value></data>
+  <data name="Reorder.Js.NeedsReload" xml:space="preserve"><value>{count} require reload</value></data>
+  <data name="Restock.Details.Source.Transfer" xml:space="preserve"><value>Internal transfer</value></data>
+  <data name="Restock.Details.Source.Purchase" xml:space="preserve"><value>External purchase</value></data>
+  <data name="Restock.Details.Source.Production" xml:space="preserve"><value>Internal production</value></data>
+  <data name="Restock.Details.Submitting" xml:space="preserve"><value>Submitting...</value></data>
+  <data name="Restock.Details.AdditionalDemand" xml:space="preserve"><value>Additional demand</value></data>
+  <data name="Restock.Details.RestockRequest" xml:space="preserve"><value>Restock request</value></data>
+  <data name="Restock.Details.PageTitle" xml:space="preserve"><value>{0} details</value></data>
+  <data name="Common.List" xml:space="preserve"><value>List</value></data>
+  <data name="Restock.Details.CreatedByAt" xml:space="preserve"><value>Created by {0} at {1:g}</value></data>
+  <data name="Restock.Details.UnknownCreator" xml:space="preserve"><value>Unknown creator</value></data>
+  <data name="Restock.Details.SourceAlert" xml:space="preserve"><value>Source alert</value></data>
+  <data name="Restock.Details.CreatePurchaseAdvice" xml:space="preserve"><value>Create purchase advice</value></data>
+  <data name="Restock.Details.ExternalRecoveryTitle" xml:space="preserve"><value>Inventory was replenished from another source.</value></data>
+  <data name="Restock.Details.ExternalRecoveryCopy" xml:space="preserve"><value>The replenishment document is not linked to this request. The request remains open for the warehouse team to continue or cancel; the system does not complete it automatically.</value></data>
+  <data name="Restock.Details.ProgressAria" xml:space="preserve"><value>Demand fulfillment progress</value></data>
+  <data name="Restock.Details.ProgressTitle" xml:space="preserve"><value>Processing progress</value></data>
+  <data name="Restock.Details.WorkflowAria" xml:space="preserve"><value>Request processing steps</value></data>
+  <data name="Restock.Details.SummaryAria" xml:space="preserve"><value>Request progress summary</value></data>
+  <data name="Restock.Details.RequestedQuantity" xml:space="preserve"><value>Requested quantity</value></data>
+  <data name="Restock.Details.Unallocated" xml:space="preserve"><value>Source not assigned</value></data>
+  <data name="Restock.Details.RemainingDemand" xml:space="preserve"><value>Remaining demand</value></data>
+  <data name="Restock.Details.Received" xml:space="preserve"><value>Actually received</value></data>
+  <data name="Restock.Details.Progress" xml:space="preserve"><value>Progress</value></data>
+  <data name="Restock.Details.ProgressPercent" xml:space="preserve"><value>Fulfillment progress: {0} percent</value></data>
+  <data name="Reorder.Explanation.Summary" xml:space="preserve"><value>{0}: status {1}; available inventory {2}, incoming {3}.</value></data>
+  <data name="Reorder.Explanation.NORMAL.Explanation" xml:space="preserve"><value>Available inventory {0} currently meets the reorder point.</value></data>
+  <data name="Reorder.Explanation.NORMAL.Risk" xml:space="preserve"><value>No shortage risk has been identified from the current data.</value></data>
+  <data name="Reorder.Explanation.NORMAL.Action" xml:space="preserve"><value>No new restock request is needed; continue monitoring inventory and incoming stock.</value></data>
+  <data name="Reorder.Explanation.URGENT.Explanation" xml:space="preserve"><value>Available inventory {0} is below the minimum level; remaining demand is {2}.</value></data>
+  <data name="Reorder.Explanation.URGENT.Risk" xml:space="preserve"><value>There is a high shortage risk unless action is taken soon.</value></data>
+  <data name="Reorder.Explanation.URGENT.Action" xml:space="preserve"><value>Create or confirm a restock request for {0} after authorization review.</value></data>
+  <data name="Reorder.Explanation.NEAR_REORDER.Explanation" xml:space="preserve"><value>Available inventory {0} is approaching its reorder point; remaining demand is {2}.</value></data>
+  <data name="Reorder.Explanation.NEAR_REORDER.Risk" xml:space="preserve"><value>Shortage risk is increasing and should be monitored closely.</value></data>
+  <data name="Reorder.Explanation.NEAR_REORDER.Action" xml:space="preserve"><value>Review and confirm a restock request for {0} if appropriate.</value></data>
+  <data name="Reorder.Explanation.PROCUREMENT_IN_PROGRESS.Explanation" xml:space="preserve"><value>Active procurement covers part or all of the demand; remaining demand is {2}.</value></data>
+  <data name="Reorder.Explanation.PROCUREMENT_IN_PROGRESS.Risk" xml:space="preserve"><value>Monitor procurement progress and any demand that remains uncovered.</value></data>
+  <data name="Reorder.Explanation.PROCUREMENT_IN_PROGRESS.Action" xml:space="preserve"><value>Review the active request before adding the remaining quantity of {0}.</value></data>
+  <data name="Reorder.Explanation.INCOMING_COVERS_DEMAND.Explanation" xml:space="preserve"><value>Incoming inventory {1} covers the projected demand.</value></data>
+  <data name="Reorder.Explanation.INCOMING_COVERS_DEMAND.Risk" xml:space="preserve"><value>Current shortage risk is reduced by incoming inventory.</value></data>
+  <data name="Reorder.Explanation.INCOMING_COVERS_DEMAND.Action" xml:space="preserve"><value>No new restock request is needed; monitor the incoming delivery.</value></data>
+  <data name="Reorder.Explanation.DATA_INCOMPLETE.Explanation" xml:space="preserve"><value>There is not enough valid data to calculate a reliable restock decision.</value></data>
+  <data name="Reorder.Explanation.DATA_INCOMPLETE.Risk" xml:space="preserve"><value>Risk cannot be assessed until the required rule data is complete.</value></data>
+  <data name="Reorder.Explanation.DATA_INCOMPLETE.Action" xml:space="preserve"><value>Complete the missing inventory and supplier data before continuing.</value></data>
+  <data name="Common.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Common.Notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="Common.Dash" xml:space="preserve"><value>—</value></data>
+  <data name="Common.StaffNumber" xml:space="preserve"><value>Staff #{0}</value></data>
+  <data name="BranchReceipt.Details.Title" xml:space="preserve"><value>Receipt details</value></data>
+  <data name="BranchReceipt.Details.Eyebrow" xml:space="preserve"><value>Receipt #{0} · Branch #{1}</value></data>
+  <data name="BranchReceipt.Details.ReceivedAt" xml:space="preserve"><value>Received at {0}</value></data>
+  <data name="BranchReceipt.Details.ViewPurchaseOrder" xml:space="preserve"><value>View purchase order</value></data>
+  <data name="BranchReceipt.Details.ConfirmPrompt" xml:space="preserve"><value>Confirm stock receipt? This cannot be undone.</value></data>
+  <data name="BranchReceipt.Details.ConfirmStock" xml:space="preserve"><value>Confirm stock receipt</value></data>
+  <data name="BranchReceipt.Details.SummaryAria" xml:space="preserve"><value>Receipt summary</value></data>
+  <data name="BranchReceipt.Details.TotalValue" xml:space="preserve"><value>Total value</value></data>
+  <data name="BranchReceipt.Details.LinesTitle" xml:space="preserve"><value>Received lines</value></data>
+  <data name="BranchReceipt.Details.RestockSource" xml:space="preserve"><value>Restock source</value></data>
+  <data name="BranchReceipt.Details.Item" xml:space="preserve"><value>Item</value></data>
+  <data name="BranchReceipt.Details.ActualQty" xml:space="preserve"><value>Actual delivered qty</value></data>
+  <data name="BranchReceipt.Details.AcceptedQty" xml:space="preserve"><value>Accepted qty</value></data>
+  <data name="BranchReceipt.Details.RejectedQty" xml:space="preserve"><value>Rejected qty</value></data>
+  <data name="BranchReceipt.Details.BaseCost" xml:space="preserve"><value>Base unit cost</value></data>
+  <data name="BranchReceipt.Details.LineTotal" xml:space="preserve"><value>Line total</value></data>
+  <data name="BranchReceipt.Details.InventoryTxn" xml:space="preserve"><value>Inventory transaction</value></data>
+  <data name="BranchReceipt.Details.Ingredient" xml:space="preserve"><value>Ingredient #{0}</value></data>
+  <data name="BranchReceipt.Details.PreparedItem" xml:space="preserve"><value>Prepared item #{0}</value></data>
+  <data name="BranchReceipt.Details.LegacyRecipe" xml:space="preserve"><value>Legacy recipe #{0}</value></data>
+  <data name="BranchReceipt.Details.DirectPurchase" xml:space="preserve"><value>Direct purchase from purchase order</value></data>
+  <data name="BranchReceipt.Details.LineNumber" xml:space="preserve"><value>Line #{0}</value></data>
+  <data name="BranchReceipt.Details.NotPosted" xml:space="preserve"><value>Not posted</value></data>
+  <data name="BranchReceipt.Details.LogIssue" xml:space="preserve"><value>Log issue</value></data>
+  <data name="BranchReceipt.Details.DocumentInfo" xml:space="preserve"><value>Document information</value></data>
+  <data name="BranchReceipt.Details.Reference" xml:space="preserve"><value>Reference number</value></data>
+  <data name="BranchReceipt.Details.CreatedBy" xml:space="preserve"><value>Created by</value></data>
+  <data name="BranchReceipt.Details.ReceivedBy" xml:space="preserve"><value>Received by</value></data>
+  <data name="BranchReceipt.Details.ConfirmedBy" xml:space="preserve"><value>Confirmed by</value></data>
+  <data name="BranchReceipt.Details.ConfirmedAt" xml:space="preserve"><value>Confirmed at</value></data>
+  <data name="BranchReceipt.Details.Unassigned" xml:space="preserve"><value>Unassigned</value></data>
+  <data name="BranchReceipt.Details.NoNotes" xml:space="preserve"><value>No notes</value></data>
+  <data name="BranchReceipt.Details.InventoryImpact" xml:space="preserve"><value>Inventory impact</value></data>
+  <data name="BranchReceipt.Details.PostedTitle" xml:space="preserve"><value>Inventory has been posted.</value></data>
+  <data name="BranchReceipt.Details.PostedCopy" xml:space="preserve"><value>Each line created a receipt transaction and a matching cost layer.</value></data>
+  <data name="BranchReceipt.Details.DraftTitle" xml:space="preserve"><value>Inventory has not changed.</value></data>
+  <data name="BranchReceipt.Details.DraftCopy" xml:space="preserve"><value>This receipt is still a draft; quantities and costs are stored for review only.</value></data>
+  <data name="BranchReceipt.Create.Title" xml:space="preserve"><value>Create goods receipt</value></data>
+  <data name="BranchReceipt.Create.Eyebrow" xml:space="preserve"><value>New receipt · Branch #{0}</value></data>
+  <data name="BranchReceipt.Create.Heading" xml:space="preserve"><value>Record actual received goods</value></data>
+  <data name="BranchReceipt.Create.Subtitle" xml:space="preserve"><value>Save a draft to review quantities and cost. Inventory changes only after a separate confirmation.</value></data>
+  <data name="BranchReceipt.Create.SelectSupplier" xml:space="preserve"><value>Select supplier</value></data>
+  <data name="BranchReceipt.Create.SupplierHelp" xml:space="preserve"><value>Only suppliers serving this branch are shown.</value></data>
+  <data name="BranchReceipt.Create.ReferencePlaceholder" xml:space="preserve"><value>Invoice / delivery note</value></data>
+  <data name="BranchReceipt.Create.ReceiptNotes" xml:space="preserve"><value>Receipt notes</value></data>
+  <data name="BranchReceipt.Create.NotesPlaceholder" xml:space="preserve"><value>Packaging variance, goods condition, or reconciliation notes...</value></data>
+  <data name="BranchReceipt.Create.LinesTitle" xml:space="preserve"><value>Receipt lines</value></data>
+  <data name="BranchReceipt.Create.LinesHelp" xml:space="preserve"><value>Enter the actual quantity and confirmed package price.</value></data>
+  <data name="BranchReceipt.Create.LineNumber" xml:space="preserve"><value>Line {0}</value></data>
+  <data name="BranchReceipt.Create.RestockRequired" xml:space="preserve"><value>Restock request</value></data>
+  <data name="BranchReceipt.Create.ActualPackages" xml:space="preserve"><value>Packages received</value></data>
+  <data name="BranchReceipt.Create.RejectedPackages" xml:space="preserve"><value>Rejected packages</value></data>
+  <data name="BranchReceipt.Create.IssueType" xml:space="preserve"><value>Issue type when goods are rejected</value></data>
+  <data name="BranchReceipt.Create.NoRejection" xml:space="preserve"><value>No rejected goods</value></data>
+  <data name="BranchReceipt.Create.RejectionReason" xml:space="preserve"><value>Rejection reason</value></data>
+  <data name="BranchReceipt.Create.Offer" xml:space="preserve"><value>Supply pack and price</value></data>
+  <data name="BranchReceipt.Create.OfferPlaceholder" xml:space="preserve"><value>Enter a request code and select a supplier first</value></data>
+  <data name="BranchReceipt.Create.OfferHelp" xml:space="preserve"><value>Current price and pack size are stored with the receipt for reconciliation.</value></data>
+  <data name="BranchReceipt.Create.ControlTitle" xml:space="preserve"><value>Data control:</value></data>
+  <data name="BranchReceipt.Create.ControlCopy" xml:space="preserve"><value>the system reconciles package count, procurement-unit quantity, and package price at receipt time. Only after confirmation is accepted quantity converted to stock units and posted.</value></data>
+  <data name="BranchReceipt.Create.SaveDraft" xml:space="preserve"><value>Save draft</value></data>
+  <data name="BranchReceipt.Create.Issue.Quality" xml:space="preserve"><value>Quality failure</value></data>
+  <data name="BranchReceipt.Create.Issue.Damaged" xml:space="preserve"><value>Damaged</value></data>
+  <data name="BranchReceipt.Create.Issue.Expired" xml:space="preserve"><value>Expired</value></data>
+  <data name="BranchReceipt.Create.Issue.WrongItem" xml:space="preserve"><value>Wrong item</value></data>
+  <data name="BranchReceipt.Create.Issue.Other" xml:space="preserve"><value>Other</value></data>
+  <data name="BranchReceipt.Create.Js.RejectedExceeds" xml:space="preserve"><value>Rejected packages cannot exceed received packages.</value></data>
+  <data name="BranchReceipt.Create.Js.SelectIssue" xml:space="preserve"><value>Select an issue type for rejected goods.</value></data>
+  <data name="BranchReceipt.Create.Js.EnterReason" xml:space="preserve"><value>Enter a rejection reason.</value></data>
+  <data name="BranchReceipt.Create.Js.Saving" xml:space="preserve"><value>Saving...</value></data>
+  <data name="BranchReceipt.Create.Js.SelectOffer" xml:space="preserve"><value>Select a valid purchase pack so the system can snapshot price and pack size.</value></data>
+  <data name="BranchReceipt.Create.Js.OfferSummary" xml:space="preserve"><value>{0} · {1} VND/pack · Minimum {2} packs</value></data>
+  <data name="BranchReceipt.Create.Js.LoadingOffers" xml:space="preserve"><value>Loading purchase packs...</value></data>
+  <data name="BranchReceipt.Create.Js.LoadFailed" xml:space="preserve"><value>Unable to load purchase packs.</value></data>
+  <data name="BranchReceipt.Create.Js.ChooseOffer" xml:space="preserve"><value>Select a purchase pack</value></data>
+  <data name="BranchReceipt.Create.Js.NoOffers" xml:space="preserve"><value>No active purchase pack for this ingredient</value></data>
+  <data name="BranchReceipt.Draft.Title" xml:space="preserve"><value>Count against purchase order</value></data>
+  <data name="BranchReceipt.Draft.Heading" xml:space="preserve"><value>Count goods from {0}</value></data>
+  <data name="BranchReceipt.Draft.Subtitle" xml:space="preserve"><value>Enter the quantity the supplier actually delivered and the quantity CafeChain rejected. Only accepted quantity is posted when the receipt is confirmed.</value></data>
+  <data name="BranchReceipt.Draft.BackToOrder" xml:space="preserve"><value>Back to purchase order</value></data>
+  <data name="BranchReceipt.Draft.ReceiptCode" xml:space="preserve"><value>Count sheet</value></data>
+  <data name="BranchReceipt.Draft.RemainingLines" xml:space="preserve"><value>Lines still due</value></data>
+  <data name="BranchReceipt.Draft.Info" xml:space="preserve"><value>Delivered and rejected quantities use the purchase-order unit. For loose purchases, kg/L stay as-is on the draft; confirmation converts them to stock units and posts inventory.</value></data>
+  <data name="BranchReceipt.Draft.DeliveryInfo" xml:space="preserve"><value>Delivery information</value></data>
+  <data name="BranchReceipt.Draft.SupplierDoc" xml:space="preserve"><value>Supplier delivery note number</value></data>
+  <data name="BranchReceipt.Draft.CountNotes" xml:space="preserve"><value>Count notes</value></data>
+  <data name="BranchReceipt.Draft.LinesTitle" xml:space="preserve"><value>Purchase order lines</value></data>
+  <data name="BranchReceipt.Draft.Ordered" xml:space="preserve"><value>Ordered</value></data>
+  <data name="BranchReceipt.Draft.AlreadyAccepted" xml:space="preserve"><value>Already accepted</value></data>
+  <data name="BranchReceipt.Draft.StillDue" xml:space="preserve"><value>Still due</value></data>
+  <data name="BranchReceipt.Draft.ExpectedAccepted" xml:space="preserve"><value>Expected accepted qty</value></data>
+  <data name="BranchReceipt.Draft.IssueReason" xml:space="preserve"><value>Issue type / reason</value></data>
+  <data name="BranchReceipt.Draft.LooseMeta" xml:space="preserve"><value>Loose · {0}/{1}</value></data>
+  <data name="BranchReceipt.Draft.PackageMeta" xml:space="preserve"><value>1 pack = {0} {1} · {2}/pack</value></data>
+  <data name="BranchReceipt.Draft.ProcurementMeta" xml:space="preserve"><value>Purchase unit: ordered {0} {1} · received {2} {1} · remaining {3} {1}</value></data>
+  <data name="BranchReceipt.Draft.ActualPackagesHelp" xml:space="preserve"><value>Packages delivered · each pack = {0} {1}</value></data>
+  <data name="BranchReceipt.Draft.ActualAriaLoose" xml:space="preserve"><value>Actual delivered quantity of {0}</value></data>
+  <data name="BranchReceipt.Draft.ActualAriaPack" xml:space="preserve"><value>Packages delivered of {0}</value></data>
+  <data name="BranchReceipt.Draft.RejectedAriaLoose" xml:space="preserve"><value>Rejected quantity of {0}</value></data>
+  <data name="BranchReceipt.Draft.RejectedAriaPack" xml:space="preserve"><value>Rejected packages of {0}</value></data>
+  <data name="BranchReceipt.Draft.ExpectedPackHidden" xml:space="preserve"><value>Expected accepted packages</value></data>
+  <data name="BranchReceipt.Draft.PackageUnit" xml:space="preserve"><value>packs</value></data>
+  <data name="BranchReceipt.Draft.NoIssue" xml:space="preserve"><value>No issue</value></data>
+  <data name="BranchReceipt.Draft.Issue.Short" xml:space="preserve"><value>Short delivery</value></data>
+  <data name="BranchReceipt.Draft.Issue.Wrong" xml:space="preserve"><value>Wrong item</value></data>
+  <data name="BranchReceipt.Draft.Issue.Damaged" xml:space="preserve"><value>Damaged</value></data>
+  <data name="BranchReceipt.Draft.Issue.Expired" xml:space="preserve"><value>Expired</value></data>
+  <data name="BranchReceipt.Draft.Issue.Quality" xml:space="preserve"><value>Quality failure</value></data>
+  <data name="BranchReceipt.Draft.Issue.Packaging" xml:space="preserve"><value>Packaging failure</value></data>
+  <data name="BranchReceipt.Draft.Issue.Document" xml:space="preserve"><value>Document mismatch</value></data>
+  <data name="BranchReceipt.Draft.Issue.Other" xml:space="preserve"><value>Other</value></data>
+  <data name="BranchReceipt.Draft.ReasonPlaceholder" xml:space="preserve"><value>Reason when goods are rejected</value></data>
+  <data name="BranchReceipt.Draft.Save" xml:space="preserve"><value>Save count sheet</value></data>
+  <data name="BranchReceipt.Draft.ViewCurrent" xml:space="preserve"><value>View current receipt</value></data>
+  <data name="PurchaseOrder.Details.Title" xml:space="preserve"><value>Purchase order details</value></data>
+  <data name="PurchaseOrder.Details.CompletedShortfall" xml:space="preserve"><value>Completed with unfulfilled remainder</value></data>
+  <data name="PurchaseOrder.Details.Subtitle" xml:space="preserve"><value>{0}. Remaining quantity is reduced only by accepted receipts or explicitly closed remainder.</value></data>
+  <data name="PurchaseOrder.Details.ExportPdf" xml:space="preserve"><value>Export PDF</value></data>
+  <data name="PurchaseOrder.Details.ContinueCount" xml:space="preserve"><value>Continue counting</value></data>
+  <data name="PurchaseOrder.Details.Receive" xml:space="preserve"><value>Receive goods</value></data>
+  <data name="PurchaseOrder.Details.ShortfallNotice" xml:space="preserve"><value>This purchase order completed with part of the obligation closed. Closed remainder is not posted; only accepted quantity updates inventory.</value></data>
+  <data name="PurchaseOrder.Details.Lifecycle" xml:space="preserve"><value>Purchase order progress</value></data>
+  <data name="PurchaseOrder.Details.LifecycleHelp" xml:space="preserve"><value>Each step completes only when the matching business event occurs.</value></data>
+  <data name="PurchaseOrder.Details.StepsAria" xml:space="preserve"><value>Purchase order processing steps</value></data>
+  <data name="PurchaseOrder.Details.Step.Advice" xml:space="preserve"><value>Purchase advice</value></data>
+  <data name="PurchaseOrder.Details.Step.Order" xml:space="preserve"><value>Purchase order</value></data>
+  <data name="PurchaseOrder.Details.Step.Approve" xml:space="preserve"><value>Approve</value></data>
+  <data name="PurchaseOrder.Details.Step.Send" xml:space="preserve"><value>Send to supplier</value></data>
+  <data name="PurchaseOrder.Details.Step.Receive" xml:space="preserve"><value>Receive goods</value></data>
+  <data name="PurchaseOrder.Details.Step.Complete" xml:space="preserve"><value>Complete</value></data>
+  <data name="PurchaseOrder.Details.DocumentInfo" xml:space="preserve"><value>Document information</value></data>
+  <data name="PurchaseOrder.Details.Destination" xml:space="preserve"><value>Destination</value></data>
+  <data name="PurchaseOrder.Details.CreatedBy" xml:space="preserve"><value>Created by</value></data>
+  <data name="PurchaseOrder.Details.ApprovedBy" xml:space="preserve"><value>Approved by</value></data>
+  <data name="PurchaseOrder.Details.NotApproved" xml:space="preserve"><value>Not approved</value></data>
+  <data name="PurchaseOrder.Details.SentBy" xml:space="preserve"><value>Sent by</value></data>
+  <data name="PurchaseOrder.Details.NotSent" xml:space="preserve"><value>Not sent</value></data>
+  <data name="PurchaseOrder.Details.OrderValue" xml:space="preserve"><value>Order value</value></data>
+  <data name="PurchaseOrder.Details.LineCount" xml:space="preserve"><value>Line count</value></data>
+  <data name="PurchaseOrder.Details.FullyReceived" xml:space="preserve"><value>Fully received lines</value></data>
+  <data name="PurchaseOrder.Details.RejectedLines" xml:space="preserve"><value>Lines with rejection</value></data>
+  <data name="PurchaseOrder.Details.RemainingLines" xml:space="preserve"><value>Lines still due</value></data>
+  <data name="PurchaseOrder.Details.ObligationTitle" xml:space="preserve"><value>Delivery obligation details</value></data>
+  <data name="PurchaseOrder.Details.RestockSource" xml:space="preserve"><value>Restock source</value></data>
+  <data name="PurchaseOrder.Details.Ordered" xml:space="preserve"><value>Ordered</value></data>
+  <data name="PurchaseOrder.Details.Accepted" xml:space="preserve"><value>Accepted qty</value></data>
+  <data name="PurchaseOrder.Details.Rejected" xml:space="preserve"><value>Rejected qty</value></data>
+  <data name="PurchaseOrder.Details.ClosedRemainder" xml:space="preserve"><value>Closed remainder</value></data>
+  <data name="PurchaseOrder.Details.StillDue" xml:space="preserve"><value>Still due</value></data>
+  <data name="PurchaseOrder.Details.History" xml:space="preserve"><value>History</value></data>
+  <data name="PurchaseOrder.Details.LooseMeta" xml:space="preserve"><value>Loose {0} {1} · {2}/{1}</value></data>
+  <data name="PurchaseOrder.Details.PackageMeta" xml:space="preserve"><value>{0} packs · {1}/pack · 1 pack = {2} {3}</value></data>
+  <data name="PurchaseOrder.Details.DirectPurchase" xml:space="preserve"><value>Direct purchase</value></data>
+  <data name="PurchaseOrder.Details.Equivalent" xml:space="preserve"><value>Equivalent {0} {1}</value></data>
+  <data name="PurchaseOrder.Details.LineAmount" xml:space="preserve"><value>Amount {0}</value></data>
+  <data name="PurchaseOrder.Details.RejectDoesNotReduce" xml:space="preserve"><value>Does not reduce remaining quantity</value></data>
+  <data name="PurchaseOrder.Details.ReceiptCount" xml:space="preserve"><value>{0} receipts</value></data>
+  <data name="PurchaseOrder.Details.ClosePrompt" xml:space="preserve"><value>Closing the remainder ends the backorder obligation and does not post inventory. Continue?</value></data>
+  <data name="PurchaseOrder.Details.CloseQty" xml:space="preserve"><value>Quantity to close ({0})</value></data>
+  <data name="PurchaseOrder.Details.CloseReason" xml:space="preserve"><value>Reason for not requiring backorder</value></data>
+  <data name="PurchaseOrder.Details.CloseReasonPlaceholder" xml:space="preserve"><value>Example: supplier confirmed no backorder</value></data>
+  <data name="PurchaseOrder.Details.CloseRemaining" xml:space="preserve"><value>Close remainder</value></data>
+  <data name="PurchaseOrder.Details.RelatedDocs" xml:space="preserve"><value>Related documents</value></data>
+  <data name="PurchaseOrder.Details.RestockLink" xml:space="preserve"><value>Restock request {0}</value></data>
+  <data name="PurchaseOrder.Details.AdviceLink" xml:space="preserve"><value>Purchase advice {0}</value></data>
+  <data name="PurchaseOrder.Details.ReceiptLink" xml:space="preserve"><value>Receipt {0}</value></data>
+  <data name="PurchaseOrder.Details.NoRelated" xml:space="preserve"><value>No source documents or linked receipts yet.</value></data>
+  <data name="PurchaseOrder.Details.HistoryTitle" xml:space="preserve"><value>Business history</value></data>
+  <data name="PurchaseOrder.Details.NextActions" xml:space="preserve"><value>Next actions</value></data>
+  <data name="PurchaseOrder.Details.NextHelp" xml:space="preserve"><value>Only actions valid for the current status are shown.</value></data>
+  <data name="PurchaseOrder.Details.ExportPdfOrder" xml:space="preserve"><value>Export purchase order PDF</value></data>
+  <data name="PurchaseOrder.Details.Approve" xml:space="preserve"><value>Approve order</value></data>
+  <data name="PurchaseOrder.Details.MarkSent" xml:space="preserve"><value>Mark as sent to supplier</value></data>
+  <data name="PurchaseOrder.Details.OpenDraft" xml:space="preserve"><value>Open draft count sheet</value></data>
+  <data name="PurchaseOrder.Details.RoleNextTitle" xml:space="preserve"><value>The next step is performed by the responsible role.</value></data>
+  <data name="PurchaseOrder.Details.RoleNext.Draft" xml:space="preserve"><value>The business owner reviews and approves the order.</value></data>
+  <data name="PurchaseOrder.Details.RoleNext.Approved" xml:space="preserve"><value>Warehouse accounting sends the order to the supplier.</value></data>
+  <data name="PurchaseOrder.Details.RoleNext.Receive" xml:space="preserve"><value>Warehouse accounting or receiving records the supplier delivery.</value></data>
+  <data name="PurchaseOrder.Details.RoleNext.Track" xml:space="preserve"><value>This document currently allows tracking and history only.</value></data>
+  <data name="PurchaseOrder.Details.CancelOrder" xml:space="preserve"><value>Cancel purchase order</value></data>
+  <data name="PurchaseOrder.Details.CancelHelp" xml:space="preserve"><value>Cancel only when the order will not continue. The reason is stored with the document history.</value></data>
+  <data name="PurchaseOrder.Details.CancelReason" xml:space="preserve"><value>Cancellation reason</value></data>
+  <data name="PurchaseOrder.Details.CancelPlaceholder" xml:space="preserve"><value>Enter cancellation reason...</value></data>
+  <data name="PurchaseOrder.Details.ConfirmCancel" xml:space="preserve"><value>Confirm cancellation</value></data>
+  <data name="PurchaseOrder.Create.Subtitle" xml:space="preserve"><value>Choose the correct branch, supplier and purchase specification. Price and lead time come from the current supplier offer.</value></data>
+  <data name="PurchaseOrder.Create.BackList" xml:space="preserve"><value>Order list</value></data>
+  <data name="PurchaseOrder.Create.InfoTitle" xml:space="preserve"><value>Purchase order information</value></data>
+  <data name="PurchaseOrder.Create.RequiredHint" xml:space="preserve"><value>Fields marked * are required.</value></data>
+  <data name="PurchaseOrder.Create.SelectBranch" xml:space="preserve"><value>Select branch</value></data>
+  <data name="PurchaseOrder.Create.SelectSupplier" xml:space="preserve"><value>Select supplier</value></data>
+  <data name="PurchaseOrder.Create.ExpectedDelivery" xml:space="preserve"><value>Expected delivery date</value></data>
+  <data name="PurchaseOrder.Create.DateHelp" xml:space="preserve"><value>Day/month/year, hour:minute</value></data>
+  <data name="PurchaseOrder.Create.NotePlaceholder" xml:space="preserve"><value>Delivery terms or general notes for this order...</value></data>
+  <data name="PurchaseOrder.Create.AllowOverallocation" xml:space="preserve"><value>Allow overallocation</value></data>
+  <data name="PurchaseOrder.Create.OverallocationHelp" xml:space="preserve"><value>Only the business owner may approve, and a reason is required. This policy does not change original demand.</value></data>
+  <data name="PurchaseOrder.Create.OverallocationReason" xml:space="preserve"><value>Overallocation reason</value></data>
+  <data name="PurchaseOrder.Create.OverallocationPlaceholder" xml:space="preserve"><value>Required when overallocation is enabled</value></data>
+  <data name="PurchaseOrder.Create.LinesTitle" xml:space="preserve"><value>Order lines</value></data>
+  <data name="PurchaseOrder.Create.LinesHelp" xml:space="preserve"><value>Each restock request may be linked only once; all lines must share the same branch and supplier.</value></data>
+  <data name="PurchaseOrder.Create.AddLine" xml:space="preserve"><value>Add line</value></data>
+  <data name="PurchaseOrder.Create.DemandSource" xml:space="preserve"><value>Demand source</value></data>
+  <data name="PurchaseOrder.Create.DirectPurchase" xml:space="preserve"><value>Direct purchase</value></data>
+  <data name="PurchaseOrder.Create.Offer" xml:space="preserve"><value>Offer specification and price</value></data>
+  <data name="PurchaseOrder.Create.SelectOffer" xml:space="preserve"><value>Select supplier specification</value></data>
+  <data name="PurchaseOrder.Create.NoPackage" xml:space="preserve"><value>no pack</value></data>
+  <data name="PurchaseOrder.Create.LooseOffer" xml:space="preserve"><value> · loose {0:N0} ₫/{1}</value></data>
+  <data name="PurchaseOrder.Create.PurchaseMode" xml:space="preserve"><value>Mode</value></data>
+  <data name="PurchaseOrder.Create.Packaged" xml:space="preserve"><value>Packaged</value></data>
+  <data name="PurchaseOrder.Create.Loose" xml:space="preserve"><value>Loose</value></data>
+  <data name="PurchaseOrder.Create.PackageCount" xml:space="preserve"><value>Pack count</value></data>
+  <data name="PurchaseOrder.Create.LooseQty" xml:space="preserve"><value>Quantity kg/L</value></data>
+  <data name="PurchaseOrder.Create.LooseQtyAria" xml:space="preserve"><value>Loose purchase quantity</value></data>
+  <data name="PurchaseOrder.Create.ModeHelpPack" xml:space="preserve"><value>Packaged mode accepts whole numbers only.</value></data>
+  <data name="PurchaseOrder.Create.LineNote" xml:space="preserve"><value>Line note</value></data>
+  <data name="PurchaseOrder.Create.RemoveLine" xml:space="preserve"><value>Remove line</value></data>
+  <data name="PurchaseOrder.Create.SaveDraft" xml:space="preserve"><value>Save draft</value></data>
+  <data name="PurchaseOrder.Create.Saving" xml:space="preserve"><value>Saving draft...</value></data>
+  <data name="PurchaseOrder.Create.ModeHelpLoose" xml:space="preserve"><value>Enter quantity directly in {0}; do not use pack count.</value></data>
+  <data name="PurchaseOrder.Create.DefaultUnit" xml:space="preserve"><value>purchase unit</value></data>
+  <data name="PurchaseOrder.Print.Title" xml:space="preserve"><value>Print purchase order {0} - CafeChain Admin</value></data>
+  <data name="PurchaseOrder.Print.Preview" xml:space="preserve"><value>Preview purchase order document {0}</value></data>
+  <data name="PurchaseOrder.Print.PreviewHelp" xml:space="preserve"><value>Click Print / Download PDF and choose Save as PDF.</value></data>
+  <data name="PurchaseOrder.Print.PrintPdf" xml:space="preserve"><value>Print / Download PDF</value></data>
+  <data name="PurchaseOrder.Print.BackDetails" xml:space="preserve"><value>Back to details</value></data>
+  <data name="PurchaseOrder.Print.DocType" xml:space="preserve"><value>PURCHASE ORDER</value></data>
+  <data name="PurchaseOrder.Print.Code" xml:space="preserve"><value>Order code:</value></data>
+  <data name="PurchaseOrder.Print.IssueDate" xml:space="preserve"><value>Issue date:</value></data>
+  <data name="PurchaseOrder.Print.BuyerTitle" xml:space="preserve"><value>Buyer (Receiving store)</value></data>
+  <data name="PurchaseOrder.Print.Org" xml:space="preserve"><value>Organization:</value></data>
+  <data name="PurchaseOrder.Print.OrgName" xml:space="preserve"><value>CafeChain Coffee Store Chain</value></data>
+  <data name="PurchaseOrder.Print.ReceivingStore" xml:space="preserve"><value>Receiving store:</value></data>
+  <data name="PurchaseOrder.Print.Address" xml:space="preserve"><value>Address:</value></data>
+  <data name="PurchaseOrder.Print.Contact" xml:space="preserve"><value>Contact:</value></data>
+  <data name="PurchaseOrder.Print.CreatedBy" xml:space="preserve"><value>Created by:</value></data>
+  <data name="PurchaseOrder.Print.SupplierTitle" xml:space="preserve"><value>Supplier (Partner)</value></data>
+  <data name="PurchaseOrder.Print.SupplierName" xml:space="preserve"><value>Supplier name:</value></data>
+  <data name="PurchaseOrder.Print.TaxCode" xml:space="preserve"><value>Tax code:</value></data>
+  <data name="PurchaseOrder.Print.ExpectedDelivery" xml:space="preserve"><value>Expected delivery:</value></data>
+  <data name="PurchaseOrder.Print.ByAgreement" xml:space="preserve"><value>As agreed</value></data>
+  <data name="PurchaseOrder.Print.DeliverAt" xml:space="preserve"><value>DELIVER TO {0} · {1}</value></data>
+  <data name="PurchaseOrder.Print.Receiver" xml:space="preserve"><value>Receiver:</value></data>
+  <data name="PurchaseOrder.Print.BranchManager" xml:space="preserve"><value>Branch manager {0}</value></data>
+  <data name="PurchaseOrder.Print.NeedBy" xml:space="preserve"><value>Needed by:</value></data>
+  <data name="PurchaseOrder.Print.Seq" xml:space="preserve"><value>No.</value></data>
+  <data name="PurchaseOrder.Print.IngredientName" xml:space="preserve"><value>Ingredient</value></data>
+  <data name="PurchaseOrder.Print.Method" xml:space="preserve"><value>Method</value></data>
+  <data name="PurchaseOrder.Print.Quantity" xml:space="preserve"><value>Quantity</value></data>
+  <data name="PurchaseOrder.Print.UnitPrice" xml:space="preserve"><value>Unit price</value></data>
+  <data name="PurchaseOrder.Print.Amount" xml:space="preserve"><value>Amount</value></data>
+  <data name="PurchaseOrder.Print.PackEq" xml:space="preserve"><value>1 pack = {0} {1}</value></data>
+  <data name="PurchaseOrder.Print.Loose" xml:space="preserve"><value>Loose</value></data>
+  <data name="PurchaseOrder.Print.ByPack" xml:space="preserve"><value>By pack/case</value></data>
+  <data name="PurchaseOrder.Print.Packs" xml:space="preserve"><value>packs</value></data>
+  <data name="PurchaseOrder.Print.Equivalent" xml:space="preserve"><value>Equivalent {0} {1}</value></data>
+  <data name="PurchaseOrder.Print.PerPack" xml:space="preserve"><value>/pack</value></data>
+  <data name="PurchaseOrder.Print.Subtotal" xml:space="preserve"><value>Subtotal:</value></data>
+  <data name="PurchaseOrder.Print.Vat" xml:space="preserve"><value>Tax (VAT):</value></data>
+  <data name="PurchaseOrder.Print.GrandTotal" xml:space="preserve"><value>Total payable:</value></data>
+  <data name="PurchaseAdvice.Create.Title" xml:space="preserve"><value>Create purchase advice</value></data>
+  <data name="PurchaseAdvice.Create.Eyebrow" xml:space="preserve"><value>PURCHASE ADVICE</value></data>
+  <data name="PurchaseAdvice.Create.Heading" xml:space="preserve"><value>Create from restock requests</value></data>
+  <data name="PurchaseAdvice.Create.Subtitle" xml:space="preserve"><value>Only requests sourced as external purchase appear. Quantities are rechecked on save to avoid over-ordering.</value></data>
+  <data name="PurchaseAdvice.Create.BackList" xml:space="preserve"><value>Advice list</value></data>
+  <data name="PurchaseAdvice.Create.InfoTitle" xml:space="preserve"><value>Advice information</value></data>
+  <data name="PurchaseAdvice.Create.InfoHelp" xml:space="preserve"><value>Applies to all selected lines.</value></data>
+  <data name="PurchaseAdvice.Create.DateHelp" xml:space="preserve"><value>Day/month/year</value></data>
+  <data name="PurchaseAdvice.Create.NotePlaceholder" xml:space="preserve"><value>Evidence or operational notes</value></data>
+  <data name="PurchaseAdvice.Create.EmptyAria" xml:space="preserve"><value>No purchase advice sources</value></data>
+  <data name="PurchaseAdvice.Create.EmptyTitle" xml:space="preserve"><value>No restock requests are ready for purchase advice</value></data>
+  <data name="PurchaseAdvice.Create.EmptyCopy" xml:space="preserve"><value>Open a restock request, accept it, and allocate part of demand to external purchase.</value></data>
+  <data name="PurchaseAdvice.Create.ViewRestock" xml:space="preserve"><value>View restock requests</value></data>
+  <data name="PurchaseAdvice.Create.Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="PurchaseAdvice.Create.TableAria" xml:space="preserve"><value>Requests sourced as external purchase</value></data>
+  <data name="PurchaseAdvice.Create.ColSelect" xml:space="preserve"><value>Select</value></data>
+  <data name="PurchaseAdvice.Create.ColRequest" xml:space="preserve"><value>Request / branch</value></data>
+  <data name="PurchaseAdvice.Create.ColPurchaseNeed" xml:space="preserve"><value>Total external purchase demand</value></data>
+  <data name="PurchaseAdvice.Create.ColInAdvice" xml:space="preserve"><value>Already on purchase advice</value></data>
+  <data name="PurchaseAdvice.Create.ColNotInAdvice" xml:space="preserve"><value>Not yet on purchase advice</value></data>
+  <data name="PurchaseAdvice.Create.ColNeedBy" xml:space="preserve"><value>Need by</value></data>
+  <data name="PurchaseAdvice.Create.ColSourcing" xml:space="preserve"><value>Sourcing</value></data>
+  <data name="PurchaseAdvice.Create.ColQty" xml:space="preserve"><value>Advice quantity</value></data>
+  <data name="PurchaseAdvice.Create.Sourcing.Full" xml:space="preserve"><value>Fully allocated</value></data>
+  <data name="PurchaseAdvice.Create.Sourcing.Partial" xml:space="preserve"><value>Partially allocated</value></data>
+  <data name="PurchaseAdvice.Create.Sourcing.None" xml:space="preserve"><value>Not fully allocated</value></data>
+  <data name="PurchaseAdvice.Create.NeedUnset" xml:space="preserve"><value>Not set</value></data>
+  <data name="PurchaseAdvice.Create.SelectAria" xml:space="preserve"><value>Select {0}</value></data>
+  <data name="PurchaseAdvice.Create.SaveDraft" xml:space="preserve"><value>Save draft purchase advice</value></data>
+  <data name="PurchaseAdvice.Create.JsInvalid" xml:space="preserve"><value>Select at least one request and enter a valid quantity.</value></data>
+  <data name="PurchaseAdvice.Create.JsSaving" xml:space="preserve"><value>Saving...</value></data>
+  <data name="PurchaseAdvice.Create.JsSending" xml:space="preserve"><value>Submitting purchase advice...</value></data>
+  <data name="PurchaseAdvice.Create.JsTimeout" xml:space="preserve"><value>The request did not finish. You can retry; the system will not create a duplicate advice.</value></data>
+  <data name="PurchaseAdvice.Edit.Title" xml:space="preserve"><value>Edit purchase advice</value></data>
+  <data name="PurchaseAdvice.Edit.Heading" xml:space="preserve"><value>Edit draft purchase advice</value></data>
+  <data name="PurchaseAdvice.Edit.Subtitle" xml:space="preserve"><value>The restock source is kept; remaining purchasable quantity is rechecked on save.</value></data>
+  <data name="PurchaseAdvice.Edit.Back" xml:space="preserve"><value>Back</value></data>
+  <data name="PurchaseAdvice.Edit.ColSource" xml:space="preserve"><value>Source</value></data>
+  <data name="PurchaseAdvice.Edit.ColAlloc" xml:space="preserve"><value>Allocation</value></data>
+  <data name="PurchaseAdvice.Edit.ColAvailable" xml:space="preserve"><value>Available when editing</value></data>
+  <data name="PurchaseAdvice.Edit.ColQty" xml:space="preserve"><value>Quantity</value></data>
+  <data name="PurchaseAdvice.Edit.ColNeedNote" xml:space="preserve"><value>Need-by / note</value></data>
+  <data name="PurchaseAdvice.Edit.AllocMeta" xml:space="preserve"><value>Transfer {0} {1} · Other advice {2} {1} · Already ordered {3} {1}</value></data>
+  <data name="PurchaseAdvice.Edit.Save" xml:space="preserve"><value>Save changes</value></data>
+  <data name="PurchaseAdvice.Details.Eyebrow" xml:space="preserve"><value>Purchase advice</value></data>
+  <data name="PurchaseAdvice.Details.CreatedBy" xml:space="preserve"><value>{0} · created by {1}</value></data>
+  <data name="PurchaseAdvice.Details.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="PurchaseAdvice.Details.NeedBy" xml:space="preserve"><value>Need-by date</value></data>
+  <data name="PurchaseAdvice.Details.RejectionReason" xml:space="preserve"><value>Rejection reason:</value></data>
+  <data name="PurchaseAdvice.Details.ColSource" xml:space="preserve"><value>Request source / ingredient</value></data>
+  <data name="PurchaseAdvice.Details.ColAlloc" xml:space="preserve"><value>Quantity allocation</value></data>
+  <data name="PurchaseAdvice.Details.ColQty" xml:space="preserve"><value>Advice quantity</value></data>
+  <data name="PurchaseAdvice.Details.RestockQty" xml:space="preserve"><value>Restock request</value></data>
+  <data name="PurchaseAdvice.Details.Transfer" xml:space="preserve"><value>Transfer</value></data>
+  <data name="PurchaseAdvice.Details.OtherAdvice" xml:space="preserve"><value>Other advice</value></data>
+  <data name="PurchaseAdvice.Details.Ordered" xml:space="preserve"><value>Already ordered</value></data>
+  <data name="PurchaseAdvice.Details.Closed" xml:space="preserve"><value>Closed portion</value></data>
+  <data name="PurchaseAdvice.Details.SupplierTitle" xml:space="preserve"><value>Supplier and purchase mode</value></data>
+  <data name="PurchaseAdvice.Details.SupplierHelp" xml:space="preserve"><value>Supplier, supplier SKU and pack or loose purchase mode are chosen at consolidation. Draft advice does not lock a supplier.</value></data>
+  <data name="PurchaseAdvice.Details.Consolidate" xml:space="preserve"><value>Choose supplier and consolidate</value></data>
+  <data name="PurchaseAdvice.Details.SubmitFirst" xml:space="preserve"><value>Submit the purchase advice to proceed to supplier selection.</value></data>
+  <data name="PurchaseAdvice.Details.Submit" xml:space="preserve"><value>Send for review</value></data>
+  <data name="PurchaseAdvice.Details.StartReview" xml:space="preserve"><value>Start review</value></data>
+  <data name="PurchaseAdvice.Details.Reject" xml:space="preserve"><value>Reject</value></data>
+  <data name="PurchaseAdvice.Details.CancelAdvice" xml:space="preserve"><value>Cancel advice</value></data>
+  <data name="PurchaseAdvice.Details.NoActions" xml:space="preserve"><value>No actions match the current permission and status.</value></data>
+  <data name="PurchaseAdvice.Details.History" xml:space="preserve"><value>Status history</value></data>
+  <data name="PurchaseOrderBatch.Details.Title" xml:space="preserve"><value>Consolidated purchase order {0}</value></data>
+  <data name="PurchaseOrderBatch.Details.Subtitle" xml:space="preserve"><value>Expected delivery {0} - {1} · {2} branches.</value></data>
+  <data name="PurchaseOrderBatch.Details.BackList" xml:space="preserve"><value>Consolidated order list</value></data>
+  <data name="PurchaseOrderBatch.Details.Approving" xml:space="preserve"><value>Approving...</value></data>
+  <data name="PurchaseOrderBatch.Details.Approve" xml:space="preserve"><value>Approve consolidated order</value></data>
+  <data name="PurchaseOrderBatch.Details.SentNoticeTitle" xml:space="preserve"><value>Document send recorded.</value></data>
+  <data name="PurchaseOrderBatch.Details.SentNoticeCopy" xml:space="preserve"><value>This status does not mean the supplier has confirmed the order.</value></data>
+  <data name="PurchaseOrderBatch.Details.TotalValue" xml:space="preserve"><value>Total value</value></data>
+  <data name="PurchaseOrderBatch.Details.ChildOrders" xml:space="preserve"><value>Branch purchase orders</value></data>
+  <data name="PurchaseOrderBatch.Details.PdfVersions" xml:space="preserve"><value>PDF versions</value></data>
+  <data name="PurchaseOrderBatch.Details.ProgressEyebrow" xml:space="preserve"><value>Delivery progress by branch</value></data>
+  <data name="PurchaseOrderBatch.Details.ProgressHelp" xml:space="preserve"><value>Accepted quantity is aggregated from branch receipts.</value></data>
+  <data name="PurchaseOrderBatch.Details.ColCode" xml:space="preserve"><value>Order code</value></data>
+  <data name="PurchaseOrderBatch.Details.ColOrdered" xml:space="preserve"><value>Ordered</value></data>
+  <data name="PurchaseOrderBatch.Details.ColAccepted" xml:space="preserve"><value>Accepted</value></data>
+  <data name="PurchaseOrderBatch.Details.ColRemaining" xml:space="preserve"><value>Still due</value></data>
+  <data name="PurchaseOrderBatch.Details.ProgressAria" xml:space="preserve"><value>Receipt progress {0} percent</value></data>
+  <data name="PurchaseOrderBatch.Details.ByLine" xml:space="preserve"><value>By line</value></data>
+  <data name="PurchaseOrderBatch.Details.SeeDetails" xml:space="preserve"><value>See details</value></data>
+  <data name="PurchaseOrderBatch.Details.TraceEyebrow" xml:space="preserve"><value>Demand source trace</value></data>
+  <data name="PurchaseOrderBatch.Details.AllocTitle" xml:space="preserve"><value>Ingredient allocation</value></data>
+  <data name="PurchaseOrderBatch.Details.AllocHelp" xml:space="preserve"><value>Price and specification are snapshotted when the consolidated order is created.</value></data>
+  <data name="PurchaseOrderBatch.Details.LooseBy" xml:space="preserve"><value>Loose by {0}</value></data>
+  <data name="PurchaseOrderBatch.Details.PackMeta" xml:space="preserve"><value>{0} packs · 1 pack = {1} {2}</value></data>
+  <data name="PurchaseOrderBatch.Details.CoverMeta" xml:space="preserve"><value>Ordered {0} {1} · covered {2} {1} · surplus {3} {1}</value></data>
+  <data name="PurchaseOrderBatch.Details.PerPack" xml:space="preserve"><value>{0}/pack</value></data>
+  <data name="PurchaseOrderBatch.Details.AllocPacks" xml:space="preserve"><value>{0} packs</value></data>
+  <data name="PurchaseOrderBatch.Details.AllocCover" xml:space="preserve"><value>· ordered {0} {1} · covered {2} {1} · surplus {3} {1}</value></data>
+  <data name="PurchaseOrderBatch.Details.DocEyebrow" xml:space="preserve"><value>Supplier documents</value></data>
+  <data name="PurchaseOrderBatch.Details.PdfTitle" xml:space="preserve"><value>PDF &amp; send to supplier</value></data>
+  <data name="PurchaseOrderBatch.Details.GeneratingPdf" xml:space="preserve"><value>Generating PDF...</value></data>
+  <data name="PurchaseOrderBatch.Details.ExportPdf" xml:space="preserve"><value>Export PDF</value></data>
+  <data name="PurchaseOrderBatch.Details.DownloadPdf" xml:space="preserve"><value>Download PDF {0}</value></data>
+  <data name="PurchaseOrderBatch.Details.PrintPdf" xml:space="preserve"><value>Open to print PDF</value></data>
+  <data name="PurchaseOrderBatch.Details.NoPdfTitle" xml:space="preserve"><value>No PDF yet</value></data>
+  <data name="PurchaseOrderBatch.Details.NoPdfCopy" xml:space="preserve"><value>The consolidated order must be approved before exporting documents.</value></data>
+  <data name="PurchaseOrderBatch.Details.ZaloContent" xml:space="preserve"><value>Zalo message</value></data>
+  <data name="PurchaseOrderBatch.Details.CopyZalo" xml:space="preserve"><value>Copy Zalo message</value></data>
+  <data name="PurchaseOrderBatch.Details.SendChannel" xml:space="preserve"><value>Sent channel</value></data>
+  <data name="PurchaseOrderBatch.Details.Channel.Zalo" xml:space="preserve"><value>Zalo</value></data>
+  <data name="PurchaseOrderBatch.Details.Channel.Email" xml:space="preserve"><value>Email</value></data>
+  <data name="PurchaseOrderBatch.Details.Channel.Other" xml:space="preserve"><value>Other</value></data>
+  <data name="PurchaseOrderBatch.Details.SendNote" xml:space="preserve"><value>Send note / evidence</value></data>
+  <data name="PurchaseOrderBatch.Details.SendNotePlaceholder" xml:space="preserve"><value>Example: sent to supplier Zalo group at 09:30</value></data>
+  <data name="PurchaseOrderBatch.Details.MarkingSent" xml:space="preserve"><value>Recording...</value></data>
+  <data name="PurchaseOrderBatch.Details.MarkSent" xml:space="preserve"><value>Mark as sent to supplier</value></data>
+  <data name="PurchaseOrderBatch.Details.RevEyebrow" xml:space="preserve"><value>Document versions</value></data>
+  <data name="PurchaseOrderBatch.Details.RevTitle" xml:space="preserve"><value>PDF and send history</value></data>
+  <data name="PurchaseOrderBatch.Details.Revision" xml:space="preserve"><value>Revision R{0}</value></data>
+  <data name="PurchaseOrderBatch.Details.GeneratedBy" xml:space="preserve"><value>Created by {0} · {1}</value></data>
+  <data name="PurchaseOrderBatch.Details.SentMeta" xml:space="preserve"><value>Sent via {0} by {1} · {2}</value></data>
+  <data name="PurchaseOrderBatch.Details.DownloadThis" xml:space="preserve"><value>Download this PDF revision</value></data>
+  <data name="PurchaseOrderBatch.Details.PrintThis" xml:space="preserve"><value>Open this revision to print</value></data>
+  <data name="PurchaseOrderBatch.Details.NoHistory" xml:space="preserve"><value>History appears after the first PDF is generated.</value></data>
+  <data name="PurchaseOrderBatch.Details.CancelTitle" xml:space="preserve"><value>Cancel consolidated purchase order</value></data>
+  <data name="PurchaseOrderBatch.Details.CancelHelp" xml:space="preserve"><value>Cancel only when no receipts have been posted. Allocated quantity returns to purchase advice.</value></data>
+  <data name="PurchaseOrderBatch.Details.CancelReason" xml:space="preserve"><value>Cancellation reason</value></data>
+  <data name="PurchaseOrderBatch.Details.Cancelling" xml:space="preserve"><value>Cancelling...</value></data>
+  <data name="PurchaseOrderBatch.Details.CancelConfirm" xml:space="preserve"><value>Cancel the consolidated order and branch orders that have not received goods?</value></data>
+  <data name="PurchaseOrderBatch.Details.CopiedZalo" xml:space="preserve"><value>Copied. Attach the correct PDF file when sending on Zalo.</value></data>
+  <data name="PurchaseOrderBatch.Details.Copied" xml:space="preserve"><value>Content copied.</value></data>
+  <data name="PurchaseOrderBatch.Details.Processing" xml:space="preserve"><value>Processing...</value></data>
+  <data name="SupplierQuality.Title" xml:space="preserve"><value>Supplier quality</value></data>
+  <data name="SupplierQuality.Eyebrow" xml:space="preserve"><value>Purchasing / Receipt evidence</value></data>
+  <data name="SupplierQuality.Subtitle" xml:space="preserve"><value>Compare on-time delivery, fill rate and issues from confirmed receipts. Metrics support evaluation; the system does not lock suppliers automatically.</value></data>
+  <data name="SupplierQuality.FilterAria" xml:space="preserve"><value>Supplier quality filters</value></data>
+  <data name="SupplierQuality.ScopeTitle" xml:space="preserve"><value>Evaluation scope</value></data>
+  <data name="SupplierQuality.ScopeHelp" xml:space="preserve"><value>Choose branch, supplier and the data window to compare.</value></data>
+  <data name="SupplierQuality.AllSuppliers" xml:space="preserve"><value>All suppliers</value></data>
+  <data name="SupplierQuality.DefaultRange" xml:space="preserve"><value>Default range</value></data>
+  <data name="SupplierQuality.Days" xml:space="preserve"><value>{0} days</value></data>
+  <data name="SupplierQuality.FromOptional" xml:space="preserve"><value>From date (optional)</value></data>
+  <data name="SupplierQuality.ToOptional" xml:space="preserve"><value>To date (optional)</value></data>
+  <data name="SupplierQuality.ApplyFilter" xml:space="preserve"><value>Apply filters</value></data>
+  <data name="SupplierQuality.MetricsAria" xml:space="preserve"><value>Supplier metrics</value></data>
+  <data name="SupplierQuality.Rating" xml:space="preserve"><value>Rating</value></data>
+  <data name="SupplierQuality.Perf.GOOD" xml:space="preserve"><value>Good</value></data>
+  <data name="SupplierQuality.Perf.WATCH" xml:space="preserve"><value>Watch</value></data>
+  <data name="SupplierQuality.Perf.RISK" xml:space="preserve"><value>Risk</value></data>
+  <data name="SupplierQuality.Perf.Unknown" xml:space="preserve"><value>Not enough data</value></data>
+  <data name="SupplierQuality.CompletedDeliveries" xml:space="preserve"><value>{0} completed deliveries</value></data>
+  <data name="SupplierQuality.OnTime" xml:space="preserve"><value>On time</value></data>
+  <data name="SupplierQuality.ExpectedSamples" xml:space="preserve"><value>{0} samples with due date</value></data>
+  <data name="SupplierQuality.FillRate" xml:space="preserve"><value>Fill rate</value></data>
+  <data name="SupplierQuality.RejectRate" xml:space="preserve"><value>Rejection rate</value></data>
+  <data name="SupplierQuality.IssueReceipts" xml:space="preserve"><value>Receipts with issues</value></data>
+  <data name="SupplierQuality.ConfirmedReceipts" xml:space="preserve"><value>{0} confirmed receipts</value></data>
+  <data name="SupplierQuality.AvgDelay" xml:space="preserve"><value>Average delay</value></data>
+  <data name="SupplierQuality.AvgDelayValue" xml:space="preserve"><value>{0} days</value></data>
+  <data name="SupplierQuality.NoSupplierTitle" xml:space="preserve"><value>No supplier selected.</value></data>
+  <data name="SupplierQuality.NoSupplierCopy" xml:space="preserve"><value>Select a supplier to view performance metrics for the period.</value></data>
+  <data name="SupplierQuality.IssuesTitle" xml:space="preserve"><value>Issues from receipts</value></data>
+  <data name="SupplierQuality.IssuesHelp" xml:space="preserve"><value>Dismissed issues are not counted in the issue-receipt rate.</value></data>
+  <data name="SupplierQuality.EmptyTitle" xml:space="preserve"><value>No issues in the selected period</value></data>
+  <data name="SupplierQuality.EmptyCopy" xml:space="preserve"><value>Issues recorded from receipts appear here for tracking and handling.</value></data>
+  <data name="SupplierQuality.ColIssue" xml:space="preserve"><value>Issue</value></data>
+  <data name="SupplierQuality.ColDoc" xml:space="preserve"><value>Document</value></data>
+  <data name="SupplierQuality.ColItem" xml:space="preserve"><value>Item</value></data>
+  <data name="SupplierQuality.ColImpact" xml:space="preserve"><value>Impact</value></data>
+  <data name="SupplierQuality.ColStatus" xml:space="preserve"><value>Status / handling</value></data>
+  <data name="SupplierQuality.ReasonPlaceholder" xml:space="preserve"><value>Reason / handling result</value></data>
+  <data name="SupplierQuality.ReasonAria" xml:space="preserve"><value>Reason or handling result</value></data>
+  <data name="SupplierQuality.NextStatusAria" xml:space="preserve"><value>Next status</value></data>
+  <data name="SupplierQuality.Review" xml:space="preserve"><value>Review</value></data>
+  <data name="SupplierQuality.Resolved" xml:space="preserve"><value>Resolved</value></data>
+  <data name="SupplierQuality.Dismissed" xml:space="preserve"><value>Dismiss</value></data>
+  <data name="SupplierQuality.Update" xml:space="preserve"><value>Update</value></data>
+  <data name="SupplierQuality.CloseReasonAria" xml:space="preserve"><value>Reason to close the issue</value></data>
+  <data name="SupplierQuality.CloseReasonPlaceholder" xml:space="preserve"><value>Close reason</value></data>
+  <data name="SupplierQuality.CloseIssue" xml:space="preserve"><value>Close issue</value></data>
+  <data name="SupplierQuality.Create.Title" xml:space="preserve"><value>Log supplier issue</value></data>
+  <data name="SupplierQuality.Create.Subtitle" xml:space="preserve"><value>{0} · {1}. Record evidence at receipt time for later evaluation.</value></data>
+  <data name="SupplierQuality.Create.Back" xml:space="preserve"><value>Back</value></data>
+  <data name="SupplierQuality.Create.SuggestTitle" xml:space="preserve"><value>Check suggested:</value></data>
+  <data name="SupplierQuality.Create.SuggestCopy" xml:space="preserve"><value>the system detected a late delivery or rejected quantity. The user must confirm before saving; this is not an automatic conclusion.</value></data>
+  <data name="SupplierQuality.Create.SummaryAria" xml:space="preserve"><value>Receipt line summary</value></data>
+  <data name="SupplierQuality.Create.Accepted" xml:space="preserve"><value>Accepted</value></data>
+  <data name="SupplierQuality.Create.Rejected" xml:space="preserve"><value>Rejected</value></data>
+  <data name="SupplierQuality.Create.InfoTitle" xml:space="preserve"><value>Issue information</value></data>
+  <data name="SupplierQuality.Create.InfoHelp" xml:space="preserve"><value>Describe the event from actual evidence, without inferring the cause.</value></data>
+  <data name="SupplierQuality.Create.Type" xml:space="preserve"><value>Issue type</value></data>
+  <data name="SupplierQuality.Create.AffectedQty" xml:space="preserve"><value>Affected quantity (base unit)</value></data>
+  <data name="SupplierQuality.Create.AffectedHelp" xml:space="preserve"><value>Enter the affected quantity on this receipt line.</value></data>
+  <data name="SupplierQuality.Create.Description" xml:space="preserve"><value>Description / evidence</value></data>
+  <data name="SupplierQuality.Create.DescriptionPlaceholder" xml:space="preserve"><value>Describe goods condition, documents or delivery time...</value></data>
+  <data name="SupplierQuality.Create.Submit" xml:space="preserve"><value>Log issue</value></data>
+  <data name="SupplierQuality.Issue.Late" xml:space="preserve"><value>Late delivery</value></data>
+  <data name="SupplierQuality.Issue.Short" xml:space="preserve"><value>Short delivery</value></data>
+  <data name="SupplierQuality.Issue.Wrong" xml:space="preserve"><value>Wrong item</value></data>
+  <data name="SupplierQuality.Issue.Damaged" xml:space="preserve"><value>Damaged</value></data>
+  <data name="SupplierQuality.Issue.Expired" xml:space="preserve"><value>Expired</value></data>
+  <data name="SupplierQuality.Issue.Quality" xml:space="preserve"><value>Quality failure</value></data>
+  <data name="SupplierQuality.Issue.Packaging" xml:space="preserve"><value>Packaging failure</value></data>
+  <data name="SupplierQuality.Issue.Document" xml:space="preserve"><value>Document mismatch</value></data>
+  <data name="SupplierQuality.Issue.Other" xml:space="preserve"><value>Other</value></data>
+  <data name="Supplier.Title" xml:space="preserve"><value>Suppliers</value></data>
+  <data name="Supplier.Eyebrow" xml:space="preserve"><value>Inventory &amp; Supply / Partners</value></data>
+  <data name="Supplier.Subtitle" xml:space="preserve"><value>Manage contact information, supply scope and cooperation status.</value></data>
+  <data name="Supplier.Add" xml:space="preserve"><value>Add supplier</value></data>
+  <data name="Supplier.Metrics.Aria" xml:space="preserve"><value>Supply overview</value></data>
+  <data name="Supplier.Metrics.Total" xml:space="preserve"><value>Total suppliers</value></data>
+  <data name="Supplier.Metrics.Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Supplier.Metrics.Offers" xml:space="preserve"><value>Active purchase packages</value></data>
+  <data name="Supplier.Metrics.Stores" xml:space="preserve"><value>Store assignments</value></data>
+  <data name="Supplier.Filter.Aria" xml:space="preserve"><value>Supplier filters</value></data>
+  <data name="Supplier.Filter.ScopeLabel" xml:space="preserve"><value>Data scope</value></data>
+  <data name="Supplier.Filter.ScopeTitle" xml:space="preserve"><value>Supply filters</value></data>
+  <data name="Supplier.Filter.ScopeNote" xml:space="preserve"><value>By store permission</value></data>
+  <data name="Supplier.Filter.SearchLabel" xml:space="preserve"><value>Search suppliers</value></data>
+  <data name="Supplier.Filter.SearchPlaceholder" xml:space="preserve"><value>Code, name, tax code, phone number</value></data>
+  <data name="Supplier.Filter.StatusLabel" xml:space="preserve"><value>Cooperation status</value></data>
+  <data name="Supplier.Filter.AllStatuses" xml:space="preserve"><value>All statuses</value></data>
+  <data name="Supplier.Reset" xml:space="preserve"><value>Reset</value></data>
+  <data name="Supplier.Apply" xml:space="preserve"><value>Apply</value></data>
+  <data name="Supplier.Filter.ResultCount" xml:space="preserve"><value>Showing {0}–{1} of {2} results</value></data>
+  <data name="Supplier.List.Aria" xml:space="preserve"><value>Supplier list</value></data>
+  <data name="Supplier.List.Kicker" xml:space="preserve"><value>Supply list</value></data>
+  <data name="Supplier.List.Title" xml:space="preserve"><value>Suppliers within management scope</value></data>
+  <data name="Supplier.List.TotalAria" xml:space="preserve"><value>{0} suppliers in total</value></data>
+  <data name="Supplier.Col.Name" xml:space="preserve"><value>Supplier</value></data>
+  <data name="Supplier.Col.TaxCode" xml:space="preserve"><value>Tax code</value></data>
+  <data name="Supplier.Col.Contact" xml:space="preserve"><value>Contact</value></data>
+  <data name="Supplier.Col.Offers" xml:space="preserve"><value>Packages</value></data>
+  <data name="Supplier.Col.Stores" xml:space="preserve"><value>Stores</value></data>
+  <data name="Supplier.Col.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Supplier.Col.Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Supplier.Row.NoAddress" xml:space="preserve"><value>Address not updated</value></data>
+  <data name="Supplier.Row.NoContact" xml:space="preserve"><value>No contact person</value></data>
+  <data name="Supplier.Row.NoPhone" xml:space="preserve"><value>No phone number</value></data>
+  <data name="Supplier.Row.OfferSuffix" xml:space="preserve"><value>in use</value></data>
+  <data name="Supplier.Row.StoreSuffix" xml:space="preserve"><value>assigned</value></data>
+  <data name="Supplier.Row.Detail" xml:space="preserve"><value>Details</value></data>
+  <data name="Supplier.Row.DetailAria" xml:space="preserve"><value>View supplier {0} details</value></data>
+  <data name="Supplier.Empty.Title" xml:space="preserve"><value>No matching suppliers</value></data>
+  <data name="Supplier.Empty.Text" xml:space="preserve"><value>Change the keyword or status to see other results.</value></data>
+  <data name="Supplier.Pagination.Aria" xml:space="preserve"><value>Supplier pagination</value></data>
+  <data name="Supplier.Pagination.Previous" xml:space="preserve"><value>Previous</value></data>
+  <data name="Supplier.Pagination.Page" xml:space="preserve"><value>Page {0} / {1}</value></data>
+  <data name="Supplier.Pagination.Next" xml:space="preserve"><value>Next</value></data>
+  <data name="Supplier.Detail.Aria" xml:space="preserve"><value>Supplier details</value></data>
+  <data name="Supplier.Detail.PlaceholderTitle" xml:space="preserve"><value>Select a supplier</value></data>
+  <data name="Supplier.Detail.PlaceholderText" xml:space="preserve"><value>Operating information will be shown here.</value></data>
+  <data name="Supplier.Detail.Close" xml:space="preserve"><value>Close details</value></data>
+  <data name="Supplier.Detail.TabsAria" xml:space="preserve"><value>Supplier content</value></data>
+  <data name="Supplier.Tab.Overview" xml:space="preserve"><value>Overview</value></data>
+  <data name="Supplier.Tab.Contacts" xml:space="preserve"><value>Contacts</value></data>
+  <data name="Supplier.Tab.Offers" xml:space="preserve"><value>Packages</value></data>
+  <data name="Supplier.Tab.Pricing" xml:space="preserve"><value>Price history</value></data>
+  <data name="Supplier.Tab.Stores" xml:space="preserve"><value>Stores</value></data>
+  <data name="Supplier.Tab.Audit" xml:space="preserve"><value>Tracking</value></data>
+  <data name="Supplier.Overview.Name" xml:space="preserve"><value>Supplier name</value></data>
+  <data name="Supplier.Overview.TaxCode" xml:space="preserve"><value>Tax code</value></data>
+  <data name="Supplier.Overview.TaxCodePlaceholder" xml:space="preserve"><value>Example: 0312345679 or 0312345679-001</value></data>
+  <data name="Supplier.Overview.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Supplier.Overview.Address" xml:space="preserve"><value>Address</value></data>
+  <data name="Supplier.Overview.Note" xml:space="preserve"><value>Note</value></data>
+  <data name="Supplier.Overview.Save" xml:space="preserve"><value>Save information</value></data>
+  <data name="Supplier.Status.Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Supplier.Status.Inactive" xml:space="preserve"><value>Inactive</value></data>
+  <data name="Supplier.Phones.Title" xml:space="preserve"><value>Phone numbers</value></data>
+  <data name="Supplier.Phones.Help" xml:space="preserve"><value>Hotline and general contact numbers of the supplier.</value></data>
+  <data name="Supplier.Phones.NewPlaceholder" xml:space="preserve"><value>New phone number</value></data>
+  <data name="Supplier.Phones.Add" xml:space="preserve"><value>Add number</value></data>
+  <data name="Supplier.Contacts.Title" xml:space="preserve"><value>Contact persons</value></data>
+  <data name="Supplier.Contacts.Help" xml:space="preserve"><value>Contacts receiving quotations and handling deliveries.</value></data>
+  <data name="Supplier.Contacts.Name" xml:space="preserve"><value>Full name</value></data>
+  <data name="Supplier.Contacts.Position" xml:space="preserve"><value>Position</value></data>
+  <data name="Supplier.Contacts.Phone" xml:space="preserve"><value>Phone</value></data>
+  <data name="Supplier.Contacts.Email" xml:space="preserve"><value>Email</value></data>
+  <data name="Supplier.CancelEdit" xml:space="preserve"><value>Cancel edit</value></data>
+  <data name="Supplier.Contacts.Add" xml:space="preserve"><value>Add contact</value></data>
+  <data name="Supplier.Offers.FormTitle" xml:space="preserve"><value>Ingredient purchase specification</value></data>
+  <data name="Supplier.Offers.FormHelp" xml:space="preserve"><value>Maintain package pricing and loose-unit purchasing compatible with each ingredient.</value></data>
+  <data name="Supplier.Offers.Ingredient" xml:space="preserve"><value>Ingredient</value></data>
+  <data name="Supplier.Offers.ContentUnit" xml:space="preserve"><value>Content unit</value></data>
+  <data name="Supplier.Offers.PackageQuantity" xml:space="preserve"><value>Quantity per package</value></data>
+  <data name="Supplier.Offers.PackagePrice" xml:space="preserve"><value>Price per package (VND)</value></data>
+  <data name="Supplier.Offers.Moq" xml:space="preserve"><value>MOQ (packages)</value></data>
+  <data name="Supplier.Offers.LeadTime" xml:space="preserve"><value>Default lead time (days)</value></data>
+  <data name="Supplier.Offers.Primary" xml:space="preserve"><value>Primary supply source</value></data>
+  <data name="Supplier.Offers.Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Supplier.Offers.AllowLoose" xml:space="preserve"><value>Allow loose purchasing</value></data>
+  <data name="Supplier.Offers.LooseUnit" xml:space="preserve"><value>Loose unit</value></data>
+  <data name="Supplier.Offers.LoosePriceMode" xml:space="preserve"><value>Loose price mode</value></data>
+  <data name="Supplier.Offers.LoosePriceModeIndependent" xml:space="preserve"><value>Enter a separate loose unit price</value></data>
+  <data name="Supplier.Offers.LoosePriceModeDerived" xml:space="preserve"><value>Derived from package price</value></data>
+  <data name="Supplier.Offers.LoosePrice" xml:space="preserve"><value>Loose unit price (VND/{0})</value></data>
+  <data name="Supplier.Offers.LoosePriceDefaultUnit" xml:space="preserve"><value>unit</value></data>
+  <data name="Supplier.Offers.LooseMoq" xml:space="preserve"><value>Loose MOQ</value></data>
+  <data name="Supplier.Offers.LooseMoqHelp" xml:space="preserve"><value>Measured in the selected loose unit.</value></data>
+  <data name="Supplier.Offers.LooseStep" xml:space="preserve"><value>Loose quantity step</value></data>
+  <data name="Supplier.Offers.LooseStepHelp" xml:space="preserve"><value>Orders are rounded up to this step.</value></data>
+  <data name="Supplier.Offers.Note" xml:space="preserve"><value>Note</value></data>
+  <data name="Supplier.Offers.Add" xml:space="preserve"><value>Add package</value></data>
+  <data name="Supplier.Pricing.Title" xml:space="preserve"><value>Changes &amp; price history</value></data>
+  <data name="Supplier.Pricing.Help" xml:space="preserve"><value>Each change creates a new price record and closes the previous current one.</value></data>
+  <data name="Supplier.Pricing.Empty" xml:space="preserve"><value>Select "Change price" from a purchase package to view history.</value></data>
+  <data name="Supplier.Pricing.NewPrice" xml:space="preserve"><value>New package price</value></data>
+  <data name="Supplier.Pricing.Reason" xml:space="preserve"><value>Reason for change</value></data>
+  <data name="Supplier.Pricing.Confirm" xml:space="preserve"><value>Confirm price change</value></data>
+  <data name="Supplier.Stores.Title" xml:space="preserve"><value>Store scope</value></data>
+  <data name="Supplier.Stores.Help" xml:space="preserve"><value>Stores only receive goods from suppliers that are assigned and active.</value></data>
+  <data name="Supplier.Stores.Store" xml:space="preserve"><value>Store</value></data>
+  <data name="Supplier.Stores.LeadTime" xml:space="preserve"><value>Custom lead time (days)</value></data>
+  <data name="Supplier.Stores.LeadTimeHelp" xml:space="preserve"><value>Leave empty to use the default lead time of the purchase package; when set, this value overrides the default at the store.</value></data>
+  <data name="Supplier.Stores.Schedule" xml:space="preserve"><value>Expected delivery schedule</value></data>
+  <data name="Supplier.Stores.SchedulePlaceholder" xml:space="preserve"><value>Example: Monday, Wednesday and Friday</value></data>
+  <data name="Supplier.Stores.Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Supplier.Stores.Note" xml:space="preserve"><value>Note</value></data>
+  <data name="Supplier.Stores.Assign" xml:space="preserve"><value>Assign store</value></data>
+  <data name="Supplier.Audit.Title" xml:space="preserve"><value>Update trail</value></data>
+  <data name="Supplier.Audit.Help" xml:space="preserve"><value>Timeline of the supplier record.</value></data>
+  <data name="Supplier.Audit.Created" xml:space="preserve"><value>Created</value></data>
+  <data name="Supplier.Audit.Updated" xml:space="preserve"><value>Last updated</value></data>
+  <data name="Supplier.Create.Eyebrow" xml:space="preserve"><value>Supply record</value></data>
+  <data name="Supplier.Create.Title" xml:space="preserve"><value>Add supplier</value></data>
+  <data name="Supplier.Create.Description" xml:space="preserve"><value>Initialize the business record and primary contact.</value></data>
+  <data name="Supplier.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Supplier.Create.Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Supplier.Create.CompanyTitle" xml:space="preserve"><value>Business information</value></data>
+  <data name="Supplier.Create.CompanyNote" xml:space="preserve"><value>Information used to identify and cross-check purchase documents.</value></data>
+  <data name="Supplier.Create.PrimaryPhone" xml:space="preserve"><value>Main phone</value></data>
+  <data name="Supplier.Create.Name" xml:space="preserve"><value>Supplier name</value></data>
+  <data name="Supplier.Create.MainContactTitle" xml:space="preserve"><value>Primary contact</value></data>
+  <data name="Supplier.Create.MainContactNote" xml:space="preserve"><value>The person receiving quotations and coordinating deliveries.</value></data>
+  <data name="Supplier.Create.ContactName" xml:space="preserve"><value>Primary contact name</value></data>
+  <data name="Supplier.Create.ContactPosition" xml:space="preserve"><value>Position</value></data>
+  <data name="Supplier.Create.ContactPhone" xml:space="preserve"><value>Contact phone</value></data>
+  <data name="Supplier.Create.ContactEmail" xml:space="preserve"><value>Contact email</value></data>
+  <data name="Supplier.Create.NoteTitle" xml:space="preserve"><value>Operating note</value></data>
+  <data name="Supplier.Create.NoteLabel" xml:space="preserve"><value>Additional information</value></data>
+  <data name="Supplier.Create.NotePlaceholder" xml:space="preserve"><value>Delivery terms, contact hours or reconciliation notes...</value></data>
+  <data name="Supplier.Create.DuplicateReason" xml:space="preserve"><value>Reason for creating anyway</value></data>
+  <data name="Supplier.Create.CancelDuplicate" xml:space="preserve"><value>Dismiss warning</value></data>
+  <data name="Supplier.Create.OpenExisting" xml:space="preserve"><value>Open existing supplier</value></data>
+  <data name="Supplier.Create.Reactivate" xml:space="preserve"><value>Reactivate</value></data>
+  <data name="Supplier.Create.ConfirmDuplicate" xml:space="preserve"><value>Confirm creating anyway</value></data>
+  <data name="Supplier.Create.Required" xml:space="preserve"><value>Required field</value></data>
+  <data name="Supplier.Create.Submit" xml:space="preserve"><value>Create supplier</value></data>
+  <data name="Supplier.Js.NoData" xml:space="preserve"><value>No data yet</value></data>
+  <data name="Supplier.Js.InvalidResponse" xml:space="preserve"><value>The server returned invalid data.</value></data>
+  <data name="Supplier.Js.RequestFailed" xml:space="preserve"><value>Request failed (HTTP {0}).</value></data>
+  <data name="Supplier.Js.LoadingOffers" xml:space="preserve"><value>Loading purchase packages...</value></data>
+  <data name="Supplier.Js.LoadingStores" xml:space="preserve"><value>Loading store scope...</value></data>
+  <data name="Supplier.Js.LoadingAudit" xml:space="preserve"><value>Loading update trail...</value></data>
+  <data name="Supplier.Js.SelectIngredientFirst" xml:space="preserve"><value>Select an ingredient first</value></data>
+  <data name="Supplier.Js.SelectOfferFirst" xml:space="preserve"><value>Select a package first</value></data>
+  <data name="Supplier.Js.SelectContentUnit" xml:space="preserve"><value>Select a content unit</value></data>
+  <data name="Supplier.Js.SelectLooseUnit" xml:space="preserve"><value>Select a loose unit</value></data>
+  <data name="Supplier.Js.SelectData" xml:space="preserve"><value>Select data</value></data>
+  <data name="Supplier.Js.SelectStore" xml:space="preserve"><value>Select a store</value></data>
+  <data name="Supplier.Js.OpenAuditTab" xml:space="preserve"><value>Open the Tracking tab to load the update trail.</value></data>
+  <data name="Supplier.Js.AuditEmpty" xml:space="preserve"><value>No tax code changes or duplicate confirmations have been recorded.</value></data>
+  <data name="Supplier.Js.AuditDefaultTitle" xml:space="preserve"><value>Supplier update</value></data>
+  <data name="Supplier.Js.AuditSystemActor" xml:space="preserve"><value>System</value></data>
+  <data name="Supplier.Js.AuditEmptyValue" xml:space="preserve"><value>Empty</value></data>
+  <data name="Supplier.Js.AuditChangeFallback" xml:space="preserve"><value>Recorded</value></data>
+  <data name="Supplier.Js.AuditSavedChanges" xml:space="preserve"><value>Business changes saved.</value></data>
+  <data name="Supplier.Js.Phones.Empty" xml:space="preserve"><value>No phone numbers yet.</value></data>
+  <data name="Supplier.Js.Phones.Primary" xml:space="preserve"><value>Primary phone number</value></data>
+  <data name="Supplier.Js.Phones.Secondary" xml:space="preserve"><value>Secondary phone number</value></data>
+  <data name="Supplier.Js.Phones.Delete" xml:space="preserve"><value>Delete number</value></data>
+  <data name="Supplier.Js.Contacts.Empty" xml:space="preserve"><value>No contact persons yet.</value></data>
+  <data name="Supplier.Js.Contacts.PrimaryBadge" xml:space="preserve"><value>Primary contact</value></data>
+  <data name="Supplier.Js.Contacts.NoPosition" xml:space="preserve"><value>No position</value></data>
+  <data name="Supplier.Js.Contacts.NoChannels" xml:space="preserve"><value>No phone/email</value></data>
+  <data name="Supplier.Js.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Supplier.Js.SetPrimary" xml:space="preserve"><value>Set as primary</value></data>
+  <data name="Supplier.Js.Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Supplier.Js.ErrorNameRequired" xml:space="preserve"><value>Please enter the supplier name.</value></data>
+  <data name="Supplier.Js.ErrorTaxCodeInvalid" xml:space="preserve"><value>The tax code format is invalid.</value></data>
+  <data name="Supplier.Js.ErrorContactNameRequired" xml:space="preserve"><value>Please enter the contact name.</value></data>
+  <data name="Supplier.Js.ErrorContactNameRequiredCreate" xml:space="preserve"><value>Please enter the primary contact name.</value></data>
+  <data name="Supplier.Js.ErrorDuplicateReasonRequired" xml:space="preserve"><value>Please enter the reason for creating a new supplier.</value></data>
+  <data name="Supplier.Js.ErrorTaxCodeFormat" xml:space="preserve"><value>The tax code must consist of 10 digits or 10 digits, a dash and 3 digits.</value></data>
+  <data name="Supplier.Js.ErrorEmailFormat" xml:space="preserve"><value>The {0} address format is invalid (Example: example@domain.com).</value></data>
+  <data name="Supplier.Js.ErrorRequired" xml:space="preserve"><value>Please enter {0}.</value></data>
+  <data name="Supplier.Js.ErrorPhoneFormat" xml:space="preserve"><value>{0} is invalid (8 to 11 digits required).</value></data>
+  <data name="Supplier.Js.Label.EmailDefault" xml:space="preserve"><value>email</value></data>
+  <data name="Supplier.Js.Label.PhoneDefault" xml:space="preserve"><value>phone number</value></data>
+  <data name="Supplier.Js.Label.PhoneNew" xml:space="preserve"><value>new phone number</value></data>
+  <data name="Supplier.Js.Label.PhoneMain" xml:space="preserve"><value>main phone number</value></data>
+  <data name="Supplier.Js.Label.PhoneContact" xml:space="preserve"><value>contact phone number</value></data>
+  <data name="Supplier.Js.Label.EmailContact" xml:space="preserve"><value>contact email</value></data>
+  <data name="Supplier.Js.Label.PhoneContactCreate" xml:space="preserve"><value>contact phone</value></data>
+  <data name="Supplier.Js.Label.EmailContactCreate" xml:space="preserve"><value>contact email</value></data>
+  <data name="Supplier.Js.ToastSavedSupplier" xml:space="preserve"><value>Supplier information saved.</value></data>
+  <data name="Supplier.Js.ToastPhoneAdded" xml:space="preserve"><value>Phone number added.</value></data>
+  <data name="Supplier.Js.ToastPhoneDeleted" xml:space="preserve"><value>Phone number deleted.</value></data>
+  <data name="Supplier.Js.DeletePhoneTitle" xml:space="preserve"><value>Delete phone number?</value></data>
+  <data name="Supplier.Js.DeletePhoneText" xml:space="preserve"><value>This phone number will be removed from the supplier record.</value></data>
+  <data name="Supplier.Js.ContactSave" xml:space="preserve"><value>Save contact</value></data>
+  <data name="Supplier.Js.ToastContactUpdated" xml:space="preserve"><value>Contact person updated.</value></data>
+  <data name="Supplier.Js.ToastContactAdded" xml:space="preserve"><value>Contact person added.</value></data>
+  <data name="Supplier.Js.ToastPrimaryContactUpdated" xml:space="preserve"><value>Primary contact updated.</value></data>
+  <data name="Supplier.Js.DeleteContactTitle" xml:space="preserve"><value>Delete contact person?</value></data>
+  <data name="Supplier.Js.DeleteContactText" xml:space="preserve"><value>This contact person will be removed from the supplier record.</value></data>
+  <data name="Supplier.Js.ToastContactDeleted" xml:space="preserve"><value>Contact person deleted.</value></data>
+  <data name="Supplier.Js.Offers.Empty" xml:space="preserve"><value>No ingredient purchase packages yet.</value></data>
+  <data name="Supplier.Js.Offers.PrimaryBadge" xml:space="preserve"><value>Primary source</value></data>
+  <data name="Supplier.Js.Offers.MetaPrefix" xml:space="preserve"><value>MOQ {0} packages · Lead time {1} days</value></data>
+  <data name="Supplier.Js.Offers.LooseMeta" xml:space="preserve"><value>Loose purchasing by {0}, {1}, MOQ {2}, step {3}</value></data>
+  <data name="Supplier.Js.Offers.LooseUnitDefault" xml:space="preserve"><value>compatible unit</value></data>
+  <data name="Supplier.Js.Offers.LoosePriceDerived" xml:space="preserve"><value>price derived from package</value></data>
+  <data name="Supplier.Js.Offers.LoosePriceManual" xml:space="preserve"><value>separate price</value></data>
+  <data name="Supplier.Js.Offers.LooseStepUnlimited" xml:space="preserve"><value>unlimited</value></data>
+  <data name="Supplier.Js.Offers.PackageOnly" xml:space="preserve"><value>Package purchasing only</value></data>
+  <data name="Supplier.Js.Offers.StatusAria" xml:space="preserve"><value>Purchase package status</value></data>
+  <data name="Supplier.Js.Offers.ReadinessHelp" xml:space="preserve"><value>Please fix the specification before activating or using it for purchasing.</value></data>
+  <data name="Supplier.Js.Offers.ViewPrice" xml:space="preserve"><value>Change price &amp; history</value></data>
+  <data name="Supplier.Js.Offers.Edit" xml:space="preserve"><value>Edit specification</value></data>
+  <data name="Supplier.Js.Offers.EditNotReady" xml:space="preserve"><value>Edit package specification</value></data>
+  <data name="Supplier.Js.Offers.Deactivate" xml:space="preserve"><value>Deactivate</value></data>
+  <data name="Supplier.Js.Offers.Activate" xml:space="preserve"><value>Activate</value></data>
+  <data name="Supplier.Js.Offers.SaveMetadata" xml:space="preserve"><value>Save metadata</value></data>
+  <data name="Supplier.Js.ToastOfferUpdated" xml:space="preserve"><value>Purchase package updated.</value></data>
+  <data name="Supplier.Js.ToastOfferAdded" xml:space="preserve"><value>Purchase package added.</value></data>
+  <data name="Supplier.Js.ToastOfferStale" xml:space="preserve"><value>Package data has changed. Please reload before updating.</value></data>
+  <data name="Supplier.Js.ToastOfferActivated" xml:space="preserve"><value>Purchase package activated.</value></data>
+  <data name="Supplier.Js.ToastOfferDeactivated" xml:space="preserve"><value>Purchase package deactivated.</value></data>
+  <data name="Supplier.Js.Pricing.Loading" xml:space="preserve"><value>Loading price history...</value></data>
+  <data name="Supplier.Js.Pricing.Meta" xml:space="preserve"><value>{0} {1} / package · {2}</value></data>
+  <data name="Supplier.Js.Pricing.NoNote" xml:space="preserve"><value>No note</value></data>
+  <data name="Supplier.Js.Pricing.Current" xml:space="preserve"><value>Current</value></data>
+  <data name="Supplier.Js.Pricing.Closed" xml:space="preserve"><value>Closed</value></data>
+  <data name="Supplier.Js.Pricing.Empty" xml:space="preserve"><value>No price history yet.</value></data>
+  <data name="Supplier.Js.ToastPriceSaved" xml:space="preserve"><value>Price updated and history saved.</value></data>
+  <data name="Supplier.Js.Stores.Empty" xml:space="preserve"><value>This supplier is not assigned to any store yet.</value></data>
+  <data name="Supplier.Js.Stores.NoSchedule" xml:space="preserve"><value>No delivery schedule</value></data>
+  <data name="Supplier.Js.Stores.Meta" xml:space="preserve"><value>Custom lead time: {0} · {1}</value></data>
+  <data name="Supplier.Js.Stores.FollowOffer" xml:space="preserve"><value>Follows package</value></data>
+  <data name="Supplier.Js.Stores.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Supplier.Js.Stores.Save" xml:space="preserve"><value>Save scope</value></data>
+  <data name="Supplier.Js.ToastStoresSaved" xml:space="preserve"><value>Store scope updated.</value></data>
+  <data name="Supplier.Js.Confirm" xml:space="preserve"><value>Confirm</value></data>
+  <data name="Supplier.Js.Keep" xml:space="preserve"><value>Keep</value></data>
+  <data name="Supplier.Js.DuplicateSignalTaxCode" xml:space="preserve"><value>Tax code</value></data>
+  <data name="Supplier.Js.DuplicatePossibleTitle" xml:space="preserve"><value>Possible duplicate supplier</value></data>
+  <data name="Supplier.Js.DuplicateExistsTitle" xml:space="preserve"><value>Tax code already exists</value></data>
+  <data name="Supplier.Js.DuplicateMatchLabel" xml:space="preserve"><value>Match</value></data>
+  <data name="Supplier.Js.ToastSupplierReactivated" xml:space="preserve"><value>Existing supplier reactivated.</value></data>
+  <data name="Supplier.Js.ToastSupplierCreated" xml:space="preserve"><value>Supplier {0} created.</value></data>
+  <data name="Consolidation.Title" xml:space="preserve"><value>Consolidate purchase advices</value></data>
+  <data name="Consolidation.CreateConsolidated" xml:space="preserve"><value>Create consolidated order</value></data>
+  <data name="Consolidation.CreateSingle" xml:space="preserve"><value>Create purchase order</value></data>
+  <data name="Consolidation.CreatingConsolidated" xml:space="preserve"><value>Creating consolidated order...</value></data>
+  <data name="Consolidation.CreatingSingle" xml:space="preserve"><value>Creating purchase order...</value></data>
+  <data name="Consolidation.Eyebrow" xml:space="preserve"><value>Inventory &amp; Supply / Purchasing</value></data>
+  <data name="Consolidation.Subtitle" xml:space="preserve"><value>Review demand, purchasing specs, and allocate orders to the correct branches.</value></data>
+  <data name="Consolidation.ActionOrders" xml:space="preserve"><value>Consolidated orders</value></data>
+  <data name="Consolidation.ActionAdvices" xml:space="preserve"><value>Advice list</value></data>
+  <data name="Consolidation.PreviewErrorHelp" xml:space="preserve"><value>Your inputs are preserved so you can adjust them.</value></data>
+  <data name="Consolidation.Filter.All" xml:space="preserve"><value>All</value></data>
+  <data name="Consolidation.Filter.Store" xml:space="preserve"><value>Branch</value></data>
+  <data name="Consolidation.Filter.Area" xml:space="preserve"><value>Area</value></data>
+  <data name="Consolidation.Filter.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Consolidation.Filter.StatusAll" xml:space="preserve"><value>Submitted + Under review</value></data>
+  <data name="Consolidation.Filter.StatusSubmitted" xml:space="preserve"><value>Submitted</value></data>
+  <data name="Consolidation.Filter.StatusUnderReview" xml:space="preserve"><value>Under review</value></data>
+  <data name="Consolidation.Filter.NeededBy" xml:space="preserve"><value>Needed by</value></data>
+  <data name="Consolidation.Filter.Ingredient" xml:space="preserve"><value>Ingredient</value></data>
+  <data name="Consolidation.Filter.Priority" xml:space="preserve"><value>Priority</value></data>
+  <data name="Consolidation.Filter.Supplier" xml:space="preserve"><value>Eligible supplier</value></data>
+  <data name="Consolidation.Filter.Apply" xml:space="preserve"><value>Filter</value></data>
+  <data name="Consolidation.Toolbar.SupplierLabel" xml:space="preserve"><value>Supplier</value></data>
+  <data name="Consolidation.Toolbar.SelectSupplier" xml:space="preserve"><value>Select a supplier</value></data>
+  <data name="Consolidation.Toolbar.QueueTitle" xml:space="preserve"><value>Advices pending consolidation</value></data>
+  <data name="Consolidation.Toolbar.Hint" xml:space="preserve"><value>The system will re-check price, MOQ, conversions, and branch service scope.</value></data>
+  <data name="Consolidation.Toolbar.Checking" xml:space="preserve"><value>Checking...</value></data>
+  <data name="Consolidation.Toolbar.CheckPreview" xml:space="preserve"><value>Check consolidated preview</value></data>
+  <data name="Consolidation.Table.ColSelect" xml:space="preserve"><value>Select</value></data>
+  <data name="Consolidation.Table.ColAdviceStore" xml:space="preserve"><value>Advice / branch</value></data>
+  <data name="Consolidation.Table.ColIngredient" xml:space="preserve"><value>Ingredient</value></data>
+  <data name="Consolidation.Table.ColRemainingQty" xml:space="preserve"><value>Remaining qty to order</value></data>
+  <data name="Consolidation.Table.ColNeededDate" xml:space="preserve"><value>Needed date</value></data>
+  <data name="Consolidation.Table.ColOffer" xml:space="preserve"><value>Offer &amp; price</value></data>
+  <data name="Consolidation.Table.ColModeQty" xml:space="preserve"><value>Mode / quantity</value></data>
+  <data name="Consolidation.EmptyTitle" xml:space="preserve"><value>No purchase advices ready to consolidate</value></data>
+  <data name="Consolidation.EmptyCopy" xml:space="preserve"><value>Check the filters or the advice status.</value></data>
+  <data name="Consolidation.RowAria" xml:space="preserve"><value>Select {0} from {1}</value></data>
+  <data name="Consolidation.RestockRequestId" xml:space="preserve"><value>Restock request #{0}</value></data>
+  <data name="Consolidation.IncludedInOrder" xml:space="preserve"><value>Included in order {0}</value></data>
+  <data name="Consolidation.ImportConversionNote" xml:space="preserve"><value>Stock converts only at receipt confirmation.</value></data>
+  <data name="Consolidation.OfferSelectPlaceholder" xml:space="preserve"><value>Select an offer</value></data>
+  <data name="Consolidation.OfferOption.Package" xml:space="preserve"><value>1 pack = {0} {1} · {2}/pack</value></data>
+  <data name="Consolidation.OfferOption.NoPackage" xml:space="preserve"><value>No package spec</value></data>
+  <data name="Consolidation.OfferOption.Loose" xml:space="preserve"><value>loose {0}/{1}</value></data>
+  <data name="Consolidation.OfferOption.LeadTime" xml:space="preserve"><value>delivery in {0} days</value></data>
+  <data name="Consolidation.CompareSupplier" xml:space="preserve"><value>Compare suppliers</value></data>
+  <data name="Consolidation.NoOfferOrScope" xml:space="preserve"><value>No offer available or the supplier does not serve this branch.</value></data>
+  <data name="Consolidation.PurchaseMode.Package" xml:space="preserve"><value>Package</value></data>
+  <data name="Consolidation.PurchaseMode.Loose" xml:space="preserve"><value>Loose</value></data>
+  <data name="Consolidation.PackCountAria" xml:space="preserve"><value>Pack count for {0}</value></data>
+  <data name="Consolidation.LooseQtyAria" xml:space="preserve"><value>Loose quantity for {0}</value></data>
+  <data name="Consolidation.AutoComputeHint" xml:space="preserve"><value>Auto-calculated from remaining need and spec.</value></data>
+  <data name="Consolidation.DraftTitle" xml:space="preserve"><value>Order draft</value></data>
+  <data name="Consolidation.DraftHint" xml:space="preserve"><value>Select advices, a supplier, and an offer to see the branch allocation before creating the order.</value></data>
+  <data name="Consolidation.PreviewHeading" xml:space="preserve"><value>Valid consolidated preview</value></data>
+  <data name="Consolidation.Kpi.Store" xml:space="preserve"><value>Branches</value></data>
+  <data name="Consolidation.Kpi.Line" xml:space="preserve"><value>Advice lines</value></data>
+  <data name="Consolidation.Kpi.Group" xml:space="preserve"><value>Purchase groups</value></data>
+  <data name="Consolidation.Kpi.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Consolidation.Kpi.StatusPending" xml:space="preserve"><value>Pending</value></data>
+  <data name="Consolidation.GroupHead.Loose" xml:space="preserve"><value>Loose — by {0}</value></data>
+  <data name="Consolidation.GroupHead.Package" xml:space="preserve"><value>{0} {1}/pack · minimum {2} packs</value></data>
+  <data name="Consolidation.GroupHead.LeadTime" xml:space="preserve"><value>delivery in {0} days</value></data>
+  <data name="Consolidation.PackageLine" xml:space="preserve"><value>packs</value></data>
+  <data name="Consolidation.PricePerPack" xml:space="preserve"><value>{0}/pack</value></data>
+  <data name="Consolidation.OrderBaseUnits" xml:space="preserve"><value>Order {0} · base units</value></data>
+  <data name="Consolidation.Coverage.Cover" xml:space="preserve"><value>Covers {0}</value></data>
+  <data name="Consolidation.Coverage.Excess" xml:space="preserve"><value>Spec excess {0}</value></data>
+  <data name="Consolidation.Coverage.CoverDemand" xml:space="preserve"><value>Covers demand {0}</value></data>
+  <data name="Consolidation.Allocation.RestockRequest" xml:space="preserve"><value>Restock request #{0}</value></data>
+  <data name="Consolidation.Allocation.Order" xml:space="preserve"><value>order</value></data>
+  <data name="Consolidation.Allocation.Cover" xml:space="preserve"><value>cover</value></data>
+  <data name="Consolidation.Allocation.Excess" xml:space="preserve"><value>excess</value></data>
+  <data name="Consolidation.Delivery.FromLabel" xml:space="preserve"><value>Deliver from</value></data>
+  <data name="Consolidation.Delivery.ToLabel" xml:space="preserve"><value>Deliver until</value></data>
+  <data name="Consolidation.Delivery.DateFormatHelp" xml:space="preserve"><value>MM/DD/YYYY</value></data>
+  <data name="Consolidation.OrderNotesLabel" xml:space="preserve"><value>Order notes</value></data>
+  <data name="Consolidation.OrderNotesPlaceholder" xml:space="preserve"><value>Delivery terms or general notes...</value></data>
+  <data name="Consolidation.CreateWarning" xml:space="preserve"><value>On creation, the system locks and re-checks remaining quantity, price, MOQ and branch scope.</value></data>
+  <data name="Consolidation.Js.LooseCopy" xml:space="preserve"><value>Loose {0} {1} · {2} per unit.</value></data>
+  <data name="Consolidation.Js.SelectValidOffer" xml:space="preserve"><value>Select a valid offer to calculate packs.</value></data>
+  <data name="Consolidation.Js.PackMath" xml:space="preserve"><value>{0} packs · order {1} {2} · excess {3} {2}</value></data>
+  <data name="Consolidation.Js.Confidence.High" xml:space="preserve"><value>High</value></data>
+  <data name="Consolidation.Js.Confidence.Medium" xml:space="preserve"><value>Medium</value></data>
+  <data name="Consolidation.Js.Confidence.Low" xml:space="preserve"><value>Insufficient data</value></data>
+  <data name="Consolidation.Js.Confidence.Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="Consolidation.Js.Mode.Loose" xml:space="preserve"><value>Loose</value></data>
+  <data name="Consolidation.Js.Mode.Package" xml:space="preserve"><value>Package</value></data>
+  <data name="Consolidation.Js.Mode.Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="Consolidation.Js.LeadTime.Confirmed" xml:space="preserve"><value>confirmed</value></data>
+  <data name="Consolidation.Js.LeadTime.Estimated" xml:space="preserve"><value>estimated</value></data>
+  <data name="Consolidation.Js.LeadTime.Unknown" xml:space="preserve"><value>unknown</value></data>
+  <data name="Consolidation.Js.Score.None" xml:space="preserve"><value>Insufficient data</value></data>
+  <data name="Consolidation.Js.Score.Of100" xml:space="preserve"><value>{0}/100</value></data>
+  <data name="Consolidation.Js.ShadowNote" xml:space="preserve"><value>Experimental data — observation mode. Results support decisions only; the system does not auto-select a supplier.</value></data>
+  <data name="Consolidation.Js.NormalNote" xml:space="preserve"><value>Results are calculated from purchase and receipt history.</value></data>
+  <data name="Consolidation.Js.RankingUnavailable" xml:space="preserve"><value>Not enough information to rank competitively.</value></data>
+  <data name="Consolidation.Js.NoCandidates" xml:space="preserve"><value>No valid suppliers and purchase specs for the current conditions.</value></data>
+  <data name="Consolidation.Js.RankPrefix" xml:space="preserve"><value>Rank {0} · </value></data>
+  <data name="Consolidation.Js.RankEligible" xml:space="preserve"><value>Eligible for ranking</value></data>
+  <data name="Consolidation.Js.RankReferenceOnly" xml:space="preserve"><value>For reference only</value></data>
+  <data name="Consolidation.Js.Fact.PurchaseMode" xml:space="preserve"><value>Purchase mode</value></data>
+  <data name="Consolidation.Js.Fact.PurchaseQty" xml:space="preserve"><value>Purchase quantity</value></data>
+  <data name="Consolidation.Js.Fact.TotalCost" xml:space="preserve"><value>Total cost</value></data>
+  <data name="Consolidation.Js.Fact.ExcessQty" xml:space="preserve"><value>Excess quantity</value></data>
+  <data name="Consolidation.Js.Fact.LeadTime" xml:space="preserve"><value>Estimated delivery time</value></data>
+  <data name="Consolidation.Js.Fact.TotalScore" xml:space="preserve"><value>Total score</value></data>
+  <data name="Consolidation.Js.Fact.Confidence" xml:space="preserve"><value>Confidence</value></data>
+  <data name="Consolidation.Js.Fact.PriceScore" xml:space="preserve"><value>Purchase price score</value></data>
+  <data name="Consolidation.Js.Fact.OnTimeScore" xml:space="preserve"><value>On-time delivery score</value></data>
+  <data name="Consolidation.Js.Fact.QtyScore" xml:space="preserve"><value>Quantity fulfilment score</value></data>
+  <data name="Consolidation.Js.Fact.QualityScore" xml:space="preserve"><value>Goods quality score</value></data>
+  <data name="Consolidation.Js.Fact.DeliveryTimeScore" xml:space="preserve"><value>Delivery time score</value></data>
+  <data name="Consolidation.Js.FactValue.Packs" xml:space="preserve"><value>{0} packs</value></data>
+  <data name="Consolidation.Js.FactValue.Money" xml:space="preserve"><value>{0}</value></data>
+  <data name="Consolidation.Js.FactValue.Days" xml:space="preserve"><value>{0} days · {1}</value></data>
+  <data name="Consolidation.Js.FactValue.Confidence" xml:space="preserve"><value>{0} · {1} receipts confirmed</value></data>
+  <data name="Consolidation.Js.Loading" xml:space="preserve"><value>Loading comparison data...</value></data>
+  <data name="Consolidation.Js.CompareFailed" xml:space="preserve"><value>Cannot compare suppliers.</value></data>
+  <data name="Consolidation.Js.LoadedShadow" xml:space="preserve"><value>Experimental results loaded. Press again to view.</value></data>
+  <data name="Consolidation.Js.LoadedNormal" xml:space="preserve"><value>Comparison results loaded. Press again to view.</value></data>
+  <data name="Consolidation.Js.SwalTitle" xml:space="preserve"><value>Compare suppliers</value></data>
+  <data name="Consolidation.Js.SwalClose" xml:space="preserve"><value>Close</value></data>
+  <data name="Consolidation.Js.WarningTitle" xml:space="preserve"><value>Cannot compare suppliers yet</value></data>
+  <data name="Consolidation.Js.Understood" xml:space="preserve"><value>Understood</value></data>
+  <data name="Consolidation.Js.Processing" xml:space="preserve"><value>Processing...</value></data>
+  <data name="Common.InsufficientData" xml:space="preserve"><value>Insufficient data</value></data>
+  <data name="Common.NotCalculated" xml:space="preserve"><value>not calculated</value></data>
+  <data name="Common.NoNotes" xml:space="preserve"><value>No notes</value></data>
+  <data name="Common.NotSelected" xml:space="preserve"><value>Not selected</value></data>
+  <data name="Common.System" xml:space="preserve"><value>System</value></data>
+  <data name="Common.Quantity" xml:space="preserve"><value>Quantity</value></data>
+  <data name="Common.Time" xml:space="preserve"><value>Time</value></data>
+  <data name="Common.Source" xml:space="preserve"><value>Source</value></data>
+  <data name="Common.DocumentLine" xml:space="preserve"><value>Document line</value></data>
+  <data name="Common.OrderDate" xml:space="preserve"><value>Order date</value></data>
+  <data name="Restock.Details.AllocatedSources" xml:space="preserve"><value>Allocated sources</value></data>
+  <data name="Restock.Details.Rejected" xml:space="preserve"><value>Rejected</value></data>
+  <data name="Restock.Details.ViewAllocation" xml:space="preserve"><value>View allocation details</value></data>
+  <data name="Restock.Details.ProductionSource" xml:space="preserve"><value>Production source</value></data>
+  <data name="Restock.Details.RecentAllocations" xml:space="preserve"><value>Showing {0}/{1} latest allocations</value></data>
+  <data name="Restock.Details.ViewProductionOrder" xml:space="preserve"><value>View production order #{0}</value></data>
+  <data name="Restock.Details.ProductionLinked" xml:space="preserve"><value>Production order is linked.</value></data>
+  <data name="Restock.Details.ProductionNotLinked" xml:space="preserve"><value>No production order linked yet.</value></data>
+  <data name="Restock.Details.RequestInformation" xml:space="preserve"><value>Request information</value></data>
+  <data name="Restock.Details.Priority" xml:space="preserve"><value>Priority {0}</value></data>
+  <data name="Restock.Details.SystemSuggestion" xml:space="preserve"><value>System suggestion</value></data>
+  <data name="Restock.Details.LastUpdated" xml:space="preserve"><value>Last updated</value></data>
+  <data name="Restock.Details.FulfillmentChannel" xml:space="preserve"><value>Fulfillment channel</value></data>
+  <data name="Restock.Details.SourcingDecision" xml:space="preserve"><value>Sourcing decision</value></data>
+  <data name="Restock.Details.DemandSource" xml:space="preserve"><value>Demand source</value></data>
+  <data name="Restock.Details.BusinessReference" xml:space="preserve"><value>Business reference</value></data>
+  <data name="Restock.Details.AcceptedBy" xml:space="preserve"><value>Accepted by</value></data>
+  <data name="Restock.Details.NotAccepted" xml:space="preserve"><value>Not accepted yet</value></data>
+  <data name="Restock.Details.AcceptedAt" xml:space="preserve"><value>Accepted at</value></data>
+  <data name="Restock.Details.ProcessingNote" xml:space="preserve"><value>Processing note</value></data>
+  <data name="Restock.Details.ClosedRemainingNotice" xml:space="preserve"><value>Closed remaining {0} {1}. Reason: {2}</value></data>
+  <data name="Restock.Details.InventoryImpactHelp" xml:space="preserve"><value>{0} does not change stock directly. For production, only accepted output increases inventory.</value></data>
+  <data name="Restock.Details.Channel.UNDECIDED" xml:space="preserve"><value>Undecided</value></data>
+  <data name="Restock.Details.Channel.TRANSFER" xml:space="preserve"><value>Transfer</value></data>
+  <data name="Restock.Details.Channel.EXTERNAL_PURCHASE" xml:space="preserve"><value>External purchase</value></data>
+  <data name="Restock.Details.Channel.MIXED" xml:space="preserve"><value>Mixed</value></data>
+  <data name="Restock.Details.Decision.UNDECIDED" xml:space="preserve"><value>Undecided</value></data>
+  <data name="Restock.Details.Decision.TRANSFER" xml:space="preserve"><value>Transfer</value></data>
+  <data name="Restock.Details.Decision.PURCHASE" xml:space="preserve"><value>Purchase</value></data>
+  <data name="Restock.Details.Decision.PRODUCTION" xml:space="preserve"><value>Production</value></data>
+  <data name="Restock.Details.Decision.REJECT" xml:space="preserve"><value>Reject</value></data>
+  <data name="Restock.Details.SourceReview" xml:space="preserve"><value>Source review</value></data>
+  <data name="Restock.Details.InvalidTransferTitle" xml:space="preserve"><value>Transfer allocation is not valid.</value></data>
+  <data name="Restock.Details.InvalidTransferCopy" xml:space="preserve"><value>The existing allocation has no transfer document, so it does not count as covered. Choose a fulfillment source again or create a valid transfer before confirming.</value></data>
+  <data name="Restock.Details.SourceAssignedTitle" xml:space="preserve"><value>Source assigned.</value></data>
+  <data name="Restock.Details.SourceAssignedCopy" xml:space="preserve"><value>All demand has been allocated. If a source is cancelled or released, source options will reappear automatically.</value></data>
+  <data name="Restock.Details.SourceForbidden" xml:space="preserve"><value>You do not have permission to review sources for this request.</value></data>
+  <data name="Restock.Details.AcceptBeforeAllocate" xml:space="preserve"><value>Accept the request before allocating sources.</value></data>
+  <data name="Restock.Details.UnassignedAmount" xml:space="preserve"><value>{0} {1} still has no assigned source.</value></data>
+  <data name="Restock.Details.ChooseSourceCopy" xml:space="preserve"><value>Choose a fulfillment method to open the correct form. Demand can still be split across multiple sources.</value></data>
+  <data name="Restock.Details.ChooseSourceAria" xml:space="preserve"><value>Choose fulfillment source</value></data>
+  <data name="Restock.Details.Source.TransferHelp" xml:space="preserve"><value>Receive stock from another branch in the chain.</value></data>
+  <data name="Restock.Details.Source.PurchaseHelp" xml:space="preserve"><value>Add the quantity to a purchase advice and choose a supplier at consolidation.</value></data>
+  <data name="Restock.Details.Source.ProductionHelp" xml:space="preserve"><value>Create a prepared-item production order at the store.</value></data>
+  <data name="Restock.Details.ChangeSource" xml:space="preserve"><value>Change source</value></data>
+  <data name="Restock.Details.AllocationQuantity" xml:space="preserve"><value>Allocated quantity ({0})</value></data>
+  <data name="Restock.Details.SourceReasonPlaceholder" xml:space="preserve"><value>Notes supporting the source decision</value></data>
+  <data name="Restock.Details.SaveSource" xml:space="preserve"><value>Save source</value></data>
+  <data name="Restock.Details.RejectRemaining" xml:space="preserve"><value>Reject remaining demand</value></data>
+  <data name="Restock.Details.RejectedQuantity" xml:space="preserve"><value>Rejected quantity ({0})</value></data>
+  <data name="Restock.Details.RejectReason" xml:space="preserve"><value>Rejection reason</value></data>
+  <data name="Restock.Details.ConfirmReject" xml:space="preserve"><value>Confirm rejection</value></data>
+  <data name="Restock.Details.SourceReviewUnavailable" xml:space="preserve"><value>This request is not in a status that allows source review.</value></data>
+  <data name="Restock.Details.AddDemandTitle" xml:space="preserve"><value>Add demand to the current request</value></data>
+  <data name="Restock.Details.AddPreparedDemandHelp" xml:space="preserve"><value>The system recalculates from available stock, target level, open sources, and unallocated demand. Pinned production orders are not changed.</value></data>
+  <data name="Restock.Details.NetNeed" xml:space="preserve"><value>Still needed</value></data>
+  <data name="Restock.Details.UnallocatedInRequest" xml:space="preserve"><value>Unallocated in request</value></data>
+  <data name="Restock.Details.AdjustmentToConfirm" xml:space="preserve"><value>Adjustment to confirm</value></data>
+  <data name="Restock.Details.AddIngredientDemandHelp" xml:space="preserve"><value>Use when the branch has extra demand for the same ingredient. Only total demand increases; existing allocations, purchase advices, and orders stay unchanged.</value></data>
+  <data name="Restock.Details.AdditionalQuantity" xml:space="preserve"><value>Additional quantity ({0})</value></data>
+  <data name="Restock.Details.NewNeedBy" xml:space="preserve"><value>New need-by date (if changed)</value></data>
+  <data name="Restock.Details.AddDemandReason" xml:space="preserve"><value>Reason for additional demand</value></data>
+  <data name="Restock.Details.AddDemandReasonPlaceholder" xml:space="preserve"><value>Example: weekend demand increase, event...</value></data>
+  <data name="Restock.Details.AddDemandAction" xml:space="preserve"><value>Add demand</value></data>
+  <data name="Restock.Details.LinkedAdvices" xml:space="preserve"><value>Linked purchase advices</value></data>
+  <data name="Restock.Details.NoLinkedAdvices" xml:space="preserve"><value>No linked purchase advice. An advice appears after the request is assigned the “External purchase” source.</value></data>
+  <data name="Restock.Details.ViewAdvice" xml:space="preserve"><value>View purchase advice</value></data>
+  <data name="Restock.Details.CreateNewAdvice" xml:space="preserve"><value>Create new purchase advice</value></data>
+  <data name="Restock.Details.SelectDraftAdvice" xml:space="preserve"><value>Select a draft purchase advice...</value></data>
+  <data name="Restock.Details.NeededBy" xml:space="preserve"><value>needed by {0}</value></data>
+  <data name="Restock.Details.AddToDraftAdvice" xml:space="preserve"><value>Add to draft purchase advice</value></data>
+  <data name="Restock.Details.OrphanPurchaseAllocation" xml:space="preserve"><value>There is an external-purchase allocation without a linked document. Cancel or release it before continuing.</value></data>
+  <data name="Restock.Details.StatusHistory" xml:space="preserve"><value>Status history</value></data>
+  <data name="Restock.Details.SubmitDemand" xml:space="preserve"><value>Submit {0}</value></data>
+  <data name="Restock.Details.NoStatusHistory" xml:space="preserve"><value>No status history yet.</value></data>
+  <data name="Restock.Details.DemandAdded" xml:space="preserve"><value>Demand added</value></data>
+  <data name="Restock.Details.QuantityChanged" xml:space="preserve"><value>from {0} to {1} {2}</value></data>
+  <data name="Restock.Details.Receipt" xml:space="preserve"><value>Receipt</value></data>
+  <data name="Restock.Details.ReceivedSuffix" xml:space="preserve"><value> · received {0}</value></data>
+  <data name="Restock.Details.Transfer" xml:space="preserve"><value>Transfer</value></data>
+  <data name="Restock.Details.CumulativeSuffix" xml:space="preserve"><value> · cumulative {0}</value></data>
+  <data name="Restock.Details.ReceivedPostingsTitle" xml:space="preserve"><value>Recorded received quantity</value></data>
+  <data name="Restock.Details.NoReceivedPostings" xml:space="preserve"><value>No actual received quantity from completed documents yet.</value></data>
+  <data name="Restock.Details.BaseUnitNumber" xml:space="preserve"><value>Unit #{0}</value></data>
+  <data name="Restock.Details.LinkedPurchaseOrders" xml:space="preserve"><value>Linked purchase orders</value></data>
+  <data name="Restock.Details.NoLinkedPurchaseOrders" xml:space="preserve"><value>No linked purchase order. An order appears after the purchase advice is submitted, approved, and consolidated.</value></data>
+  <data name="Restock.Details.PurchaseOrder" xml:space="preserve"><value>Purchase order</value></data>
+  <data name="Restock.Details.OrderStatus" xml:space="preserve"><value>Order status</value></data>
+  <data name="Restock.Details.ViewOrder" xml:space="preserve"><value>View order</value></data>
+  <data name="Restock.Details.SupplierIssues" xml:space="preserve"><value>Supplier issues</value></data>
+  <data name="Restock.Details.NoSupplierIssues" xml:space="preserve"><value>No related supplier issues.</value></data>
+  <data name="Restock.Details.Issue" xml:space="preserve"><value>Issue</value></data>
+  <data name="Restock.Details.Impact" xml:space="preserve"><value>Impact</value></data>
+  <data name="Restock.Details.Document" xml:space="preserve"><value>Document</value></data>
+  <data name="Restock.Details.ReceiptDocuments" xml:space="preserve"><value>Receipt documents</value></data>
+  <data name="Restock.Details.NoReceiptDocuments" xml:space="preserve"><value>No receipt documents yet. Create a receipt only from an approved purchase order that has been sent to the supplier.</value></data>
+  <data name="Restock.Details.ReceiptCode" xml:space="preserve"><value>Receipt</value></data>
+  <data name="Restock.Details.ReceivedQty" xml:space="preserve"><value>Received qty</value></data>
+  <data name="Restock.Details.ViewReceipt" xml:space="preserve"><value>View receipt</value></data>
+  <data name="Restock.Details.NextActions" xml:space="preserve"><value>Next actions</value></data>
+  <data name="Restock.Details.StartProcessing" xml:space="preserve"><value>Start processing</value></data>
+  <data name="Restock.Details.CancelOrReject" xml:space="preserve"><value>Cancel or reject request</value></data>
+  <data name="Restock.Details.RejectRequest" xml:space="preserve"><value>Reject request</value></data>
+  <data name="Restock.Details.RejectReasonPlaceholder" xml:space="preserve"><value>State the reason for rejecting the request</value></data>
+  <data name="Restock.Details.CancelReason" xml:space="preserve"><value>Cancellation reason</value></data>
+  <data name="Restock.Details.CancelReasonPlaceholder" xml:space="preserve"><value>State the reason for cancelling the request</value></data>
+  <data name="Restock.Details.CancelRequest" xml:space="preserve"><value>Cancel request</value></data>
+  <data name="Restock.Details.CreateRemainingTransfer" xml:space="preserve"><value>Create transfer for remaining quantity</value></data>
+  <data name="Restock.Details.CloseRemainingReason" xml:space="preserve"><value>Reason for closing remaining quantity</value></data>
+  <data name="Restock.Details.CloseRemainingPlaceholder" xml:space="preserve"><value>Enter why remaining quantity will not be received...</value></data>
+  <data name="Restock.Details.CloseRemaining" xml:space="preserve"><value>Close remaining quantity</value></data>
+  <data name="Restock.Details.NoStatusAction" xml:space="preserve"><value>No matching status action at the current step.</value></data>
+  <data name="Restock.Details.ExecutionSources" xml:space="preserve"><value>Execution sources</value></data>
+  <data name="Restock.Details.OrphanTransferTitle" xml:space="preserve"><value>Internal transfer has no execution document</value></data>
+  <data name="Restock.Details.OrphanTransferCopy" xml:space="preserve"><value>This source has not increased stock and has not completed demand. Link a valid transfer or choose another fulfillment source.</value></data>
+  <data name="Restock.Details.ProductionAllocated" xml:space="preserve"><value>Allocated {0} {1} to production.</value></data>
+  <data name="Restock.Details.OpenProductionOrder" xml:space="preserve"><value>Open production order</value></data>
+  <data name="Restock.Details.NoExecutionDocuments" xml:space="preserve"><value>No execution document for the selected source yet.</value></data>
+  <data name="Restock.Details.Planned" xml:space="preserve"><value>Planned {0}</value></data>
+  <data name="Restock.Details.ProductionSourceHelp" xml:space="preserve"><value>A production source goes straight to a production order and does not need a purchase advice, purchase order, or supplier receipt.</value></data>
+  <data name="Restock.Details.PurchaseSourceHelp" xml:space="preserve"><value>An external purchase source is recorded only when a linked purchase-order line exists. Do not use a manual note in place of a purchase document.</value></data>
+</root>

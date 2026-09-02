@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="Products.Category" xml:space="preserve"><value>Categories</value></data>
+  <data name="Products.Drink" xml:space="preserve"><value>Drinks</value></data>
+  <data name="Products.Size" xml:space="preserve"><value>Sizes</value></data>
+  <data name="Products.Topping" xml:space="preserve"><value>Toppings</value></data>
+  <data name="Products.Profitability" xml:space="preserve"><value>Cost &amp; projected profit</value></data>
+  <data name="Products.StoreMenu" xml:space="preserve"><value>Store menu</value></data>
+  <data name="Production.PreparedItem" xml:space="preserve"><value>Prepared items</value></data>
+  <data name="Production.Recipe" xml:space="preserve"><value>Recipes &amp; BOM</value></data>
+  <data name="Production.Order" xml:space="preserve"><value>Production orders</value></data>
+  <data name="Inventory.StoreInventory" xml:space="preserve"><value>Store inventory</value></data>
+  <data name="Inventory.Threshold" xml:space="preserve"><value>Inventory thresholds</value></data>
+  <data name="Inventory.Alert" xml:space="preserve"><value>Stock alerts</value></data>
+  <data name="Inventory.Restock" xml:space="preserve"><value>Restock requests</value></data>
+  <data name="Inventory.Reorder" xml:space="preserve"><value>Reorder suggestions</value></data>
+  <data name="Procurement.Advice" xml:space="preserve"><value>Purchase advice</value></data>
+  <data name="Procurement.Consolidation" xml:space="preserve"><value>Purchase consolidation</value></data>
+  <data name="Procurement.OrderBatch" xml:space="preserve"><value>Purchase order batches</value></data>
+  <data name="Procurement.Order" xml:space="preserve"><value>Purchase orders</value></data>
+  <data name="Procurement.Receipt" xml:space="preserve"><value>Branch receipts</value></data>
+  <data name="Procurement.SupplierQuality" xml:space="preserve"><value>Supplier quality</value></data>
+  <data name="Inventory.History" xml:space="preserve"><value>Inventory transaction history</value></data>
+  <data name="Inventory.OperationalIce" xml:space="preserve"><value>Shift ice management</value></data>
+  <data name="Inventory.Ingredient" xml:space="preserve"><value>Ingredients</value></data>
+  <data name="Inventory.UnitConversion" xml:space="preserve"><value>Units &amp; conversions</value></data>
+  <data name="Procurement.Supplier" xml:space="preserve"><value>Suppliers</value></data>
+  <data name="Inventory.Document" xml:space="preserve"><value>Inventory documents</value></data>
+  <data name="Inventory.Transfer" xml:space="preserve"><value>Inventory transfers</value></data>
+  <data name="Orders.History" xml:space="preserve"><value>Sales history</value></data>
+  <data name="Staff.Permission" xml:space="preserve"><value>Permission matrix</value></data>
+  <data name="Staff.Employee" xml:space="preserve"><value>Staff management</value></data>
+  <data name="Staff.Schedule" xml:space="preserve"><value>Work schedules</value></data>
+  <data name="Staff.Store" xml:space="preserve"><value>Store management</value></data>
+  <data name="Staff.Anomaly" xml:space="preserve"><value>Operational signals</value></data>
+  <data name="Staff.LateOpenApproval" xml:space="preserve"><value>Late shift-open approvals</value></data>
+  <data name="Profile.Open" xml:space="preserve"><value>Open {0}'s profile</value></data>
+  <data name="Profile.Avatar" xml:space="preserve"><value>{0}'s avatar</value></data>
+  <data name="Profile.UnknownStaff" xml:space="preserve"><value>Staff member</value></data>
+</root>

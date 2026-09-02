@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react'
+import { usePreferences } from '../../../contexts/PreferencesContext'
+import { useLocaleFormatters } from '../../../hooks/useLocaleFormatters'
 import { printVietQrSlip } from '../../../services/vietQrPrint'
 import VietQrCode from '../VietQrCode'
 
@@ -49,22 +51,10 @@ interface PaymentWorkspaceProps {
   onConfirmCashReturned: () => void
 }
 
-const formatVND = (amount: number): string =>
-  new Intl.NumberFormat('vi-VN').format(amount) + 'đ'
-
-const formatCashInput = (value: string): string =>
-  value ? new Intl.NumberFormat('vi-VN').format(Number(value)) : ''
-
 const formatCountdown = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60)
   const remainingSeconds = seconds % 60
   return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`
-}
-
-const modeLabels: Record<PaymentWorkspaceMode, string> = {
-  cash: 'Tiền mặt',
-  vietqr: 'VietQR',
-  split: 'Thanh toán kết hợp',
 }
 
 export default function PaymentWorkspace({
@@ -101,7 +91,13 @@ export default function PaymentWorkspace({
   onDismissCashReturn,
   onConfirmCashReturned,
 }: PaymentWorkspaceProps) {
+  const { t } = usePreferences()
   const dialogRef = useRef<HTMLDivElement>(null)
+  const modeLabels: Record<PaymentWorkspaceMode, string> = {
+    cash: t('payment.cash'),
+    vietqr: t('payment.vietqr'),
+    split: t('payment.split'),
+  }
 
   useEffect(() => {
     if (!isOpen) return
@@ -156,9 +152,9 @@ export default function PaymentWorkspace({
         <header className="shrink-0 border-b border-border bg-white px-5 py-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase text-text-secondary">Thanh toán đơn hàng</p>
+              <p className="text-xs font-bold uppercase text-text-secondary">{t('payment.title')}</p>
               <h2 id="payment-workspace-title" className="mt-0.5 text-xl font-extrabold text-text-primary">
-                {cashReturnAmount !== null ? 'Xác nhận hoàn tiền mặt' : modeLabels[mode]}
+                {cashReturnAmount !== null ? t('payment.refundConfirm') : modeLabels[mode]}
               </h2>
             </div>
             <button
@@ -167,18 +163,18 @@ export default function PaymentWorkspace({
               disabled={isCheckingOut || isCancellingPayment || Boolean(pendingPayment)}
               className="pos-touch-target flex items-center justify-center rounded-lg border border-border bg-white text-xl text-text-secondary hover:bg-surface-hover disabled:opacity-40"
               aria-label={pendingPayment
-                ? 'Không thể đóng khi giao dịch đang chờ xử lý'
-                : 'Đóng khu vực thanh toán'}
+                ? t('payment.cannotClose')
+                : t('payment.close')}
               title={pendingPayment
-                ? 'Hãy đổi phương thức hoặc hủy giao dịch đang chờ.'
-                : 'Đóng khu vực thanh toán'}
+                ? t('payment.resolvePending')
+                : t('payment.close')}
             >
               ×
             </button>
           </div>
 
           {cashReturnAmount === null && !pendingPayment && (
-            <div className="mt-4 grid grid-cols-3 gap-2" role="tablist" aria-label="Phương thức thanh toán">
+            <div className="mt-4 grid grid-cols-3 gap-2" role="tablist" aria-label={t('payment.methods')}>
               {(Object.keys(modeLabels) as PaymentWorkspaceMode[]).map((option) => (
                 <button
                   key={option}
@@ -289,6 +285,8 @@ function CashPanel({
   onConfirm,
   onCancel,
 }: CashPanelProps) {
+  const { t } = usePreferences()
+  const { formatMoney, formatNumber } = useLocaleFormatters()
   const appendValue = (value: string) => {
     const nextValue = `${receivedInput}${value}`.replace(/^0+(?=\d)/, '')
     onInputChange(nextValue)
@@ -298,19 +296,19 @@ function CashPanel({
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
       <div className="grid grid-cols-2 gap-3">
-        <PaymentMetric label="Tổng cần trả" value={formatVND(totalAmount)} />
-        <PaymentMetric label="Tiền thừa" value={formatVND(changeAmount)} accent={changeAmount > 0} />
+        <PaymentMetric label={t('payment.totalDue')} value={formatMoney(totalAmount)} />
+        <PaymentMetric label={t('payment.change')} value={formatMoney(changeAmount)} accent={changeAmount > 0} />
       </div>
 
       <label className="block rounded-lg border border-border bg-white p-3" htmlFor="cash-received-input">
-        <span className="block text-xs font-bold text-text-secondary">Tiền khách đưa</span>
+        <span className="block text-xs font-bold text-text-secondary">{t('payment.received')}</span>
         <div className="mt-2 flex items-center gap-2">
           <input
             id="cash-received-input"
             type="text"
             inputMode="numeric"
             autoComplete="off"
-            value={formatCashInput(receivedInput)}
+            value={receivedInput ? formatNumber(Number(receivedInput)) : ''}
             onChange={(event) => onInputChange(event.target.value.replace(/\D/g, ''))}
             className="min-w-0 flex-1 bg-transparent text-2xl font-extrabold text-text-primary outline-none tabular-nums"
             aria-describedby="cash-validation-message"
@@ -319,7 +317,7 @@ function CashPanel({
         </div>
       </label>
 
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5" aria-label="Mệnh giá nhanh">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5" aria-label={t('payment.quickAmounts')}>
         {quickAmounts.map((amount) => (
           <button
             key={amount}
@@ -327,12 +325,12 @@ function CashPanel({
             onClick={() => onInputChange(String(amount))}
             className="min-h-12 rounded-lg border border-brand-orange-border bg-white px-2 text-sm font-bold text-brand-orange hover:bg-brand-orange-light"
           >
-            {amount === totalAmount ? 'Vừa đủ' : formatVND(amount)}
+            {amount === totalAmount ? t('payment.exact') : formatMoney(amount)}
           </button>
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-2" aria-label="Bàn phím nhập tiền">
+      <div className="grid grid-cols-3 gap-2" aria-label={t('payment.keypad')}>
         {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
           <button
             key={digit}
@@ -350,19 +348,19 @@ function CashPanel({
           onClick={() => onInputChange(receivedInput.slice(0, -1))}
           className="pos-payment-key min-h-16 rounded-lg border border-border bg-white text-sm font-extrabold text-text-secondary hover:bg-surface-hover"
         >
-          Xóa số
+          {t('payment.eraseDigit')}
         </button>
       </div>
 
       <div id="cash-validation-message" aria-live="polite">
-        {insufficientCash && <p className="text-sm font-bold text-danger">Tiền khách đưa chưa đủ để thanh toán.</p>}
+        {insufficientCash && <p className="text-sm font-bold text-danger">{t('payment.insufficient')}</p>}
         {!insufficientCash && validationMessage && <p className="text-sm font-bold text-danger">{validationMessage}</p>}
       </div>
 
       <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2">
-        <button type="button" onClick={onCancel} disabled={isCheckingOut} className="min-h-14 rounded-lg border border-brand-orange px-4 text-sm font-bold text-brand-orange hover:bg-brand-orange-light disabled:opacity-40">Quay lại giỏ</button>
+        <button type="button" onClick={onCancel} disabled={isCheckingOut} className="min-h-14 rounded-lg border border-brand-orange px-4 text-sm font-bold text-brand-orange hover:bg-brand-orange-light disabled:opacity-40">{t('payment.backToCart')}</button>
         <button type="button" onClick={onConfirm} disabled={!canConfirm} className="min-h-14 rounded-lg bg-brand-orange px-5 text-base font-extrabold text-white hover:bg-brand-orange-hover disabled:cursor-not-allowed disabled:opacity-40">
-          {isCheckingOut ? 'Đang thanh toán...' : `Xác nhận ${formatVND(totalAmount)}`}
+          {isCheckingOut ? t('payment.processing') : t('payment.confirmAmount', { amount: formatMoney(totalAmount) })}
         </button>
       </div>
     </div>
@@ -402,23 +400,25 @@ function SplitPanel({
   onSettleCash,
   onCancelPending,
 }: SplitPanelProps) {
+  const { t } = usePreferences()
+  const { formatMoney, formatNumber } = useLocaleFormatters()
   if (pendingPayment?.status === 'collecting') {
     return (
       <div className="mx-auto w-full max-w-xl space-y-4">
         <div className="rounded-lg border border-warning/30 bg-white p-4">
-          <p className="text-sm font-extrabold text-warning">Tiền mặt đang tạm giữ</p>
-          <p className="mt-1 text-sm text-text-secondary">Chỉ ghi nhận chính thức khi toàn bộ thanh toán hoàn tất.</p>
+          <p className="text-sm font-extrabold text-warning">{t('payment.cashHeld')}</p>
+          <p className="mt-1 text-sm text-text-secondary">{t('payment.cashHeldDetail')}</p>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <PaymentMetric label="Đã nhận tiền mặt" value={formatVND(pendingPayment.pendingCashAmount)} />
-          <PaymentMetric label="Còn phải thu" value={formatVND(pendingPayment.vietQrAmount)} accent />
+          <PaymentMetric label={t('payment.cashReceived')} value={formatMoney(pendingPayment.pendingCashAmount)} />
+          <PaymentMetric label={t('payment.remainingDue')} value={formatMoney(pendingPayment.vietQrAmount)} accent />
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
-          <button type="button" onClick={onCreateVietQr} disabled={isCheckingOut} className="min-h-14 rounded-lg bg-text-primary px-4 text-sm font-extrabold text-white hover:bg-gray-700 disabled:opacity-40">Thu phần còn lại bằng VietQR</button>
-          <button type="button" onClick={onSettleCash} disabled={isCheckingOut} className="min-h-14 rounded-lg bg-brand-orange px-4 text-sm font-extrabold text-white hover:bg-brand-orange-hover disabled:opacity-40">Thu phần còn lại bằng tiền mặt</button>
+          <button type="button" onClick={onCreateVietQr} disabled={isCheckingOut} className="min-h-14 rounded-lg bg-text-primary px-4 text-sm font-extrabold text-white hover:bg-gray-700 disabled:opacity-40">{t('payment.collectRemainingQr')}</button>
+          <button type="button" onClick={onSettleCash} disabled={isCheckingOut} className="min-h-14 rounded-lg bg-brand-orange px-4 text-sm font-extrabold text-white hover:bg-brand-orange-hover disabled:opacity-40">{t('payment.collectRemainingCash')}</button>
         </div>
         <button type="button" onClick={onCancelPending} disabled={isCheckingOut || isCancelling} className="min-h-12 w-full rounded-lg border border-danger/40 bg-white px-4 text-sm font-bold text-danger hover:bg-[var(--pos-danger-soft)] disabled:opacity-40">
-          {isCancelling ? 'Đang xử lý...' : 'Hủy và hoàn tiền tạm'}
+          {isCancelling ? t('payment.cancelling') : t('payment.cancelAndRefund')}
         </button>
       </div>
     )
@@ -429,31 +429,31 @@ function SplitPanel({
   return (
     <div className="mx-auto w-full max-w-xl space-y-4">
       <div className="grid grid-cols-2 gap-3">
-        <PaymentMetric label="Tổng cần trả" value={formatVND(totalAmount)} />
-        <PaymentMetric label="Còn lại" value={formatVND(splitRemainingAmount)} accent={splitCashAmount > 0} />
+        <PaymentMetric label={t('payment.totalDue')} value={formatMoney(totalAmount)} />
+        <PaymentMetric label={t('payment.remaining')} value={formatMoney(splitRemainingAmount)} accent={splitCashAmount > 0} />
       </div>
       <label className="block rounded-lg border border-border bg-white p-3" htmlFor="split-cash-input">
-        <span className="block text-xs font-bold text-text-secondary">Tiền mặt nhận trước</span>
+        <span className="block text-xs font-bold text-text-secondary">{t('payment.cashFirst')}</span>
         <div className="mt-2 flex items-center gap-2">
           <input
             id="split-cash-input"
             type="text"
             inputMode="numeric"
             autoComplete="off"
-            value={formatCashInput(splitCashInput)}
+            value={splitCashInput ? formatNumber(Number(splitCashInput)) : ''}
             onChange={(event) => onInputChange(event.target.value.replace(/\D/g, ''))}
             className="min-w-0 flex-1 bg-transparent text-2xl font-extrabold text-text-primary outline-none tabular-nums"
           />
           <span className="text-sm font-bold text-text-secondary">VNĐ</span>
         </div>
       </label>
-      <p className="text-sm text-text-secondary">Tiền mặt chỉ ở trạng thái tạm giữ cho tới khi phần còn lại được thanh toán thành công.</p>
+      <p className="text-sm text-text-secondary">{t('payment.holdNotice')}</p>
       <div aria-live="polite">
         {validationMessage && <p className="text-sm font-bold text-danger">{validationMessage}</p>}
-        {amountTooLarge && <p className="text-sm font-bold text-danger">Tiền mặt tạm phải nhỏ hơn tổng đơn. Hãy chọn tab Tiền mặt để thanh toán toàn bộ.</p>}
+        {amountTooLarge && <p className="text-sm font-bold text-danger">{t('payment.splitTooLarge')}</p>}
       </div>
       <button type="button" onClick={onBegin} disabled={!canBegin} className="min-h-14 w-full rounded-lg bg-brand-orange px-5 text-base font-extrabold text-white hover:bg-brand-orange-hover disabled:cursor-not-allowed disabled:opacity-40">
-        Ghi nhận tiền mặt tạm
+        {t('payment.recordHeldCash')}
       </button>
     </div>
   )
@@ -472,17 +472,19 @@ function VietQrPreparingPanel({
   onRetry: () => void
   onCancel: () => void
 }) {
+  const { t } = usePreferences()
+  const { formatMoney } = useLocaleFormatters()
   return (
     <div className="mx-auto flex min-h-full w-full max-w-xl flex-col items-center justify-center gap-4 text-center">
-      <PaymentMetric label="Số tiền VietQR" value={formatVND(totalAmount)} accent />
+      <PaymentMetric label={t('payment.qrAmount')} value={formatMoney(totalAmount)} accent />
       <div>
-        <p className="text-base font-extrabold text-text-primary">{isCheckingOut ? 'Đang tạo mã VietQR...' : 'Chưa có mã VietQR'}</p>
-        <p className="mt-1 text-sm text-text-secondary">Không có nút xác nhận thủ công. Hệ thống chỉ hoàn tất khi PayOS xác nhận.</p>
+        <p className="text-base font-extrabold text-text-primary">{isCheckingOut ? t('payment.creatingQr') : t('payment.noQr')}</p>
+        <p className="mt-1 text-sm text-text-secondary">{t('payment.autoConfirm')}</p>
       </div>
       {!isCheckingOut && (
         <div className="flex gap-2">
-          <button type="button" onClick={onCancel} className="min-h-12 rounded-lg border border-border bg-white px-4 text-sm font-bold text-text-primary">Quay lại giỏ</button>
-          <button type="button" onClick={onRetry} disabled={!isOnline} className="min-h-12 rounded-lg bg-brand-orange px-4 text-sm font-bold text-white disabled:opacity-40">Tạo lại mã</button>
+          <button type="button" onClick={onCancel} className="min-h-12 rounded-lg border border-border bg-white px-4 text-sm font-bold text-text-primary">{t('payment.backToCart')}</button>
+          <button type="button" onClick={onRetry} disabled={!isOnline} className="min-h-12 rounded-lg bg-brand-orange px-4 text-sm font-bold text-white disabled:opacity-40">{t('payment.retryQr')}</button>
         </div>
       )}
     </div>
@@ -502,16 +504,18 @@ function VietQrPanel({
   onSwitchToCash: () => void
   onCancel: () => void
 }) {
+  const { t } = usePreferences()
+  const { formatMoney } = useLocaleFormatters()
   return (
     <div className="mx-auto flex h-full w-full max-w-xl flex-col gap-3">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <PaymentMetric label="Số tiền VietQR" value={formatVND(pendingPayment.vietQrAmount)} accent />
-        <PaymentMetric label="Mã đơn" value={pendingPayment.orderId ? `#${pendingPayment.orderId}` : 'Đang tạo'} />
-        <PaymentMetric label="Thời gian còn lại" value={formatCountdown(remainingSeconds)} />
+        <PaymentMetric label={t('payment.qrAmount')} value={formatMoney(pendingPayment.vietQrAmount)} accent />
+        <PaymentMetric label={t('payment.orderCode')} value={pendingPayment.orderId ? `#${pendingPayment.orderId}` : t('payment.creating')} />
+        <PaymentMetric label={t('payment.timeRemaining')} value={formatCountdown(remainingSeconds)} />
       </div>
       {pendingPayment.pendingCashAmount > 0 && (
         <p className="rounded-lg border border-warning/30 bg-white px-3 py-2 text-sm font-bold text-warning">
-          Đang tạm giữ {formatVND(pendingPayment.pendingCashAmount)} tiền mặt.
+          {t('payment.holdingCash', { amount: formatMoney(pendingPayment.pendingCashAmount) })}
         </p>
       )}
       <div className="pos-vietqr-print-host min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-white">
@@ -519,35 +523,35 @@ function VietQrPanel({
           <VietQrCode
             value={pendingPayment.qrCode}
             size={720}
-            alt={`Mã VietQR đơn ${pendingPayment.orderId ?? ''}`}
+            alt={t('payment.qrAlt', { id: pendingPayment.orderId ?? '' })}
           />
         </div>
         <div className="pos-vietqr-print-details">
           <strong>CAFECHAIN</strong>
-          <span>Thanh toán VietQR</span>
-          <b>{formatVND(pendingPayment.vietQrAmount)}</b>
-          <span>Mã đơn #{pendingPayment.orderId ?? '-'}</span>
+          <span>{t('customerDisplay.vietQrPayment')}</span>
+          <b>{formatMoney(pendingPayment.vietQrAmount)}</b>
+          <span>{t('customerDisplay.orderCode', { id: pendingPayment.orderId ?? '-' })}</span>
         </div>
       </div>
       <div className="shrink-0 space-y-2">
-        <p className="text-center text-sm font-bold text-text-secondary">Đang chờ PayOS xác nhận thanh toán...</p>
+        <p className="text-center text-sm font-bold text-text-secondary">{t('payment.waitingPayOs')}</p>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {pendingPayment.pendingCashAmount === 0 && (
             <button type="button" onClick={onSwitchToCash} disabled={isCancelling} className="min-h-12 rounded-lg border border-brand-orange-border bg-brand-orange-light px-3 text-sm font-bold text-brand-orange hover:bg-brand-orange hover:text-white disabled:opacity-40">
-              Đổi sang tiền mặt
+              {t('payment.switchCash')}
             </button>
           )}
           <button type="button" onClick={onCancel} disabled={isCancelling} className="min-h-12 rounded-lg border border-danger/40 bg-white px-3 text-sm font-bold text-danger hover:bg-[var(--pos-danger-soft)] disabled:opacity-40">
-            {isCancelling ? 'Đang hủy...' : 'Hủy giao dịch'}
+            {isCancelling ? t('payment.cancelling') : t('payment.cancelTransaction')}
           </button>
           {pendingPayment.checkoutUrl && (
             <a href={pendingPayment.checkoutUrl} target="_blank" rel="noreferrer" className="flex min-h-12 items-center justify-center rounded-lg border border-border bg-white px-3 text-center text-sm font-bold text-text-primary hover:bg-surface-hover">
-              Mở trang PayOS
+              {t('payment.openPayOs')}
             </a>
           )}
           {pendingPayment.qrCode && (
             <button type="button" onClick={printVietQrSlip} className="min-h-12 rounded-lg border border-brand-orange-border bg-white px-3 text-sm font-bold text-brand-orange hover:bg-brand-orange-light">
-              In mã QR
+              {t('payment.printQr')}
             </button>
           )}
         </div>
@@ -567,16 +571,18 @@ function CashReturnPanel({
   onDismiss: () => void
   onConfirm: () => void
 }) {
+  const { t } = usePreferences()
+  const { formatMoney } = useLocaleFormatters()
   return (
     <div className="mx-auto flex min-h-full w-full max-w-lg flex-col justify-center gap-4">
       <div className="rounded-lg border border-danger/30 bg-white p-5">
-        <p className="text-base font-extrabold text-text-primary">Bạn đã nhận {formatVND(amount)} từ khách.</p>
-        <p className="mt-2 text-sm leading-6 text-text-secondary">Hãy hoàn lại đủ tiền trước khi hủy. Giao dịch chỉ được hủy sau khi xác nhận đã trả tiền cho khách.</p>
+        <p className="text-base font-extrabold text-text-primary">{t('payment.refundReceived', { amount: formatMoney(amount) })}</p>
+        <p className="mt-2 text-sm leading-6 text-text-secondary">{t('payment.refundInstruction')}</p>
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" onClick={onDismiss} disabled={isCancelling} className="min-h-14 rounded-lg border border-border bg-white px-4 text-sm font-bold text-text-primary disabled:opacity-40">Quay lại thanh toán</button>
+        <button type="button" onClick={onDismiss} disabled={isCancelling} className="min-h-14 rounded-lg border border-border bg-white px-4 text-sm font-bold text-text-primary disabled:opacity-40">{t('payment.backToPayment')}</button>
         <button type="button" onClick={onConfirm} disabled={isCancelling} className="min-h-14 rounded-lg bg-danger px-4 text-sm font-extrabold text-white disabled:opacity-40">
-          {isCancelling ? 'Đang xác nhận...' : 'Đã hoàn tiền cho khách'}
+          {isCancelling ? t('payment.confirming') : t('payment.refunded')}
         </button>
       </div>
     </div>

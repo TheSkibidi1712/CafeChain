@@ -1,0 +1,1194 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Common.All" xml:space="preserve"><value>Tất cả</value></data><data name="Common.Apply" xml:space="preserve"><value>Áp dụng</value></data><data name="Common.Branch" xml:space="preserve"><value>Chi nhánh</value></data><data name="Common.Status" xml:space="preserve"><value>Trạng thái</value></data><data name="Common.Supplier" xml:space="preserve"><value>Nhà cung cấp</value></data><data name="Common.Priority" xml:space="preserve"><value>Ưu tiên</value></data><data name="Common.FromDate" xml:space="preserve"><value>Từ ngày</value></data><data name="Common.ToDate" xml:space="preserve"><value>Đến ngày</value></data><data name="Common.Value" xml:space="preserve"><value>Giá trị</value></data><data name="Common.Actions" xml:space="preserve"><value>Thao tác</value></data><data name="Common.Details" xml:space="preserve"><value>Chi tiết</value></data><data name="Common.CreatedAt" xml:space="preserve"><value>Tạo {0}</value></data>
+  <data name="PurchaseAdvice.Title" xml:space="preserve"><value>Đề nghị mua hàng</value></data><data name="PurchaseAdvice.Eyebrow" xml:space="preserve"><value>KHO &amp; CUNG ỨNG</value></data><data name="PurchaseAdvice.Heading" xml:space="preserve"><value>Đề nghị mua hàng theo chi nhánh</value></data><data name="PurchaseAdvice.Subtitle" xml:space="preserve"><value>Chọn phần còn thiếu của yêu cầu nhập hàng cần mua từ nhà cung cấp, trước khi kế toán tổng hợp.</value></data><data name="PurchaseAdvice.Create" xml:space="preserve"><value>Tạo đề nghị mua</value></data><data name="PurchaseAdvice.AllInScope" xml:space="preserve"><value>Tất cả trong phạm vi</value></data><data name="PurchaseAdvice.Code" xml:space="preserve"><value>Mã đề nghị</value></data><data name="PurchaseAdvice.BranchSource" xml:space="preserve"><value>Chi nhánh / nguồn yêu cầu</value></data><data name="PurchaseAdvice.RequestedBy" xml:space="preserve"><value>Người đề nghị</value></data><data name="PurchaseAdvice.NeededBy" xml:space="preserve"><value>Ngày cần hàng</value></data><data name="PurchaseAdvice.LineCount" xml:space="preserve"><value>Số dòng đề nghị</value></data><data name="PurchaseAdvice.SourceRequest" xml:space="preserve"><value>Yêu cầu nhập hàng {0}</value></data><data name="PurchaseAdvice.Empty" xml:space="preserve"><value>Chưa có đề nghị mua phù hợp bộ lọc.</value></data>
+  <data name="PurchaseOrder.Title" xml:space="preserve"><value>Đơn đặt hàng</value></data><data name="PurchaseOrder.Eyebrow" xml:space="preserve"><value>MUA HÀNG TỪ NHÀ CUNG CẤP</value></data><data name="PurchaseOrder.Subtitle" xml:space="preserve"><value>Theo dõi số lượng đã đặt, tiến độ nhận và giá trị chứng từ. Tồn kho chỉ thay đổi khi phiếu nhận hàng được xác nhận.</value></data><data name="PurchaseOrder.Create" xml:space="preserve"><value>Tạo đơn đặt hàng</value></data><data name="PurchaseOrder.FilterAria" xml:space="preserve"><value>Lọc đơn đặt hàng theo chi nhánh</value></data><data name="PurchaseOrder.EmptyTitle" xml:space="preserve"><value>Chưa có đơn đặt hàng</value></data><data name="PurchaseOrder.EmptyCopy" xml:space="preserve"><value>Tạo đơn từ nhu cầu mua đã được xét nguồn cung, hoặc lập đơn mua chủ động khi có đủ quyền và thông tin nhà cung cấp.</value></data><data name="PurchaseOrder.ViewRequests" xml:space="preserve"><value>Xem yêu cầu bổ sung</value></data><data name="PurchaseOrder.ListAria" xml:space="preserve"><value>Danh sách đơn đặt hàng</value></data><data name="PurchaseOrder.Code" xml:space="preserve"><value>Mã đơn</value></data><data name="PurchaseOrder.OrderDate" xml:space="preserve"><value>Ngày đặt</value></data>
+  <data name="PurchaseOrderBatch.Title" xml:space="preserve"><value>Đơn đặt hàng gộp</value></data><data name="PurchaseOrderBatch.Eyebrow" xml:space="preserve"><value>KHO &amp; CUNG ỨNG / ĐƠN ĐẶT HÀNG GỘP</value></data><data name="PurchaseOrderBatch.Subtitle" xml:space="preserve"><value>Theo dõi đơn tổng hợp gửi nhà cung cấp và tiến độ giao về từng chi nhánh.</value></data><data name="PurchaseOrderBatch.Consolidate" xml:space="preserve"><value>Tổng hợp đề nghị mua</value></data><data name="PurchaseOrderBatch.Code" xml:space="preserve"><value>Mã đơn gộp</value></data><data name="PurchaseOrderBatch.Progress" xml:space="preserve"><value>Tiến độ</value></data><data name="PurchaseOrderBatch.DeliveryWindow" xml:space="preserve"><value>Khoảng giao</value></data><data name="PurchaseOrderBatch.BranchCount" xml:space="preserve"><value>{0} chi nhánh</value></data><data name="PurchaseOrderBatch.EmptyTitle" xml:space="preserve"><value>Chưa có đơn đặt hàng gộp phù hợp</value></data><data name="PurchaseOrderBatch.EmptyCopy" xml:space="preserve"><value>Tạo đơn đặt hàng gộp từ màn hình Tổng hợp đề nghị mua.</value></data>
+  <data name="BranchReceipt.Title" xml:space="preserve"><value>Phiếu nhận hàng</value></data><data name="BranchReceipt.Eyebrow" xml:space="preserve"><value>CHỨNG TỪ NHẬP KHO · CHI NHÁNH #{0}</value></data><data name="BranchReceipt.Subtitle" xml:space="preserve"><value>Theo dõi hàng thực nhận và chi phí đã chốt. Chỉ phiếu đã xác nhận mới cập nhật tồn kho.</value></data><data name="BranchReceipt.RestockRequests" xml:space="preserve"><value>Yêu cầu nhập</value></data><data name="BranchReceipt.Create" xml:space="preserve"><value>Tạo phiếu nhận</value></data><data name="BranchReceipt.SelectBranchAria" xml:space="preserve"><value>Chọn chi nhánh</value></data><data name="BranchReceipt.FilterAria" xml:space="preserve"><value>Lọc trạng thái phiếu nhận</value></data><data name="BranchReceipt.Draft" xml:space="preserve"><value>Bản nháp</value></data><data name="BranchReceipt.Confirmed" xml:space="preserve"><value>Đã xác nhận</value></data><data name="BranchReceipt.EmptyTitle" xml:space="preserve"><value>Chưa có phiếu nhận phù hợp</value></data><data name="BranchReceipt.EmptyCopy" xml:space="preserve"><value>Chọn trạng thái khác hoặc tạo phiếu từ một yêu cầu nhập đang mở.</value></data><data name="BranchReceipt.ListAria" xml:space="preserve"><value>Danh sách phiếu nhận hàng chi nhánh</value></data><data name="BranchReceipt.Code" xml:space="preserve"><value>Mã phiếu</value></data><data name="BranchReceipt.LineCount" xml:space="preserve"><value>Số dòng</value></data><data name="BranchReceipt.ConvertedQuantity" xml:space="preserve"><value>Số lượng quy đổi</value></data><data name="BranchReceipt.ReceivedAt" xml:space="preserve"><value>Thời gian nhận</value></data><data name="BranchReceipt.BranchNumber" xml:space="preserve"><value>Chi nhánh #{0}</value></data>
+  <data name="Status.DRAFT" xml:space="preserve"><value>Bản nháp</value></data><data name="Status.SUBMITTED" xml:space="preserve"><value>Đã gửi</value></data><data name="Status.UNDER_REVIEW" xml:space="preserve"><value>Đang xem xét</value></data><data name="Status.ALLOCATED" xml:space="preserve"><value>Đã phân bổ</value></data><data name="Status.REJECTED" xml:space="preserve"><value>Đã từ chối</value></data><data name="Status.CANCELLED" xml:space="preserve"><value>Đã hủy</value></data><data name="Status.PENDING_APPROVAL" xml:space="preserve"><value>Chờ duyệt</value></data><data name="Status.APPROVED" xml:space="preserve"><value>Đã duyệt</value></data><data name="Status.PDF_GENERATED" xml:space="preserve"><value>Đã tạo PDF</value></data><data name="Status.SENT_TO_SUPPLIER" xml:space="preserve"><value>Đã gửi nhà cung cấp</value></data><data name="Status.PARTIALLY_RECEIVED" xml:space="preserve"><value>Đã nhận một phần</value></data><data name="Status.COMPLETED" xml:space="preserve"><value>Hoàn thành</value></data><data name="Status.CONFIRMED" xml:space="preserve"><value>Đã xác nhận</value></data>
+  <data name="Priority.NORMAL" xml:space="preserve"><value>Bình thường</value></data><data name="Priority.HIGH" xml:space="preserve"><value>Cao</value></data><data name="Priority.URGENT" xml:space="preserve"><value>Khẩn cấp</value></data>
+  <data name="Status.PROCESSING" xml:space="preserve"><value>Đang xử lý</value></data>
+  <data name="Restock.Title" xml:space="preserve"><value>Yêu cầu nhập hàng</value></data><data name="Restock.Eyebrow" xml:space="preserve"><value>KHO &amp; CUNG ỨNG</value></data><data name="Restock.Subtitle" xml:space="preserve"><value>Theo dõi yêu cầu bổ sung hàng cho {0}. Yêu cầu chỉ ghi nhận nhu cầu; tồn kho chỉ thay đổi từ phiếu nhận hoặc điều chuyển đã xác nhận.</value></data><data name="Restock.SelectedStore" xml:space="preserve"><value>cửa hàng đang chọn</value></data><data name="Restock.CreateManual" xml:space="preserve"><value>Tạo thủ công</value></data><data name="Restock.CentralPlan" xml:space="preserve"><value>Kế hoạch trung tâm</value></data><data name="Restock.StockAlerts" xml:space="preserve"><value>Cảnh báo kho</value></data><data name="Restock.Receipts" xml:space="preserve"><value>Phiếu nhận hàng</value></data><data name="Restock.SelectBranch" xml:space="preserve"><value>Chọn chi nhánh</value></data><data name="Restock.SummaryAria" xml:space="preserve"><value>Tóm tắt yêu cầu trên trang</value></data><data name="Restock.FilteredResults" xml:space="preserve"><value>Kết quả theo bộ lọc</value></data><data name="Restock.UrgentOnPage" xml:space="preserve"><value>Khẩn cấp trên trang</value></data><data name="Restock.HighOnPage" xml:space="preserve"><value>Ưu tiên cao trên trang</value></data><data name="Restock.CountOnPage" xml:space="preserve"><value>Số yêu cầu trên trang</value></data><data name="Restock.FilterStatus" xml:space="preserve"><value>Lọc trạng thái yêu cầu nhập</value></data><data name="Restock.EmptyTitle" xml:space="preserve"><value>Không có yêu cầu bổ sung phù hợp</value></data><data name="Restock.EmptyCopy" xml:space="preserve"><value>Đổi trạng thái lọc, tạo yêu cầu thủ công hoặc mở một cảnh báo đã xác nhận để ghi nhận nhu cầu mới.</value></data><data name="Restock.Code" xml:space="preserve"><value>Mã</value></data><data name="Restock.Item" xml:space="preserve"><value>Mặt hàng</value></data><data name="Restock.Quantity" xml:space="preserve"><value>Số lượng</value></data><data name="Restock.WorkflowStatus" xml:space="preserve"><value>Trạng thái xử lý</value></data><data name="Restock.CreatedBy" xml:space="preserve"><value>Người tạo</value></data><data name="Restock.Time" xml:space="preserve"><value>Thời gian</value></data><data name="Restock.DemandUnit" xml:space="preserve"><value>đơn vị nhu cầu</value></data><data name="Restock.PageSummary" xml:space="preserve"><value>Trang {0} / {1} · Tổng {2} yêu cầu</value></data><data name="Common.Previous" xml:space="preserve"><value>Trước</value></data><data name="Common.Next" xml:space="preserve"><value>Sau</value></data>
+  <data name="RestockForm.ManualTitle" xml:space="preserve"><value>Tạo yêu cầu bổ sung</value></data>
+  <data name="RestockForm.ManualEyebrow" xml:space="preserve"><value>KHO &amp; CUNG ỨNG / YÊU CẦU BỔ SUNG</value></data>
+  <data name="RestockForm.ManualSubtitle" xml:space="preserve"><value>Ghi nhận một nhu cầu vận hành mới theo đơn vị phù hợp với nguyên liệu. Yêu cầu này chưa tạo đề nghị mua cho đến khi bộ phận phụ trách chọn nguồn mua ngoài.</value></data>
+  <data name="RestockForm.CentralTitle" xml:space="preserve"><value>Tạo kế hoạch bổ sung trung tâm</value></data>
+  <data name="RestockForm.CentralEyebrow" xml:space="preserve"><value>KHO &amp; CUNG ỨNG / KẾ HOẠCH TRUNG TÂM</value></data>
+  <data name="RestockForm.CentralSubtitle" xml:space="preserve"><value>Ghi nhận nhu cầu kế hoạch trong phạm vi cửa hàng được cấp. Bộ phận phụ trách vẫn phải đánh giá và quyết định nguồn cung sau khi tạo.</value></data>
+  <data name="RestockForm.Back" xml:space="preserve"><value>Danh sách yêu cầu</value></data>
+  <data name="RestockForm.Information" xml:space="preserve"><value>Thông tin nhu cầu</value></data>
+  <data name="RestockForm.PlanInformation" xml:space="preserve"><value>Thông tin kế hoạch</value></data>
+  <data name="RestockForm.RequiredFields" xml:space="preserve"><value>Các trường có dấu * là bắt buộc.</value></data>
+  <data name="RestockForm.DemandSection" xml:space="preserve"><value>Nhu cầu cần bổ sung</value></data>
+  <data name="RestockForm.DemandSectionHelp" xml:space="preserve"><value>Chọn mặt hàng, đơn vị và số lượng vận hành.</value></data>
+  <data name="RestockForm.PlanSection" xml:space="preserve"><value>Nhu cầu kế hoạch</value></data>
+  <data name="RestockForm.PlanSectionHelp" xml:space="preserve"><value>Chọn mặt hàng, đơn vị và số lượng mục tiêu.</value></data>
+  <data name="RestockForm.Ingredient" xml:space="preserve"><value>Nguyên liệu</value></data>
+  <data name="RestockForm.SelectIngredient" xml:space="preserve"><value>Chọn nguyên liệu</value></data>
+  <data name="RestockForm.DemandUnit" xml:space="preserve"><value>Đơn vị nhu cầu</value></data>
+  <data name="RestockForm.SelectIngredientFirst" xml:space="preserve"><value>Chọn nguyên liệu trước</value></data>
+  <data name="RestockForm.SelectDemandUnit" xml:space="preserve"><value>Chọn đơn vị nhu cầu</value></data>
+  <data name="RestockForm.LoadingUnits" xml:space="preserve"><value>Đang tải đơn vị...</value></data>
+  <data name="RestockForm.UnitsUnavailable" xml:space="preserve"><value>Không tải được đơn vị</value></data>
+  <data name="RestockForm.UnitLoadError" xml:space="preserve"><value>Không thể tải đơn vị nhu cầu.</value></data>
+  <data name="RestockForm.RequestedQuantity" xml:space="preserve"><value>Số lượng yêu cầu</value></data>
+  <data name="RestockForm.TargetQuantity" xml:space="preserve"><value>Số lượng mục tiêu</value></data>
+  <data name="RestockForm.ScheduleSection" xml:space="preserve"><value>Thời điểm và mức ưu tiên</value></data>
+  <data name="RestockForm.ScheduleHelp" xml:space="preserve"><value>Xác định hạn cần hàng để bộ phận kho sắp xếp nguồn.</value></data>
+  <data name="RestockForm.RequiredDateSection" xml:space="preserve"><value>Thời điểm cần hàng</value></data>
+  <data name="RestockForm.RequiredDateHelp" xml:space="preserve"><value>Đặt hạn phù hợp với kế hoạch vận hành.</value></data>
+  <data name="RestockForm.NeedBy" xml:space="preserve"><value>Cần trước ngày</value></data>
+  <data name="RestockForm.DateHelp" xml:space="preserve"><value>Ngày/tháng/năm</value></data>
+  <data name="RestockForm.RequestCode" xml:space="preserve"><value>Mã yêu cầu</value></data>
+  <data name="RestockForm.AutoCode" xml:space="preserve"><value>(Hệ thống tự động tạo sau khi lưu)</value></data>
+  <data name="RestockForm.AutoCodeHelp" xml:space="preserve"><value>Tự động tạo mã dạng PR-YYYYMMDD-XXXX</value></data>
+  <data name="RestockForm.ContextSection" xml:space="preserve"><value>Bối cảnh nhu cầu</value></data>
+  <data name="RestockForm.ContextHelp" xml:space="preserve"><value>Ghi lý do để người xét nguồn đưa ra quyết định chính xác.</value></data>
+  <data name="RestockForm.Note" xml:space="preserve"><value>Lý do / ghi chú</value></data>
+  <data name="RestockForm.NotePlaceholder" xml:space="preserve"><value>Nêu nguyên nhân phát sinh nhu cầu...</value></data>
+  <data name="RestockForm.OneActiveHelp" xml:space="preserve"><value>Mỗi chi nhánh chỉ có một yêu cầu đang hoạt động cho cùng nguyên liệu. Hãy bổ sung vào yêu cầu đó để giữ chung lịch sử và phân bổ nguồn cung.</value></data>
+  <data name="RestockForm.Cancel" xml:space="preserve"><value>Hủy</value></data>
+  <data name="RestockForm.Create" xml:space="preserve"><value>Tạo yêu cầu bổ sung</value></data>
+  <data name="RestockForm.Creating" xml:space="preserve"><value>Đang tạo yêu cầu...</value></data>
+  <data name="RestockForm.ExistingTitle" xml:space="preserve"><value>Nguyên liệu đã có yêu cầu đang xử lý</value></data>
+  <data name="RestockForm.NoDuplicate" xml:space="preserve"><value>Không tạo thêm yêu cầu trùng.</value></data>
+  <data name="RestockForm.CurrentRequest" xml:space="preserve"><value>Yêu cầu hiện tại</value></data>
+  <data name="RestockForm.TotalDemand" xml:space="preserve"><value>Tổng nhu cầu</value></data>
+  <data name="RestockForm.Allocated" xml:space="preserve"><value>Đã phân bổ</value></data>
+  <data name="RestockForm.Unsourced" xml:space="preserve"><value>Chưa xác định nguồn</value></data>
+  <data name="RestockForm.NotSet" xml:space="preserve"><value>Chưa đặt</value></data>
+  <data name="RestockForm.ViewCurrent" xml:space="preserve"><value>Xem yêu cầu hiện tại</value></data>
+  <data name="RestockForm.AddDemand" xml:space="preserve"><value>Bổ sung nhu cầu</value></data>
+  <data name="RestockForm.ChooseAnother" xml:space="preserve"><value>Chọn nguyên liệu khác</value></data>
+  <data name="RestockForm.CheckError" xml:space="preserve"><value>Không thể kiểm tra yêu cầu hiện tại.</value></data>
+  <data name="RestockForm.EvidenceSection" xml:space="preserve"><value>Bằng chứng và bối cảnh</value></data>
+  <data name="RestockForm.EvidenceHelp" xml:space="preserve"><value>Cung cấp căn cứ để người xét nguồn kiểm tra kế hoạch.</value></data>
+  <data name="RestockForm.ForecastEvidence" xml:space="preserve"><value>Bằng chứng dự báo / kế hoạch</value></data>
+  <data name="RestockForm.ForecastPlaceholder" xml:space="preserve"><value>Nêu số liệu dự báo, sự kiện hoặc kế hoạch vận hành làm phát sinh nhu cầu...</value></data>
+  <data name="RestockForm.GeneralNote" xml:space="preserve"><value>Ghi chú</value></data>
+  <data name="RestockForm.GeneralNotePlaceholder" xml:space="preserve"><value>Thông tin cần lưu ý cho người xét nguồn cung...</value></data>
+  <data name="RestockForm.CreatePlan" xml:space="preserve"><value>Tạo kế hoạch bổ sung</value></data>
+  <data name="Reorder.Title" xml:space="preserve"><value>Gợi ý nhập hàng</value></data>
+  <data name="Reorder.Eyebrow" xml:space="preserve"><value>KHO &amp; CUNG ỨNG / LẬP KẾ HOẠCH</value></data>
+  <data name="Reorder.Subtitle" xml:space="preserve"><value>Đối chiếu tồn kho, nhu cầu, đơn mua đang xử lý và quy cách nhà cung cấp trong cùng một quyết định.</value></data>
+  <data name="Reorder.ViewActionable" xml:space="preserve"><value>Xem nguyên liệu sắp hết</value></data>
+  <data name="Reorder.ActionableCountAria" xml:space="preserve"><value>{0} nguyên liệu cần xử lý</value></data>
+  <data name="Reorder.ViewRequests" xml:space="preserve"><value>Xem yêu cầu nhập</value></data>
+  <data name="Reorder.AnalysisPeriod" xml:space="preserve"><value>Kỳ phân tích</value></data>
+  <data name="Reorder.Days" xml:space="preserve"><value>{0} ngày</value></data>
+  <data name="Reorder.Recalculate" xml:space="preserve"><value>Tính lại</value></data>
+  <data name="Reorder.SummaryAria" xml:space="preserve"><value>Tóm tắt gợi ý nhập hàng</value></data>
+  <data name="Reorder.Actionable" xml:space="preserve"><value>Có thể xử lý</value></data>
+  <data name="Reorder.ActionableHelp" xml:space="preserve"><value>Gợi ý đủ điều kiện xác nhận</value></data>
+  <data name="Reorder.ActiveRequests" xml:space="preserve"><value>Đang có yêu cầu</value></data>
+  <data name="Reorder.ActiveRequestsHelp" xml:space="preserve"><value>Tiếp tục trên yêu cầu hiện tại</value></data>
+  <data name="Reorder.Incomplete" xml:space="preserve"><value>Thiếu dữ liệu</value></data>
+  <data name="Reorder.IncompleteHelp" xml:space="preserve"><value>Cần bổ sung điều kiện đầu vào</value></data>
+  <data name="Reorder.Reviewed" xml:space="preserve"><value>Đã đánh giá</value></data>
+  <data name="Reorder.ReviewedHelp" xml:space="preserve"><value>Chưa cần thao tác mới</value></data>
+  <data name="Reorder.ConfirmationNote" xml:space="preserve"><value>Xác nhận sẽ tạo yêu cầu nhập nháp hoặc bổ sung nhu cầu vào yêu cầu đang mở. Hệ thống luôn tính lại dữ liệu và từ chối nếu gợi ý đã thay đổi.</value></data>
+  <data name="Reorder.ListAria" xml:space="preserve"><value>Danh sách gợi ý nhập hàng</value></data>
+  <data name="Reorder.EmptyTitle" xml:space="preserve"><value>Chưa có dữ liệu gợi ý</value></data>
+  <data name="Reorder.EmptyCopy" xml:space="preserve"><value>Chọn cửa hàng có tồn kho nguyên liệu để bắt đầu phân tích.</value></data>
+  <data name="Reorder.ScrollAria" xml:space="preserve"><value>Thanh cuộn ngang cho bảng gợi ý nhập hàng</value></data>
+  <data name="Reorder.InProgress" xml:space="preserve"><value>Đang thực hiện</value></data>
+  <data name="Reorder.FinalSuggestion" xml:space="preserve"><value>Đề xuất cuối</value></data>
+  <data name="Reorder.Status.Urgent" xml:space="preserve"><value>Cần nhập gấp</value></data>
+  <data name="Reorder.Status.NearReorder" xml:space="preserve"><value>Gần điểm đặt hàng</value></data>
+  <data name="Reorder.Status.Normal" xml:space="preserve"><value>Chưa cần nhập</value></data>
+  <data name="Reorder.Status.IncomingCoversDemand" xml:space="preserve"><value>Hàng về đã đủ</value></data>
+  <data name="Reorder.Status.ProcurementInProgress" xml:space="preserve"><value>Đang xử lý mua hàng</value></data>
+  <data name="Reorder.Status.DataIncomplete" xml:space="preserve"><value>Thiếu dữ liệu</value></data>
+  <data name="Common.Store" xml:space="preserve"><value>Cửa hàng</value></data>
+  <data name="Common.Ingredient" xml:space="preserve"><value>Nguyên liệu</value></data>
+  <data name="Common.Inventory" xml:space="preserve"><value>Tồn kho</value></data>
+  <data name="Common.Demand" xml:space="preserve"><value>Nhu cầu</value></data>
+  <data name="Common.Close" xml:space="preserve"><value>Đóng</value></data>
+  <data name="Common.Select" xml:space="preserve"><value>Chọn</value></data>
+  <data name="Common.SelectAll" xml:space="preserve"><value>Chọn tất cả</value></data>
+  <data name="Common.Ready" xml:space="preserve"><value>Sẵn sàng</value></data>
+  <data name="Common.ReloadData" xml:space="preserve"><value>Tải lại dữ liệu</value></data>
+  <data name="Reorder.Available" xml:space="preserve"><value>{0} {1} khả dụng</value></data>
+  <data name="Reorder.OnHandReserved" xml:space="preserve"><value>Tồn {0} · giữ {1}</value></data>
+  <data name="Reorder.Minimum" xml:space="preserve"><value>Tối thiểu {0}</value></data>
+  <data name="Reorder.ReorderPoint" xml:space="preserve"><value>Điểm đặt hàng {0}</value></data>
+  <data name="Reorder.ConsumptionLeadTime" xml:space="preserve"><value>Dùng/ngày {0} · giao dự kiến {1} ngày</value></data>
+  <data name="Reorder.RawDemand" xml:space="preserve"><value>Nhu cầu thô {0}</value></data>
+  <data name="Reorder.Incoming" xml:space="preserve"><value>Đang về {0}</value></data>
+  <data name="Reorder.ProjectedStock" xml:space="preserve"><value>Tồn dự kiến {0}</value></data>
+  <data name="Reorder.Covered" xml:space="preserve"><value>Đơn đang xử lý đáp ứng {0}</value></data>
+  <data name="Reorder.Remaining" xml:space="preserve"><value>Còn thiếu {0}</value></data>
+  <data name="Reorder.PackagesAndCost" xml:space="preserve"><value>{0} gói · {1}đ</value></data>
+  <data name="Reorder.PackageSize" xml:space="preserve"><value>{0} {1}/gói</value></data>
+  <data name="Reorder.PackagePrice" xml:space="preserve"><value>{0}đ/gói</value></data>
+  <data name="Reorder.PackageCount" xml:space="preserve"><value>{0} gói</value></data>
+  <data name="Reorder.PackageSizeLabel" xml:space="preserve"><value>Quy cách {0} {1}/gói</value></data>
+  <data name="Reorder.EstimatedCost" xml:space="preserve"><value>Dự kiến {0}đ</value></data>
+  <data name="Reorder.Explain" xml:space="preserve"><value>Giải thích</value></data>
+  <data name="Reorder.ViewRequest" xml:space="preserve"><value>Xem yêu cầu</value></data>
+  <data name="Reorder.AddDemand" xml:space="preserve"><value>Bổ sung yêu cầu</value></data>
+  <data name="Reorder.ConfirmRestock" xml:space="preserve"><value>Xác nhận nhập</value></data>
+  <data name="Reorder.Modal.Eyebrow" xml:space="preserve"><value>KIỂM TRA ĐIỀU KIỆN TỰ ĐỘNG</value></data>
+  <data name="Reorder.Modal.Title" xml:space="preserve"><value>Nguyên liệu cần xử lý tại {0}</value></data>
+  <data name="Reorder.Modal.Subtitle" xml:space="preserve"><value>Kỳ phân tích {0} ngày · hệ thống sẽ tính lại trước mỗi lần xác nhận.</value></data>
+  <data name="Reorder.Modal.NoticeTitle" xml:space="preserve"><value>Danh sách đề xuất, chưa phải chứng từ.</value></data>
+  <data name="Reorder.Modal.NoticeCopy" xml:space="preserve"><value>Hệ thống tính theo tồn kho, nhu cầu và các đơn đang xử lý; bạn vẫn là người xác nhận cuối cùng.</value></data>
+  <data name="Reorder.Modal.SelectAllHelp" xml:space="preserve"><value>Áp dụng cho các dòng đủ điều kiện</value></data>
+  <data name="Reorder.Modal.SelectedCount" xml:space="preserve"><value>Đã chọn {0}/{1} nguyên liệu</value></data>
+  <data name="Reorder.Modal.StockThreshold" xml:space="preserve"><value>Tồn / ngưỡng</value></data>
+  <data name="Reorder.Modal.SuggestedPurchase" xml:space="preserve"><value>Đề xuất mua</value></data>
+  <data name="Reorder.Modal.Result" xml:space="preserve"><value>Kết quả</value></data>
+  <data name="Reorder.Modal.SelectIngredient" xml:space="preserve"><value>Chọn {0}</value></data>
+  <data name="Reorder.Modal.Coverage" xml:space="preserve"><value>Bao phủ {0}</value></data>
+  <data name="Reorder.Modal.NoActionTitle" xml:space="preserve"><value>Không có nguyên liệu cần tạo yêu cầu nhập</value></data>
+  <data name="Reorder.Modal.NoActionCopy" xml:space="preserve"><value>Tồn kho và các đơn đang xử lý hiện đáp ứng nhu cầu tại cửa hàng này.</value></data>
+  <data name="Reorder.Modal.IncompleteCount" xml:space="preserve"><value>{0} nguyên liệu thiếu dữ liệu</value></data>
+  <data name="Reorder.Modal.IncompleteHelp" xml:space="preserve"><value>Các dòng này chỉ để kiểm tra và không thể chọn xác nhận.</value></data>
+  <data name="Reorder.Modal.CreateSelected" xml:space="preserve"><value>Tạo yêu cầu nhập đã chọn</value></data>
+  <data name="Reorder.Js.RequestFailed" xml:space="preserve"><value>Không thể xử lý yêu cầu.</value></data>
+  <data name="Reorder.Js.Summary" xml:space="preserve"><value>Tóm tắt</value></data>
+  <data name="Reorder.Js.Explanation" xml:space="preserve"><value>Giải thích</value></data>
+  <data name="Reorder.Js.Risk" xml:space="preserve"><value>Rủi ro</value></data>
+  <data name="Reorder.Js.RecommendedAction" xml:space="preserve"><value>Hành động đề xuất</value></data>
+  <data name="Reorder.Js.None" xml:space="preserve"><value>Không có.</value></data>
+  <data name="Reorder.Js.AiExplanation" xml:space="preserve"><value>Giải thích AI</value></data>
+  <data name="Reorder.Js.RuleExplanation" xml:space="preserve"><value>Giải thích theo rule</value></data>
+  <data name="Reorder.Js.CannotExplain" xml:space="preserve"><value>Không thể giải thích</value></data>
+  <data name="Reorder.Js.Reload" xml:space="preserve"><value>Tải lại dữ liệu</value></data>
+  <data name="Reorder.Js.Later" xml:space="preserve"><value>Để sau</value></data>
+  <data name="Reorder.Js.Confirming" xml:space="preserve"><value>Đang xác nhận...</value></data>
+  <data name="Reorder.Js.Confirmed" xml:space="preserve"><value>Đã xác nhận</value></data>
+  <data name="Reorder.Js.OpenRequest" xml:space="preserve"><value>Mở yêu cầu</value></data>
+  <data name="Reorder.Js.CannotConfirm" xml:space="preserve"><value>Chưa thể xác nhận</value></data>
+  <data name="Reorder.Js.SelectedCount" xml:space="preserve"><value>Đã chọn {selected}/{total} nguyên liệu</value></data>
+  <data name="Reorder.Js.RetrySelected" xml:space="preserve"><value>Thử lại các dòng đã chọn</value></data>
+  <data name="Reorder.Js.ConfirmTitle" xml:space="preserve"><value>Xác nhận tạo yêu cầu nhập</value></data>
+  <data name="Reorder.Js.ConfirmText" xml:space="preserve"><value>Hệ thống sẽ lần lượt xác nhận {count} nguyên liệu. Tiếp tục?</value></data>
+  <data name="Reorder.Js.ConfirmCreate" xml:space="preserve"><value>Xác nhận tạo</value></data>
+  <data name="Reorder.Js.ReviewAgain" xml:space="preserve"><value>Kiểm tra lại</value></data>
+  <data name="Reorder.Js.Processing" xml:space="preserve"><value>Đang xử lý {completed}/{total} nguyên liệu...</value></data>
+  <data name="Reorder.Js.Created" xml:space="preserve"><value>Đã tạo yêu cầu nhập.</value></data>
+  <data name="Reorder.Js.ReloadPrefix" xml:space="preserve"><value>Cần tải lại dữ liệu: </value></data>
+  <data name="Reorder.Js.ForbiddenPrefix" xml:space="preserve"><value>Không có quyền: </value></data>
+  <data name="Reorder.Js.RetryPrefix" xml:space="preserve"><value>Có thể thử lại: </value></data>
+  <data name="Reorder.Js.Progress" xml:space="preserve"><value>Đang xử lý {completed}/{total}: {ingredient}</value></data>
+  <data name="Reorder.Js.Completed" xml:space="preserve"><value>Hoàn tất: {count} thành công</value></data>
+  <data name="Reorder.Js.Retryable" xml:space="preserve"><value>{count} có thể thử lại</value></data>
+  <data name="Reorder.Js.NeedsReload" xml:space="preserve"><value>{count} cần tải lại</value></data>
+  <data name="Restock.Details.Source.Transfer" xml:space="preserve"><value>Điều chuyển nội bộ</value></data>
+  <data name="Restock.Details.Source.Purchase" xml:space="preserve"><value>Mua ngoài</value></data>
+  <data name="Restock.Details.Source.Production" xml:space="preserve"><value>Sản xuất nội bộ</value></data>
+  <data name="Restock.Details.Submitting" xml:space="preserve"><value>Đang ghi nhận...</value></data>
+  <data name="Restock.Details.AdditionalDemand" xml:space="preserve"><value>Nhu cầu bổ sung</value></data>
+  <data name="Restock.Details.RestockRequest" xml:space="preserve"><value>Yêu cầu nhập hàng</value></data>
+  <data name="Restock.Details.PageTitle" xml:space="preserve"><value>Chi tiết {0}</value></data>
+  <data name="Common.List" xml:space="preserve"><value>Danh sách</value></data>
+  <data name="Restock.Details.CreatedByAt" xml:space="preserve"><value>Tạo bởi {0} lúc {1:g}</value></data>
+  <data name="Restock.Details.UnknownCreator" xml:space="preserve"><value>Chưa xác định người tạo</value></data>
+  <data name="Restock.Details.SourceAlert" xml:space="preserve"><value>Cảnh báo gốc</value></data>
+  <data name="Restock.Details.CreatePurchaseAdvice" xml:space="preserve"><value>Tạo đề nghị mua</value></data>
+  <data name="Restock.Details.ExternalRecoveryTitle" xml:space="preserve"><value>Tồn kho đã được bổ sung từ nguồn khác.</value></data>
+  <data name="Restock.Details.ExternalRecoveryCopy" xml:space="preserve"><value>Chứng từ bổ sung không gắn với yêu cầu này. Yêu cầu vẫn đang mở để bộ phận kho quyết định tiếp tục hoặc hủy; hệ thống không tự ghi nhận hoàn tất.</value></data>
+  <data name="Restock.Details.ProgressAria" xml:space="preserve"><value>Tiến trình đáp ứng nhu cầu</value></data>
+  <data name="Restock.Details.ProgressTitle" xml:space="preserve"><value>Tiến trình xử lý</value></data>
+  <data name="Restock.Details.WorkflowAria" xml:space="preserve"><value>Các bước xử lý yêu cầu</value></data>
+  <data name="Restock.Details.SummaryAria" xml:space="preserve"><value>Tóm tắt tiến độ yêu cầu</value></data>
+  <data name="Restock.Details.RequestedQuantity" xml:space="preserve"><value>Số lượng yêu cầu</value></data>
+  <data name="Restock.Details.Unallocated" xml:space="preserve"><value>Chưa xác định nguồn cung</value></data>
+  <data name="Restock.Details.RemainingDemand" xml:space="preserve"><value>Còn thiếu theo nhu cầu</value></data>
+  <data name="Restock.Details.Received" xml:space="preserve"><value>Đã nhận thực tế</value></data>
+  <data name="Restock.Details.Progress" xml:space="preserve"><value>Tiến độ</value></data>
+  <data name="Restock.Details.ProgressPercent" xml:space="preserve"><value>Tiến độ đáp ứng: {0} phần trăm</value></data>
+  <data name="Reorder.Explanation.Summary" xml:space="preserve"><value>{0}: trạng thái {1}; tồn khả dụng {2}, hàng đang về {3}.</value></data>
+  <data name="Reorder.Explanation.NORMAL.Explanation" xml:space="preserve"><value>Tồn khả dụng {0} đang đáp ứng điểm đặt hàng.</value></data>
+  <data name="Reorder.Explanation.NORMAL.Risk" xml:space="preserve"><value>Chưa ghi nhận rủi ro thiếu hàng theo dữ liệu hiện tại.</value></data>
+  <data name="Reorder.Explanation.NORMAL.Action" xml:space="preserve"><value>Chưa cần tạo yêu cầu nhập mới; tiếp tục theo dõi tồn và hàng đang về.</value></data>
+  <data name="Reorder.Explanation.URGENT.Explanation" xml:space="preserve"><value>Tồn khả dụng {0} thấp hơn mức tối thiểu; nhu cầu còn lại là {2}.</value></data>
+  <data name="Reorder.Explanation.URGENT.Risk" xml:space="preserve"><value>Rủi ro thiếu hàng cao nếu không xử lý sớm.</value></data>
+  <data name="Reorder.Explanation.URGENT.Action" xml:space="preserve"><value>Tạo hoặc xác nhận yêu cầu nhập {0} sau khi người có thẩm quyền xem xét.</value></data>
+  <data name="Reorder.Explanation.NEAR_REORDER.Explanation" xml:space="preserve"><value>Tồn khả dụng {0} đang tiến gần điểm đặt hàng; nhu cầu còn lại là {2}.</value></data>
+  <data name="Reorder.Explanation.NEAR_REORDER.Risk" xml:space="preserve"><value>Rủi ro thiếu hàng đang tăng và cần được theo dõi sát.</value></data>
+  <data name="Reorder.Explanation.NEAR_REORDER.Action" xml:space="preserve"><value>Xem xét và xác nhận yêu cầu nhập {0} nếu phù hợp.</value></data>
+  <data name="Reorder.Explanation.PROCUREMENT_IN_PROGRESS.Explanation" xml:space="preserve"><value>Quy trình mua hàng đang bao phủ một phần hoặc toàn bộ nhu cầu; phần còn lại là {2}.</value></data>
+  <data name="Reorder.Explanation.PROCUREMENT_IN_PROGRESS.Risk" xml:space="preserve"><value>Theo dõi tiến độ mua hàng và phần nhu cầu chưa được bao phủ.</value></data>
+  <data name="Reorder.Explanation.PROCUREMENT_IN_PROGRESS.Action" xml:space="preserve"><value>Kiểm tra yêu cầu đang hoạt động trước khi bổ sung số lượng còn lại {0}.</value></data>
+  <data name="Reorder.Explanation.INCOMING_COVERS_DEMAND.Explanation" xml:space="preserve"><value>Lượng hàng đang về {1} đã bao phủ nhu cầu dự kiến.</value></data>
+  <data name="Reorder.Explanation.INCOMING_COVERS_DEMAND.Risk" xml:space="preserve"><value>Rủi ro thiếu hàng hiện được giảm bởi lượng hàng đang về.</value></data>
+  <data name="Reorder.Explanation.INCOMING_COVERS_DEMAND.Action" xml:space="preserve"><value>Chưa cần tạo yêu cầu nhập mới; tiếp tục theo dõi hàng đang về.</value></data>
+  <data name="Reorder.Explanation.DATA_INCOMPLETE.Explanation" xml:space="preserve"><value>Chưa đủ dữ liệu hợp lệ để tính toán quyết định nhập hàng đáng tin cậy.</value></data>
+  <data name="Reorder.Explanation.DATA_INCOMPLETE.Risk" xml:space="preserve"><value>Không thể đánh giá rủi ro cho đến khi dữ liệu rule được bổ sung đầy đủ.</value></data>
+  <data name="Reorder.Explanation.DATA_INCOMPLETE.Action" xml:space="preserve"><value>Bổ sung dữ liệu tồn kho và nhà cung cấp còn thiếu trước khi tiếp tục.</value></data>
+  <data name="Common.Cancel" xml:space="preserve"><value>Hủy</value></data>
+  <data name="Common.Notes" xml:space="preserve"><value>Ghi chú</value></data>
+  <data name="Common.Dash" xml:space="preserve"><value>—</value></data>
+  <data name="Common.StaffNumber" xml:space="preserve"><value>Nhân viên #{0}</value></data>
+  <data name="BranchReceipt.Details.Title" xml:space="preserve"><value>Chi tiết phiếu nhận</value></data>
+  <data name="BranchReceipt.Details.Eyebrow" xml:space="preserve"><value>Phiếu nhận #{0} · Chi nhánh #{1}</value></data>
+  <data name="BranchReceipt.Details.ReceivedAt" xml:space="preserve"><value>Nhận lúc {0}</value></data>
+  <data name="BranchReceipt.Details.ViewPurchaseOrder" xml:space="preserve"><value>Xem đơn đặt hàng</value></data>
+  <data name="BranchReceipt.Details.ConfirmPrompt" xml:space="preserve"><value>Xác nhận nhập kho? Thao tác không thể hoàn tác.</value></data>
+  <data name="BranchReceipt.Details.ConfirmStock" xml:space="preserve"><value>Xác nhận nhập kho</value></data>
+  <data name="BranchReceipt.Details.SummaryAria" xml:space="preserve"><value>Tóm tắt phiếu nhận</value></data>
+  <data name="BranchReceipt.Details.TotalValue" xml:space="preserve"><value>Tổng giá trị</value></data>
+  <data name="BranchReceipt.Details.LinesTitle" xml:space="preserve"><value>Các dòng hàng thực nhận</value></data>
+  <data name="BranchReceipt.Details.RestockSource" xml:space="preserve"><value>Nguồn yêu cầu nhập</value></data>
+  <data name="BranchReceipt.Details.Item" xml:space="preserve"><value>Mặt hàng</value></data>
+  <data name="BranchReceipt.Details.ActualQty" xml:space="preserve"><value>Số lượng thực giao</value></data>
+  <data name="BranchReceipt.Details.AcceptedQty" xml:space="preserve"><value>Số lượng chấp nhận</value></data>
+  <data name="BranchReceipt.Details.RejectedQty" xml:space="preserve"><value>Số lượng từ chối</value></data>
+  <data name="BranchReceipt.Details.BaseCost" xml:space="preserve"><value>Giá vốn cơ sở</value></data>
+  <data name="BranchReceipt.Details.LineTotal" xml:space="preserve"><value>Thành tiền</value></data>
+  <data name="BranchReceipt.Details.InventoryTxn" xml:space="preserve"><value>Giao dịch kho</value></data>
+  <data name="BranchReceipt.Details.Ingredient" xml:space="preserve"><value>Nguyên liệu #{0}</value></data>
+  <data name="BranchReceipt.Details.PreparedItem" xml:space="preserve"><value>Bán thành phẩm #{0}</value></data>
+  <data name="BranchReceipt.Details.LegacyRecipe" xml:space="preserve"><value>Công thức cũ #{0}</value></data>
+  <data name="BranchReceipt.Details.DirectPurchase" xml:space="preserve"><value>Mua chủ động theo đơn đặt hàng</value></data>
+  <data name="BranchReceipt.Details.LineNumber" xml:space="preserve"><value>Dòng #{0}</value></data>
+  <data name="BranchReceipt.Details.NotPosted" xml:space="preserve"><value>Chưa ghi kho</value></data>
+  <data name="BranchReceipt.Details.LogIssue" xml:space="preserve"><value>Ghi sự cố</value></data>
+  <data name="BranchReceipt.Details.DocumentInfo" xml:space="preserve"><value>Thông tin chứng từ</value></data>
+  <data name="BranchReceipt.Details.Reference" xml:space="preserve"><value>Số tham chiếu</value></data>
+  <data name="BranchReceipt.Details.CreatedBy" xml:space="preserve"><value>Người tạo</value></data>
+  <data name="BranchReceipt.Details.ReceivedBy" xml:space="preserve"><value>Người nhận</value></data>
+  <data name="BranchReceipt.Details.ConfirmedBy" xml:space="preserve"><value>Người xác nhận</value></data>
+  <data name="BranchReceipt.Details.ConfirmedAt" xml:space="preserve"><value>Xác nhận lúc</value></data>
+  <data name="BranchReceipt.Details.Unassigned" xml:space="preserve"><value>Chưa gắn</value></data>
+  <data name="BranchReceipt.Details.NoNotes" xml:space="preserve"><value>Không có ghi chú</value></data>
+  <data name="BranchReceipt.Details.InventoryImpact" xml:space="preserve"><value>Tác động tồn kho</value></data>
+  <data name="BranchReceipt.Details.PostedTitle" xml:space="preserve"><value>Đã ghi nhận tồn kho.</value></data>
+  <data name="BranchReceipt.Details.PostedCopy" xml:space="preserve"><value>Mỗi dòng đã tạo giao dịch nhập và lớp giá vốn tương ứng.</value></data>
+  <data name="BranchReceipt.Details.DraftTitle" xml:space="preserve"><value>Chưa thay đổi tồn kho.</value></data>
+  <data name="BranchReceipt.Details.DraftCopy" xml:space="preserve"><value>Phiếu đang là bản nháp; số lượng và giá vốn mới chỉ được lưu để kiểm tra.</value></data>
+  <data name="BranchReceipt.Create.Title" xml:space="preserve"><value>Tạo phiếu nhận hàng</value></data>
+  <data name="BranchReceipt.Create.Eyebrow" xml:space="preserve"><value>Phiếu nhận mới · Chi nhánh #{0}</value></data>
+  <data name="BranchReceipt.Create.Heading" xml:space="preserve"><value>Ghi nhận hàng thực nhận</value></data>
+  <data name="BranchReceipt.Create.Subtitle" xml:space="preserve"><value>Lưu bản nháp để kiểm tra số lượng và chi phí. Tồn kho chỉ thay đổi sau bước xác nhận riêng.</value></data>
+  <data name="BranchReceipt.Create.SelectSupplier" xml:space="preserve"><value>Chọn nhà cung cấp</value></data>
+  <data name="BranchReceipt.Create.SupplierHelp" xml:space="preserve"><value>Chỉ hiển thị Nhà cung cấp đang phục vụ chi nhánh.</value></data>
+  <data name="BranchReceipt.Create.ReferencePlaceholder" xml:space="preserve"><value>Hóa đơn / vận đơn</value></data>
+  <data name="BranchReceipt.Create.ReceiptNotes" xml:space="preserve"><value>Ghi chú nhận hàng</value></data>
+  <data name="BranchReceipt.Create.NotesPlaceholder" xml:space="preserve"><value>Sai lệch bao bì, tình trạng hàng hoặc thông tin cần đối chiếu...</value></data>
+  <data name="BranchReceipt.Create.LinesTitle" xml:space="preserve"><value>Các dòng nhận</value></data>
+  <data name="BranchReceipt.Create.LinesHelp" xml:space="preserve"><value>Nhập đúng số lượng thực tế và giá gói đã xác nhận.</value></data>
+  <data name="BranchReceipt.Create.LineNumber" xml:space="preserve"><value>Dòng {0}</value></data>
+  <data name="BranchReceipt.Create.RestockRequired" xml:space="preserve"><value>Yêu cầu nhập</value></data>
+  <data name="BranchReceipt.Create.ActualPackages" xml:space="preserve"><value>Số gói thực nhận</value></data>
+  <data name="BranchReceipt.Create.RejectedPackages" xml:space="preserve"><value>Số gói bị loại</value></data>
+  <data name="BranchReceipt.Create.IssueType" xml:space="preserve"><value>Loại sự cố khi có hàng bị loại</value></data>
+  <data name="BranchReceipt.Create.NoRejection" xml:space="preserve"><value>Không có hàng bị loại</value></data>
+  <data name="BranchReceipt.Create.RejectionReason" xml:space="preserve"><value>Lý do loại bỏ</value></data>
+  <data name="BranchReceipt.Create.Offer" xml:space="preserve"><value>Quy cách và giá cung cấp</value></data>
+  <data name="BranchReceipt.Create.OfferPlaceholder" xml:space="preserve"><value>Nhập mã yêu cầu và chọn nhà cung cấp trước</value></data>
+  <data name="BranchReceipt.Create.OfferHelp" xml:space="preserve"><value>Giá và quy cách hiện hành được lưu cùng phiếu để phục vụ đối chiếu.</value></data>
+  <data name="BranchReceipt.Create.ControlTitle" xml:space="preserve"><value>Kiểm soát dữ liệu:</value></data>
+  <data name="BranchReceipt.Create.ControlCopy" xml:space="preserve"><value>hệ thống đối chiếu số gói, số lượng theo đơn vị mua hàng và giá gói tại thời điểm nhận. Chỉ khi xác nhận phiếu, số lượng chấp nhận mới được quy đổi sang đơn vị tồn kho và ghi vào tồn kho.</value></data>
+  <data name="BranchReceipt.Create.SaveDraft" xml:space="preserve"><value>Lưu bản nháp</value></data>
+  <data name="BranchReceipt.Create.Issue.Quality" xml:space="preserve"><value>Không đạt chất lượng</value></data>
+  <data name="BranchReceipt.Create.Issue.Damaged" xml:space="preserve"><value>Hư hỏng</value></data>
+  <data name="BranchReceipt.Create.Issue.Expired" xml:space="preserve"><value>Hết hạn</value></data>
+  <data name="BranchReceipt.Create.Issue.WrongItem" xml:space="preserve"><value>Sai mặt hàng</value></data>
+  <data name="BranchReceipt.Create.Issue.Other" xml:space="preserve"><value>Khác</value></data>
+  <data name="BranchReceipt.Create.Js.RejectedExceeds" xml:space="preserve"><value>Số gói bị loại không được vượt số gói thực nhận.</value></data>
+  <data name="BranchReceipt.Create.Js.SelectIssue" xml:space="preserve"><value>Chọn loại sự cố cho hàng bị loại.</value></data>
+  <data name="BranchReceipt.Create.Js.EnterReason" xml:space="preserve"><value>Nhập lý do loại bỏ.</value></data>
+  <data name="BranchReceipt.Create.Js.Saving" xml:space="preserve"><value>Đang lưu...</value></data>
+  <data name="BranchReceipt.Create.Js.SelectOffer" xml:space="preserve"><value>Chọn một gói mua hợp lệ để hệ thống chụp giá và quy cách.</value></data>
+  <data name="BranchReceipt.Create.Js.OfferSummary" xml:space="preserve"><value>{0} · {1} ₫/gói · Tối thiểu {2} gói</value></data>
+  <data name="BranchReceipt.Create.Js.LoadingOffers" xml:space="preserve"><value>Đang tải gói mua...</value></data>
+  <data name="BranchReceipt.Create.Js.LoadFailed" xml:space="preserve"><value>Không tải được gói mua.</value></data>
+  <data name="BranchReceipt.Create.Js.ChooseOffer" xml:space="preserve"><value>Chọn gói mua</value></data>
+  <data name="BranchReceipt.Create.Js.NoOffers" xml:space="preserve"><value>Không có quy cách mua đang hoạt động cho nguyên liệu này</value></data>
+  <data name="BranchReceipt.Draft.Title" xml:space="preserve"><value>Kiểm đếm theo đơn đặt hàng</value></data>
+  <data name="BranchReceipt.Draft.Heading" xml:space="preserve"><value>Kiểm đếm hàng từ {0}</value></data>
+  <data name="BranchReceipt.Draft.Subtitle" xml:space="preserve"><value>Nhập số lượng Nhà cung cấp thực tế mang đến và số lượng CafeChain từ chối. Chỉ số lượng chấp nhận mới được nhập kho khi xác nhận phiếu.</value></data>
+  <data name="BranchReceipt.Draft.BackToOrder" xml:space="preserve"><value>Về đơn đặt hàng</value></data>
+  <data name="BranchReceipt.Draft.ReceiptCode" xml:space="preserve"><value>Phiếu kiểm đếm</value></data>
+  <data name="BranchReceipt.Draft.RemainingLines" xml:space="preserve"><value>Dòng còn phải giao</value></data>
+  <data name="BranchReceipt.Draft.Info" xml:space="preserve"><value>Số lượng thực giao và số lượng từ chối dùng đúng đơn vị trên đơn đặt hàng. Với mua rời, số kg/L được giữ nguyên trong phiếu nháp; chỉ xác nhận phiếu mới quy đổi sang đơn vị tồn kho và ghi tồn kho.</value></data>
+  <data name="BranchReceipt.Draft.DeliveryInfo" xml:space="preserve"><value>Thông tin giao hàng</value></data>
+  <data name="BranchReceipt.Draft.SupplierDoc" xml:space="preserve"><value>Số phiếu giao của Nhà cung cấp</value></data>
+  <data name="BranchReceipt.Draft.CountNotes" xml:space="preserve"><value>Ghi chú kiểm đếm</value></data>
+  <data name="BranchReceipt.Draft.LinesTitle" xml:space="preserve"><value>Các dòng đơn đặt hàng</value></data>
+  <data name="BranchReceipt.Draft.Ordered" xml:space="preserve"><value>Đặt</value></data>
+  <data name="BranchReceipt.Draft.AlreadyAccepted" xml:space="preserve"><value>Đã chấp nhận</value></data>
+  <data name="BranchReceipt.Draft.StillDue" xml:space="preserve"><value>Còn phải giao</value></data>
+  <data name="BranchReceipt.Draft.ExpectedAccepted" xml:space="preserve"><value>Số lượng chấp nhận dự kiến</value></data>
+  <data name="BranchReceipt.Draft.IssueReason" xml:space="preserve"><value>Loại sự cố / lý do</value></data>
+  <data name="BranchReceipt.Draft.LooseMeta" xml:space="preserve"><value>Mua rời · {0}/{1}</value></data>
+  <data name="BranchReceipt.Draft.PackageMeta" xml:space="preserve"><value>1 gói = {0} {1} · {2}/gói</value></data>
+  <data name="BranchReceipt.Draft.ProcurementMeta" xml:space="preserve"><value>Đơn vị mua: đặt {0} {1} · đã nhận {2} {1} · còn {3} {1}</value></data>
+  <data name="BranchReceipt.Draft.ActualPackagesHelp" xml:space="preserve"><value>Số gói thực giao · mỗi gói = {0} {1}</value></data>
+  <data name="BranchReceipt.Draft.ActualAriaLoose" xml:space="preserve"><value>Số lượng thực giao của {0}</value></data>
+  <data name="BranchReceipt.Draft.ActualAriaPack" xml:space="preserve"><value>Số gói thực giao của {0}</value></data>
+  <data name="BranchReceipt.Draft.RejectedAriaLoose" xml:space="preserve"><value>Số lượng từ chối của {0}</value></data>
+  <data name="BranchReceipt.Draft.RejectedAriaPack" xml:space="preserve"><value>Số gói từ chối của {0}</value></data>
+  <data name="BranchReceipt.Draft.ExpectedPackHidden" xml:space="preserve"><value>Số gói chấp nhận dự kiến</value></data>
+  <data name="BranchReceipt.Draft.PackageUnit" xml:space="preserve"><value>gói</value></data>
+  <data name="BranchReceipt.Draft.NoIssue" xml:space="preserve"><value>Không có sự cố</value></data>
+  <data name="BranchReceipt.Draft.Issue.Short" xml:space="preserve"><value>Giao thiếu</value></data>
+  <data name="BranchReceipt.Draft.Issue.Wrong" xml:space="preserve"><value>Sai mặt hàng</value></data>
+  <data name="BranchReceipt.Draft.Issue.Damaged" xml:space="preserve"><value>Hư hỏng</value></data>
+  <data name="BranchReceipt.Draft.Issue.Expired" xml:space="preserve"><value>Hết hạn</value></data>
+  <data name="BranchReceipt.Draft.Issue.Quality" xml:space="preserve"><value>Không đạt chất lượng</value></data>
+  <data name="BranchReceipt.Draft.Issue.Packaging" xml:space="preserve"><value>Lỗi bao bì</value></data>
+  <data name="BranchReceipt.Draft.Issue.Document" xml:space="preserve"><value>Sai chứng từ</value></data>
+  <data name="BranchReceipt.Draft.Issue.Other" xml:space="preserve"><value>Khác</value></data>
+  <data name="BranchReceipt.Draft.ReasonPlaceholder" xml:space="preserve"><value>Lý do khi có hàng từ chối</value></data>
+  <data name="BranchReceipt.Draft.Save" xml:space="preserve"><value>Lưu phiếu kiểm đếm</value></data>
+  <data name="BranchReceipt.Draft.ViewCurrent" xml:space="preserve"><value>Xem phiếu hiện tại</value></data>
+  <data name="PurchaseOrder.Details.Title" xml:space="preserve"><value>Chi tiết đơn đặt hàng</value></data>
+  <data name="PurchaseOrder.Details.CompletedShortfall" xml:space="preserve"><value>Hoàn thành có phần không giao bù</value></data>
+  <data name="PurchaseOrder.Details.Subtitle" xml:space="preserve"><value>{0}. Số lượng còn phải giao chỉ trừ phần đã nhận hợp lệ hoặc phần được đóng rõ ràng.</value></data>
+  <data name="PurchaseOrder.Details.ExportPdf" xml:space="preserve"><value>Xuất PDF</value></data>
+  <data name="PurchaseOrder.Details.ContinueCount" xml:space="preserve"><value>Tiếp tục kiểm đếm</value></data>
+  <data name="PurchaseOrder.Details.Receive" xml:space="preserve"><value>Nhận hàng</value></data>
+  <data name="PurchaseOrder.Details.ShortfallNotice" xml:space="preserve"><value>Đơn đặt hàng đã hoàn thành với một phần nghĩa vụ được đóng rõ ràng. Phần đã đóng không nhập kho; chỉ số lượng nhận hợp lệ mới cập nhật tồn.</value></data>
+  <data name="PurchaseOrder.Details.Lifecycle" xml:space="preserve"><value>Tiến trình đơn đặt hàng</value></data>
+  <data name="PurchaseOrder.Details.LifecycleHelp" xml:space="preserve"><value>Mỗi bước chỉ hoàn tất khi có sự kiện nghiệp vụ tương ứng.</value></data>
+  <data name="PurchaseOrder.Details.StepsAria" xml:space="preserve"><value>Các bước xử lý đơn đặt hàng</value></data>
+  <data name="PurchaseOrder.Details.Step.Advice" xml:space="preserve"><value>Đề nghị mua</value></data>
+  <data name="PurchaseOrder.Details.Step.Order" xml:space="preserve"><value>Đơn đặt hàng</value></data>
+  <data name="PurchaseOrder.Details.Step.Approve" xml:space="preserve"><value>Duyệt</value></data>
+  <data name="PurchaseOrder.Details.Step.Send" xml:space="preserve"><value>Gửi nhà cung cấp</value></data>
+  <data name="PurchaseOrder.Details.Step.Receive" xml:space="preserve"><value>Nhận hàng</value></data>
+  <data name="PurchaseOrder.Details.Step.Complete" xml:space="preserve"><value>Hoàn tất</value></data>
+  <data name="PurchaseOrder.Details.DocumentInfo" xml:space="preserve"><value>Thông tin chứng từ</value></data>
+  <data name="PurchaseOrder.Details.Destination" xml:space="preserve"><value>Nơi nhận</value></data>
+  <data name="PurchaseOrder.Details.CreatedBy" xml:space="preserve"><value>Người tạo</value></data>
+  <data name="PurchaseOrder.Details.ApprovedBy" xml:space="preserve"><value>Người duyệt</value></data>
+  <data name="PurchaseOrder.Details.NotApproved" xml:space="preserve"><value>Chưa duyệt</value></data>
+  <data name="PurchaseOrder.Details.SentBy" xml:space="preserve"><value>Người gửi nhà cung cấp</value></data>
+  <data name="PurchaseOrder.Details.NotSent" xml:space="preserve"><value>Chưa gửi</value></data>
+  <data name="PurchaseOrder.Details.OrderValue" xml:space="preserve"><value>Giá trị đặt</value></data>
+  <data name="PurchaseOrder.Details.LineCount" xml:space="preserve"><value>Số dòng hàng</value></data>
+  <data name="PurchaseOrder.Details.FullyReceived" xml:space="preserve"><value>Dòng đã nhận đủ</value></data>
+  <data name="PurchaseOrder.Details.RejectedLines" xml:space="preserve"><value>Dòng có từ chối</value></data>
+  <data name="PurchaseOrder.Details.RemainingLines" xml:space="preserve"><value>Dòng còn phải giao</value></data>
+  <data name="PurchaseOrder.Details.ObligationTitle" xml:space="preserve"><value>Chi tiết nghĩa vụ giao hàng</value></data>
+  <data name="PurchaseOrder.Details.RestockSource" xml:space="preserve"><value>Nguồn yêu cầu nhập</value></data>
+  <data name="PurchaseOrder.Details.Ordered" xml:space="preserve"><value>Đặt</value></data>
+  <data name="PurchaseOrder.Details.Accepted" xml:space="preserve"><value>Số lượng chấp nhận</value></data>
+  <data name="PurchaseOrder.Details.Rejected" xml:space="preserve"><value>Số lượng từ chối</value></data>
+  <data name="PurchaseOrder.Details.ClosedRemainder" xml:space="preserve"><value>Phần còn lại đã đóng</value></data>
+  <data name="PurchaseOrder.Details.StillDue" xml:space="preserve"><value>Còn phải giao</value></data>
+  <data name="PurchaseOrder.Details.History" xml:space="preserve"><value>Lịch sử</value></data>
+  <data name="PurchaseOrder.Details.LooseMeta" xml:space="preserve"><value>Mua rời {0} {1} · {2}/{1}</value></data>
+  <data name="PurchaseOrder.Details.PackageMeta" xml:space="preserve"><value>{0} gói · {1}/gói · 1 gói = {2} {3}</value></data>
+  <data name="PurchaseOrder.Details.DirectPurchase" xml:space="preserve"><value>Mua chủ động</value></data>
+  <data name="PurchaseOrder.Details.Equivalent" xml:space="preserve"><value>Tương đương {0} {1}</value></data>
+  <data name="PurchaseOrder.Details.LineAmount" xml:space="preserve"><value>Thành tiền {0}</value></data>
+  <data name="PurchaseOrder.Details.RejectDoesNotReduce" xml:space="preserve"><value>Không làm giảm phần còn phải giao</value></data>
+  <data name="PurchaseOrder.Details.ReceiptCount" xml:space="preserve"><value>{0} lần nhận</value></data>
+  <data name="PurchaseOrder.Details.ClosePrompt" xml:space="preserve"><value>Đóng phần còn lại sẽ chấm dứt nghĩa vụ giao bù và không nhập kho. Bạn chắc chắn?</value></data>
+  <data name="PurchaseOrder.Details.CloseQty" xml:space="preserve"><value>Số lượng đóng ({0})</value></data>
+  <data name="PurchaseOrder.Details.CloseReason" xml:space="preserve"><value>Lý do không yêu cầu giao bù</value></data>
+  <data name="PurchaseOrder.Details.CloseReasonPlaceholder" xml:space="preserve"><value>Ví dụ: Nhà cung cấp xác nhận không giao bù</value></data>
+  <data name="PurchaseOrder.Details.CloseRemaining" xml:space="preserve"><value>Đóng phần còn lại</value></data>
+  <data name="PurchaseOrder.Details.RelatedDocs" xml:space="preserve"><value>Chứng từ liên quan</value></data>
+  <data name="PurchaseOrder.Details.RestockLink" xml:space="preserve"><value>Yêu cầu nhập {0}</value></data>
+  <data name="PurchaseOrder.Details.AdviceLink" xml:space="preserve"><value>Đề nghị mua {0}</value></data>
+  <data name="PurchaseOrder.Details.ReceiptLink" xml:space="preserve"><value>Phiếu nhận {0}</value></data>
+  <data name="PurchaseOrder.Details.NoRelated" xml:space="preserve"><value>Chưa có chứng từ nguồn hoặc phiếu nhận liên kết.</value></data>
+  <data name="PurchaseOrder.Details.HistoryTitle" xml:space="preserve"><value>Lịch sử nghiệp vụ</value></data>
+  <data name="PurchaseOrder.Details.NextActions" xml:space="preserve"><value>Thao tác tiếp theo</value></data>
+  <data name="PurchaseOrder.Details.NextHelp" xml:space="preserve"><value>Chỉ các thao tác phù hợp với trạng thái hiện tại được hiển thị.</value></data>
+  <data name="PurchaseOrder.Details.ExportPdfOrder" xml:space="preserve"><value>Xuất PDF Đơn đặt hàng</value></data>
+  <data name="PurchaseOrder.Details.Approve" xml:space="preserve"><value>Duyệt đơn</value></data>
+  <data name="PurchaseOrder.Details.MarkSent" xml:space="preserve"><value>Đánh dấu đã gửi nhà cung cấp</value></data>
+  <data name="PurchaseOrder.Details.OpenDraft" xml:space="preserve"><value>Mở phiếu kiểm đếm nháp</value></data>
+  <data name="PurchaseOrder.Details.RoleNextTitle" xml:space="preserve"><value>Bước tiếp theo do vai trò phụ trách thực hiện.</value></data>
+  <data name="PurchaseOrder.Details.RoleNext.Draft" xml:space="preserve"><value>Chủ doanh nghiệp xem xét và duyệt đơn.</value></data>
+  <data name="PurchaseOrder.Details.RoleNext.Approved" xml:space="preserve"><value>Kế toán kho gửi đơn cho nhà cung cấp.</value></data>
+  <data name="PurchaseOrder.Details.RoleNext.Receive" xml:space="preserve"><value>Kế toán kho hoặc bộ phận nhận hàng ghi nhận hàng nhà cung cấp giao.</value></data>
+  <data name="PurchaseOrder.Details.RoleNext.Track" xml:space="preserve"><value>Chứng từ hiện chỉ cho phép theo dõi và xem lịch sử.</value></data>
+  <data name="PurchaseOrder.Details.CancelOrder" xml:space="preserve"><value>Hủy đơn đặt hàng</value></data>
+  <data name="PurchaseOrder.Details.CancelHelp" xml:space="preserve"><value>Chỉ hủy khi đơn không còn được tiếp tục xử lý. Lý do sẽ được lưu cùng lịch sử chứng từ.</value></data>
+  <data name="PurchaseOrder.Details.CancelReason" xml:space="preserve"><value>Lý do hủy đơn đặt hàng</value></data>
+  <data name="PurchaseOrder.Details.CancelPlaceholder" xml:space="preserve"><value>Nhập lý do hủy...</value></data>
+  <data name="PurchaseOrder.Details.ConfirmCancel" xml:space="preserve"><value>Xác nhận hủy</value></data>
+  <data name="PurchaseOrder.Create.Subtitle" xml:space="preserve"><value>Chọn đúng chi nhánh, nhà cung cấp và quy cách mua. Giá cùng thời gian giao được lấy từ thông tin cung cấp hiện hành.</value></data>
+  <data name="PurchaseOrder.Create.BackList" xml:space="preserve"><value>Danh sách đơn</value></data>
+  <data name="PurchaseOrder.Create.InfoTitle" xml:space="preserve"><value>Thông tin đơn đặt hàng</value></data>
+  <data name="PurchaseOrder.Create.RequiredHint" xml:space="preserve"><value>Các trường có dấu * là bắt buộc.</value></data>
+  <data name="PurchaseOrder.Create.SelectBranch" xml:space="preserve"><value>Chọn chi nhánh</value></data>
+  <data name="PurchaseOrder.Create.SelectSupplier" xml:space="preserve"><value>Chọn nhà cung cấp</value></data>
+  <data name="PurchaseOrder.Create.ExpectedDelivery" xml:space="preserve"><value>Ngày giao dự kiến</value></data>
+  <data name="PurchaseOrder.Create.DateHelp" xml:space="preserve"><value>Ngày/tháng/năm, giờ:phút</value></data>
+  <data name="PurchaseOrder.Create.NotePlaceholder" xml:space="preserve"><value>Điều kiện giao hàng hoặc lưu ý chung cho đơn...</value></data>
+  <data name="PurchaseOrder.Create.AllowOverallocation" xml:space="preserve"><value>Cho phép vượt phân bổ</value></data>
+  <data name="PurchaseOrder.Create.OverallocationHelp" xml:space="preserve"><value>Chỉ Chủ doanh nghiệp được duyệt và phải ghi rõ lý do. Chính sách này không thay đổi nhu cầu gốc.</value></data>
+  <data name="PurchaseOrder.Create.OverallocationReason" xml:space="preserve"><value>Lý do vượt phân bổ</value></data>
+  <data name="PurchaseOrder.Create.OverallocationPlaceholder" xml:space="preserve"><value>Bắt buộc khi bật cho phép vượt phân bổ</value></data>
+  <data name="PurchaseOrder.Create.LinesTitle" xml:space="preserve"><value>Dòng đặt hàng</value></data>
+  <data name="PurchaseOrder.Create.LinesHelp" xml:space="preserve"><value>Mỗi yêu cầu nhập chỉ liên kết một lần; mọi dòng phải cùng chi nhánh và Nhà cung cấp.</value></data>
+  <data name="PurchaseOrder.Create.AddLine" xml:space="preserve"><value>Thêm dòng</value></data>
+  <data name="PurchaseOrder.Create.DemandSource" xml:space="preserve"><value>Nguồn nhu cầu</value></data>
+  <data name="PurchaseOrder.Create.DirectPurchase" xml:space="preserve"><value>Mua chủ động</value></data>
+  <data name="PurchaseOrder.Create.Offer" xml:space="preserve"><value>Quy cách và giá cung cấp</value></data>
+  <data name="PurchaseOrder.Create.SelectOffer" xml:space="preserve"><value>Chọn quy cách cung cấp</value></data>
+  <data name="PurchaseOrder.Create.NoPackage" xml:space="preserve"><value>không có gói</value></data>
+  <data name="PurchaseOrder.Create.LooseOffer" xml:space="preserve"><value> · mua rời {0:N0} ₫/{1}</value></data>
+  <data name="PurchaseOrder.Create.PurchaseMode" xml:space="preserve"><value>Hình thức</value></data>
+  <data name="PurchaseOrder.Create.Packaged" xml:space="preserve"><value>Đóng gói</value></data>
+  <data name="PurchaseOrder.Create.Loose" xml:space="preserve"><value>Mua rời</value></data>
+  <data name="PurchaseOrder.Create.PackageCount" xml:space="preserve"><value>Số gói</value></data>
+  <data name="PurchaseOrder.Create.LooseQty" xml:space="preserve"><value>Số lượng kg/L</value></data>
+  <data name="PurchaseOrder.Create.LooseQtyAria" xml:space="preserve"><value>Số lượng mua rời</value></data>
+  <data name="PurchaseOrder.Create.ModeHelpPack" xml:space="preserve"><value>Đóng gói chỉ nhận số nguyên.</value></data>
+  <data name="PurchaseOrder.Create.LineNote" xml:space="preserve"><value>Ghi chú dòng</value></data>
+  <data name="PurchaseOrder.Create.RemoveLine" xml:space="preserve"><value>Xóa dòng</value></data>
+  <data name="PurchaseOrder.Create.SaveDraft" xml:space="preserve"><value>Lưu bản nháp</value></data>
+  <data name="PurchaseOrder.Create.Saving" xml:space="preserve"><value>Đang lưu bản nháp...</value></data>
+  <data name="PurchaseOrder.Create.ModeHelpLoose" xml:space="preserve"><value>Nhập trực tiếp theo {0}; không dùng số gói.</value></data>
+  <data name="PurchaseOrder.Create.DefaultUnit" xml:space="preserve"><value>đơn vị mua hàng</value></data>
+  <data name="PurchaseOrder.Print.Title" xml:space="preserve"><value>In đơn đặt hàng {0} - CafeChain Admin</value></data>
+  <data name="PurchaseOrder.Print.Preview" xml:space="preserve"><value>Xem trước chứng từ Đơn đặt hàng {0}</value></data>
+  <data name="PurchaseOrder.Print.PreviewHelp" xml:space="preserve"><value>Bấm nút In / Tải PDF và chọn Lưu dưới dạng PDF (Save as PDF).</value></data>
+  <data name="PurchaseOrder.Print.PrintPdf" xml:space="preserve"><value>In / Tải PDF</value></data>
+  <data name="PurchaseOrder.Print.BackDetails" xml:space="preserve"><value>Quay lại chi tiết</value></data>
+  <data name="PurchaseOrder.Print.DocType" xml:space="preserve"><value>ĐƠN ĐẶT HÀNG</value></data>
+  <data name="PurchaseOrder.Print.Code" xml:space="preserve"><value>Mã đơn:</value></data>
+  <data name="PurchaseOrder.Print.IssueDate" xml:space="preserve"><value>Ngày lập:</value></data>
+  <data name="PurchaseOrder.Print.BuyerTitle" xml:space="preserve"><value>Bên Đặt Hàng (Cửa Hàng Nhận)</value></data>
+  <data name="PurchaseOrder.Print.Org" xml:space="preserve"><value>Đơn vị:</value></data>
+  <data name="PurchaseOrder.Print.OrgName" xml:space="preserve"><value>Chuỗi Cửa Hàng Cà Phê CafeChain</value></data>
+  <data name="PurchaseOrder.Print.ReceivingStore" xml:space="preserve"><value>Cửa hàng nhận:</value></data>
+  <data name="PurchaseOrder.Print.Address" xml:space="preserve"><value>Địa chỉ:</value></data>
+  <data name="PurchaseOrder.Print.Contact" xml:space="preserve"><value>Liên hệ:</value></data>
+  <data name="PurchaseOrder.Print.CreatedBy" xml:space="preserve"><value>Người tạo đơn:</value></data>
+  <data name="PurchaseOrder.Print.SupplierTitle" xml:space="preserve"><value>Nhà Cung Cấp (Đối Tác)</value></data>
+  <data name="PurchaseOrder.Print.SupplierName" xml:space="preserve"><value>Tên NCC:</value></data>
+  <data name="PurchaseOrder.Print.TaxCode" xml:space="preserve"><value>MST:</value></data>
+  <data name="PurchaseOrder.Print.ExpectedDelivery" xml:space="preserve"><value>Ngày giao dự kiến:</value></data>
+  <data name="PurchaseOrder.Print.ByAgreement" xml:space="preserve"><value>Theo thỏa thuận</value></data>
+  <data name="PurchaseOrder.Print.DeliverAt" xml:space="preserve"><value>GIAO TẠI {0} · {1}</value></data>
+  <data name="PurchaseOrder.Print.Receiver" xml:space="preserve"><value>Người nhận:</value></data>
+  <data name="PurchaseOrder.Print.BranchManager" xml:space="preserve"><value>Quản lý chi nhánh {0}</value></data>
+  <data name="PurchaseOrder.Print.NeedBy" xml:space="preserve"><value>Cần trước:</value></data>
+  <data name="PurchaseOrder.Print.Seq" xml:space="preserve"><value>STT</value></data>
+  <data name="PurchaseOrder.Print.IngredientName" xml:space="preserve"><value>Tên nguyên liệu</value></data>
+  <data name="PurchaseOrder.Print.Method" xml:space="preserve"><value>Phương thức</value></data>
+  <data name="PurchaseOrder.Print.Quantity" xml:space="preserve"><value>Số lượng</value></data>
+  <data name="PurchaseOrder.Print.UnitPrice" xml:space="preserve"><value>Đơn giá</value></data>
+  <data name="PurchaseOrder.Print.Amount" xml:space="preserve"><value>Thành tiền</value></data>
+  <data name="PurchaseOrder.Print.PackEq" xml:space="preserve"><value>1 gói = {0} {1}</value></data>
+  <data name="PurchaseOrder.Print.Loose" xml:space="preserve"><value>Mua rời</value></data>
+  <data name="PurchaseOrder.Print.ByPack" xml:space="preserve"><value>Theo gói/thùng</value></data>
+  <data name="PurchaseOrder.Print.Packs" xml:space="preserve"><value>gói</value></data>
+  <data name="PurchaseOrder.Print.Equivalent" xml:space="preserve"><value>Tương đương {0} {1}</value></data>
+  <data name="PurchaseOrder.Print.PerPack" xml:space="preserve"><value>/gói</value></data>
+  <data name="PurchaseOrder.Print.Subtotal" xml:space="preserve"><value>Tạm tính:</value></data>
+  <data name="PurchaseOrder.Print.Vat" xml:space="preserve"><value>Thuế (VAT):</value></data>
+  <data name="PurchaseOrder.Print.GrandTotal" xml:space="preserve"><value>Tổng thanh toán:</value></data>
+  <data name="PurchaseAdvice.Create.Title" xml:space="preserve"><value>Tạo đề nghị mua</value></data>
+  <data name="PurchaseAdvice.Create.Eyebrow" xml:space="preserve"><value>ĐỀ NGHỊ MUA HÀNG</value></data>
+  <data name="PurchaseAdvice.Create.Heading" xml:space="preserve"><value>Tạo từ yêu cầu bổ sung</value></data>
+  <data name="PurchaseAdvice.Create.Subtitle" xml:space="preserve"><value>Chỉ các yêu cầu đã được chọn nguồn “Mua ngoài” mới xuất hiện. Số lượng được kiểm tra lại khi lưu để tránh đặt vượt nhu cầu.</value></data>
+  <data name="PurchaseAdvice.Create.BackList" xml:space="preserve"><value>Danh sách đề nghị</value></data>
+  <data name="PurchaseAdvice.Create.InfoTitle" xml:space="preserve"><value>Thông tin đề nghị</value></data>
+  <data name="PurchaseAdvice.Create.InfoHelp" xml:space="preserve"><value>Thông tin áp dụng chung cho các dòng được chọn.</value></data>
+  <data name="PurchaseAdvice.Create.DateHelp" xml:space="preserve"><value>Ngày/tháng/năm</value></data>
+  <data name="PurchaseAdvice.Create.NotePlaceholder" xml:space="preserve"><value>Bằng chứng hoặc lưu ý vận hành</value></data>
+  <data name="PurchaseAdvice.Create.EmptyAria" xml:space="preserve"><value>Không có nguồn đề nghị mua</value></data>
+  <data name="PurchaseAdvice.Create.EmptyTitle" xml:space="preserve"><value>Chưa có yêu cầu nào sẵn sàng để lập đề nghị mua</value></data>
+  <data name="PurchaseAdvice.Create.EmptyCopy" xml:space="preserve"><value>Hãy mở yêu cầu bổ sung, tiếp nhận xử lý và phân bổ một phần nhu cầu sang nguồn “Mua ngoài”.</value></data>
+  <data name="PurchaseAdvice.Create.ViewRestock" xml:space="preserve"><value>Xem danh sách yêu cầu bổ sung</value></data>
+  <data name="PurchaseAdvice.Create.Refresh" xml:space="preserve"><value>Làm mới</value></data>
+  <data name="PurchaseAdvice.Create.TableAria" xml:space="preserve"><value>Yêu cầu đã chọn mua ngoài</value></data>
+  <data name="PurchaseAdvice.Create.ColSelect" xml:space="preserve"><value>Chọn</value></data>
+  <data name="PurchaseAdvice.Create.ColRequest" xml:space="preserve"><value>Yêu cầu / chi nhánh</value></data>
+  <data name="PurchaseAdvice.Create.ColPurchaseNeed" xml:space="preserve"><value>Tổng nhu cầu mua ngoài</value></data>
+  <data name="PurchaseAdvice.Create.ColInAdvice" xml:space="preserve"><value>Đã có trong đề nghị mua</value></data>
+  <data name="PurchaseAdvice.Create.ColNotInAdvice" xml:space="preserve"><value>Chưa lập đề nghị mua</value></data>
+  <data name="PurchaseAdvice.Create.ColNeedBy" xml:space="preserve"><value>Ngày cần</value></data>
+  <data name="PurchaseAdvice.Create.ColSourcing" xml:space="preserve"><value>Nguồn cung</value></data>
+  <data name="PurchaseAdvice.Create.ColQty" xml:space="preserve"><value>Số lượng đề nghị</value></data>
+  <data name="PurchaseAdvice.Create.Sourcing.Full" xml:space="preserve"><value>Đã phân bổ đủ</value></data>
+  <data name="PurchaseAdvice.Create.Sourcing.Partial" xml:space="preserve"><value>Đã phân bổ một phần</value></data>
+  <data name="PurchaseAdvice.Create.Sourcing.None" xml:space="preserve"><value>Chưa phân bổ đủ</value></data>
+  <data name="PurchaseAdvice.Create.NeedUnset" xml:space="preserve"><value>Chưa đặt</value></data>
+  <data name="PurchaseAdvice.Create.SelectAria" xml:space="preserve"><value>Chọn {0}</value></data>
+  <data name="PurchaseAdvice.Create.SaveDraft" xml:space="preserve"><value>Lưu đề nghị mua nháp</value></data>
+  <data name="PurchaseAdvice.Create.JsInvalid" xml:space="preserve"><value>Hãy chọn ít nhất một yêu cầu và nhập số lượng hợp lệ.</value></data>
+  <data name="PurchaseAdvice.Create.JsSaving" xml:space="preserve"><value>Đang lưu...</value></data>
+  <data name="PurchaseAdvice.Create.JsSending" xml:space="preserve"><value>Đang gửi yêu cầu tạo đề nghị mua...</value></data>
+  <data name="PurchaseAdvice.Create.JsTimeout" xml:space="preserve"><value>Yêu cầu chưa hoàn tất. Bạn có thể thử lại; hệ thống sẽ không tạo trùng đề nghị.</value></data>
+  <data name="PurchaseAdvice.Edit.Title" xml:space="preserve"><value>Sửa đề nghị mua</value></data>
+  <data name="PurchaseAdvice.Edit.Heading" xml:space="preserve"><value>Sửa đề nghị mua hàng nháp</value></data>
+  <data name="PurchaseAdvice.Edit.Subtitle" xml:space="preserve"><value>Nguồn yêu cầu nhập được giữ nguyên; hệ thống kiểm tra lại số lượng còn có thể mua khi lưu.</value></data>
+  <data name="PurchaseAdvice.Edit.Back" xml:space="preserve"><value>Quay lại</value></data>
+  <data name="PurchaseAdvice.Edit.ColSource" xml:space="preserve"><value>Nguồn</value></data>
+  <data name="PurchaseAdvice.Edit.ColAlloc" xml:space="preserve"><value>Phân bổ</value></data>
+  <data name="PurchaseAdvice.Edit.ColAvailable" xml:space="preserve"><value>Còn khả dụng khi sửa</value></data>
+  <data name="PurchaseAdvice.Edit.ColQty" xml:space="preserve"><value>Số lượng</value></data>
+  <data name="PurchaseAdvice.Edit.ColNeedNote" xml:space="preserve"><value>Ngày cần / ghi chú</value></data>
+  <data name="PurchaseAdvice.Edit.AllocMeta" xml:space="preserve"><value>Điều chuyển {0} {1} · Đề nghị khác {2} {1} · Đã đặt hàng {3} {1}</value></data>
+  <data name="PurchaseAdvice.Edit.Save" xml:space="preserve"><value>Lưu thay đổi</value></data>
+  <data name="PurchaseAdvice.Details.Eyebrow" xml:space="preserve"><value>Đề nghị mua hàng</value></data>
+  <data name="PurchaseAdvice.Details.CreatedBy" xml:space="preserve"><value>{0} · tạo bởi {1}</value></data>
+  <data name="PurchaseAdvice.Details.Edit" xml:space="preserve"><value>Sửa</value></data>
+  <data name="PurchaseAdvice.Details.NeedBy" xml:space="preserve"><value>Ngày cần hàng</value></data>
+  <data name="PurchaseAdvice.Details.RejectionReason" xml:space="preserve"><value>Lý do từ chối:</value></data>
+  <data name="PurchaseAdvice.Details.ColSource" xml:space="preserve"><value>Nguồn yêu cầu / nguyên liệu</value></data>
+  <data name="PurchaseAdvice.Details.ColAlloc" xml:space="preserve"><value>Phân bổ số lượng</value></data>
+  <data name="PurchaseAdvice.Details.ColQty" xml:space="preserve"><value>Số lượng đề nghị</value></data>
+  <data name="PurchaseAdvice.Details.RestockQty" xml:space="preserve"><value>Yêu cầu nhập</value></data>
+  <data name="PurchaseAdvice.Details.Transfer" xml:space="preserve"><value>Điều chuyển</value></data>
+  <data name="PurchaseAdvice.Details.OtherAdvice" xml:space="preserve"><value>Đề nghị khác</value></data>
+  <data name="PurchaseAdvice.Details.Ordered" xml:space="preserve"><value>Đã đặt hàng</value></data>
+  <data name="PurchaseAdvice.Details.Closed" xml:space="preserve"><value>Phần đã đóng</value></data>
+  <data name="PurchaseAdvice.Details.SupplierTitle" xml:space="preserve"><value>Nhà cung cấp và hình thức mua</value></data>
+  <data name="PurchaseAdvice.Details.SupplierHelp" xml:space="preserve"><value>Nhà cung cấp, mã SKU của nhà cung cấp và phương thức mua theo quy cách hoặc mua lẻ được chọn tại bước tổng hợp đề nghị mua. Bản nháp chưa khóa nhà cung cấp.</value></data>
+  <data name="PurchaseAdvice.Details.Consolidate" xml:space="preserve"><value>Chọn nhà cung cấp và tổng hợp</value></data>
+  <data name="PurchaseAdvice.Details.SubmitFirst" xml:space="preserve"><value>Gửi đề nghị mua để chuyển sang bước chọn nhà cung cấp.</value></data>
+  <data name="PurchaseAdvice.Details.Submit" xml:space="preserve"><value>Chuyển sang xem xét</value></data>
+  <data name="PurchaseAdvice.Details.StartReview" xml:space="preserve"><value>Bắt đầu xem xét</value></data>
+  <data name="PurchaseAdvice.Details.Reject" xml:space="preserve"><value>Từ chối</value></data>
+  <data name="PurchaseAdvice.Details.CancelAdvice" xml:space="preserve"><value>Hủy đề nghị</value></data>
+  <data name="PurchaseAdvice.Details.NoActions" xml:space="preserve"><value>Không có thao tác phù hợp với quyền và trạng thái hiện tại.</value></data>
+  <data name="PurchaseAdvice.Details.History" xml:space="preserve"><value>Lịch sử trạng thái</value></data>
+  <data name="PurchaseOrderBatch.Details.Title" xml:space="preserve"><value>Đơn đặt hàng gộp {0}</value></data>
+  <data name="PurchaseOrderBatch.Details.Subtitle" xml:space="preserve"><value>Giao dự kiến {0} - {1} · {2} chi nhánh.</value></data>
+  <data name="PurchaseOrderBatch.Details.BackList" xml:space="preserve"><value>Danh sách đơn đặt hàng gộp</value></data>
+  <data name="PurchaseOrderBatch.Details.Approving" xml:space="preserve"><value>Đang duyệt...</value></data>
+  <data name="PurchaseOrderBatch.Details.Approve" xml:space="preserve"><value>Duyệt đơn đặt hàng gộp</value></data>
+  <data name="PurchaseOrderBatch.Details.SentNoticeTitle" xml:space="preserve"><value>Đã ghi nhận gửi tài liệu.</value></data>
+  <data name="PurchaseOrderBatch.Details.SentNoticeCopy" xml:space="preserve"><value>Trạng thái này không đồng nghĩa nhà cung cấp đã xác nhận đơn hàng.</value></data>
+  <data name="PurchaseOrderBatch.Details.TotalValue" xml:space="preserve"><value>Tổng giá trị</value></data>
+  <data name="PurchaseOrderBatch.Details.ChildOrders" xml:space="preserve"><value>Đơn đặt hàng chi nhánh</value></data>
+  <data name="PurchaseOrderBatch.Details.PdfVersions" xml:space="preserve"><value>Phiên bản PDF</value></data>
+  <data name="PurchaseOrderBatch.Details.ProgressEyebrow" xml:space="preserve"><value>Tiến độ giao theo chi nhánh</value></data>
+  <data name="PurchaseOrderBatch.Details.ProgressHelp" xml:space="preserve"><value>Số lượng đã nhận hợp lệ được tổng hợp từ phiếu nhận hàng tại chi nhánh.</value></data>
+  <data name="PurchaseOrderBatch.Details.ColCode" xml:space="preserve"><value>Mã đơn</value></data>
+  <data name="PurchaseOrderBatch.Details.ColOrdered" xml:space="preserve"><value>Đã đặt</value></data>
+  <data name="PurchaseOrderBatch.Details.ColAccepted" xml:space="preserve"><value>Đã nhận hợp lệ</value></data>
+  <data name="PurchaseOrderBatch.Details.ColRemaining" xml:space="preserve"><value>Còn phải giao</value></data>
+  <data name="PurchaseOrderBatch.Details.ProgressAria" xml:space="preserve"><value>Tiến độ nhận hàng {0} phần trăm</value></data>
+  <data name="PurchaseOrderBatch.Details.ByLine" xml:space="preserve"><value>Theo từng dòng</value></data>
+  <data name="PurchaseOrderBatch.Details.SeeDetails" xml:space="preserve"><value>Xem chi tiết</value></data>
+  <data name="PurchaseOrderBatch.Details.TraceEyebrow" xml:space="preserve"><value>Truy vết nguồn nhu cầu</value></data>
+  <data name="PurchaseOrderBatch.Details.AllocTitle" xml:space="preserve"><value>Phân bổ nguyên liệu</value></data>
+  <data name="PurchaseOrderBatch.Details.AllocHelp" xml:space="preserve"><value>Giá và quy cách được lưu tại thời điểm tạo đơn đặt hàng gộp.</value></data>
+  <data name="PurchaseOrderBatch.Details.LooseBy" xml:space="preserve"><value>Mua rời theo {0}</value></data>
+  <data name="PurchaseOrderBatch.Details.PackMeta" xml:space="preserve"><value>{0} gói · 1 gói = {1} {2}</value></data>
+  <data name="PurchaseOrderBatch.Details.CoverMeta" xml:space="preserve"><value>Đặt {0} {1} · phủ {2} {1} · dư {3} {1}</value></data>
+  <data name="PurchaseOrderBatch.Details.PerPack" xml:space="preserve"><value>{0}/gói</value></data>
+  <data name="PurchaseOrderBatch.Details.AllocPacks" xml:space="preserve"><value>{0} gói</value></data>
+  <data name="PurchaseOrderBatch.Details.AllocCover" xml:space="preserve"><value>· đặt {0} {1} · phủ {2} {1} · dư {3} {1}</value></data>
+  <data name="PurchaseOrderBatch.Details.DocEyebrow" xml:space="preserve"><value>Tài liệu nhà cung cấp</value></data>
+  <data name="PurchaseOrderBatch.Details.PdfTitle" xml:space="preserve"><value>PDF &amp; gửi Nhà cung cấp</value></data>
+  <data name="PurchaseOrderBatch.Details.GeneratingPdf" xml:space="preserve"><value>Đang tạo PDF...</value></data>
+  <data name="PurchaseOrderBatch.Details.ExportPdf" xml:space="preserve"><value>Xuất PDF</value></data>
+  <data name="PurchaseOrderBatch.Details.DownloadPdf" xml:space="preserve"><value>Tải PDF {0}</value></data>
+  <data name="PurchaseOrderBatch.Details.PrintPdf" xml:space="preserve"><value>Mở để in PDF</value></data>
+  <data name="PurchaseOrderBatch.Details.NoPdfTitle" xml:space="preserve"><value>Chưa có PDF</value></data>
+  <data name="PurchaseOrderBatch.Details.NoPdfCopy" xml:space="preserve"><value>Đơn đặt hàng gộp phải được duyệt trước khi xuất tài liệu.</value></data>
+  <data name="PurchaseOrderBatch.Details.ZaloContent" xml:space="preserve"><value>Nội dung gửi Zalo</value></data>
+  <data name="PurchaseOrderBatch.Details.CopyZalo" xml:space="preserve"><value>Sao chép nội dung gửi Zalo</value></data>
+  <data name="PurchaseOrderBatch.Details.SendChannel" xml:space="preserve"><value>Kênh đã gửi</value></data>
+  <data name="PurchaseOrderBatch.Details.Channel.Zalo" xml:space="preserve"><value>Zalo</value></data>
+  <data name="PurchaseOrderBatch.Details.Channel.Email" xml:space="preserve"><value>Email</value></data>
+  <data name="PurchaseOrderBatch.Details.Channel.Other" xml:space="preserve"><value>Khác</value></data>
+  <data name="PurchaseOrderBatch.Details.SendNote" xml:space="preserve"><value>Ghi chú / bằng chứng gửi</value></data>
+  <data name="PurchaseOrderBatch.Details.SendNotePlaceholder" xml:space="preserve"><value>Ví dụ: gửi nhóm Zalo Nhà cung cấp lúc 09:30</value></data>
+  <data name="PurchaseOrderBatch.Details.MarkingSent" xml:space="preserve"><value>Đang ghi nhận...</value></data>
+  <data name="PurchaseOrderBatch.Details.MarkSent" xml:space="preserve"><value>Đánh dấu đã gửi Nhà cung cấp</value></data>
+  <data name="PurchaseOrderBatch.Details.RevEyebrow" xml:space="preserve"><value>Phiên bản tài liệu</value></data>
+  <data name="PurchaseOrderBatch.Details.RevTitle" xml:space="preserve"><value>Lịch sử PDF và gửi Nhà cung cấp</value></data>
+  <data name="PurchaseOrderBatch.Details.Revision" xml:space="preserve"><value>Phiên bản R{0}</value></data>
+  <data name="PurchaseOrderBatch.Details.GeneratedBy" xml:space="preserve"><value>Tạo bởi {0} · {1}</value></data>
+  <data name="PurchaseOrderBatch.Details.SentMeta" xml:space="preserve"><value>Gửi qua {0} bởi {1} · {2}</value></data>
+  <data name="PurchaseOrderBatch.Details.DownloadThis" xml:space="preserve"><value>Tải phiên bản PDF này</value></data>
+  <data name="PurchaseOrderBatch.Details.PrintThis" xml:space="preserve"><value>Mở để in phiên bản này</value></data>
+  <data name="PurchaseOrderBatch.Details.NoHistory" xml:space="preserve"><value>Lịch sử sẽ xuất hiện sau lần tạo PDF đầu tiên.</value></data>
+  <data name="PurchaseOrderBatch.Details.CancelTitle" xml:space="preserve"><value>Hủy đơn đặt hàng gộp</value></data>
+  <data name="PurchaseOrderBatch.Details.CancelHelp" xml:space="preserve"><value>Chỉ hủy khi chưa phát sinh nhận hàng. Số lượng phân bổ sẽ được trả lại đề nghị mua.</value></data>
+  <data name="PurchaseOrderBatch.Details.CancelReason" xml:space="preserve"><value>Lý do hủy</value></data>
+  <data name="PurchaseOrderBatch.Details.Cancelling" xml:space="preserve"><value>Đang hủy...</value></data>
+  <data name="PurchaseOrderBatch.Details.CancelConfirm" xml:space="preserve"><value>Hủy đơn đặt hàng gộp và các đơn chi nhánh chưa nhận hàng?</value></data>
+  <data name="PurchaseOrderBatch.Details.CopiedZalo" xml:space="preserve"><value>Đã sao chép. Hãy đính kèm đúng file PDF khi gửi Zalo.</value></data>
+  <data name="PurchaseOrderBatch.Details.Copied" xml:space="preserve"><value>Đã sao chép nội dung.</value></data>
+  <data name="PurchaseOrderBatch.Details.Processing" xml:space="preserve"><value>Đang xử lý...</value></data>
+  <data name="SupplierQuality.Title" xml:space="preserve"><value>Chất lượng nhà cung cấp</value></data>
+  <data name="SupplierQuality.Eyebrow" xml:space="preserve"><value>Mua hàng / Bằng chứng nhận hàng</value></data>
+  <data name="SupplierQuality.Subtitle" xml:space="preserve"><value>Đối chiếu đúng hạn, tỷ lệ đáp ứng và sự cố từ phiếu nhận đã xác nhận. Các chỉ số hỗ trợ đánh giá, hệ thống không tự khóa nhà cung cấp.</value></data>
+  <data name="SupplierQuality.FilterAria" xml:space="preserve"><value>Bộ lọc chất lượng nhà cung cấp</value></data>
+  <data name="SupplierQuality.ScopeTitle" xml:space="preserve"><value>Phạm vi đánh giá</value></data>
+  <data name="SupplierQuality.ScopeHelp" xml:space="preserve"><value>Chọn chi nhánh, nhà cung cấp và khoảng dữ liệu cần đối chiếu.</value></data>
+  <data name="SupplierQuality.AllSuppliers" xml:space="preserve"><value>Tất cả nhà cung cấp</value></data>
+  <data name="SupplierQuality.DefaultRange" xml:space="preserve"><value>Khoảng mặc định</value></data>
+  <data name="SupplierQuality.Days" xml:space="preserve"><value>{0} ngày</value></data>
+  <data name="SupplierQuality.FromOptional" xml:space="preserve"><value>Từ ngày (tùy chọn)</value></data>
+  <data name="SupplierQuality.ToOptional" xml:space="preserve"><value>Đến ngày (tùy chọn)</value></data>
+  <data name="SupplierQuality.ApplyFilter" xml:space="preserve"><value>Áp dụng bộ lọc</value></data>
+  <data name="SupplierQuality.MetricsAria" xml:space="preserve"><value>Chỉ số nhà cung cấp</value></data>
+  <data name="SupplierQuality.Rating" xml:space="preserve"><value>Đánh giá</value></data>
+  <data name="SupplierQuality.Perf.GOOD" xml:space="preserve"><value>Tốt</value></data>
+  <data name="SupplierQuality.Perf.WATCH" xml:space="preserve"><value>Cần theo dõi</value></data>
+  <data name="SupplierQuality.Perf.RISK" xml:space="preserve"><value>Rủi ro</value></data>
+  <data name="SupplierQuality.Perf.Unknown" xml:space="preserve"><value>Chưa đủ dữ liệu</value></data>
+  <data name="SupplierQuality.CompletedDeliveries" xml:space="preserve"><value>{0} lần giao hoàn tất</value></data>
+  <data name="SupplierQuality.OnTime" xml:space="preserve"><value>Đúng hạn</value></data>
+  <data name="SupplierQuality.ExpectedSamples" xml:space="preserve"><value>{0} mẫu có hạn giao</value></data>
+  <data name="SupplierQuality.FillRate" xml:space="preserve"><value>Tỷ lệ đáp ứng</value></data>
+  <data name="SupplierQuality.RejectRate" xml:space="preserve"><value>Tỷ lệ loại bỏ</value></data>
+  <data name="SupplierQuality.IssueReceipts" xml:space="preserve"><value>Phiếu có sự cố</value></data>
+  <data name="SupplierQuality.ConfirmedReceipts" xml:space="preserve"><value>{0} phiếu xác nhận</value></data>
+  <data name="SupplierQuality.AvgDelay" xml:space="preserve"><value>Trễ trung bình</value></data>
+  <data name="SupplierQuality.AvgDelayValue" xml:space="preserve"><value>{0} ngày</value></data>
+  <data name="SupplierQuality.NoSupplierTitle" xml:space="preserve"><value>Chưa chọn nhà cung cấp.</value></data>
+  <data name="SupplierQuality.NoSupplierCopy" xml:space="preserve"><value>Chọn một nhà cung cấp để xem chỉ số hiệu suất trong khoảng thời gian.</value></data>
+  <data name="SupplierQuality.IssuesTitle" xml:space="preserve"><value>Sự cố từ phiếu nhận</value></data>
+  <data name="SupplierQuality.IssuesHelp" xml:space="preserve"><value>Sự cố bị bỏ qua không được tính vào tỷ lệ phiếu có sự cố.</value></data>
+  <data name="SupplierQuality.EmptyTitle" xml:space="preserve"><value>Không có sự cố trong khoảng đã chọn</value></data>
+  <data name="SupplierQuality.EmptyCopy" xml:space="preserve"><value>Các sự cố được ghi nhận từ phiếu nhận hàng sẽ xuất hiện tại đây để theo dõi và xử lý.</value></data>
+  <data name="SupplierQuality.ColIssue" xml:space="preserve"><value>Sự cố</value></data>
+  <data name="SupplierQuality.ColDoc" xml:space="preserve"><value>Chứng từ</value></data>
+  <data name="SupplierQuality.ColItem" xml:space="preserve"><value>Mặt hàng</value></data>
+  <data name="SupplierQuality.ColImpact" xml:space="preserve"><value>Ảnh hưởng</value></data>
+  <data name="SupplierQuality.ColStatus" xml:space="preserve"><value>Trạng thái / xử lý</value></data>
+  <data name="SupplierQuality.ReasonPlaceholder" xml:space="preserve"><value>Lý do / kết quả xử lý</value></data>
+  <data name="SupplierQuality.ReasonAria" xml:space="preserve"><value>Lý do hoặc kết quả xử lý</value></data>
+  <data name="SupplierQuality.NextStatusAria" xml:space="preserve"><value>Trạng thái tiếp theo</value></data>
+  <data name="SupplierQuality.Review" xml:space="preserve"><value>Xem xét</value></data>
+  <data name="SupplierQuality.Resolved" xml:space="preserve"><value>Đã xử lý</value></data>
+  <data name="SupplierQuality.Dismissed" xml:space="preserve"><value>Bỏ qua</value></data>
+  <data name="SupplierQuality.Update" xml:space="preserve"><value>Cập nhật</value></data>
+  <data name="SupplierQuality.CloseReasonAria" xml:space="preserve"><value>Lý do đóng sự cố</value></data>
+  <data name="SupplierQuality.CloseReasonPlaceholder" xml:space="preserve"><value>Lý do đóng</value></data>
+  <data name="SupplierQuality.CloseIssue" xml:space="preserve"><value>Đóng sự cố</value></data>
+  <data name="SupplierQuality.Create.Title" xml:space="preserve"><value>Ghi nhận sự cố nhà cung cấp</value></data>
+  <data name="SupplierQuality.Create.Subtitle" xml:space="preserve"><value>{0} · {1}. Ghi nhận đúng bằng chứng tại thời điểm nhận hàng để phục vụ đánh giá sau này.</value></data>
+  <data name="SupplierQuality.Create.Back" xml:space="preserve"><value>Quay lại</value></data>
+  <data name="SupplierQuality.Create.SuggestTitle" xml:space="preserve"><value>Gợi ý cần kiểm tra:</value></data>
+  <data name="SupplierQuality.Create.SuggestCopy" xml:space="preserve"><value>hệ thống phát hiện giao trễ hoặc có lượng bị loại bỏ. Người dùng phải xác nhận trước khi lưu; đây không phải kết luận tự động.</value></data>
+  <data name="SupplierQuality.Create.SummaryAria" xml:space="preserve"><value>Tóm tắt dòng nhận hàng</value></data>
+  <data name="SupplierQuality.Create.Accepted" xml:space="preserve"><value>Chấp nhận</value></data>
+  <data name="SupplierQuality.Create.Rejected" xml:space="preserve"><value>Loại bỏ</value></data>
+  <data name="SupplierQuality.Create.InfoTitle" xml:space="preserve"><value>Thông tin sự cố</value></data>
+  <data name="SupplierQuality.Create.InfoHelp" xml:space="preserve"><value>Mô tả sự việc theo bằng chứng thực tế, không suy diễn nguyên nhân.</value></data>
+  <data name="SupplierQuality.Create.Type" xml:space="preserve"><value>Loại sự cố</value></data>
+  <data name="SupplierQuality.Create.AffectedQty" xml:space="preserve"><value>Số lượng ảnh hưởng (đơn vị cơ sở)</value></data>
+  <data name="SupplierQuality.Create.AffectedHelp" xml:space="preserve"><value>Nhập phần số lượng bị ảnh hưởng trong dòng nhận hàng này.</value></data>
+  <data name="SupplierQuality.Create.Description" xml:space="preserve"><value>Mô tả / bằng chứng</value></data>
+  <data name="SupplierQuality.Create.DescriptionPlaceholder" xml:space="preserve"><value>Mô tả tình trạng hàng, chứng từ hoặc thời điểm giao...</value></data>
+  <data name="SupplierQuality.Create.Submit" xml:space="preserve"><value>Ghi nhận sự cố</value></data>
+  <data name="SupplierQuality.Issue.Late" xml:space="preserve"><value>Giao trễ</value></data>
+  <data name="SupplierQuality.Issue.Short" xml:space="preserve"><value>Giao thiếu</value></data>
+  <data name="SupplierQuality.Issue.Wrong" xml:space="preserve"><value>Sai mặt hàng</value></data>
+  <data name="SupplierQuality.Issue.Damaged" xml:space="preserve"><value>Hư hỏng</value></data>
+  <data name="SupplierQuality.Issue.Expired" xml:space="preserve"><value>Hết hạn</value></data>
+  <data name="SupplierQuality.Issue.Quality" xml:space="preserve"><value>Không đạt chất lượng</value></data>
+  <data name="SupplierQuality.Issue.Packaging" xml:space="preserve"><value>Lỗi bao bì</value></data>
+  <data name="SupplierQuality.Issue.Document" xml:space="preserve"><value>Sai chứng từ</value></data>
+  <data name="SupplierQuality.Issue.Other" xml:space="preserve"><value>Khác</value></data>
+  <data name="Supplier.Title" xml:space="preserve"><value>Nhà cung cấp</value></data>
+  <data name="Supplier.Eyebrow" xml:space="preserve"><value>Kho &amp; Cung ứng / Đối tác</value></data>
+  <data name="Supplier.Subtitle" xml:space="preserve"><value>Quản lý thông tin liên hệ, phạm vi cung ứng và trạng thái hợp tác.</value></data>
+  <data name="Supplier.Add" xml:space="preserve"><value>Thêm nhà cung cấp</value></data>
+  <data name="Supplier.Metrics.Aria" xml:space="preserve"><value>Tổng quan nguồn cung</value></data>
+  <data name="Supplier.Metrics.Total" xml:space="preserve"><value>Tổng nhà cung cấp</value></data>
+  <data name="Supplier.Metrics.Active" xml:space="preserve"><value>Đang hoạt động</value></data>
+  <data name="Supplier.Metrics.Offers" xml:space="preserve"><value>Gói mua đang áp dụng</value></data>
+  <data name="Supplier.Metrics.Stores" xml:space="preserve"><value>Lượt gán cửa hàng</value></data>
+  <data name="Supplier.Filter.Aria" xml:space="preserve"><value>Bộ lọc nhà cung cấp</value></data>
+  <data name="Supplier.Filter.ScopeLabel" xml:space="preserve"><value>Phạm vi dữ liệu</value></data>
+  <data name="Supplier.Filter.ScopeTitle" xml:space="preserve"><value>Bộ lọc nguồn cung</value></data>
+  <data name="Supplier.Filter.ScopeNote" xml:space="preserve"><value>Theo quyền cửa hàng</value></data>
+  <data name="Supplier.Filter.SearchLabel" xml:space="preserve"><value>Tìm nhà cung cấp</value></data>
+  <data name="Supplier.Filter.SearchPlaceholder" xml:space="preserve"><value>Mã, tên, mã số thuế, số điện thoại</value></data>
+  <data name="Supplier.Filter.StatusLabel" xml:space="preserve"><value>Trạng thái hợp tác</value></data>
+  <data name="Supplier.Filter.AllStatuses" xml:space="preserve"><value>Tất cả trạng thái</value></data>
+  <data name="Supplier.Reset" xml:space="preserve"><value>Đặt lại</value></data>
+  <data name="Supplier.Apply" xml:space="preserve"><value>Áp dụng</value></data>
+  <data name="Supplier.Filter.ResultCount" xml:space="preserve"><value>Hiển thị {0}–{1} trên {2} kết quả</value></data>
+  <data name="Supplier.List.Aria" xml:space="preserve"><value>Danh sách nhà cung cấp</value></data>
+  <data name="Supplier.List.Kicker" xml:space="preserve"><value>Danh sách nguồn cung</value></data>
+  <data name="Supplier.List.Title" xml:space="preserve"><value>Nhà cung cấp trong phạm vi quản lý</value></data>
+  <data name="Supplier.List.TotalAria" xml:space="preserve"><value>Tổng cộng {0} nhà cung cấp</value></data>
+  <data name="Supplier.Col.Name" xml:space="preserve"><value>Nhà cung cấp</value></data>
+  <data name="Supplier.Col.TaxCode" xml:space="preserve"><value>Mã số thuế</value></data>
+  <data name="Supplier.Col.Contact" xml:space="preserve"><value>Đầu mối</value></data>
+  <data name="Supplier.Col.Offers" xml:space="preserve"><value>Gói mua</value></data>
+  <data name="Supplier.Col.Stores" xml:space="preserve"><value>Cửa hàng</value></data>
+  <data name="Supplier.Col.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Supplier.Col.Actions" xml:space="preserve"><value>Thao tác</value></data>
+  <data name="Supplier.Row.NoAddress" xml:space="preserve"><value>Chưa cập nhật địa chỉ</value></data>
+  <data name="Supplier.Row.NoContact" xml:space="preserve"><value>Chưa có đầu mối</value></data>
+  <data name="Supplier.Row.NoPhone" xml:space="preserve"><value>Chưa có số điện thoại</value></data>
+  <data name="Supplier.Row.OfferSuffix" xml:space="preserve"><value>đang dùng</value></data>
+  <data name="Supplier.Row.StoreSuffix" xml:space="preserve"><value>được gán</value></data>
+  <data name="Supplier.Row.Detail" xml:space="preserve"><value>Chi tiết</value></data>
+  <data name="Supplier.Row.DetailAria" xml:space="preserve"><value>Xem chi tiết nhà cung cấp {0}</value></data>
+  <data name="Supplier.Empty.Title" xml:space="preserve"><value>Không có nhà cung cấp phù hợp</value></data>
+  <data name="Supplier.Empty.Text" xml:space="preserve"><value>Thay đổi từ khóa hoặc trạng thái để xem kết quả khác.</value></data>
+  <data name="Supplier.Pagination.Aria" xml:space="preserve"><value>Phân trang nhà cung cấp</value></data>
+  <data name="Supplier.Pagination.Previous" xml:space="preserve"><value>Trước</value></data>
+  <data name="Supplier.Pagination.Page" xml:space="preserve"><value>Trang {0} / {1}</value></data>
+  <data name="Supplier.Pagination.Next" xml:space="preserve"><value>Sau</value></data>
+  <data name="Supplier.Detail.Aria" xml:space="preserve"><value>Chi tiết nhà cung cấp</value></data>
+  <data name="Supplier.Detail.PlaceholderTitle" xml:space="preserve"><value>Chọn một nhà cung cấp</value></data>
+  <data name="Supplier.Detail.PlaceholderText" xml:space="preserve"><value>Thông tin vận hành sẽ hiển thị tại đây.</value></data>
+  <data name="Supplier.Detail.Close" xml:space="preserve"><value>Đóng chi tiết</value></data>
+  <data name="Supplier.Detail.TabsAria" xml:space="preserve"><value>Nội dung nhà cung cấp</value></data>
+  <data name="Supplier.Tab.Overview" xml:space="preserve"><value>Tổng quan</value></data>
+  <data name="Supplier.Tab.Contacts" xml:space="preserve"><value>Liên hệ</value></data>
+  <data name="Supplier.Tab.Offers" xml:space="preserve"><value>Gói mua</value></data>
+  <data name="Supplier.Tab.Pricing" xml:space="preserve"><value>Lịch sử giá</value></data>
+  <data name="Supplier.Tab.Stores" xml:space="preserve"><value>Cửa hàng</value></data>
+  <data name="Supplier.Tab.Audit" xml:space="preserve"><value>Theo dõi</value></data>
+  <data name="Supplier.Overview.Name" xml:space="preserve"><value>Tên nhà cung cấp</value></data>
+  <data name="Supplier.Overview.TaxCode" xml:space="preserve"><value>Mã số thuế</value></data>
+  <data name="Supplier.Overview.TaxCodePlaceholder" xml:space="preserve"><value>Ví dụ: 0312345679 hoặc 0312345679-001</value></data>
+  <data name="Supplier.Overview.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Supplier.Overview.Address" xml:space="preserve"><value>Địa chỉ</value></data>
+  <data name="Supplier.Overview.Note" xml:space="preserve"><value>Ghi chú</value></data>
+  <data name="Supplier.Overview.Save" xml:space="preserve"><value>Lưu thông tin</value></data>
+  <data name="Supplier.Status.Active" xml:space="preserve"><value>Đang hoạt động</value></data>
+  <data name="Supplier.Status.Inactive" xml:space="preserve"><value>Ngừng hoạt động</value></data>
+  <data name="Supplier.Phones.Title" xml:space="preserve"><value>Số điện thoại</value></data>
+  <data name="Supplier.Phones.Help" xml:space="preserve"><value>Hotline và số liên hệ chung của nhà cung cấp.</value></data>
+  <data name="Supplier.Phones.NewPlaceholder" xml:space="preserve"><value>Số điện thoại mới</value></data>
+  <data name="Supplier.Phones.Add" xml:space="preserve"><value>Thêm số</value></data>
+  <data name="Supplier.Contacts.Title" xml:space="preserve"><value>Người liên hệ</value></data>
+  <data name="Supplier.Contacts.Help" xml:space="preserve"><value>Đầu mối nhận báo giá và xử lý giao hàng.</value></data>
+  <data name="Supplier.Contacts.Name" xml:space="preserve"><value>Họ tên</value></data>
+  <data name="Supplier.Contacts.Position" xml:space="preserve"><value>Chức vụ</value></data>
+  <data name="Supplier.Contacts.Phone" xml:space="preserve"><value>Điện thoại</value></data>
+  <data name="Supplier.Contacts.Email" xml:space="preserve"><value>Email</value></data>
+  <data name="Supplier.CancelEdit" xml:space="preserve"><value>Hủy sửa</value></data>
+  <data name="Supplier.Contacts.Add" xml:space="preserve"><value>Thêm liên hệ</value></data>
+  <data name="Supplier.Offers.FormTitle" xml:space="preserve"><value>Quy cách mua nguyên liệu</value></data>
+  <data name="Supplier.Offers.FormHelp" xml:space="preserve"><value>Duy trì giá theo gói và đơn vị mua lẻ tương thích với từng nguyên liệu.</value></data>
+  <data name="Supplier.Offers.Ingredient" xml:space="preserve"><value>Nguyên liệu</value></data>
+  <data name="Supplier.Offers.ContentUnit" xml:space="preserve"><value>Đơn vị nội dung</value></data>
+  <data name="Supplier.Offers.PackageQuantity" xml:space="preserve"><value>Lượng trong gói</value></data>
+  <data name="Supplier.Offers.PackagePrice" xml:space="preserve"><value>Giá một gói (VND)</value></data>
+  <data name="Supplier.Offers.Moq" xml:space="preserve"><value>MOQ theo gói</value></data>
+  <data name="Supplier.Offers.LeadTime" xml:space="preserve"><value>Thời gian giao mặc định (ngày)</value></data>
+  <data name="Supplier.Offers.Primary" xml:space="preserve"><value>Nguồn cung chính</value></data>
+  <data name="Supplier.Offers.Active" xml:space="preserve"><value>Đang hoạt động</value></data>
+  <data name="Supplier.Offers.AllowLoose" xml:space="preserve"><value>Cho phép mua lẻ</value></data>
+  <data name="Supplier.Offers.LooseUnit" xml:space="preserve"><value>Đơn vị mua lẻ</value></data>
+  <data name="Supplier.Offers.LoosePriceMode" xml:space="preserve"><value>Cách xác định giá lẻ</value></data>
+  <data name="Supplier.Offers.LoosePriceModeIndependent" xml:space="preserve"><value>Nhập đơn giá mua lẻ riêng</value></data>
+  <data name="Supplier.Offers.LoosePriceModeDerived" xml:space="preserve"><value>Tự tính từ giá gói</value></data>
+  <data name="Supplier.Offers.LoosePrice" xml:space="preserve"><value>Đơn giá mua lẻ (VND/{0})</value></data>
+  <data name="Supplier.Offers.LoosePriceDefaultUnit" xml:space="preserve"><value>đơn vị</value></data>
+  <data name="Supplier.Offers.LooseMoq" xml:space="preserve"><value>MOQ mua lẻ</value></data>
+  <data name="Supplier.Offers.LooseMoqHelp" xml:space="preserve"><value>Tính theo đơn vị mua lẻ đã chọn.</value></data>
+  <data name="Supplier.Offers.LooseStep" xml:space="preserve"><value>Bước số lượng mua lẻ</value></data>
+  <data name="Supplier.Offers.LooseStepHelp" xml:space="preserve"><value>Đơn hàng được làm tròn lên theo bước này.</value></data>
+  <data name="Supplier.Offers.Note" xml:space="preserve"><value>Ghi chú</value></data>
+  <data name="Supplier.Offers.Add" xml:space="preserve"><value>Thêm gói mua</value></data>
+  <data name="Supplier.Pricing.Title" xml:space="preserve"><value>Thay đổi &amp; lịch sử giá</value></data>
+  <data name="Supplier.Pricing.Help" xml:space="preserve"><value>Mỗi thay đổi tạo một bản ghi giá mới và đóng bản ghi hiện hành trước đó.</value></data>
+  <data name="Supplier.Pricing.Empty" xml:space="preserve"><value>Chọn “Đổi giá” từ một gói mua để xem lịch sử.</value></data>
+  <data name="Supplier.Pricing.NewPrice" xml:space="preserve"><value>Giá gói mới</value></data>
+  <data name="Supplier.Pricing.Reason" xml:space="preserve"><value>Lý do thay đổi</value></data>
+  <data name="Supplier.Pricing.Confirm" xml:space="preserve"><value>Xác nhận đổi giá</value></data>
+  <data name="Supplier.Stores.Title" xml:space="preserve"><value>Phạm vi cửa hàng</value></data>
+  <data name="Supplier.Stores.Help" xml:space="preserve"><value>Cửa hàng chỉ nhận hàng từ nhà cung cấp đã được gán và đang hoạt động.</value></data>
+  <data name="Supplier.Stores.Store" xml:space="preserve"><value>Cửa hàng</value></data>
+  <data name="Supplier.Stores.LeadTime" xml:space="preserve"><value>Thời gian giao riêng (ngày)</value></data>
+  <data name="Supplier.Stores.LeadTimeHelp" xml:space="preserve"><value>Để trống để dùng thời gian giao mặc định của gói mua; khi nhập, giá trị này sẽ thay thế mặc định tại cửa hàng.</value></data>
+  <data name="Supplier.Stores.Schedule" xml:space="preserve"><value>Lịch giao hàng dự kiến</value></data>
+  <data name="Supplier.Stores.SchedulePlaceholder" xml:space="preserve"><value>Ví dụ: Thứ Hai, Thứ Tư và Thứ Sáu</value></data>
+  <data name="Supplier.Stores.Active" xml:space="preserve"><value>Đang hoạt động</value></data>
+  <data name="Supplier.Stores.Note" xml:space="preserve"><value>Ghi chú</value></data>
+  <data name="Supplier.Stores.Assign" xml:space="preserve"><value>Gán cửa hàng</value></data>
+  <data name="Supplier.Audit.Title" xml:space="preserve"><value>Dấu vết cập nhật</value></data>
+  <data name="Supplier.Audit.Help" xml:space="preserve"><value>Mốc thời gian của hồ sơ nhà cung cấp.</value></data>
+  <data name="Supplier.Audit.Created" xml:space="preserve"><value>Khởi tạo</value></data>
+  <data name="Supplier.Audit.Updated" xml:space="preserve"><value>Cập nhật gần nhất</value></data>
+  <data name="Supplier.Create.Eyebrow" xml:space="preserve"><value>Hồ sơ nguồn cung</value></data>
+  <data name="Supplier.Create.Title" xml:space="preserve"><value>Thêm nhà cung cấp</value></data>
+  <data name="Supplier.Create.Description" xml:space="preserve"><value>Khởi tạo hồ sơ doanh nghiệp và đầu mối liên hệ chính.</value></data>
+  <data name="Supplier.Cancel" xml:space="preserve"><value>Hủy</value></data>
+  <data name="Supplier.Create.Close" xml:space="preserve"><value>Đóng</value></data>
+  <data name="Supplier.Create.CompanyTitle" xml:space="preserve"><value>Thông tin doanh nghiệp</value></data>
+  <data name="Supplier.Create.CompanyNote" xml:space="preserve"><value>Thông tin dùng để nhận diện và đối chiếu chứng từ mua hàng.</value></data>
+  <data name="Supplier.Create.PrimaryPhone" xml:space="preserve"><value>Điện thoại chính</value></data>
+  <data name="Supplier.Create.Name" xml:space="preserve"><value>Tên nhà cung cấp</value></data>
+  <data name="Supplier.Create.MainContactTitle" xml:space="preserve"><value>Đầu mối chính</value></data>
+  <data name="Supplier.Create.MainContactNote" xml:space="preserve"><value>Người nhận báo giá và phối hợp xử lý giao hàng.</value></data>
+  <data name="Supplier.Create.ContactName" xml:space="preserve"><value>Người liên hệ chính</value></data>
+  <data name="Supplier.Create.ContactPosition" xml:space="preserve"><value>Chức vụ</value></data>
+  <data name="Supplier.Create.ContactPhone" xml:space="preserve"><value>Điện thoại đầu mối</value></data>
+  <data name="Supplier.Create.ContactEmail" xml:space="preserve"><value>Email đầu mối</value></data>
+  <data name="Supplier.Create.NoteTitle" xml:space="preserve"><value>Ghi chú vận hành</value></data>
+  <data name="Supplier.Create.NoteLabel" xml:space="preserve"><value>Thông tin bổ sung</value></data>
+  <data name="Supplier.Create.NotePlaceholder" xml:space="preserve"><value>Điều kiện giao hàng, thời gian liên hệ hoặc lưu ý đối soát...</value></data>
+  <data name="Supplier.Create.DuplicateReason" xml:space="preserve"><value>Lý do vẫn tạo mới</value></data>
+  <data name="Supplier.Create.CancelDuplicate" xml:space="preserve"><value>Hủy cảnh báo</value></data>
+  <data name="Supplier.Create.OpenExisting" xml:space="preserve"><value>Mở nhà cung cấp hiện có</value></data>
+  <data name="Supplier.Create.Reactivate" xml:space="preserve"><value>Kích hoạt lại</value></data>
+  <data name="Supplier.Create.ConfirmDuplicate" xml:space="preserve"><value>Xác nhận vẫn tạo mới</value></data>
+  <data name="Supplier.Create.Required" xml:space="preserve"><value>Trường bắt buộc</value></data>
+  <data name="Supplier.Create.Submit" xml:space="preserve"><value>Tạo nhà cung cấp</value></data>
+  <data name="Supplier.Js.NoData" xml:space="preserve"><value>Chưa có dữ liệu</value></data>
+  <data name="Supplier.Js.InvalidResponse" xml:space="preserve"><value>Máy chủ trả về dữ liệu không hợp lệ.</value></data>
+  <data name="Supplier.Js.RequestFailed" xml:space="preserve"><value>Yêu cầu thất bại (HTTP {0}).</value></data>
+  <data name="Supplier.Js.LoadingOffers" xml:space="preserve"><value>Đang tải gói mua...</value></data>
+  <data name="Supplier.Js.LoadingStores" xml:space="preserve"><value>Đang tải phạm vi cửa hàng...</value></data>
+  <data name="Supplier.Js.LoadingAudit" xml:space="preserve"><value>Đang tải dấu vết cập nhật...</value></data>
+  <data name="Supplier.Js.SelectIngredientFirst" xml:space="preserve"><value>Chọn nguyên liệu trước</value></data>
+  <data name="Supplier.Js.SelectOfferFirst" xml:space="preserve"><value>Chọn gói mua trước</value></data>
+  <data name="Supplier.Js.SelectContentUnit" xml:space="preserve"><value>Chọn đơn vị nội dung</value></data>
+  <data name="Supplier.Js.SelectLooseUnit" xml:space="preserve"><value>Chọn đơn vị mua lẻ</value></data>
+  <data name="Supplier.Js.SelectData" xml:space="preserve"><value>Chọn dữ liệu</value></data>
+  <data name="Supplier.Js.SelectStore" xml:space="preserve"><value>Chọn cửa hàng</value></data>
+  <data name="Supplier.Js.OpenAuditTab" xml:space="preserve"><value>Mở tab Theo dõi để tải dấu vết cập nhật.</value></data>
+  <data name="Supplier.Js.AuditEmpty" xml:space="preserve"><value>Chưa có thay đổi mã số thuế hoặc xác nhận trùng được ghi nhận.</value></data>
+  <data name="Supplier.Js.AuditDefaultTitle" xml:space="preserve"><value>Cập nhật nhà cung cấp</value></data>
+  <data name="Supplier.Js.AuditSystemActor" xml:space="preserve"><value>Hệ thống</value></data>
+  <data name="Supplier.Js.AuditEmptyValue" xml:space="preserve"><value>Để trống</value></data>
+  <data name="Supplier.Js.AuditChangeFallback" xml:space="preserve"><value>Ghi nhận</value></data>
+  <data name="Supplier.Js.AuditSavedChanges" xml:space="preserve"><value>Đã lưu thay đổi nghiệp vụ.</value></data>
+  <data name="Supplier.Js.Phones.Empty" xml:space="preserve"><value>Chưa có số điện thoại.</value></data>
+  <data name="Supplier.Js.Phones.Primary" xml:space="preserve"><value>Số điện thoại chính</value></data>
+  <data name="Supplier.Js.Phones.Secondary" xml:space="preserve"><value>Số điện thoại phụ</value></data>
+  <data name="Supplier.Js.Phones.Delete" xml:space="preserve"><value>Xóa số</value></data>
+  <data name="Supplier.Js.Contacts.Empty" xml:space="preserve"><value>Chưa có người liên hệ.</value></data>
+  <data name="Supplier.Js.Contacts.PrimaryBadge" xml:space="preserve"><value>Đầu mối chính</value></data>
+  <data name="Supplier.Js.Contacts.NoPosition" xml:space="preserve"><value>Chưa có chức vụ</value></data>
+  <data name="Supplier.Js.Contacts.NoChannels" xml:space="preserve"><value>Chưa có điện thoại/email</value></data>
+  <data name="Supplier.Js.Edit" xml:space="preserve"><value>Sửa</value></data>
+  <data name="Supplier.Js.SetPrimary" xml:space="preserve"><value>Đặt làm chính</value></data>
+  <data name="Supplier.Js.Delete" xml:space="preserve"><value>Xóa</value></data>
+  <data name="Supplier.Js.ErrorNameRequired" xml:space="preserve"><value>Vui lòng nhập tên nhà cung cấp.</value></data>
+  <data name="Supplier.Js.ErrorTaxCodeInvalid" xml:space="preserve"><value>Mã số thuế không đúng định dạng.</value></data>
+  <data name="Supplier.Js.ErrorContactNameRequired" xml:space="preserve"><value>Vui lòng nhập họ tên người liên hệ.</value></data>
+  <data name="Supplier.Js.ErrorContactNameRequiredCreate" xml:space="preserve"><value>Vui lòng nhập tên người liên hệ chính.</value></data>
+  <data name="Supplier.Js.ErrorDuplicateReasonRequired" xml:space="preserve"><value>Vui lòng nhập lý do vẫn tạo nhà cung cấp mới.</value></data>
+  <data name="Supplier.Js.ErrorTaxCodeFormat" xml:space="preserve"><value>Mã số thuế phải gồm 10 chữ số hoặc 10 chữ số, dấu gạch ngang và 3 chữ số.</value></data>
+  <data name="Supplier.Js.ErrorEmailFormat" xml:space="preserve"><value>Địa chỉ {0} không đúng định dạng (Ví dụ: example@domain.com).</value></data>
+  <data name="Supplier.Js.ErrorRequired" xml:space="preserve"><value>Vui lòng nhập {0}.</value></data>
+  <data name="Supplier.Js.ErrorPhoneFormat" xml:space="preserve"><value>{0} không hợp lệ (yêu cầu từ 8 đến 11 chữ số).</value></data>
+  <data name="Supplier.Js.Label.EmailDefault" xml:space="preserve"><value>Email</value></data>
+  <data name="Supplier.Js.Label.PhoneDefault" xml:space="preserve"><value>Số điện thoại</value></data>
+  <data name="Supplier.Js.Label.PhoneNew" xml:space="preserve"><value>Số điện thoại mới</value></data>
+  <data name="Supplier.Js.Label.PhoneMain" xml:space="preserve"><value>Số điện thoại chính</value></data>
+  <data name="Supplier.Js.Label.PhoneContact" xml:space="preserve"><value>Số điện thoại người liên hệ</value></data>
+  <data name="Supplier.Js.Label.EmailContact" xml:space="preserve"><value>Email người liên hệ</value></data>
+  <data name="Supplier.Js.Label.PhoneContactCreate" xml:space="preserve"><value>Số điện thoại đầu mối</value></data>
+  <data name="Supplier.Js.Label.EmailContactCreate" xml:space="preserve"><value>Email đầu mối</value></data>
+  <data name="Supplier.Js.ToastSavedSupplier" xml:space="preserve"><value>Đã lưu thông tin nhà cung cấp.</value></data>
+  <data name="Supplier.Js.ToastPhoneAdded" xml:space="preserve"><value>Đã thêm số điện thoại.</value></data>
+  <data name="Supplier.Js.ToastPhoneDeleted" xml:space="preserve"><value>Đã xóa số điện thoại.</value></data>
+  <data name="Supplier.Js.DeletePhoneTitle" xml:space="preserve"><value>Xóa số điện thoại?</value></data>
+  <data name="Supplier.Js.DeletePhoneText" xml:space="preserve"><value>Số điện thoại này sẽ bị xóa khỏi hồ sơ nhà cung cấp.</value></data>
+  <data name="Supplier.Js.ContactSave" xml:space="preserve"><value>Lưu liên hệ</value></data>
+  <data name="Supplier.Js.ToastContactUpdated" xml:space="preserve"><value>Đã cập nhật người liên hệ.</value></data>
+  <data name="Supplier.Js.ToastContactAdded" xml:space="preserve"><value>Đã thêm người liên hệ.</value></data>
+  <data name="Supplier.Js.ToastPrimaryContactUpdated" xml:space="preserve"><value>Đã cập nhật đầu mối chính.</value></data>
+  <data name="Supplier.Js.DeleteContactTitle" xml:space="preserve"><value>Xóa người liên hệ?</value></data>
+  <data name="Supplier.Js.DeleteContactText" xml:space="preserve"><value>Người liên hệ này sẽ bị xóa khỏi hồ sơ nhà cung cấp.</value></data>
+  <data name="Supplier.Js.ToastContactDeleted" xml:space="preserve"><value>Đã xóa người liên hệ.</value></data>
+  <data name="Supplier.Js.Offers.Empty" xml:space="preserve"><value>Chưa có gói mua nguyên liệu.</value></data>
+  <data name="Supplier.Js.Offers.PrimaryBadge" xml:space="preserve"><value>Nguồn chính</value></data>
+  <data name="Supplier.Js.Offers.MetaPrefix" xml:space="preserve"><value>MOQ {0} gói · Thời gian giao {1} ngày</value></data>
+  <data name="Supplier.Js.Offers.LooseMeta" xml:space="preserve"><value>Mua lẻ theo {0}, {1}, MOQ {2}, bước {3}</value></data>
+  <data name="Supplier.Js.Offers.LooseUnitDefault" xml:space="preserve"><value>đơn vị phù hợp</value></data>
+  <data name="Supplier.Js.Offers.LoosePriceDerived" xml:space="preserve"><value>giá tự tính từ gói</value></data>
+  <data name="Supplier.Js.Offers.LoosePriceManual" xml:space="preserve"><value>giá nhập riêng</value></data>
+  <data name="Supplier.Js.Offers.LooseStepUnlimited" xml:space="preserve"><value>không giới hạn</value></data>
+  <data name="Supplier.Js.Offers.PackageOnly" xml:space="preserve"><value>Chỉ mua theo gói</value></data>
+  <data name="Supplier.Js.Offers.StatusAria" xml:space="preserve"><value>Trạng thái gói mua</value></data>
+  <data name="Supplier.Js.Offers.ReadinessHelp" xml:space="preserve"><value>Hãy sửa quy cách trước khi kích hoạt hoặc sử dụng cho mua hàng.</value></data>
+  <data name="Supplier.Js.Offers.ViewPrice" xml:space="preserve"><value>Đổi giá &amp; lịch sử</value></data>
+  <data name="Supplier.Js.Offers.Edit" xml:space="preserve"><value>Sửa quy cách</value></data>
+  <data name="Supplier.Js.Offers.EditNotReady" xml:space="preserve"><value>Sửa quy cách gói</value></data>
+  <data name="Supplier.Js.Offers.Deactivate" xml:space="preserve"><value>Ngừng dùng</value></data>
+  <data name="Supplier.Js.Offers.Activate" xml:space="preserve"><value>Kích hoạt</value></data>
+  <data name="Supplier.Js.Offers.SaveMetadata" xml:space="preserve"><value>Lưu metadata</value></data>
+  <data name="Supplier.Js.ToastOfferUpdated" xml:space="preserve"><value>Đã cập nhật gói mua.</value></data>
+  <data name="Supplier.Js.ToastOfferAdded" xml:space="preserve"><value>Đã thêm gói mua.</value></data>
+  <data name="Supplier.Js.ToastOfferStale" xml:space="preserve"><value>Dữ liệu gói mua đã thay đổi. Vui lòng tải lại trước khi cập nhật.</value></data>
+  <data name="Supplier.Js.ToastOfferActivated" xml:space="preserve"><value>Đã kích hoạt gói mua.</value></data>
+  <data name="Supplier.Js.ToastOfferDeactivated" xml:space="preserve"><value>Đã ngừng sử dụng gói mua.</value></data>
+  <data name="Supplier.Js.Pricing.Loading" xml:space="preserve"><value>Đang tải lịch sử giá...</value></data>
+  <data name="Supplier.Js.Pricing.Meta" xml:space="preserve"><value>{0} {1} / gói · {2}</value></data>
+  <data name="Supplier.Js.Pricing.NoNote" xml:space="preserve"><value>Không có ghi chú</value></data>
+  <data name="Supplier.Js.Pricing.Current" xml:space="preserve"><value>Hiện hành</value></data>
+  <data name="Supplier.Js.Pricing.Closed" xml:space="preserve"><value>Đã đóng</value></data>
+  <data name="Supplier.Js.Pricing.Empty" xml:space="preserve"><value>Chưa có lịch sử giá.</value></data>
+  <data name="Supplier.Js.ToastPriceSaved" xml:space="preserve"><value>Đã cập nhật giá và lưu lịch sử.</value></data>
+  <data name="Supplier.Js.Stores.Empty" xml:space="preserve"><value>Chưa gán nhà cung cấp cho cửa hàng.</value></data>
+  <data name="Supplier.Js.Stores.NoSchedule" xml:space="preserve"><value>Chưa có lịch giao hàng</value></data>
+  <data name="Supplier.Js.Stores.Meta" xml:space="preserve"><value>Thời gian giao riêng: {0} · {1}</value></data>
+  <data name="Supplier.Js.Stores.FollowOffer" xml:space="preserve"><value>Theo gói mua</value></data>
+  <data name="Supplier.Js.Stores.Edit" xml:space="preserve"><value>Chỉnh sửa</value></data>
+  <data name="Supplier.Js.Stores.Save" xml:space="preserve"><value>Lưu phạm vi</value></data>
+  <data name="Supplier.Js.ToastStoresSaved" xml:space="preserve"><value>Đã cập nhật phạm vi cửa hàng.</value></data>
+  <data name="Supplier.Js.Confirm" xml:space="preserve"><value>Xác nhận</value></data>
+  <data name="Supplier.Js.Keep" xml:space="preserve"><value>Giữ lại</value></data>
+  <data name="Supplier.Js.DuplicateSignalTaxCode" xml:space="preserve"><value>Mã số thuế</value></data>
+  <data name="Supplier.Js.DuplicatePossibleTitle" xml:space="preserve"><value>Có thể trùng nhà cung cấp</value></data>
+  <data name="Supplier.Js.DuplicateExistsTitle" xml:space="preserve"><value>Mã số thuế đã tồn tại</value></data>
+  <data name="Supplier.Js.DuplicateMatchLabel" xml:space="preserve"><value>Khớp</value></data>
+  <data name="Supplier.Js.ToastSupplierReactivated" xml:space="preserve"><value>Đã kích hoạt lại nhà cung cấp hiện có.</value></data>
+  <data name="Supplier.Js.ToastSupplierCreated" xml:space="preserve"><value>Đã tạo nhà cung cấp {0}.</value></data>
+  <data name="Consolidation.Title" xml:space="preserve"><value>Tổng hợp đề nghị mua</value></data>
+  <data name="Consolidation.CreateConsolidated" xml:space="preserve"><value>Tạo đơn đặt hàng gộp</value></data>
+  <data name="Consolidation.CreateSingle" xml:space="preserve"><value>Tạo đơn đặt hàng</value></data>
+  <data name="Consolidation.CreatingConsolidated" xml:space="preserve"><value>Đang tạo đơn đặt hàng gộp...</value></data>
+  <data name="Consolidation.CreatingSingle" xml:space="preserve"><value>Đang tạo đơn đặt hàng...</value></data>
+  <data name="Consolidation.Eyebrow" xml:space="preserve"><value>Kho &amp; Cung ứng / Mua hàng</value></data>
+  <data name="Consolidation.Subtitle" xml:space="preserve"><value>Kiểm tra nhu cầu, quy cách mua và phân bổ đơn đặt hàng về đúng từng chi nhánh.</value></data>
+  <data name="Consolidation.ActionOrders" xml:space="preserve"><value>Đơn đặt hàng gộp</value></data>
+  <data name="Consolidation.ActionAdvices" xml:space="preserve"><value>Danh sách đề nghị</value></data>
+  <data name="Consolidation.PreviewErrorHelp" xml:space="preserve"><value>Các giá trị vừa nhập vẫn được giữ để bạn điều chỉnh.</value></data>
+  <data name="Consolidation.Filter.All" xml:space="preserve"><value>Tất cả</value></data>
+  <data name="Consolidation.Filter.Store" xml:space="preserve"><value>Chi nhánh</value></data>
+  <data name="Consolidation.Filter.Area" xml:space="preserve"><value>Khu vực</value></data>
+  <data name="Consolidation.Filter.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Consolidation.Filter.StatusAll" xml:space="preserve"><value>Đã gửi + Đang xem xét</value></data>
+  <data name="Consolidation.Filter.StatusSubmitted" xml:space="preserve"><value>Đã gửi</value></data>
+  <data name="Consolidation.Filter.StatusUnderReview" xml:space="preserve"><value>Đang xem xét</value></data>
+  <data name="Consolidation.Filter.NeededBy" xml:space="preserve"><value>Cần trước ngày</value></data>
+  <data name="Consolidation.Filter.Ingredient" xml:space="preserve"><value>Nguyên liệu</value></data>
+  <data name="Consolidation.Filter.Priority" xml:space="preserve"><value>Ưu tiên</value></data>
+  <data name="Consolidation.Filter.Supplier" xml:space="preserve"><value>Nhà cung cấp phù hợp</value></data>
+  <data name="Consolidation.Filter.Apply" xml:space="preserve"><value>Lọc</value></data>
+  <data name="Consolidation.Toolbar.SupplierLabel" xml:space="preserve"><value>Nhà cung cấp</value></data>
+  <data name="Consolidation.Toolbar.SelectSupplier" xml:space="preserve"><value>Chọn nhà cung cấp</value></data>
+  <data name="Consolidation.Toolbar.QueueTitle" xml:space="preserve"><value>Đề nghị chờ tổng hợp</value></data>
+  <data name="Consolidation.Toolbar.Hint" xml:space="preserve"><value>Hệ thống sẽ kiểm tra lại giá, số lượng đặt tối thiểu, quy đổi và phạm vi phục vụ chi nhánh.</value></data>
+  <data name="Consolidation.Toolbar.Checking" xml:space="preserve"><value>Đang kiểm tra...</value></data>
+  <data name="Consolidation.Toolbar.CheckPreview" xml:space="preserve"><value>Kiểm tra bản tổng hợp</value></data>
+  <data name="Consolidation.Table.ColSelect" xml:space="preserve"><value>Chọn</value></data>
+  <data name="Consolidation.Table.ColAdviceStore" xml:space="preserve"><value>Đề nghị / chi nhánh</value></data>
+  <data name="Consolidation.Table.ColIngredient" xml:space="preserve"><value>Nguyên liệu</value></data>
+  <data name="Consolidation.Table.ColRemainingQty" xml:space="preserve"><value>Số lượng còn cần đặt</value></data>
+  <data name="Consolidation.Table.ColNeededDate" xml:space="preserve"><value>Ngày cần hàng</value></data>
+  <data name="Consolidation.Table.ColOffer" xml:space="preserve"><value>Quy cách và giá cung cấp</value></data>
+  <data name="Consolidation.Table.ColModeQty" xml:space="preserve"><value>Hình thức / số lượng</value></data>
+  <data name="Consolidation.EmptyTitle" xml:space="preserve"><value>Không có đề nghị mua sẵn sàng tổng hợp</value></data>
+  <data name="Consolidation.EmptyCopy" xml:space="preserve"><value>Hãy kiểm tra bộ lọc hoặc trạng thái đề nghị.</value></data>
+  <data name="Consolidation.RowAria" xml:space="preserve"><value>Chọn {0} từ {1}</value></data>
+  <data name="Consolidation.RestockRequestId" xml:space="preserve"><value>Yêu cầu nhập hàng #{0}</value></data>
+  <data name="Consolidation.IncludedInOrder" xml:space="preserve"><value>Đã đưa vào đơn {0}</value></data>
+  <data name="Consolidation.ImportConversionNote" xml:space="preserve"><value>Tồn kho chỉ quy đổi khi xác nhận nhập.</value></data>
+  <data name="Consolidation.OfferSelectPlaceholder" xml:space="preserve"><value>Chọn quy cách cung cấp</value></data>
+  <data name="Consolidation.OfferOption.Package" xml:space="preserve"><value>1 gói = {0} {1} · {2}/gói</value></data>
+  <data name="Consolidation.OfferOption.NoPackage" xml:space="preserve"><value>Không có quy cách đóng gói</value></data>
+  <data name="Consolidation.OfferOption.Loose" xml:space="preserve"><value>mua rời {0}/{1}</value></data>
+  <data name="Consolidation.OfferOption.LeadTime" xml:space="preserve"><value>giao trong {0} ngày</value></data>
+  <data name="Consolidation.CompareSupplier" xml:space="preserve"><value>So sánh nhà cung cấp</value></data>
+  <data name="Consolidation.NoOfferOrScope" xml:space="preserve"><value>Chưa có quy cách cung cấp hoặc Nhà cung cấp chưa phục vụ chi nhánh này.</value></data>
+  <data name="Consolidation.PurchaseMode.Package" xml:space="preserve"><value>Đóng gói</value></data>
+  <data name="Consolidation.PurchaseMode.Loose" xml:space="preserve"><value>Mua rời</value></data>
+  <data name="Consolidation.PackCountAria" xml:space="preserve"><value>Số gói đề xuất cho {0}</value></data>
+  <data name="Consolidation.LooseQtyAria" xml:space="preserve"><value>Số lượng mua rời cho {0}</value></data>
+  <data name="Consolidation.AutoComputeHint" xml:space="preserve"><value>Tự tính theo phần còn cần và quy cách.</value></data>
+  <data name="Consolidation.DraftTitle" xml:space="preserve"><value>Bản nháp đơn đặt hàng</value></data>
+  <data name="Consolidation.DraftHint" xml:space="preserve"><value>Chọn đề nghị, Nhà cung cấp và quy cách cung cấp để xem phân bổ theo chi nhánh trước khi tạo đơn đặt hàng.</value></data>
+  <data name="Consolidation.PreviewHeading" xml:space="preserve"><value>Bản tổng hợp hợp lệ</value></data>
+  <data name="Consolidation.Kpi.Store" xml:space="preserve"><value>Chi nhánh</value></data>
+  <data name="Consolidation.Kpi.Line" xml:space="preserve"><value>Dòng đề nghị</value></data>
+  <data name="Consolidation.Kpi.Group" xml:space="preserve"><value>Nhóm mua</value></data>
+  <data name="Consolidation.Kpi.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Consolidation.Kpi.StatusPending" xml:space="preserve"><value>Chờ tạo</value></data>
+  <data name="Consolidation.GroupHead.Loose" xml:space="preserve"><value>Mua rời theo {0}</value></data>
+  <data name="Consolidation.GroupHead.Package" xml:space="preserve"><value>{0} {1}/gói · tối thiểu {2} gói</value></data>
+  <data name="Consolidation.GroupHead.LeadTime" xml:space="preserve"><value>giao trong {0} ngày</value></data>
+  <data name="Consolidation.PackageLine" xml:space="preserve"><value>gói</value></data>
+  <data name="Consolidation.PricePerPack" xml:space="preserve"><value>{0}/gói</value></data>
+  <data name="Consolidation.OrderBaseUnits" xml:space="preserve"><value>Đặt {0} · đơn vị cơ sở</value></data>
+  <data name="Consolidation.Coverage.Cover" xml:space="preserve"><value>Phủ {0}</value></data>
+  <data name="Consolidation.Coverage.Excess" xml:space="preserve"><value>Dư quy cách {0}</value></data>
+  <data name="Consolidation.Coverage.CoverDemand" xml:space="preserve"><value>Phủ nhu cầu {0}</value></data>
+  <data name="Consolidation.Allocation.RestockRequest" xml:space="preserve"><value>Yêu cầu nhập #{0}</value></data>
+  <data name="Consolidation.Allocation.Order" xml:space="preserve"><value>đặt</value></data>
+  <data name="Consolidation.Allocation.Cover" xml:space="preserve"><value>phủ</value></data>
+  <data name="Consolidation.Allocation.Excess" xml:space="preserve"><value>dư</value></data>
+  <data name="Consolidation.Delivery.FromLabel" xml:space="preserve"><value>Giao từ ngày</value></data>
+  <data name="Consolidation.Delivery.ToLabel" xml:space="preserve"><value>Đến ngày</value></data>
+  <data name="Consolidation.Delivery.DateFormatHelp" xml:space="preserve"><value>Ngày/tháng/năm</value></data>
+  <data name="Consolidation.OrderNotesLabel" xml:space="preserve"><value>Ghi chú cho đơn đặt hàng</value></data>
+  <data name="Consolidation.OrderNotesPlaceholder" xml:space="preserve"><value>Điều kiện giao hàng hoặc lưu ý chung...</value></data>
+  <data name="Consolidation.CreateWarning" xml:space="preserve"><value>Khi tạo, hệ thống khóa và kiểm tra lại số lượng còn cần đặt, giá, số lượng tối thiểu và phạm vi phục vụ chi nhánh.</value></data>
+  <data name="Consolidation.Js.LooseCopy" xml:space="preserve"><value>Mua rời {0} {1} · {2} ₫/đơn vị.</value></data>
+  <data name="Consolidation.Js.SelectValidOffer" xml:space="preserve"><value>Chọn quy cách hợp lệ để tính số gói.</value></data>
+  <data name="Consolidation.Js.PackMath" xml:space="preserve"><value>{0} gói · đặt {1} {2} · dư {3} {2}</value></data>
+  <data name="Consolidation.Js.Confidence.High" xml:space="preserve"><value>Cao</value></data>
+  <data name="Consolidation.Js.Confidence.Medium" xml:space="preserve"><value>Vừa phải</value></data>
+  <data name="Consolidation.Js.Confidence.Low" xml:space="preserve"><value>Chưa đủ dữ liệu</value></data>
+  <data name="Consolidation.Js.Confidence.Unknown" xml:space="preserve"><value>Chưa xác định</value></data>
+  <data name="Consolidation.Js.Mode.Loose" xml:space="preserve"><value>Mua rời</value></data>
+  <data name="Consolidation.Js.Mode.Package" xml:space="preserve"><value>Đóng gói</value></data>
+  <data name="Consolidation.Js.Mode.Unknown" xml:space="preserve"><value>Chưa xác định</value></data>
+  <data name="Consolidation.Js.LeadTime.Confirmed" xml:space="preserve"><value>đã xác nhận</value></data>
+  <data name="Consolidation.Js.LeadTime.Estimated" xml:space="preserve"><value>tạm tính</value></data>
+  <data name="Consolidation.Js.LeadTime.Unknown" xml:space="preserve"><value>chưa xác định</value></data>
+  <data name="Consolidation.Js.Score.None" xml:space="preserve"><value>Chưa đủ dữ liệu</value></data>
+  <data name="Consolidation.Js.Score.Of100" xml:space="preserve"><value>{0}/100</value></data>
+  <data name="Consolidation.Js.ShadowNote" xml:space="preserve"><value>Dữ liệu thử nghiệm — chế độ quan sát. Kết quả chỉ hỗ trợ quyết định, hệ thống không tự chọn nhà cung cấp.</value></data>
+  <data name="Consolidation.Js.NormalNote" xml:space="preserve"><value>Kết quả do hệ thống tính toán từ lịch sử mua và nhận hàng.</value></data>
+  <data name="Consolidation.Js.RankingUnavailable" xml:space="preserve"><value>Chưa có đủ thông tin để xếp hạng cạnh tranh.</value></data>
+  <data name="Consolidation.Js.NoCandidates" xml:space="preserve"><value>Không có nhà cung cấp và quy cách mua hợp lệ cho điều kiện hiện tại.</value></data>
+  <data name="Consolidation.Js.RankPrefix" xml:space="preserve"><value>Hạng {0} · </value></data>
+  <data name="Consolidation.Js.RankEligible" xml:space="preserve"><value>Đủ điều kiện xếp hạng</value></data>
+  <data name="Consolidation.Js.RankReferenceOnly" xml:space="preserve"><value>Chỉ dùng tham khảo</value></data>
+  <data name="Consolidation.Js.Fact.PurchaseMode" xml:space="preserve"><value>Hình thức mua</value></data>
+  <data name="Consolidation.Js.Fact.PurchaseQty" xml:space="preserve"><value>Số lượng mua</value></data>
+  <data name="Consolidation.Js.Fact.TotalCost" xml:space="preserve"><value>Tổng chi phí</value></data>
+  <data name="Consolidation.Js.Fact.ExcessQty" xml:space="preserve"><value>Lượng mua dư</value></data>
+  <data name="Consolidation.Js.Fact.LeadTime" xml:space="preserve"><value>Thời gian giao dự kiến</value></data>
+  <data name="Consolidation.Js.Fact.TotalScore" xml:space="preserve"><value>Tổng điểm</value></data>
+  <data name="Consolidation.Js.Fact.Confidence" xml:space="preserve"><value>Mức độ tin cậy</value></data>
+  <data name="Consolidation.Js.Fact.PriceScore" xml:space="preserve"><value>Điểm giá mua</value></data>
+  <data name="Consolidation.Js.Fact.OnTimeScore" xml:space="preserve"><value>Điểm giao đúng hẹn</value></data>
+  <data name="Consolidation.Js.Fact.QtyScore" xml:space="preserve"><value>Điểm đáp ứng đủ số lượng</value></data>
+  <data name="Consolidation.Js.Fact.QualityScore" xml:space="preserve"><value>Điểm chất lượng hàng</value></data>
+  <data name="Consolidation.Js.Fact.DeliveryTimeScore" xml:space="preserve"><value>Điểm thời gian giao</value></data>
+  <data name="Consolidation.Js.FactValue.Packs" xml:space="preserve"><value>{0} gói</value></data>
+  <data name="Consolidation.Js.FactValue.Money" xml:space="preserve"><value>{0} ₫</value></data>
+  <data name="Consolidation.Js.FactValue.Days" xml:space="preserve"><value>{0} ngày · {1}</value></data>
+  <data name="Consolidation.Js.FactValue.Confidence" xml:space="preserve"><value>{0} · {1} phiếu nhận đã xác nhận</value></data>
+  <data name="Consolidation.Js.Loading" xml:space="preserve"><value>Đang tải dữ liệu so sánh...</value></data>
+  <data name="Consolidation.Js.CompareFailed" xml:space="preserve"><value>Không thể so sánh nhà cung cấp.</value></data>
+  <data name="Consolidation.Js.LoadedShadow" xml:space="preserve"><value>Đã tải kết quả thử nghiệm. Bấm lại để xem.</value></data>
+  <data name="Consolidation.Js.LoadedNormal" xml:space="preserve"><value>Đã tải kết quả so sánh. Bấm lại để xem.</value></data>
+  <data name="Consolidation.Js.SwalTitle" xml:space="preserve"><value>So sánh nhà cung cấp</value></data>
+  <data name="Consolidation.Js.SwalClose" xml:space="preserve"><value>Đóng</value></data>
+  <data name="Consolidation.Js.WarningTitle" xml:space="preserve"><value>Chưa thể so sánh nhà cung cấp</value></data>
+  <data name="Consolidation.Js.Understood" xml:space="preserve"><value>Đã hiểu</value></data>
+  <data name="Consolidation.Js.Processing" xml:space="preserve"><value>Đang xử lý...</value></data>
+  <data name="Common.InsufficientData" xml:space="preserve"><value>Chưa đủ dữ liệu</value></data>
+  <data name="Common.NotCalculated" xml:space="preserve"><value>chưa tính được</value></data>
+  <data name="Common.NoNotes" xml:space="preserve"><value>Không có ghi chú</value></data>
+  <data name="Common.NotSelected" xml:space="preserve"><value>Chưa chọn</value></data>
+  <data name="Common.System" xml:space="preserve"><value>Hệ thống</value></data>
+  <data name="Common.Quantity" xml:space="preserve"><value>Số lượng</value></data>
+  <data name="Common.Time" xml:space="preserve"><value>Thời gian</value></data>
+  <data name="Common.Source" xml:space="preserve"><value>Nguồn</value></data>
+  <data name="Common.DocumentLine" xml:space="preserve"><value>Dòng chứng từ</value></data>
+  <data name="Common.OrderDate" xml:space="preserve"><value>Ngày đặt</value></data>
+  <data name="Restock.Details.AllocatedSources" xml:space="preserve"><value>Nguồn đã phân bổ</value></data>
+  <data name="Restock.Details.Rejected" xml:space="preserve"><value>Đã từ chối</value></data>
+  <data name="Restock.Details.ViewAllocation" xml:space="preserve"><value>Xem chi tiết phân bổ</value></data>
+  <data name="Restock.Details.ProductionSource" xml:space="preserve"><value>Nguồn sản xuất</value></data>
+  <data name="Restock.Details.RecentAllocations" xml:space="preserve"><value>Hiển thị {0}/{1} phân bổ gần nhất</value></data>
+  <data name="Restock.Details.ViewProductionOrder" xml:space="preserve"><value>Xem lệnh sản xuất #{0}</value></data>
+  <data name="Restock.Details.ProductionLinked" xml:space="preserve"><value>Lệnh sản xuất đã được liên kết.</value></data>
+  <data name="Restock.Details.ProductionNotLinked" xml:space="preserve"><value>Chưa liên kết lệnh sản xuất.</value></data>
+  <data name="Restock.Details.RequestInformation" xml:space="preserve"><value>Thông tin yêu cầu</value></data>
+  <data name="Restock.Details.Priority" xml:space="preserve"><value>Ưu tiên {0}</value></data>
+  <data name="Restock.Details.SystemSuggestion" xml:space="preserve"><value>Gợi ý hệ thống</value></data>
+  <data name="Restock.Details.LastUpdated" xml:space="preserve"><value>Cập nhật gần nhất</value></data>
+  <data name="Restock.Details.FulfillmentChannel" xml:space="preserve"><value>Kênh thực hiện</value></data>
+  <data name="Restock.Details.SourcingDecision" xml:space="preserve"><value>Quyết định nguồn cung</value></data>
+  <data name="Restock.Details.DemandSource" xml:space="preserve"><value>Nguồn nhu cầu</value></data>
+  <data name="Restock.Details.BusinessReference" xml:space="preserve"><value>Tham chiếu nghiệp vụ</value></data>
+  <data name="Restock.Details.AcceptedBy" xml:space="preserve"><value>Người tiếp nhận</value></data>
+  <data name="Restock.Details.NotAccepted" xml:space="preserve"><value>Chưa tiếp nhận</value></data>
+  <data name="Restock.Details.AcceptedAt" xml:space="preserve"><value>Thời gian tiếp nhận</value></data>
+  <data name="Restock.Details.ProcessingNote" xml:space="preserve"><value>Ghi chú xử lý</value></data>
+  <data name="Restock.Details.ClosedRemainingNotice" xml:space="preserve"><value>Đã đóng {0} {1} còn lại. Lý do: {2}</value></data>
+  <data name="Restock.Details.InventoryImpactHelp" xml:space="preserve"><value>{0} không trực tiếp thay đổi tồn. Với nguồn sản xuất, chỉ sản lượng được chấp nhận mới làm tăng tồn kho.</value></data>
+  <data name="Restock.Details.Channel.UNDECIDED" xml:space="preserve"><value>Chưa quyết định</value></data>
+  <data name="Restock.Details.Channel.TRANSFER" xml:space="preserve"><value>Điều chuyển</value></data>
+  <data name="Restock.Details.Channel.EXTERNAL_PURCHASE" xml:space="preserve"><value>Mua ngoài</value></data>
+  <data name="Restock.Details.Channel.MIXED" xml:space="preserve"><value>Kết hợp</value></data>
+  <data name="Restock.Details.Decision.UNDECIDED" xml:space="preserve"><value>Chưa quyết định</value></data>
+  <data name="Restock.Details.Decision.TRANSFER" xml:space="preserve"><value>Điều chuyển</value></data>
+  <data name="Restock.Details.Decision.PURCHASE" xml:space="preserve"><value>Mua ngoài</value></data>
+  <data name="Restock.Details.Decision.PRODUCTION" xml:space="preserve"><value>Sản xuất</value></data>
+  <data name="Restock.Details.Decision.REJECT" xml:space="preserve"><value>Từ chối</value></data>
+  <data name="Restock.Details.SourceReview" xml:space="preserve"><value>Xét nguồn cung</value></data>
+  <data name="Restock.Details.InvalidTransferTitle" xml:space="preserve"><value>Phân bổ điều chuyển chưa hợp lệ.</value></data>
+  <data name="Restock.Details.InvalidTransferCopy" xml:space="preserve"><value>Phân bổ cũ chưa có phiếu điều chuyển nên không được tính là nguồn đã bao phủ. Hãy chọn lại nguồn đáp ứng hoặc lập phiếu điều chuyển hợp lệ trước khi xác nhận.</value></data>
+  <data name="Restock.Details.SourceAssignedTitle" xml:space="preserve"><value>Đã xác định nguồn cung.</value></data>
+  <data name="Restock.Details.SourceAssignedCopy" xml:space="preserve"><value>Toàn bộ nhu cầu đã được phân bổ. Nếu một nguồn bị hủy hoặc giải phóng, các lựa chọn nguồn sẽ tự xuất hiện lại.</value></data>
+  <data name="Restock.Details.SourceForbidden" xml:space="preserve"><value>Bạn không có quyền xét nguồn cung cho yêu cầu này.</value></data>
+  <data name="Restock.Details.AcceptBeforeAllocate" xml:space="preserve"><value>Hãy tiếp nhận yêu cầu trước khi phân bổ nguồn cung.</value></data>
+  <data name="Restock.Details.UnassignedAmount" xml:space="preserve"><value>Còn {0} {1} chưa xác định nguồn.</value></data>
+  <data name="Restock.Details.ChooseSourceCopy" xml:space="preserve"><value>Chọn một cách thực hiện để mở đúng biểu mẫu. Bạn vẫn có thể chia nhu cầu cho nhiều nguồn.</value></data>
+  <data name="Restock.Details.ChooseSourceAria" xml:space="preserve"><value>Chọn nguồn thực hiện</value></data>
+  <data name="Restock.Details.Source.TransferHelp" xml:space="preserve"><value>Nhận hàng từ một chi nhánh khác trong chuỗi.</value></data>
+  <data name="Restock.Details.Source.PurchaseHelp" xml:space="preserve"><value>Đưa số lượng vào đề nghị mua và chọn Nhà cung cấp ở bước tổng hợp.</value></data>
+  <data name="Restock.Details.Source.ProductionHelp" xml:space="preserve"><value>Tạo lệnh sản xuất bán thành phẩm tại cửa hàng.</value></data>
+  <data name="Restock.Details.ChangeSource" xml:space="preserve"><value>Đổi nguồn</value></data>
+  <data name="Restock.Details.AllocationQuantity" xml:space="preserve"><value>Số lượng phân bổ ({0})</value></data>
+  <data name="Restock.Details.SourceReasonPlaceholder" xml:space="preserve"><value>Thông tin hỗ trợ quyết định nguồn</value></data>
+  <data name="Restock.Details.SaveSource" xml:space="preserve"><value>Ghi nhận nguồn cung</value></data>
+  <data name="Restock.Details.RejectRemaining" xml:space="preserve"><value>Từ chối phần nhu cầu còn lại</value></data>
+  <data name="Restock.Details.RejectedQuantity" xml:space="preserve"><value>Số lượng từ chối ({0})</value></data>
+  <data name="Restock.Details.RejectReason" xml:space="preserve"><value>Lý do từ chối</value></data>
+  <data name="Restock.Details.ConfirmReject" xml:space="preserve"><value>Xác nhận từ chối</value></data>
+  <data name="Restock.Details.SourceReviewUnavailable" xml:space="preserve"><value>Yêu cầu chưa ở trạng thái có thể xét nguồn cung.</value></data>
+  <data name="Restock.Details.AddDemandTitle" xml:space="preserve"><value>Bổ sung nhu cầu vào yêu cầu hiện tại</value></data>
+  <data name="Restock.Details.AddPreparedDemandHelp" xml:space="preserve"><value>Hệ thống tính lại từ tồn khả dụng, mức mục tiêu, nguồn đang mở và phần nhu cầu chưa phân bổ. Lệnh sản xuất đã ghim không bị thay đổi.</value></data>
+  <data name="Restock.Details.NetNeed" xml:space="preserve"><value>Còn cần bổ sung</value></data>
+  <data name="Restock.Details.UnallocatedInRequest" xml:space="preserve"><value>Chưa phân bổ trong yêu cầu</value></data>
+  <data name="Restock.Details.AdjustmentToConfirm" xml:space="preserve"><value>Điều chỉnh cần xác nhận</value></data>
+  <data name="Restock.Details.AddIngredientDemandHelp" xml:space="preserve"><value>Dùng khi chi nhánh phát sinh thêm nhu cầu cho cùng nguyên liệu. Hệ thống chỉ tăng tổng nhu cầu; các phân bổ nguồn cung, đề nghị mua và đơn đặt hàng hiện có không bị thay đổi.</value></data>
+  <data name="Restock.Details.AdditionalQuantity" xml:space="preserve"><value>Số lượng bổ sung ({0})</value></data>
+  <data name="Restock.Details.NewNeedBy" xml:space="preserve"><value>Cần trước ngày mới (nếu đổi)</value></data>
+  <data name="Restock.Details.AddDemandReason" xml:space="preserve"><value>Lý do bổ sung</value></data>
+  <data name="Restock.Details.AddDemandReasonPlaceholder" xml:space="preserve"><value>Ví dụ: tăng nhu cầu cuối tuần, phát sinh sự kiện...</value></data>
+  <data name="Restock.Details.AddDemandAction" xml:space="preserve"><value>Bổ sung nhu cầu</value></data>
+  <data name="Restock.Details.LinkedAdvices" xml:space="preserve"><value>Đề nghị mua liên kết</value></data>
+  <data name="Restock.Details.NoLinkedAdvices" xml:space="preserve"><value>Chưa có đề nghị mua liên kết. Đề nghị mua sẽ xuất hiện sau khi yêu cầu được chọn nguồn cung “Mua ngoài”.</value></data>
+  <data name="Restock.Details.ViewAdvice" xml:space="preserve"><value>Xem đề nghị mua</value></data>
+  <data name="Restock.Details.CreateNewAdvice" xml:space="preserve"><value>Tạo đề nghị mua mới</value></data>
+  <data name="Restock.Details.SelectDraftAdvice" xml:space="preserve"><value>Chọn đề nghị mua nháp...</value></data>
+  <data name="Restock.Details.NeededBy" xml:space="preserve"><value>cần {0}</value></data>
+  <data name="Restock.Details.AddToDraftAdvice" xml:space="preserve"><value>Thêm vào đề nghị mua nháp</value></data>
+  <data name="Restock.Details.OrphanPurchaseAllocation" xml:space="preserve"><value>Có phân bổ mua ngoài thiếu liên kết chứng từ. Vui lòng hủy/giải phóng phân bổ trước khi tiếp tục.</value></data>
+  <data name="Restock.Details.StatusHistory" xml:space="preserve"><value>Lịch sử chuyển trạng thái</value></data>
+  <data name="Restock.Details.SubmitDemand" xml:space="preserve"><value>Gửi {0}</value></data>
+  <data name="Restock.Details.NoStatusHistory" xml:space="preserve"><value>Chưa có lịch sử chuyển trạng thái.</value></data>
+  <data name="Restock.Details.DemandAdded" xml:space="preserve"><value>Đã bổ sung nhu cầu</value></data>
+  <data name="Restock.Details.QuantityChanged" xml:space="preserve"><value>từ {0} lên {1} {2}</value></data>
+  <data name="Restock.Details.Receipt" xml:space="preserve"><value>Phiếu nhận</value></data>
+  <data name="Restock.Details.ReceivedSuffix" xml:space="preserve"><value> · đã nhận {0}</value></data>
+  <data name="Restock.Details.Transfer" xml:space="preserve"><value>Điều chuyển</value></data>
+  <data name="Restock.Details.CumulativeSuffix" xml:space="preserve"><value> · lũy kế {0}</value></data>
+  <data name="Restock.Details.ReceivedPostingsTitle" xml:space="preserve"><value>Ghi nhận số lượng đã nhận</value></data>
+  <data name="Restock.Details.NoReceivedPostings" xml:space="preserve"><value>Chưa có lượng thực nhận từ chứng từ đã hoàn tất.</value></data>
+  <data name="Restock.Details.BaseUnitNumber" xml:space="preserve"><value>Đơn vị #{0}</value></data>
+  <data name="Restock.Details.LinkedPurchaseOrders" xml:space="preserve"><value>Đơn đặt hàng liên kết</value></data>
+  <data name="Restock.Details.NoLinkedPurchaseOrders" xml:space="preserve"><value>Chưa có đơn đặt hàng liên kết. Đơn đặt hàng sẽ xuất hiện sau khi đề nghị mua được gửi, xét duyệt và tổng hợp.</value></data>
+  <data name="Restock.Details.PurchaseOrder" xml:space="preserve"><value>Đơn đặt hàng</value></data>
+  <data name="Restock.Details.OrderStatus" xml:space="preserve"><value>Trạng thái đơn</value></data>
+  <data name="Restock.Details.ViewOrder" xml:space="preserve"><value>Xem đơn</value></data>
+  <data name="Restock.Details.SupplierIssues" xml:space="preserve"><value>Sự cố nhà cung cấp</value></data>
+  <data name="Restock.Details.NoSupplierIssues" xml:space="preserve"><value>Chưa có sự cố nhà cung cấp liên quan.</value></data>
+  <data name="Restock.Details.Issue" xml:space="preserve"><value>Sự cố</value></data>
+  <data name="Restock.Details.Impact" xml:space="preserve"><value>Ảnh hưởng</value></data>
+  <data name="Restock.Details.Document" xml:space="preserve"><value>Chứng từ</value></data>
+  <data name="Restock.Details.ReceiptDocuments" xml:space="preserve"><value>Chứng từ nhận hàng</value></data>
+  <data name="Restock.Details.NoReceiptDocuments" xml:space="preserve"><value>Chưa có chứng từ nhận hàng. Chỉ tạo phiếu nhận từ đơn đặt hàng đã duyệt và gửi nhà cung cấp.</value></data>
+  <data name="Restock.Details.ReceiptCode" xml:space="preserve"><value>Phiếu</value></data>
+  <data name="Restock.Details.ReceivedQty" xml:space="preserve"><value>Lượng nhận</value></data>
+  <data name="Restock.Details.ViewReceipt" xml:space="preserve"><value>Xem phiếu</value></data>
+  <data name="Restock.Details.NextActions" xml:space="preserve"><value>Thao tác tiếp theo</value></data>
+  <data name="Restock.Details.StartProcessing" xml:space="preserve"><value>Tiếp nhận xử lý</value></data>
+  <data name="Restock.Details.CancelOrReject" xml:space="preserve"><value>Hủy hoặc từ chối yêu cầu</value></data>
+  <data name="Restock.Details.RejectRequest" xml:space="preserve"><value>Từ chối yêu cầu</value></data>
+  <data name="Restock.Details.RejectReasonPlaceholder" xml:space="preserve"><value>Nêu rõ lý do từ chối yêu cầu</value></data>
+  <data name="Restock.Details.CancelReason" xml:space="preserve"><value>Lý do hủy</value></data>
+  <data name="Restock.Details.CancelReasonPlaceholder" xml:space="preserve"><value>Nêu rõ lý do hủy yêu cầu</value></data>
+  <data name="Restock.Details.CancelRequest" xml:space="preserve"><value>Hủy yêu cầu</value></data>
+  <data name="Restock.Details.CreateRemainingTransfer" xml:space="preserve"><value>Tạo điều chuyển phần còn lại</value></data>
+  <data name="Restock.Details.CloseRemainingReason" xml:space="preserve"><value>Lý do đóng phần còn lại</value></data>
+  <data name="Restock.Details.CloseRemainingPlaceholder" xml:space="preserve"><value>Nhập lý do không tiếp tục nhận số lượng còn lại...</value></data>
+  <data name="Restock.Details.CloseRemaining" xml:space="preserve"><value>Đóng phần còn lại</value></data>
+  <data name="Restock.Details.NoStatusAction" xml:space="preserve"><value>Không có thao tác chuyển trạng thái phù hợp ở bước hiện tại.</value></data>
+  <data name="Restock.Details.ExecutionSources" xml:space="preserve"><value>Nguồn thực hiện</value></data>
+  <data name="Restock.Details.OrphanTransferTitle" xml:space="preserve"><value>Điều chuyển nội bộ chưa có chứng từ thực hiện</value></data>
+  <data name="Restock.Details.OrphanTransferCopy" xml:space="preserve"><value>Nguồn này chưa làm tăng tồn và chưa hoàn thành nhu cầu. Cần gắn đúng phiếu điều chuyển hoặc chọn một nguồn đáp ứng khác.</value></data>
+  <data name="Restock.Details.ProductionAllocated" xml:space="preserve"><value>Đã phân bổ {0} {1} cho nguồn sản xuất.</value></data>
+  <data name="Restock.Details.OpenProductionOrder" xml:space="preserve"><value>Mở lệnh sản xuất</value></data>
+  <data name="Restock.Details.NoExecutionDocuments" xml:space="preserve"><value>Chưa có chứng từ thực hiện cho nguồn đã chọn.</value></data>
+  <data name="Restock.Details.Planned" xml:space="preserve"><value>Dự kiến {0}</value></data>
+  <data name="Restock.Details.ProductionSourceHelp" xml:space="preserve"><value>Nguồn sản xuất đi thẳng vào lệnh sản xuất và không cần đề nghị mua, đơn đặt hàng hoặc nhận hàng nhà cung cấp.</value></data>
+  <data name="Restock.Details.PurchaseSourceHelp" xml:space="preserve"><value>Nguồn mua ngoài chỉ được ghi nhận khi có dòng đơn đặt hàng liên kết. Không dùng ghi chú thủ công để thay thế chứng từ mua.</value></data>
+</root>

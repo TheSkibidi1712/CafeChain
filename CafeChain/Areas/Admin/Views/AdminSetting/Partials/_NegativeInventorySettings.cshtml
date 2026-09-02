@@ -1,5 +1,7 @@
 @using CafeChain.Application.DTOs.Admin.Settings
 @model NegativeInventorySettingsDTO
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<CafeChain.SharedResource> SharedText
 
 @{
     const string formId = "negativeInventorySettingsForm";
@@ -7,8 +9,8 @@
         ? "text-bg-danger"
         : Model.Enabled ? "text-bg-success" : "text-bg-secondary";
     var statusText = !Model.IsConfigurationValid
-        ? "Cấu hình lỗi"
-        : Model.Enabled ? "Bật có kiểm soát" : "Đang tắt";
+        ? SharedText["Settings.Negative.Status.Invalid"]
+        : Model.Enabled ? SharedText["Settings.Negative.Status.Enabled"] : SharedText["Settings.Negative.Status.Disabled"];
     var stores = Model.Items
         .GroupBy(x => new { x.StoreId, x.StoreName })
         .Select(x => x.Key)
@@ -26,22 +28,22 @@
             <span class="ni-feature-icon"><i class="fas fa-box-open"></i></span>
             <div>
             <div class="d-flex align-items-center gap-2 mb-2">
-                <h5 class="fw-bold mb-0">Cho phép xuất vượt tồn</h5>
+                <h5 class="fw-bold mb-0">@SharedText["Settings.Negative.Title"]</h5>
                 <span class="badge rounded-pill @statusClass">@statusText</span>
             </div>
             <p class="text-muted mb-0">
-                Áp dụng cho phiếu xuất bán hàng và luôn yêu cầu người có thẩm quyền phê duyệt.
+                @SharedText["Settings.Negative.Description"]
             </p>
             </div>
         </div>
         <div class="form-check form-switch fs-5 ni-master-switch">
             <input class="form-check-input" type="checkbox" role="switch"
                    id="negativeInventoryEnabled" name="Enabled" value="true"
-                   aria-label="Cho phép gửi yêu cầu xuất âm kho"
+                   aria-label="@SharedText["Settings.Negative.ToggleAria"]"
                    form="@formId" checked="@Model.Enabled" disabled="@(!Model.IsConfigurationValid)" />
             <input type="hidden" name="Enabled" value="false" form="@formId" />
             <label class="form-check-label fw-semibold" for="negativeInventoryEnabled">
-                Cho phép tạo yêu cầu
+                @SharedText["Settings.Negative.Toggle"]
             </label>
         </div>
     </div>
@@ -58,15 +60,15 @@
     {
         <div class="alert alert-warning border-0 shadow-sm">
             <i class="fas fa-shield-halved me-2"></i>
-            Hiện có <strong>@Model.PendingApprovalCount</strong> yêu cầu đang chờ.
-            Thay đổi policy hoặc hạn mức có thể khiến các yêu cầu này cần được tạo lại.
+            @SharedText["Settings.Negative.PendingPrefix"] <strong>@Model.PendingApprovalCount</strong> @SharedText["Settings.Negative.PendingSuffix"]
+            @SharedText["Settings.Negative.PendingHint"]
         </div>
     }
 
     <div class="ni-section-heading">
         <div>
-            <h6>Thiết lập chính sách</h6>
-            <p>Hạn mức chung và nguyên tắc phê duyệt đang áp dụng.</p>
+            <h6>@SharedText["Settings.Negative.Policy.Title"]</h6>
+            <p>@SharedText["Settings.Negative.Policy.Hint"]</p>
         </div>
     </div>
 
@@ -74,52 +76,52 @@
         <div class="ni-meta-field">
             <span class="ni-meta-icon"><i class="fas fa-gauge-high"></i></span>
             <div class="flex-grow-1 min-w-0">
-                <label class="form-label fw-bold mb-1.5 text-dark fs-7">Hạn mức mặc định</label>
+                <label class="form-label fw-bold mb-1.5 text-dark fs-7">@SharedText["Settings.Negative.DefaultLimit"]</label>
                 <div class="input-group input-group-sm ni-input-group">
                     <input type="number" min="0" max="999999999999999.999" step="0.001"
                            class="form-control fw-bold text-dark" name="DefaultMaxNegativeQuantity"
                            value="@formatInput(Model.DefaultMaxNegativeQuantity)"
                            form="@formId" disabled="@(!Model.IsConfigurationValid)" />
-                    <span class="input-group-text bg-light text-muted fw-semibold">Đơn vị gốc</span>
+                    <span class="input-group-text bg-light text-muted fw-semibold">@SharedText["Settings.Negative.BaseUnit"]</span>
                 </div>
-                <div class="form-text text-muted fs-8 mt-1">Tự động áp dụng khi item chưa có hạn mức riêng.</div>
+                <div class="form-text text-muted fs-8 mt-1">@SharedText["Settings.Negative.DefaultLimitHint"]</div>
             </div>
         </div>
 
         <div class="ni-meta-field">
             <span class="ni-meta-icon"><i class="fas fa-user-check"></i></span>
             <div class="flex-grow-1 min-w-0">
-                <label class="form-label fw-bold mb-1.5 text-dark fs-7">Phê duyệt hai bước</label>
+                <label class="form-label fw-bold mb-1.5 text-dark fs-7">@SharedText["Settings.Negative.TwoStep"]</label>
                 <div class="ni-policy-value d-flex align-items-center gap-1.5 text-success fw-bold">
-                    <i class="fas fa-circle-check"></i> <span>Bắt buộc</span>
+                    <i class="fas fa-circle-check"></i> <span>@SharedText["Settings.Negative.Required"]</span>
                 </div>
-                <div class="form-text text-muted fs-8 mt-1">Không thể tắt trên giao diện.</div>
+                <div class="form-text text-muted fs-8 mt-1">@SharedText["Settings.Negative.TwoStepHint"]</div>
             </div>
         </div>
 
         <div class="ni-meta-field">
             <span class="ni-meta-icon"><i class="fas fa-code-branch"></i></span>
             <div class="flex-grow-1 min-w-0">
-                <label class="form-label fw-bold mb-1.5 text-dark fs-7">Phiên bản chính sách</label>
+                <label class="form-label fw-bold mb-1.5 text-dark fs-7">@SharedText["Settings.Negative.PolicyVersion"]</label>
                 <div class="ni-policy-version font-monospace fw-bold text-dark">
-                    @(Model.PolicyVersion.StartsWith("manual-export-") ? Model.PolicyVersion.Replace("manual-export-", "Xuất thủ công - ") : Model.PolicyVersion)
+                    @(Model.PolicyVersion.StartsWith("manual-export-") ? $"{SharedText["Settings.Negative.ManualExport"]} - {Model.PolicyVersion["manual-export-".Length..]}" : Model.PolicyVersion)
                 </div>
-                <div class="form-text text-muted fs-8 mt-1">Tự cập nhật sau mỗi thay đổi.</div>
+                <div class="form-text text-muted fs-8 mt-1">@SharedText["Settings.Negative.PolicyVersionHint"]</div>
             </div>
         </div>
     </div>
 
     <div class="ni-section-heading mb-2">
         <div>
-            <h6>Hạn mức theo cửa hàng</h6>
-            <p>@stores.Count cửa hàng · @Model.Items.Count item · @Model.PendingApprovalCount yêu cầu chờ duyệt</p>
+            <h6>@SharedText["Settings.Negative.StoreLimits"]</h6>
+            <p>@SharedText["Settings.Negative.StoreSummary", stores.Count, Model.Items.Count, Model.PendingApprovalCount]</p>
         </div>
     </div>
 
     @if (stores.Count > 0)
     {
         <div class="negative-store-tabs-wrap mb-3">
-            <ul class="nav nav-tabs flex-nowrap" id="negativeInventoryStoreTabs" role="tablist" aria-label="Cửa hàng">
+            <ul class="nav nav-tabs flex-nowrap" id="negativeInventoryStoreTabs" role="tablist" aria-label="@SharedText["Settings.Negative.StoresAria"]">
                 @for (var storeIndex = 0; storeIndex < stores.Count; storeIndex++)
                 {
                     var store = stores[storeIndex];
@@ -141,14 +143,14 @@
         <div class="col-lg-7 col-md-7">
             <div class="ni-search-wrap">
                 <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
-                <input id="negativeInventoryItemSearch" type="search" class="form-control" placeholder="Mã, tên hoặc Item ID..." />
+                <input id="negativeInventoryItemSearch" type="search" class="form-control" placeholder="@SharedText["Settings.Negative.SearchPlaceholder"]" />
             </div>
         </div>
         <div class="col-lg-3 col-md-5">
             <select id="negativeInventoryPageSize" class="form-select">
-                <option value="10" selected>10 dòng</option>
-                <option value="20">20 dòng</option>
-                <option value="50">50 dòng</option>
+                <option value="10" selected>@SharedText["Settings.Negative.Rows", 10]</option>
+                <option value="20">@SharedText["Settings.Negative.Rows", 20]</option>
+                <option value="50">@SharedText["Settings.Negative.Rows", 50]</option>
             </select>
         </div>
         <div class="col-lg-2 text-lg-end">
@@ -163,13 +165,13 @@
         <table class="table table-hover align-middle mb-0" id="negativeInventoryItemsTable">
             <thead class="table-light">
                 <tr>
-                    <th class="ni-col-code text-start">Mã Item</th>
-                    <th class="ni-col-name text-start">Tên Item</th>
-                    <th class="ni-col-stock text-end">Tồn khả dụng</th>
-                    <th class="ni-col-mode text-center">Chế độ</th>
-                    <th class="ni-col-limit text-center">Hạn mức riêng</th>
-                    <th class="ni-col-effective text-end">Hiệu lực</th>
-                    <th class="ni-col-status text-center">Trạng thái</th>
+                    <th class="ni-col-code text-start">@SharedText["Settings.Negative.Column.Code"]</th>
+                    <th class="ni-col-name text-start">@SharedText["Settings.Negative.Column.Name"]</th>
+                    <th class="ni-col-stock text-end">@SharedText["Settings.Negative.Column.Available"]</th>
+                    <th class="ni-col-mode text-center">@SharedText["Settings.Negative.Column.Mode"]</th>
+                    <th class="ni-col-limit text-center">@SharedText["Settings.Negative.Column.CustomLimit"]</th>
+                    <th class="ni-col-effective text-end">@SharedText["Settings.Negative.Column.Effective"]</th>
+                    <th class="ni-col-status text-center">@SharedText["Settings.Negative.Column.Status"]</th>
                 </tr>
             </thead>
             <tbody>
@@ -187,11 +189,11 @@
                         </td>
                         <td class="text-start">
                             <div class="fw-bold text-dark" style="font-size: 13.5px;">@item.ItemName</div>
-                            <div class="small text-muted" style="font-size: 11px;">@item.ItemType #@item.ItemId · Đơn vị gốc: @item.BaseUnitCode</div>
+                            <div class="small text-muted" style="font-size: 11px;">@item.ItemType #@item.ItemId · @SharedText["Settings.Negative.BaseUnit"]: @item.BaseUnitCode</div>
                         </td>
                         <td class="text-end">
                             <div class="ni-stock-value"><span class="negative-available-qty">@formatQuantity(item.AvailableQty)</span> <span class="negative-display-unit-code">@item.BaseUnitCode</span></div>
-                            <div class="small text-muted">Đã giữ: <span class="negative-reserved-qty">@formatQuantity(item.ReservedQty)</span></div>
+                            <div class="small text-muted">@SharedText["Settings.Negative.Reserved"]: <span class="negative-reserved-qty">@formatQuantity(item.ReservedQty)</span></div>
                         </td>
                         <td class="text-center">
                             <input type="hidden" name="Items[@index].StoreInventoryId" value="@item.StoreInventoryId" form="@formId" />
@@ -200,41 +202,41 @@
                                 <select class="form-select form-select-sm negative-limit-mode d-none"
                                         name="Items[@index].LimitMode" form="@formId"
                                         disabled="@(!Model.IsConfigurationValid)">
-                                    <option value="@NegativeInventoryLimitModes.Blocked" selected="@(item.LimitMode == NegativeInventoryLimitModes.Blocked)">Chặn</option>
-                                    <option value="@NegativeInventoryLimitModes.Default" selected="@(item.LimitMode == NegativeInventoryLimitModes.Default)">Theo mặc định</option>
-                                    <option value="@NegativeInventoryLimitModes.Custom" selected="@(item.LimitMode == NegativeInventoryLimitModes.Custom)">Hạn mức riêng</option>
+                                    <option value="@NegativeInventoryLimitModes.Blocked" selected="@(item.LimitMode == NegativeInventoryLimitModes.Blocked)">@SharedText["Settings.Negative.Mode.Blocked"]</option>
+                                    <option value="@NegativeInventoryLimitModes.Default" selected="@(item.LimitMode == NegativeInventoryLimitModes.Default)">@SharedText["Settings.Negative.Mode.Default"]</option>
+                                    <option value="@NegativeInventoryLimitModes.Custom" selected="@(item.LimitMode == NegativeInventoryLimitModes.Custom)">@SharedText["Settings.Negative.Mode.Custom"]</option>
                                 </select>
                                 <div class="dropdown ni-custom-dropdown">
                                     <button class="btn btn-sm ni-dropdown-trigger dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" disabled="@(!Model.IsConfigurationValid)">
                                         <span class="ni-dropdown-selected-label">
                                             @if (item.LimitMode == NegativeInventoryLimitModes.Blocked)
                                             {
-                                                <i class="fas fa-lock me-1 text-danger"></i><span>Chặn</span>
+                                                <i class="fas fa-lock me-1 text-danger"></i><span>@SharedText["Settings.Negative.Mode.Blocked"]</span>
                                             }
                                             else if (item.LimitMode == NegativeInventoryLimitModes.Custom)
                                             {
-                                                <i class="fas fa-sliders me-1 text-amber"></i><span>Hạn mức riêng</span>
+                                                <i class="fas fa-sliders me-1 text-amber"></i><span>@SharedText["Settings.Negative.Mode.Custom"]</span>
                                             }
                                             else
                                             {
-                                                <i class="fas fa-circle-check me-1 text-success"></i><span>Theo mặc định</span>
+                                                <i class="fas fa-circle-check me-1 text-success"></i><span>@SharedText["Settings.Negative.Mode.Default"]</span>
                                             }
                                         </span>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-center ni-dropdown-menu shadow-sm">
                                         <li>
                                             <button type="button" class="dropdown-item ni-dropdown-item @(item.LimitMode == NegativeInventoryLimitModes.Blocked ? "active" : "")" data-value="BLOCKED">
-                                                <i class="fas fa-lock me-2 text-danger"></i>Chặn
+                                                <i class="fas fa-lock me-2 text-danger"></i>@SharedText["Settings.Negative.Mode.Blocked"]
                                             </button>
                                         </li>
                                         <li>
                                             <button type="button" class="dropdown-item ni-dropdown-item @(item.LimitMode == NegativeInventoryLimitModes.Default ? "active" : "")" data-value="DEFAULT">
-                                                <i class="fas fa-circle-check me-2 text-success"></i>Theo mặc định
+                                                <i class="fas fa-circle-check me-2 text-success"></i>@SharedText["Settings.Negative.Mode.Default"]
                                             </button>
                                         </li>
                                         <li>
                                             <button type="button" class="dropdown-item ni-dropdown-item @(item.LimitMode == NegativeInventoryLimitModes.Custom ? "active" : "")" data-value="CUSTOM">
-                                                <i class="fas fa-sliders me-2 text-amber"></i>Hạn mức riêng
+                                                <i class="fas fa-sliders me-2 text-amber"></i>@SharedText["Settings.Negative.Mode.Custom"]
                                             </button>
                                         </li>
                                     </ul>
@@ -280,7 +282,7 @@
                 <tr id="negativeInventoryEmptyRow" class="d-none">
                     <td colspan="7" class="text-center py-5 text-muted">
                         <i class="fas fa-box-open fs-3 d-block mb-2"></i>
-                        Không có item phù hợp trong cửa hàng này.
+                        @SharedText["Settings.Negative.Empty"]
                     </td>
                 </tr>
             </tbody>
@@ -288,8 +290,8 @@
     </div>
 
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-3">
-        <span class="text-muted small" id="negativeInventoryPageStatus" aria-live="polite">Trang 1 / 1</span>
-        <nav aria-label="Phân trang cấu hình âm kho">
+        <span class="text-muted small" id="negativeInventoryPageStatus" aria-live="polite">@SharedText["Settings.Negative.PageStatus", 1, 1]</span>
+        <nav aria-label="@SharedText["Settings.Negative.PaginationAria"]">
             <ul class="pagination pagination-sm mb-0" id="negativeInventoryPagination"></ul>
         </nav>
     </div>
@@ -297,7 +299,7 @@
     <div class="d-flex justify-content-end ni-save-bar">
         <button type="submit" class="btn btn-ni-primary px-5 py-2 fw-bold rounded-3"
                 form="@formId" disabled="@(!Model.IsConfigurationValid)">
-            <i class="fas fa-shield-halved me-2"></i>Lưu cấu hình âm kho
+            <i class="fas fa-shield-halved me-2"></i>@SharedText["Settings.Negative.Save"]
         </button>
     </div>
 </div>

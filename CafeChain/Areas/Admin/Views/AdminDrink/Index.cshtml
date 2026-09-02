@@ -2,10 +2,12 @@
 @using System.Security.Claims
 @using CafeChain.Application.Constants
 @using CafeChain.Application.Interfaces.Admin.Permissions
+@using Microsoft.Extensions.Localization
 @inject IAdminPermissionService PermissionService
+@inject IStringLocalizer<CafeChain.ProductResource> ProductText
 
 @{
-    ViewData["Title"] = "Quản lý Nước uống";
+    ViewData["Title"] = ProductText["Drink.PageTitle"];
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 
     var filter = Model.Filter;
@@ -38,6 +40,7 @@
         canToggle = permissions.Contains(PermissionConstants.DrinkToggleStatus);
         canUpdateImage = permissions.Contains(PermissionConstants.DrinkUpdateImage);
     }
+
 }
 
 @section Styles {
@@ -51,23 +54,23 @@
         <div>
             <span class="drink-eyebrow ops-eyebrow">
                 <i class="fas fa-mug-hot"></i>
-                Thực đơn CafeChain
+                @ProductText["Drink.Eyebrow"]
             </span>
-            <h1 class="ops-title"><i class="fa-solid fa-mug-hot me-2 text-warning" aria-hidden="true"></i>Danh sách nước uống</h1>
-            <p class="ops-subtitle">Theo dõi hình ảnh, danh mục và trạng thái bán của toàn bộ sản phẩm.</p>
+            <h1 class="ops-title"><i class="fa-solid fa-mug-hot me-2 text-warning" aria-hidden="true"></i>@ProductText["Drink.Title"]</h1>
+            <p class="ops-subtitle">@ProductText["Drink.Description"]</p>
         </div>
 
         <div class="drink-header-actions ops-actions">
             <a asp-action="Index" class="btn drink-filter-btn @(hasFilters ? "" : "is-muted")">
                 <i class="fas fa-rotate-left"></i>
-                Xóa lọc
+                @ProductText["Common.ClearFilters"]
             </a>
 
             @if (canCreate)
             {
             <a asp-action="Create" class="btn drink-primary-btn">
                 <i class="fas fa-plus"></i>
-                Thêm mới
+                @ProductText["Common.Add"]
             </a>
             }
         </div>
@@ -76,26 +79,26 @@
     <div class="drink-summary-grid">
         <div class="drink-summary-card drink-summary-total">
             <span class="drink-summary-icon"><i class="fas fa-mug-hot"></i></span>
-            <span><strong>@Model.TotalCount</strong><small>Tổng đồ uống</small></span>
+            <span><strong>@Model.TotalCount</strong><small>@ProductText["Drink.Total"]</small></span>
         </div>
         <div class="drink-summary-card drink-summary-active">
             <span class="drink-summary-icon"><i class="fas fa-circle-check"></i></span>
-            <span><strong>@Model.ActiveCount</strong><small>Đang bán</small></span>
+            <span><strong>@Model.ActiveCount</strong><small>@ProductText["Drink.Selling"]</small></span>
         </div>
         <div class="drink-summary-card drink-summary-inactive">
             <span class="drink-summary-icon"><i class="fas fa-circle-pause"></i></span>
-            <span><strong>@Model.InactiveCount</strong><small>Ngừng bán</small></span>
+            <span><strong>@Model.InactiveCount</strong><small>@ProductText["Drink.Paused"]</small></span>
         </div>
     </div>
 
     <div class="drink-toolbar">
-        <div class="drink-status-tabs" aria-label="Bộ lọc trạng thái đồ uống">
+        <div class="drink-status-tabs" aria-label="@ProductText["Drink.FilterAria"]">
             <a class="@TabClass(null)"
                asp-action="Index"
                asp-route-keyword="@filter.Keyword"
                asp-route-page="1"
                asp-route-pageSize="@filter.PageSize">
-                Tất cả (@Model.TotalCount)
+                @ProductText["Common.AllWithCount", Model.TotalCount]
             </a>
 
             <a class="@TabClass(true)"
@@ -104,7 +107,7 @@
                asp-route-active="true"
                asp-route-page="1"
                asp-route-pageSize="@filter.PageSize">
-                Đang bán (@Model.ActiveCount)
+                @ProductText["Drink.Selling"] (@Model.ActiveCount)
             </a>
 
             <a class="@TabClass(false)"
@@ -113,7 +116,7 @@
                asp-route-active="false"
                asp-route-page="1"
                asp-route-pageSize="@filter.PageSize">
-                Ngừng bán (@Model.InactiveCount)
+                @ProductText["Drink.Paused"] (@Model.InactiveCount)
             </a>
         </div>
 
@@ -125,20 +128,20 @@
             <input type="hidden" name="Page" value="1" />
 
             <div class="drink-search-box">
-                <button type="submit" class="drink-search-btn" title="Tìm kiếm" aria-label="Tìm kiếm đồ uống">
+                <button type="submit" class="drink-search-btn" title="@ProductText["Common.Search"]" aria-label="@ProductText["Drink.SearchAria"]">
                     <i class="fas fa-search" aria-hidden="true"></i>
                 </button>
                 <input type="search"
                        name="Keyword"
                        value="@filter.Keyword"
-                       placeholder="Tìm đồ uống..."
-                       aria-label="Tìm đồ uống" />
+                       placeholder="@ProductText["Drink.SearchPlaceholder"]"
+                       aria-label="@ProductText["Drink.SearchAria"]" />
             </div>
 
             <label class="drink-page-size">
-                <span>Hiển thị:</span>
+                <span>@ProductText["Common.Display"]</span>
                 <select name="PageSize"
-                        aria-label="Số dòng hiển thị"
+                        aria-label="@ProductText["Common.DisplayRows"]"
                         onchange="this.form.submit()">
                     <option value="10" selected="@(filter.PageSize == 10)">10</option>
                     <option value="25" selected="@(filter.PageSize == 25)">25</option>
@@ -151,25 +154,25 @@
     <div class="drink-table-card">
         <div class="drink-list-heading">
             <div>
-                <h2>Kho đồ uống</h2>
-                <p>Cập nhật hình ảnh và thông tin sản phẩm ngay tại một nơi.</p>
+                <h2>@ProductText["Drink.InventoryTitle"]</h2>
+                <p>@ProductText["Drink.InventoryDescription"]</p>
             </div>
-            <span>@totalFilteredDrinks kết quả</span>
+            <span>@ProductText["Common.Results", totalFilteredDrinks]</span>
         </div>
         <div class="table-responsive">
             <table class="table align-middle mb-0 drink-table" id="datatablesSimple">
                 <thead>
                     <tr>
                         <th class="drink-check-cell">
-                            <input type="checkbox" aria-label="Chọn tất cả đồ uống" />
+                            <input type="checkbox" aria-label="@ProductText["Drink.SelectAll"]" />
                         </th>
-                        <th class="text-center">Hình ảnh</th>
-                        <th class="text-center">Mã</th>
-                        <th>Tên nước uống</th>
-                        <th>Danh mục</th>
-                        <th>Loại sản phẩm</th>
-                        <th class="text-center">Trạng thái</th>
-                        <th class="text-center">Thao tác</th>
+                        <th class="text-center">@ProductText["Drink.Image"]</th>
+                        <th class="text-center">@ProductText["Drink.Code"]</th>
+                        <th>@ProductText["Drink.Name"]</th>
+                        <th>@ProductText["Drink.Category"]</th>
+                        <th>@ProductText["Drink.Type"]</th>
+                        <th class="text-center">@ProductText["Common.Status"]</th>
+                        <th class="text-center">@ProductText["Common.Actions"]</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -178,8 +181,8 @@
                         <tr>
                             <td colspan="8" class="drink-empty-state">
                                 <span class="drink-empty-icon"><i class="fas fa-martini-glass-citrus"></i></span>
-                                <strong>Không tìm thấy đồ uống phù hợp</strong>
-                                <small>Thử đổi từ khóa hoặc trạng thái lọc để xem thêm kết quả.</small>
+                                <strong>@ProductText["Drink.EmptyTitle"]</strong>
+                                <small>@ProductText["Drink.EmptyHint"]</small>
                             </td>
                         </tr>
                     }
@@ -188,10 +191,10 @@
                     {
                         <tr>
                             <td class="drink-check-cell">
-                                <input type="checkbox" aria-label="Chọn @item.Name" />
+                                <input type="checkbox" aria-label="@ProductText["Drink.SelectOne", item.Name]" />
                             </td>
 
-                            <td data-label="Hình ảnh" class="text-center">
+                            <td data-label="@ProductText["Drink.Image"]" class="text-center">
                                 <div class="drink-image-box">
                                     <img src="@item.ImageUrl" alt="@item.Name" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
                                     <div class="drink-image-fallback" style="display:none; width:100%; height:100%; align-items:center; justify-content:center; background:#f8f3ef; color:#8b6b55; font-size:16px;">
@@ -200,46 +203,46 @@
                                 </div>
                             </td>
 
-                            <td class="text-center" data-label="Mã">
+                            <td class="text-center" data-label="@ProductText["Drink.Code"]">
                                 <span class="drink-badge drink-badge-type">
                                     @item.DrinkCode
                                 </span>
                             </td>
 
-                            <td data-label="Tên nước uống">
+                            <td data-label="@ProductText["Drink.Name"]">
                                 <div class="drink-name">@item.Name</div>
                             </td>
 
-                            <td data-label="Danh mục">
+                            <td data-label="@ProductText["Drink.Category"]">
                                 <span class="drink-badge drink-badge-category">
                                     @item.CategoryName
                                 </span>
                             </td>
 
-                            <td data-label="Loại sản phẩm">
+                            <td data-label="@ProductText["Drink.Type"]">
                                 <span class="drink-badge drink-badge-type">
                                     @item.ProductTypeName
                                 </span>
                             </td>
 
-                            <td data-label="Trạng thái" class="text-center">
+                            <td data-label="@ProductText["Common.Status"]" class="text-center">
                                 @if (item.Active)
                                 {
                                     <span class="drink-status-badge active">
                                         <span></span>
-                                        Đang bán
+                                        @ProductText["Drink.Selling"]
                                     </span>
                                 }
                                 else
                                 {
                                     <span class="drink-status-badge inactive">
                                         <span></span>
-                                        Ngừng bán
+                                        @ProductText["Drink.Paused"]
                                     </span>
                                 }
                             </td>
 
-                            <td class="text-center" data-label="Thao tác">
+                            <td class="text-center" data-label="@ProductText["Common.Actions"]">
                                 <div class="drink-action-group">
                                     @if (canUpdateImage)
                                     {
@@ -247,7 +250,7 @@
                                             class="btn drink-action-btn is-secondary btn-manage-images"
                                             data-id="@item.DrinkId"
                                             data-name="@item.Name"
-                                            title="Quản lý ảnh">
+                                            title="@ProductText["Drink.ManageImages"]">
                                         <i class="fas fa-images"></i>
                                     </button>
                                     }
@@ -257,7 +260,7 @@
                                     <a asp-action="Edit"
                                        asp-route-id="@item.DrinkId"
                                        class="btn drink-action-btn is-edit"
-                                       title="Sửa đồ uống">
+                                       title="@ProductText["Drink.Edit"]">
                                         <i class="fas fa-pen"></i>
                                     </a>
                                     }
@@ -267,7 +270,7 @@
                                     <button type="button"
                                             class="btn drink-action-btn js-toggle-drink @(item.Active ? "is-lock" : "is-unlock")"
                                             data-id="@item.DrinkId"
-                                            title="@(item.Active ? "Ngừng bán" : "Mở bán lại")">
+                                            title="@(item.Active ? ProductText["Drink.Paused"] : ProductText["Drink.Resume"])">
                                         <i class="fas @(item.Active ? "fa-pause" : "fa-play")"></i>
                                     </button>
                                     }
@@ -281,10 +284,10 @@
 
         <div class="drink-table-footer">
             <span>
-                Hiển thị @startItem-@endItem trong số @totalFilteredDrinks
+                @ProductText["Drink.Range", startItem, endItem, totalFilteredDrinks]
             </span>
 
-            <div class="drink-pagination" aria-label="Phân trang đồ uống">
+            <div class="drink-pagination" aria-label="@ProductText["Drink.Pagination"]">
                 <a asp-action="Index"
                    asp-route-keyword="@filter.Keyword"
                    asp-route-active="@filter.Active"
@@ -360,7 +363,7 @@
                 <div class="drink-image-modal-title">
                     <span class="drink-image-modal-icon"><i class="fas fa-images"></i></span>
                     <div>
-                        <h5 class="modal-title">Quản lý ảnh</h5>
+                        <h5 class="modal-title">@ProductText["Drink.ManageImages"]</h5>
                         <p id="modalDrinkName"></p>
                     </div>
                 </div>
@@ -373,8 +376,8 @@
                     <div class="drink-image-upload-heading">
                         <span><i class="fas fa-cloud-arrow-up"></i></span>
                         <div>
-                            <h6>Thêm ảnh mới</h6>
-                            <p>Ảnh JPG hoặc PNG, nên sử dụng ảnh vuông để hiển thị đẹp nhất.</p>
+                            <h6>@ProductText["Drink.ImageAdd"]</h6>
+                            <p>@ProductText["Drink.ImageHint"]</p>
                         </div>
                     </div>
 
@@ -384,17 +387,17 @@
                                id="uploadImageInput"
                                accept=".jpg,.jpeg,.png" />
                         <label for="uploadImageInput" class="btn drink-image-file-label">
-                            <i class="fas fa-folder-open me-1"></i> Chọn ảnh
+                            <i class="fas fa-folder-open me-1"></i> @ProductText["Drink.ImageChoose"]
                         </label>
-                        <span class="drink-image-file-name" id="uploadFileName">Chưa chọn file nào</span>
+                        <span class="drink-image-file-name" id="uploadFileName">@ProductText["Drink.ImageNoFile"]</span>
                     </div>
 
                     <div class="drink-image-upload-actions d-flex align-items-center justify-content-between">
-                        <label class="drink-default-switch-label mb-0" title="Đặt ảnh này làm đại diện mặc định">
+                        <label class="drink-default-switch-label mb-0" title="@ProductText["Drink.ImageDefault"]">
                             <input type="checkbox" id="uploadDefaultSwitch" class="drink-default-switch-input" />
                             <span class="drink-default-switch-custom">
                                 <i class="far fa-star"></i>
-                                <span>Đặt làm mặc định</span>
+                                <span>@ProductText["Drink.ImageDefault"]</span>
                             </span>
                         </label>
                     </div>
@@ -404,12 +407,12 @@
                 <div class="drink-image-library-heading">
                     <div>
                         <i class="fas fa-layer-group"></i>
-                        <span>Thư viện ảnh</span>
+                        <span>@ProductText["Drink.ImageLibrary"]</span>
                     </div>
-                    <small>Chọn ảnh đại diện hoặc xóa ảnh</small>
+                    <small>@ProductText["Drink.ImageLibraryHint"]</small>
                 </div>
                 <div class="row g-3 drink-image-grid" id="imageListContainer">
-                    <div class="col-12 text-center text-muted">Đang tải...</div>
+                    <div class="col-12 text-center text-muted">@ProductText["Common.Loading"]</div>
                 </div>
             </div>
         </div>
@@ -424,8 +427,8 @@
                 <div class="drink-image-modal-title">
                     <span class="drink-image-modal-icon"><i class="fas fa-pen"></i></span>
                     <div>
-                        <h5 class="modal-title">Chỉnh sửa ảnh</h5>
-                        <p class="modal-header-subtitle">Thay thế ảnh hiện tại bằng ảnh mới</p>
+                        <h5 class="modal-title">@ProductText["Drink.ImageEditTitle"]</h5>
+                        <p class="modal-header-subtitle">@ProductText["Drink.ImageEditHint"]</p>
                     </div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -440,23 +443,23 @@
 
                     <div class="row g-4 align-items-center justify-content-center">
                         <div class="col-6 edit-image-col">
-                            <span class="edit-image-col-label">Ảnh hiện tại</span>
+                            <span class="edit-image-col-label">@ProductText["Drink.ImageCurrent"]</span>
                             <div class="edit-image-box-wrapper">
-                                <img id="editCurrentPreview" src="" alt="Ảnh hiện tại" />
+                                <img id="editCurrentPreview" src="" alt="@ProductText["Drink.ImageCurrent"]" />
                             </div>
                         </div>
                         <div class="col-6 edit-image-col">
-                            <span class="edit-image-col-label">Ảnh mới (xem trước)</span>
-                            <label for="editImageFileInput" class="m-0 p-0 d-block" style="cursor: pointer;" title="Bấm để chọn ảnh mới">
+                            <span class="edit-image-col-label">@ProductText["Drink.ImageNew"]</span>
+                            <label for="editImageFileInput" class="m-0 p-0 d-block" style="cursor: pointer;" title="@ProductText["Drink.ImageChooseNew"]">
                                 <div id="editNewPreviewPlaceholder" class="edit-image-picker-box">
                                     <i class="fas fa-folder-open"></i>
-                                    <span>Chọn ảnh mới</span>
+                                    <span>@ProductText["Drink.ImageChooseNew"]</span>
                                 </div>
                                 <div id="editNewPreviewWrapper" class="edit-image-box-wrapper" style="display: none;">
-                                    <img id="editNewPreview" src="" alt="Ảnh mới" />
+                                    <img id="editNewPreview" src="" alt="@ProductText["Drink.ImageNew"]" />
                                     <div class="edit-image-preview-overlay">
                                         <i class="fas fa-sync-alt"></i>
-                                        <span>Đổi ảnh khác</span>
+                                        <span>@ProductText["Drink.ImageChange"]</span>
                                     </div>
                                 </div>
                             </label>
@@ -464,9 +467,9 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn drink-modal-btn-cancel" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn drink-modal-btn-cancel" data-bs-dismiss="modal">@ProductText["Common.Cancel"]</button>
                     <button type="submit" class="btn drink-modal-btn-save" id="btnSaveEditImage">
-                        <i class="fas fa-save me-1"></i> Lưu thay đổi
+                        <i class="fas fa-save me-1"></i> @ProductText["Drink.ImageSave"]
                     </button>
                 </div>
             </form>
@@ -475,5 +478,6 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/Admin/Drink/drink.js"></script>
+    <partial name="_DrinkUiCatalog" />
+    <script src="~/js/Admin/Drink/drink.js" asp-append-version="true"></script>
 }

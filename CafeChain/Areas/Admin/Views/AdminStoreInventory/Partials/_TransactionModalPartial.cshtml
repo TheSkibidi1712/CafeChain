@@ -1,12 +1,14 @@
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<InventoryResource> L
 <div id="transactionModal" class="modal fade store-inventory-modal" tabindex="-1" aria-hidden="true" aria-labelledby="transactionModalTitle">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content cc-modal">
             <div class="modal-header">
-                <h3 id="transactionModalTitle" class="modal-title">Lịch sử giao dịch kho</h3>
+                <h3 id="transactionModalTitle" class="modal-title">@L["StoreInventory.Transaction.ModalTitle"]</h3>
                 <button type="button"
                         class="modal-close"
                         data-bs-dismiss="modal"
-                        aria-label="Đóng">
+                        aria-label="@L["Common.Close"]">
                     <i class="fa fa-times" aria-hidden="true"></i>
                 </button>
             </div>
@@ -14,8 +16,8 @@
             <div class="modal-body">
                 <div id="transactionContent" aria-live="polite" aria-atomic="true">
                     <div class="cc-loading-state" role="status">
-                        <h2>Đang tải lịch sử kho</h2>
-                        <p>Hệ thống đang lấy các giao dịch phù hợp với chi nhánh được chọn.</p>
+                        <h2>@L["StoreInventory.Transaction.ModalLoadingTitle"]</h2>
+                        <p>@L["StoreInventory.Transaction.ModalLoadingCopy"]</p>
                     </div>
                 </div>
             </div>

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { usePreferences } from '../contexts/PreferencesContext'
 import type { MenuItem, MenuItemSize, ToppingOption } from '../db/CafeChainPOSDB'
+import { useLocaleFormatters } from '../hooks/useLocaleFormatters'
 import type { IceLevelPercent } from '../utils/iceLevel'
 
 export type { MenuItem, ToppingOption }
@@ -25,9 +27,6 @@ interface ProductModifierModalProps {
   mode?: 'add' | 'edit'
 }
 
-const formatVND = (amount: number): string =>
-  new Intl.NumberFormat('vi-VN').format(amount) + 'đ'
-
 export default function ProductModifierModal({
   isOpen,
   onClose,
@@ -36,6 +35,8 @@ export default function ProductModifierModal({
   initialSelection = null,
   mode = 'add',
 }: ProductModifierModalProps) {
+  const { t } = usePreferences()
+  const { formatMoney } = useLocaleFormatters()
   const dialogRef = useRef<HTMLDivElement>(null)
   const buildDefaultToppings = (selectedSize: MenuItemSize | null) => {
     const policies = selectedSize?.toppingPolicies ?? []
@@ -184,7 +185,7 @@ export default function ProductModifierModal({
         type="button"
         className="absolute inset-0 cursor-default"
         onClick={onClose}
-        aria-label="Đóng tùy chọn món"
+        aria-label={t('modifier.close')}
       />
 
       <div
@@ -197,7 +198,7 @@ export default function ProductModifierModal({
         <div className="flex items-center justify-between border-b border-border bg-surface-white px-5 py-4">
           <div className="min-w-0">
             <p className="text-xs font-bold uppercase text-text-secondary">
-              {mode === 'edit' ? 'Chỉnh sửa món' : 'Tùy chọn món'}
+              {mode === 'edit' ? t('modifier.edit') : t('modifier.customize')}
             </p>
             <h2 id="modifier-dialog-title" className="truncate text-lg font-extrabold text-text-primary">
               {menuItem.name}
@@ -207,7 +208,7 @@ export default function ProductModifierModal({
             type="button"
             onClick={onClose}
             className="pos-touch-target flex items-center justify-center rounded-lg border border-border text-xl text-text-secondary hover:bg-surface-hover"
-            aria-label="Đóng"
+            aria-label={t('common.close')}
           >
             ×
           </button>
@@ -217,7 +218,7 @@ export default function ProductModifierModal({
           <div className="space-y-5">
             {sizes.length > 0 && (
               <section className="space-y-2" aria-labelledby="modifier-size-label">
-                <h3 id="modifier-size-label" className="text-sm font-bold text-text-secondary">Kích cỡ</h3>
+                <h3 id="modifier-size-label" className="text-sm font-bold text-text-secondary">{t('modifier.size')}</h3>
                 <div className="grid grid-cols-3 gap-2.5">
                   {sizes.map((option) => (
                     <button
@@ -226,7 +227,7 @@ export default function ProductModifierModal({
                       onClick={() => handleSizeChange(option)}
                       disabled={!option.isAvailable}
                       aria-pressed={size?.sizeId === option.sizeId}
-                      title={option.isAvailable ? option.sizeName : (option.availabilityReason ?? 'Tạm hết hàng')}
+                      title={option.isAvailable ? option.sizeName : (option.availabilityReason ?? t('modifier.soldOut'))}
                       className={`min-h-14 rounded-lg border px-2 py-2.5 text-sm font-bold transition-colors ${
                         !option.isAvailable
                           ? 'cursor-not-allowed border-border bg-surface-muted text-text-muted opacity-60'
@@ -236,7 +237,7 @@ export default function ProductModifierModal({
                       }`}
                     >
                       {option.sizeName}
-                      <span className="mt-0.5 block text-xs font-semibold tabular-nums">{formatVND(option.price)}</span>
+                      <span className="mt-0.5 block text-xs font-semibold tabular-nums">{formatMoney(option.price)}</span>
                     </button>
                   ))}
                 </div>
@@ -247,7 +248,7 @@ export default function ProductModifierModal({
               {size?.supportsIceCustomization && iceLevelPercent !== null && (
                 <IceOptionGroup value={iceLevelPercent} onChange={setIceLevelPercent} />
               )}
-              <OptionGroup label="Mức đường" value={sugar} onChange={setSugar} />
+              <OptionGroup label={t('modifier.sugar')} value={sugar} onChange={setSugar} />
             </div>
 
             {toppings.length > 0 && (
@@ -278,11 +279,11 @@ export default function ProductModifierModal({
                         <span className="min-w-0">
                           <span className="block text-sm font-bold text-text-primary">{topping.name}</span>
                           <span className="block text-xs font-semibold text-text-secondary">
-                            {isRequired ? 'Bắt buộc' : isSelected ? 'Đã chọn' : 'Chạm để chọn'}
+                            {isRequired ? t('modifier.required') : isSelected ? t('modifier.selected') : t('modifier.tapToSelect')}
                           </span>
                         </span>
                         <span className="shrink-0 text-sm font-extrabold text-brand-orange tabular-nums">
-                          {acceptedPrice === 0 ? 'Đã gồm' : `+${formatVND(acceptedPrice)}`}
+                          {acceptedPrice === 0 ? t('modifier.included') : `+${formatMoney(acceptedPrice)}`}
                         </span>
                       </button>
                     )
@@ -293,7 +294,7 @@ export default function ProductModifierModal({
 
             <section className="space-y-2" aria-labelledby="modifier-note-label">
               <div className="flex items-center justify-between gap-3">
-                <h3 id="modifier-note-label" className="text-sm font-bold text-text-secondary">Ghi chú cho quầy pha chế</h3>
+                <h3 id="modifier-note-label" className="text-sm font-bold text-text-secondary">{t('modifier.note')}</h3>
                 <span className="text-xs font-semibold text-text-muted">{customerNote.length}/160</span>
               </div>
               <textarea
@@ -301,7 +302,7 @@ export default function ProductModifierModal({
                 onChange={(event) => setCustomerNote(event.target.value)}
                 maxLength={160}
                 rows={3}
-                placeholder="Ví dụ: ít ngọt, mang riêng topping"
+                placeholder={t('modifier.notePlaceholder')}
                 className="w-full resize-none rounded-lg border border-border bg-white px-3 py-3 text-base text-text-primary outline-none focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20"
               />
             </section>
@@ -311,18 +312,18 @@ export default function ProductModifierModal({
         <div className="shrink-0 space-y-3 border-t border-border bg-surface p-4 pb-[max(16px,env(safe-area-inset-bottom))]">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="block text-xs font-bold text-text-secondary">Số lượng</span>
+              <span className="block text-xs font-bold text-text-secondary">{t('modifier.quantity')}</span>
               <div className="mt-1 flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setQuantity((current) => Math.max(1, current - 1))}
                   disabled={quantity <= 1}
                   className="pos-touch-target flex items-center justify-center rounded-lg border border-border bg-white text-lg font-bold text-text-secondary disabled:opacity-40"
-                  aria-label="Giảm số lượng"
+                  aria-label={t('modifier.decreaseQuantity')}
                 >
                   −
                 </button>
-                <span className="w-10 text-center text-base font-extrabold text-text-primary tabular-nums" aria-label={`Số lượng ${quantity}`}>
+                <span className="w-10 text-center text-base font-extrabold text-text-primary tabular-nums" aria-label={t('modifier.quantityValue', { quantity })}>
                   {quantity}
                 </span>
                 <button
@@ -330,15 +331,15 @@ export default function ProductModifierModal({
                   onClick={() => setQuantity((current) => Math.min(99, current + 1))}
                   disabled={quantity >= 99}
                   className="pos-touch-target flex items-center justify-center rounded-lg bg-brand-orange text-lg font-bold text-white hover:bg-brand-orange-hover disabled:opacity-40"
-                  aria-label="Tăng số lượng"
+                  aria-label={t('modifier.increaseQuantity')}
                 >
                   +
                 </button>
               </div>
             </div>
             <div className="text-right">
-              <span className="block text-xs font-bold text-text-secondary">Tạm tính</span>
-              <span className="text-xl font-extrabold text-brand-orange tabular-nums">{formatVND(totalPrice * quantity)}</span>
+              <span className="block text-xs font-bold text-text-secondary">{t('modifier.subtotal')}</span>
+              <span className="text-xl font-extrabold text-brand-orange tabular-nums">{formatMoney(totalPrice * quantity)}</span>
             </div>
           </div>
 
@@ -348,7 +349,7 @@ export default function ProductModifierModal({
               onClick={onClose}
               className="min-h-14 rounded-lg border border-brand-orange px-4 text-sm font-bold text-brand-orange hover:bg-brand-orange-light"
             >
-              Hủy
+              {t('common.cancel')}
             </button>
             <button
               type="button"
@@ -356,7 +357,7 @@ export default function ProductModifierModal({
               disabled={!size?.isAvailable}
               className="min-h-14 rounded-lg bg-brand-orange px-5 text-sm font-bold text-white shadow-[var(--shadow-button)] hover:bg-brand-orange-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {mode === 'edit' ? 'Cập nhật món' : `Thêm ${quantity} món`}
+              {mode === 'edit' ? t('modifier.update') : t('modifier.add', { quantity })}
             </button>
           </div>
         </div>
@@ -371,15 +372,16 @@ interface IceOptionGroupProps {
 }
 
 function IceOptionGroup({ value, onChange }: IceOptionGroupProps) {
+  const { t } = usePreferences()
   const options: Array<{ value: IceLevelPercent; label: string }> = [
-    { value: 0, label: 'Không đá' },
-    { value: 50, label: 'Ít đá' },
-    { value: 100, label: 'Đá bình thường' },
+    { value: 0, label: t('modifier.ice.none') },
+    { value: 50, label: t('modifier.ice.less') },
+    { value: 100, label: t('modifier.ice.normal') },
   ]
 
   return (
     <section className="space-y-2">
-      <h3 className="text-sm font-bold text-text-secondary">Mức đá</h3>
+      <h3 className="text-sm font-bold text-text-secondary">{t('modifier.ice')}</h3>
       <div className="grid grid-cols-3 gap-2">
         {options.map((option) => (
           <button

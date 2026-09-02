@@ -9,8 +9,10 @@ import PaymentResult from './pages/PaymentResult'
 import CustomerDisplay from './pages/CustomerDisplay'
 import PrinterStatusSimulator from './components/dev/PrinterStatusSimulator'
 import PosAccessGate from './components/PosAccessGate'
+import { usePreferences } from './contexts/PreferencesContext'
 
 function RootLayout() {
+  const { t } = usePreferences()
   const location = useLocation()
   const isSellingRoute = location.pathname === '/' || location.pathname === '/order'
 
@@ -21,7 +23,7 @@ function RootLayout() {
         href="#pos-main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-[80] focus:rounded-lg focus:bg-white focus:px-4 focus:py-3 focus:text-sm focus:font-bold focus:text-brand-orange"
       >
-        Bỏ qua điều hướng
+        {t('nav.skip')}
       </a>
       {!isSellingRoute && <TopNavbar />}
       <div className="flex-1 overflow-hidden">

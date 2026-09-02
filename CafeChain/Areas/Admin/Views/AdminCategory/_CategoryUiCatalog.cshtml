@@ -1,0 +1,9 @@
+@using System.Text.Json
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<CafeChain.SharedResource> SharedText
+@{
+    var catalog = JsonSerializer.Serialize(SharedText.GetAllStrings()
+        .Where(message => message.Name.StartsWith("Category.Js.", StringComparison.Ordinal) || message.Name == "Category.Form.Save" || message.Name == "Category.Form.Update" || message.Name == "Category.Form.AiChoose" || message.Name == "Common.Cancel")
+        .ToDictionary(message => message.Name, message => message.Value));
+}
+<script id="categoryUiCatalog" type="application/json">@Html.Raw(catalog)</script>

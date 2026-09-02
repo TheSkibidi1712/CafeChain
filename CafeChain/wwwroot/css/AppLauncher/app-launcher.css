@@ -6,11 +6,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
-    color-scheme: light;
+    color-scheme: dark;
 
     /* ── Color System: Saturated Lattes, Warm Sands & Mahogany ── */
-    --al-bg-page: #FAF5EE;        /* Creamy porcelain background */
-    --al-bg-decor: #F2E7DC;       /* Latte foam warm beige */
+    --al-bg-page: #1E0E08;        /* Deep roasted espresso */
+    --al-bg-decor: #2A1208;       /* Dark mahogany warm */
     --al-card-bg: #FFFFFF;        /* Solid white porcelain */
     --al-card-hover: #FFFDFB;     /* Warm white hover */
     --al-white: #FFFFFF;          /* Pure white text/bg */
@@ -27,9 +27,9 @@
     --al-gold-border: rgba(194, 162, 100, 0.28);
 
     /* Text */
-    --al-text-primary: #2A170F;   /* Espresso dark brown text */
-    --al-text-secondary: #6B554C; /* Warm mocha gray */
-    --al-text-muted: #9A867E;     /* Clay gray */
+    --al-text-primary: #F5ECD8;   /* Espresso dark brown text */
+    --al-text-secondary: #C4A882; /* Warm mocha gray */
+    --al-text-muted: #8A7460;     /* Clay gray */
     
     /* UI */
     --al-border: rgba(194, 162, 100, 0.22);
@@ -89,7 +89,7 @@ body {
     filter: blur(140px);
     animation: ambientFloat 40s infinite alternate ease-in-out;
     will-change: transform;
-    opacity: 0.35;
+    opacity: 0.55;
 }
 
 .launcher-circle--1 {
@@ -1374,5 +1374,81 @@ body::after {
 @media (max-width: 767.98px) {
     .launcher-header h1 {
         font-size: clamp(1.55rem, 7.2vw, 1.9rem);
+    }
+}
+
+/* Shared Appearance preference adapter. System resolves to light/dark on <html>. */
+.launcher-header-right {
+    display: grid;
+    justify-items: end;
+    gap: 12px;
+}
+
+.launcher-header-right .cc-appearance-controls {
+    justify-content: flex-end;
+}
+
+.launcher-header-right .cc-appearance-select {
+    border-color: rgba(248, 238, 230, .3);
+    background: rgba(255, 255, 255, .08);
+    color: #fffaf6;
+}
+
+.launcher-header-right .cc-appearance-select option {
+    background: var(--cc-surface, #fff);
+    color: var(--cc-text, #1f2937);
+}
+
+html[data-theme="light"] body {
+    color: #211713;
+    background: #f1eee9;
+}
+
+html[data-theme="light"] .launcher-bg-decor {
+    background: #f1eee9;
+}
+
+html[data-theme="light"] .launcher-bg-decor::before,
+html[data-theme="light"] .launcher-bg-decor::after,
+html[data-theme="light"] body::before,
+html[data-theme="light"] body::after,
+html[data-theme="light"] .launcher-circle {
+    display: none;
+}
+
+html[data-theme="light"] .launcher-header {
+    border-color: rgba(77, 48, 33, .18);
+    background: #3d2418;
+    box-shadow: 0 18px 42px rgba(61, 36, 24, .14);
+}
+
+html[data-theme="light"] .launcher-card,
+html[data-theme="light"] .launcher-empty-card,
+html[data-theme="light"] .launcher-status {
+    border-color: #d9cec5;
+    background: #fffdf9;
+    color: #211713;
+    box-shadow: 0 5px 16px rgba(52, 35, 27, .06);
+}
+
+html[data-theme="light"] .launcher-card:hover,
+html[data-theme="light"] .launcher-card:focus-visible {
+    border-color: #bda89a;
+    background: #fffaf4;
+    box-shadow: 0 12px 26px rgba(52, 35, 27, .1);
+}
+
+@media (max-width: 640px) {
+    .launcher-header-right {
+        justify-items: stretch;
+    }
+
+    .launcher-header-right .cc-appearance-controls {
+        justify-content: stretch;
+    }
+
+    .launcher-header-right .cc-appearance-select {
+        min-width: 0;
+        flex: 1;
     }
 }

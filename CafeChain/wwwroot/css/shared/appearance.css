@@ -1,0 +1,348 @@
+:root {
+    color-scheme: light;
+    --cc-canvas: #f7f4f0;
+    --cc-surface: #fffdfb;
+    --cc-surface-raised: #ffffff;
+    --cc-surface-muted: #f1ebe5;
+    --cc-surface-active: #ead9cc;
+    --cc-border: #e2d7ce;
+    --cc-border-strong: #c9b4a4;
+    --cc-text: #201812;
+    --cc-text-secondary: #66584f;
+    --cc-text-muted: #7a6c62;
+    --cc-text-disabled: #a99b90;
+    --cc-text-inverse: #fffaf6;
+    --cc-brown-950: #28160e;
+    --cc-brown-900: #3d2418;
+    --cc-brown-800: #543323;
+    --cc-brown-700: #70482f;
+    --cc-brown-600: #94613f;
+    --cc-brown-500: #b8794f;
+    --cc-brown-100: #ead9cc;
+    --cc-brown-50: #f6eee8;
+    --cc-success: #246b58;
+    --cc-success-bg: #e8f5f0;
+    --cc-success-border: #a9d5c7;
+    --cc-warning: #8a552e;
+    --cc-warning-bg: #fff4e8;
+    --cc-warning-border: #e8c39f;
+    --cc-danger: #b4232f;
+    --cc-danger-bg: #fff0f1;
+    --cc-danger-border: #e7afb4;
+    --cc-info: #28627f;
+    --cc-info-bg: #edf6fa;
+    --cc-info-border: #acd0df;
+    --cc-neutral: #59636f;
+    --cc-neutral-bg: #f1f3f5;
+    --cc-neutral-border: #cbd1d7;
+    --cc-overlay: rgb(32 24 18 / 56%);
+    --cc-shadow-xs: 0 2px 8px rgb(61 36 24 / 6%);
+    --cc-shadow-sm: 0 8px 22px rgb(61 36 24 / 9%);
+    --cc-shadow-md: 0 16px 38px rgb(61 36 24 / 12%);
+    --cc-shadow-lg: 0 24px 60px rgb(61 36 24 / 16%);
+    --cc-shadow-hover: 0 18px 40px rgb(61 36 24 / 15%);
+    --cc-focus-ring: 0 0 0 3px rgb(148 97 63 / 30%);
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --cc-canvas: #161310;
+    --cc-surface: #1d1916;
+    --cc-surface-raised: #25201c;
+    --cc-surface-muted: #211c18;
+    --cc-surface-active: #382a21;
+    --cc-border: #443a33;
+    --cc-border-strong: #665548;
+    --cc-text: #f5eee8;
+    --cc-text-secondary: #d2c4b9;
+    --cc-text-muted: #ad9e93;
+    --cc-text-disabled: #7f7269;
+    --cc-text-inverse: #17120f;
+    --cc-brown-950: #f8eee7;
+    --cc-brown-900: #f2dfd0;
+    --cc-brown-800: #e7c8b0;
+    --cc-brown-700: #d8aa87;
+    --cc-brown-600: #c98d62;
+    --cc-brown-500: #b8794f;
+    --cc-brown-100: #382a21;
+    --cc-brown-50: #211c18;
+    --cc-success: #7bc2a9;
+    --cc-success-bg: #18352d;
+    --cc-success-border: #356858;
+    --cc-warning: #e5ad75;
+    --cc-warning-bg: #3a291b;
+    --cc-warning-border: #735033;
+    --cc-danger: #ef9292;
+    --cc-danger-bg: #3d2020;
+    --cc-danger-border: #783c3c;
+    --cc-info: #9fc4df;
+    --cc-info-bg: #1b303e;
+    --cc-info-border: #3c6178;
+    --cc-neutral: #b8c0cb;
+    --cc-neutral-bg: #292f37;
+    --cc-neutral-border: #4d5662;
+    --cc-overlay: rgb(0 0 0 / 68%);
+    --cc-shadow-xs: 0 2px 8px rgb(0 0 0 / 20%);
+    --cc-shadow-sm: 0 8px 22px rgb(0 0 0 / 28%);
+    --cc-shadow-md: 0 16px 38px rgb(0 0 0 / 36%);
+    --cc-shadow-lg: 0 24px 60px rgb(0 0 0 / 44%);
+    --cc-shadow-hover: 0 18px 40px rgb(0 0 0 / 42%);
+    --cc-focus-ring: 0 0 0 3px rgb(216 170 135 / 38%);
+}
+
+.cc-appearance-controls {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin-right: .75rem;
+    min-width: 0;
+}
+
+.cc-appearance-select {
+    min-height: 36px;
+    padding: .35rem 1.8rem .35rem .65rem;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-radius: 999px;
+    background-color: var(--cc-surface-raised, #fff);
+    color: var(--cc-text, #201812);
+    font: inherit;
+    font-size: .78rem;
+    font-weight: 700;
+}
+
+.cc-theme-toggle {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .35rem .7rem;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-radius: 999px;
+    background: var(--cc-surface-raised, #fff);
+    color: var(--cc-text, #201812);
+    font: inherit;
+    font-size: .78rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.cc-theme-toggle:focus-visible {
+    outline: none;
+    box-shadow: var(--cc-focus-ring);
+}
+
+.auth-preference-controls {
+    position: fixed;
+    z-index: 10000;
+    top: 1.25rem;
+    right: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.auth-preference-controls .theme-toggle-btn {
+    position: static !important;
+    inset: auto !important;
+}
+
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] .main-content,
+:root[data-theme="dark"] .modal-content,
+:root[data-theme="dark"] .dropdown-menu,
+:root[data-theme="dark"] .offcanvas,
+:root[data-theme="dark"] .card,
+:root[data-theme="dark"] .table,
+:root[data-theme="dark"] .form-control,
+:root[data-theme="dark"] .form-select {
+    background-color: var(--cc-surface-raised) !important;
+    color: var(--cc-text) !important;
+    border-color: var(--cc-border) !important;
+}
+
+:root[data-theme="dark"] .table > :not(caption) > * > * {
+    background-color: transparent;
+    color: var(--cc-text);
+    border-color: var(--cc-border);
+}
+
+:root[data-theme="dark"] .text-dark { color: var(--cc-text) !important; }
+:root[data-theme="dark"] .text-muted { color: var(--cc-text-muted) !important; }
+:root[data-theme="dark"] .bg-white,
+:root[data-theme="dark"] .bg-light,
+:root[data-theme="dark"] .table-light { background-color: var(--cc-surface-raised) !important; }
+
+:root[data-theme="dark"] .select2-container--bootstrap-5 .select2-selection,
+:root[data-theme="dark"] .select2-dropdown,
+:root[data-theme="dark"] .select2-search__field,
+:root[data-theme="dark"] .swal2-popup,
+:root[data-theme="dark"] .swal2-input,
+:root[data-theme="dark"] .swal2-select,
+:root[data-theme="dark"] .cc-toast,
+:root[data-theme="dark"] #cc-confirm-box {
+    background: var(--cc-surface-raised) !important;
+    color: var(--cc-text) !important;
+    border-color: var(--cc-border) !important;
+}
+
+:root[data-theme="dark"] .select2-container--bootstrap-5 .select2-selection__rendered,
+:root[data-theme="dark"] .select2-results__option,
+:root[data-theme="dark"] .swal2-title,
+:root[data-theme="dark"] .swal2-html-container,
+:root[data-theme="dark"] .cc-toast-title,
+:root[data-theme="dark"] .cc-toast-msg,
+:root[data-theme="dark"] .cc-confirm-title,
+:root[data-theme="dark"] .cc-confirm-msg {
+    color: var(--cc-text) !important;
+}
+
+:root[data-theme="dark"] ::placeholder { color: var(--cc-text-muted) !important; opacity: 1; }
+:root[data-theme="dark"] :focus-visible { outline-color: var(--cc-brown-600); }
+
+.main-content,
+.admin-page-body,
+.admin-page-body > *,
+.ops-shell,
+.table-responsive,
+.modal-dialog,
+.modal-content {
+    min-width: 0;
+}
+
+img,
+svg,
+canvas {
+    max-width: 100%;
+}
+
+@media (max-width: 767.98px) {
+    .cc-appearance-controls {
+        margin-right: .25rem;
+    }
+
+    .cc-theme-toggle,
+    .cc-appearance-select {
+        max-width: 9.5rem;
+    }
+}
+
+/* Admin feature styles are intentionally loaded first. This final adapter keeps
+   legacy light-only surfaces readable without changing their layout contracts. */
+:root[data-theme="dark"] .admin-page-body,
+:root[data-theme="dark"] .analytics-page,
+:root[data-theme="dark"] .category-page {
+    background: var(--cc-canvas) !important;
+    color: var(--cc-text) !important;
+}
+
+:root[data-theme="dark"] .analytics-header,
+:root[data-theme="dark"] .analytics-filter,
+:root[data-theme="dark"] .analytics-panel,
+:root[data-theme="dark"] .analytics-widget,
+:root[data-theme="dark"] .dashboard-intelligence,
+:root[data-theme="dark"] .category-page-header,
+:root[data-theme="dark"] .category-summary-card,
+:root[data-theme="dark"] .category-search-row,
+:root[data-theme="dark"] .category-card,
+:root[data-theme="dark"] .category-list-heading,
+:root[data-theme="dark"] .category-table-footer {
+    background: var(--cc-surface-raised) !important;
+    color: var(--cc-text) !important;
+    border-color: var(--cc-border) !important;
+    box-shadow: var(--cc-shadow-sm) !important;
+}
+
+:root[data-theme="dark"] .analytics-header h1,
+:root[data-theme="dark"] .analytics-filter strong,
+:root[data-theme="dark"] .analytics-panel h1,
+:root[data-theme="dark"] .analytics-panel h2,
+:root[data-theme="dark"] .analytics-panel h3,
+:root[data-theme="dark"] .analytics-panel h4,
+:root[data-theme="dark"] .category-page-title,
+:root[data-theme="dark"] .category-list-heading h3,
+:root[data-theme="dark"] .category-name,
+:root[data-theme="dark"] .category-empty-state strong {
+    color: var(--cc-text) !important;
+    text-shadow: none !important;
+}
+
+:root[data-theme="dark"] .analytics-header p,
+:root[data-theme="dark"] .category-page-description,
+:root[data-theme="dark"] .category-list-heading p,
+:root[data-theme="dark"] .category-empty-state {
+    color: var(--cc-text-secondary) !important;
+}
+
+:root[data-theme="dark"] .analytics-filter__header,
+:root[data-theme="dark"] .analytics-filter input,
+:root[data-theme="dark"] .analytics-filter select,
+:root[data-theme="dark"] .analytics-tabs,
+:root[data-theme="dark"] .category-table thead th,
+:root[data-theme="dark"] .category-table-footer .pagination :is(.btn, .category-page-link) {
+    background: var(--cc-surface-muted) !important;
+    color: var(--cc-text) !important;
+    border-color: var(--cc-border) !important;
+}
+
+:root[data-theme="dark"] .analytics-filter input:focus,
+:root[data-theme="dark"] .analytics-filter select:focus,
+:root[data-theme="dark"] .category-search-field .category-input {
+    background: var(--cc-surface) !important;
+    color: var(--cc-text) !important;
+    border-color: var(--cc-border-strong) !important;
+}
+
+:root[data-theme="dark"] .analytics-tab {
+    color: var(--cc-text-secondary) !important;
+}
+
+:root[data-theme="dark"] .analytics-tab:is(:hover, .is-active) {
+    background: var(--cc-surface-active) !important;
+    color: var(--cc-text) !important;
+}
+
+:root[data-theme="dark"] .category-table,
+:root[data-theme="dark"] .category-table tbody,
+:root[data-theme="dark"] .category-table tbody tr,
+:root[data-theme="dark"] .category-table tbody td {
+    background: transparent !important;
+    color: var(--cc-text) !important;
+    border-color: var(--cc-border) !important;
+}
+
+:root[data-theme="dark"] .category-table tbody tr:hover {
+    background: var(--cc-surface-active) !important;
+}
+
+:root[data-theme="dark"] .category-icon-badge,
+:root[data-theme="dark"] .category-result-pill {
+    background: var(--cc-surface-active) !important;
+    color: var(--cc-text) !important;
+    border-color: var(--cc-border-strong) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .auth-preference-controls {
+        top: .75rem;
+        right: .75rem;
+    }
+
+    .auth-preference-controls .cc-appearance-select {
+        max-width: 112px;
+    }
+}
+
+@media print {
+    :root { color-scheme: light !important; }
+    .cc-appearance-controls { display: none !important; }
+}

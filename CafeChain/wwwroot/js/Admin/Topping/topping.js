@@ -5,6 +5,10 @@
 let currentToppingId = 0;
 let currentToppingName = "";
 let drinkModalInstance = null;
+const toppingCatalog = window.CafeChainUiCatalog.read("toppingUiCatalog");
+const toppingText = (key, values) => window.CafeChainUiCatalog.text(toppingCatalog, key, values);
+const toppingLocale = document.documentElement.dataset.culture || "vi-VN";
+const toppingCurrency = new Intl.NumberFormat(toppingLocale, { style: "currency", currency: "VND", maximumFractionDigits: 0 });
 
 // =====================================================
 // IMAGE CONFIG
@@ -46,8 +50,8 @@ async function readJsonResult(response) {
         return {
             success: false,
             message: response.ok
-                ? "Phản hồi từ máy chủ không hợp lệ"
-                : "Có lỗi xảy ra khi xử lý yêu cầu"
+                ? toppingText("Topping.Js.InvalidResponse")
+                : toppingText("Topping.Js.RequestFailed")
         };
     }
 
@@ -58,7 +62,7 @@ async function readJsonResult(response) {
 
         return {
             success: false,
-            message: result.message || "Có lỗi xảy ra"
+            message: result.message || toppingText("Topping.Js.GenericError")
         };
     }
 
@@ -108,13 +112,13 @@ document.addEventListener('DOMContentLoaded', function initToppingAiSuggestion()
     const clear = () => { suggestion = null; panel.classList.add('d-none'); };
 
     button.addEventListener('click', async () => {
-        if (!name.value.trim()) return showToast('Vui lòng nhập tên topping.', 'error');
-        if (price.value && Number(price.value) <= 0) return showToast('Giá topping không hợp lệ.', 'error');
+        if (!name.value.trim()) return showToast(toppingText("Topping.Js.NameRequired"), 'error');
+        if (price.value && Number(price.value) <= 0) return showToast(toppingText("Topping.Js.PriceInvalid"), 'error');
         controller?.abort();
         controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 15000);
         const original = button.innerHTML;
-        lockButton(button, 'Đang gợi ý...');
+        lockButton(button, toppingText("Topping.Js.AiLoading"));
         clear();
         try {
             const response = await fetch('/Admin/AdminTopping/AiSuggestion', {
@@ -124,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function initToppingAiSuggestion()
                 signal: controller.signal
             });
             const result = await readJsonResult(response);
-            if (!result.success) throw new Error(result.message || 'Không thể tạo gợi ý.');
+            if (!result.success) throw new Error(result.message || toppingText("Topping.Js.AiFailed"));
             suggestion = result.data;
             document.getElementById('toppingAiCode').textContent = suggestion.toppingCode;
             panel.classList.remove('d-none');
@@ -137,10 +141,10 @@ document.addEventListener('DOMContentLoaded', function initToppingAiSuggestion()
     });
     document.getElementById('btnApplyToppingAi').addEventListener('click', () => {
         if (!suggestion) return;
-        if (code.value.trim() && !window.confirm('Ghi đè mã topping hiện tại?')) return;
+        if (code.value.trim() && !window.confirm(toppingText("Topping.Js.AiOverwriteCode"))) return;
         code.value = suggestion.toppingCode;
         clear();
-        showToast('Đã điền mã gợi ý. Dữ liệu chưa được lưu.');
+        showToast(toppingText("Topping.Js.AiCodeApplied"));
     });
     document.getElementById('btnDismissToppingAi').addEventListener('click', clear);
     [name, price].forEach(x => x.addEventListener('input', clear));
@@ -186,10 +190,10 @@ document.addEventListener('DOMContentLoaded', function initFullToppingAiSuggesti
             renderSuggestion: (card, option) => {
                 const value = option.fields || {};
                 const title = document.createElement('strong');
-                title.textContent = option.title || value.name || 'Gợi ý topping';
+                title.textContent = option.title || value.name || toppingText("Topping.Js.AiTitle");
                 const meta = document.createElement('div');
                 meta.className = 'small text-muted mt-1';
-                meta.textContent = `${value.toppingCode || ''} · ${Number(value.price || 0).toLocaleString('vi-VN')} đ`;
+                meta.textContent = `${value.toppingCode || ''} · ${toppingCurrency.format(Number(value.price || 0))}`;
                 card.append(title, meta);
             },
             fileNamePrefix: option => option.fields?.toppingCode || 'topping_ai',
@@ -221,7 +225,7 @@ function validateName(name) {
     if (!name || !name.trim()) {
 
         toast(
-            "Tên topping không được để trống",
+            toppingText("Topping.Js.NameRequired"),
             "warning"
         );
 
@@ -231,7 +235,7 @@ function validateName(name) {
     if (name.trim().length > 100) {
 
         toast(
-            "Tên topping tối đa 100 ký tự",
+            toppingText("Topping.Js.NameMax"),
             "warning"
         );
 
@@ -246,7 +250,7 @@ function validateCode(code) {
     if (!code || !code.trim()) {
 
         toast(
-            "Mã topping không được để trống",
+            toppingText("Topping.Js.CodeRequired"),
             "warning"
         );
 
@@ -256,7 +260,7 @@ function validateCode(code) {
     if (code.trim().length > 50) {
 
         toast(
-            "Mã topping tối đa 50 ký tự",
+            toppingText("Topping.Js.CodeMax"),
             "warning"
         );
 
@@ -273,7 +277,7 @@ function validatePrice(price) {
     if (!value) {
 
         toast(
-            "Vui lòng nhập giá topping",
+            toppingText("Topping.Js.PriceRequired"),
             "warning"
         );
 
@@ -283,7 +287,7 @@ function validatePrice(price) {
     if (value < 1000) {
 
         toast(
-            "Giá topping phải lớn hơn hoặc bằng 1000",
+            toppingText("Topping.Js.PriceMinimum"),
             "warning"
         );
 
@@ -307,7 +311,7 @@ function validateImageFile(
         if (isRequired) {
 
             toast(
-                "Vui lòng chọn ảnh topping",
+                toppingText("Topping.Js.ImageRequired"),
                 "warning"
             );
 
@@ -320,7 +324,7 @@ function validateImageFile(
     if (file.size <= 0) {
 
         toast(
-            "File ảnh không hợp lệ",
+            toppingText("Topping.Js.ImageInvalid"),
             "warning"
         );
 
@@ -330,7 +334,7 @@ function validateImageFile(
     if (file.size > MAX_FILE_SIZE) {
 
         toast(
-            "Ảnh không được vượt quá 3MB",
+            toppingText("Topping.Js.ImageSize"),
             "warning"
         );
 
@@ -347,7 +351,7 @@ function validateImageFile(
     if (!ALLOWED_EXTENSIONS.includes(extension)) {
 
         toast(
-            "Chỉ chấp nhận JPG, JPEG, PNG hoặc WEBP",
+            toppingText("Topping.Js.ImageType"),
             "warning"
         );
 
@@ -357,7 +361,7 @@ function validateImageFile(
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
 
         toast(
-            "Định dạng ảnh không hợp lệ",
+            toppingText("Topping.Js.ImageFormat"),
             "warning"
         );
 
@@ -430,7 +434,7 @@ function removeCreateImage(event) {
     if (input) input.value = "";
     if (preview) preview.src = "";
     if (statusText) {
-        statusText.textContent = "Chưa chọn file nào";
+        statusText.textContent = toppingText("Topping.Js.NoFile");
         statusText.classList.remove("text-success", "fw-bold");
     }
     if (previewWrap) previewWrap.classList.add("d-none");
@@ -497,8 +501,8 @@ function previewEditImage(event) {
         event.target.value = "";
 
         if (fileNameSpan) {
-            fileNameSpan.textContent = "Chưa chọn tệp nào";
-            fileNameSpan.title = "Chưa chọn tệp nào";
+            fileNameSpan.textContent = toppingText("Topping.Js.NoFile");
+            fileNameSpan.title = toppingText("Topping.Js.NoFile");
         }
 
         return;
@@ -536,8 +540,8 @@ function removeEditImage() {
         document.getElementById("edit-image-file-name");
 
     if (fileNameSpan) {
-        fileNameSpan.textContent = "Chưa chọn tệp nào";
-        fileNameSpan.title = "Chưa chọn tệp nào";
+        fileNameSpan.textContent = toppingText("Topping.Js.NoFile");
+        fileNameSpan.title = toppingText("Topping.Js.NoFile");
     }
 
     const preview =
@@ -578,8 +582,8 @@ function openEditModal(id, code, name, price, imageUrl)
 
     const fileNameSpan = document.getElementById("edit-image-file-name");
     if (fileNameSpan) {
-        fileNameSpan.textContent = "Chưa chọn tệp nào";
-        fileNameSpan.title = "Chưa chọn tệp nào";
+        fileNameSpan.textContent = toppingText("Topping.Js.NoFile");
+        fileNameSpan.title = toppingText("Topping.Js.NoFile");
     }
 }
 
@@ -689,7 +693,7 @@ document.addEventListener(
 
                     lockButton(
                         btn,
-                        "Đang lưu..."
+                        toppingText("Topping.Js.Saving")
                     );
 
                     try {
@@ -718,7 +722,7 @@ document.addEventListener(
 
                             unlockButton(
                                 btn,
-                                '<i class="fas fa-save me-2"></i>Lưu thông tin'
+                                `<i class="fas fa-save me-2"></i>${toppingText("Topping.Js.Save")}`
                             );
 
                             return;
@@ -750,7 +754,7 @@ document.addEventListener(
 
                         unlockButton(
                             btn,
-                            '<i class="fas fa-save me-2"></i>Lưu thông tin'
+                            `<i class="fas fa-save me-2"></i>${toppingText("Topping.Js.Save")}`
                         );
                     }
                 });
@@ -802,7 +806,7 @@ document.addEventListener(
 
                     lockButton(
                         btn,
-                        "Đang lưu..."
+                        toppingText("Topping.Js.Saving")
                     );
 
                     try {
@@ -831,7 +835,7 @@ document.addEventListener(
 
                             unlockButton(
                                 btn,
-                                '<i class="fas fa-save me-2"></i>Lưu thay đổi'
+                                `<i class="fas fa-save me-2"></i>${toppingText("Topping.Js.SaveChanges")}`
                             );
 
                             return;
@@ -863,7 +867,7 @@ document.addEventListener(
 
                         unlockButton(
                             btn,
-                            '<i class="fas fa-save me-2"></i>Lưu thay đổi'
+                            `<i class="fas fa-save me-2"></i>${toppingText("Topping.Js.SaveChanges")}`
                         );
                     }
                 });
@@ -929,7 +933,7 @@ async function openDrinkModal(
     catch {
 
         toast(
-            "Không thể tải danh sách drink",
+            toppingText("Topping.Js.LoadDrinksFailed"),
             "error"
         );
     }
@@ -949,7 +953,7 @@ async function assignTopping(
         button.disabled = true;
 
         button.innerHTML =
-            '<i class="fas fa-spinner fa-spin me-1"></i>Đang gán';
+            `<i class="fas fa-spinner fa-spin me-1"></i>${toppingText("Topping.Js.Assigning")}`;
 
         const response =
             await fetch(
@@ -984,7 +988,7 @@ async function assignTopping(
             button.disabled = false;
 
             button.innerHTML =
-                "Gán";
+                toppingText("Topping.Js.Assign");
 
             return;
         }
@@ -999,14 +1003,14 @@ async function assignTopping(
     catch {
 
         toast(
-            "Có lỗi xảy ra",
+            toppingText("Topping.Js.GenericError"),
             "error"
         );
 
         button.disabled = false;
 
         button.innerHTML =
-            "Gán";
+            toppingText("Topping.Js.Assign");
     }
 }
 
@@ -1046,7 +1050,7 @@ async function toggleDrinkTopping(
         }
 
         toast(
-            "Thay đổi trạng thái thành công.",
+            toppingText("Topping.Js.StatusSuccess"),
             "success"
         );
 
@@ -1055,7 +1059,7 @@ async function toggleDrinkTopping(
     catch {
 
         toast(
-            "Có lỗi xảy ra",
+            toppingText("Topping.Js.GenericError"),
             "error"
         );
     }
@@ -1094,7 +1098,7 @@ async function reloadDrinkData() {
     catch {
 
         toast(
-            "Không thể tải lại dữ liệu",
+            toppingText("Topping.Js.ReloadFailed"),
             "error"
         );
     }
@@ -1111,17 +1115,17 @@ async function toggleTopping(
 
     if (window.Swal) {
         const result = await window.Swal.fire({
-            title: 'Xác nhận',
-            text: 'Bạn có chắc muốn thay đổi trạng thái topping này?',
+            title: toppingText("Topping.Js.ConfirmTitle"),
+            text: toppingText("Topping.Js.StatusConfirm"),
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#70482f',
             cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Đồng ý',
-            cancelButtonText: 'Hủy'
+            confirmButtonText: toppingText("Topping.Js.Confirm"),
+            cancelButtonText: toppingText("Common.Cancel")
         });
         if (!result.isConfirmed) return;
-    } else if (!confirm("Bạn có chắc muốn thay đổi trạng thái topping này?")) {
+    } else if (!confirm(toppingText("Topping.Js.StatusConfirm"))) {
         return;
     }
 
@@ -1131,7 +1135,7 @@ async function toggleTopping(
     if (!token) {
 
         showToast(
-            "Không tìm thấy token bảo mật",
+            toppingText("Topping.Js.SecurityTokenMissing"),
             "error"
         );
 
@@ -1160,7 +1164,7 @@ async function toggleTopping(
         if (!result.success) {
 
             showToast(
-                result.message || "Cập nhật trạng thái thất bại",
+                result.message || toppingText("Topping.Js.StatusFailed"),
                 "error"
             );
 
@@ -1168,7 +1172,7 @@ async function toggleTopping(
         }
 
         try {
-            sessionStorage.setItem('toast_message', 'Thay đổi trạng thái thành công.');
+            sessionStorage.setItem('toast_message', toppingText("Topping.Js.StatusSuccess"));
             sessionStorage.setItem('toast_type', 'success');
         } catch (e) {
             // Fallback
@@ -1179,7 +1183,7 @@ async function toggleTopping(
     catch {
 
         showToast(
-            "Có lỗi xảy ra",
+            toppingText("Topping.Js.GenericError"),
             "error"
         );
     }
@@ -1197,8 +1201,8 @@ function renderDrinkUI(drinks) {
     unassignedList.innerHTML = "";
 
     if (!drinks || drinks.length === 0) {
-        assignedList.innerHTML = `<div class="text-center py-4 text-muted small"><i class="fas fa-info-circle me-1"></i>Không có dữ liệu đồ uống</div>`;
-        unassignedList.innerHTML = `<div class="text-center py-4 text-muted small"><i class="fas fa-info-circle me-1"></i>Không có dữ liệu đồ uống</div>`;
+        assignedList.innerHTML = `<div class="text-center py-4 text-muted small"><i class="fas fa-info-circle me-1"></i>${toppingText("Topping.Js.NoDrinkData")}</div>`;
+        unassignedList.innerHTML = `<div class="text-center py-4 text-muted small"><i class="fas fa-info-circle me-1"></i>${toppingText("Topping.Js.NoDrinkData")}</div>`;
         return;
     }
 
@@ -1218,11 +1222,11 @@ function renderDrinkUI(drinks) {
     });
 
     if (!hasAssigned) {
-        assignedList.innerHTML = `<div class="text-center py-4 text-muted small"><i class="fas fa-inbox d-block fa-2x mb-2 opacity-50"></i>Chưa có đồ uống nào gán topping này</div>`;
+        assignedList.innerHTML = `<div class="text-center py-4 text-muted small"><i class="fas fa-inbox d-block fa-2x mb-2 opacity-50"></i>${toppingText("Topping.Js.NoAssigned")}</div>`;
     }
 
     if (!hasUnassigned) {
-        unassignedList.innerHTML = `<div class="text-center py-4 text-muted small"><i class="fas fa-check-circle d-block fa-2x mb-2 text-success opacity-50"></i>Tất cả đồ uống đã được gán topping</div>`;
+        unassignedList.innerHTML = `<div class="text-center py-4 text-muted small"><i class="fas fa-check-circle d-block fa-2x mb-2 text-success opacity-50"></i>${toppingText("Topping.Js.AllAssigned")}</div>`;
     }
 }
 
@@ -1239,13 +1243,13 @@ function createDrinkCard(drink) {
                 <img src="${imageUrl}" class="drink-img" alt="${drink.name}" />
                 <div class="drink-info">
                     <h6 class="fw-bold text-dark mb-1 text-truncate" title="${drink.name}">${drink.name}</h6>
-                    <small class="text-muted d-block text-truncate">${drink.categoryName || "Đồ uống"}</small>
+                    <small class="text-muted d-block text-truncate">${drink.categoryName || toppingText("Topping.Js.DrinkFallback")}</small>
                 </div>
                 <div class="drink-action">
                     <button class="btn btn-sm ${drink.active ? "btn-outline-danger" : "btn-outline-success"} text-nowrap px-2.5 py-1.5"
                             onclick="toggleDrinkTopping(${drink.drinkToppingId})"
-                            title="${drink.active ? "Ngừng sử dụng topping cho đồ uống này" : "Kích hoạt lại topping"}">
-                        <i class="fas ${drink.active ? "fa-ban" : "fa-check"} me-1"></i>${drink.active ? "Tắt" : "Bật"}
+                            title="${drink.active ? toppingText("Topping.Js.DisableHint") : toppingText("Topping.Js.EnableHint")}">
+                        <i class="fas ${drink.active ? "fa-ban" : "fa-check"} me-1"></i>${drink.active ? toppingText("Topping.Js.Disable") : toppingText("Topping.Js.Enable")}
                     </button>
                 </div>
             </div>
@@ -1257,12 +1261,12 @@ function createDrinkCard(drink) {
             <img src="${imageUrl}" class="drink-img" alt="${drink.name}" />
             <div class="drink-info">
                 <h6 class="fw-bold text-dark mb-1 text-truncate" title="${drink.name}">${drink.name}</h6>
-                <small class="text-muted d-block text-truncate">${drink.categoryName || "Đồ uống"}</small>
+                <small class="text-muted d-block text-truncate">${drink.categoryName || toppingText("Topping.Js.DrinkFallback")}</small>
             </div>
             <div class="drink-action">
                 <button class="btn btn-sm btn-orange text-nowrap px-3 py-1.5"
                         onclick="assignTopping(${drink.drinkId}, this)">
-                    <i class="fas fa-plus me-1"></i>Gán
+                    <i class="fas fa-plus me-1"></i>${toppingText("Topping.Js.Assign")}
                 </button>
             </div>
         </div>

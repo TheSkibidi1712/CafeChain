@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Production.Breadcrumb" xml:space="preserve"><value>Production / Bill of materials</value></data>
+  <data name="ProductionOrder.Title" xml:space="preserve"><value>Production orders</value></data>
+  <data name="ProductionOrder.PageTitle" xml:space="preserve"><value>Batch production orders</value></data>
+  <data name="ProductionOrder.Description" xml:space="preserve"><value>Track batch plans, actual output, variances, and progress against store demand.</value></data>
+  <data name="ProductionOrder.Capabilities" xml:space="preserve"><value>Production capacity</value></data>
+  <data name="ProductionOrder.Standalone" xml:space="preserve"><value>Standalone preparation</value></data>
+  <data name="ProductionOrder.Filter.Title" xml:space="preserve"><value>Operational filters</value></data>
+  <data name="ProductionOrder.Filter.Description" xml:space="preserve"><value>Narrow the list by store and processing status.</value></data>
+  <data name="Common.Store" xml:space="preserve"><value>Store</value></data>
+  <data name="Common.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Common.AllStatuses" xml:space="preserve"><value>All statuses</value></data>
+  <data name="Common.Apply" xml:space="preserve"><value>Apply</value></data>
+  <data name="Common.ResetFilters" xml:space="preserve"><value>Reset filters</value></data>
+  <data name="Common.Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Common.Details" xml:space="preserve"><value>Details</value></data>
+  <data name="ProductionOrder.List.Title" xml:space="preserve"><value>Production order list</value></data>
+  <data name="ProductionOrder.List.Description" xml:space="preserve"><value>Track the scale, expected output, and owner of each order.</value></data>
+  <data name="ProductionOrder.List.Count" xml:space="preserve"><value>{0} orders</value></data>
+  <data name="ProductionOrder.Column.Order" xml:space="preserve"><value>Order</value></data>
+  <data name="ProductionOrder.Column.Output" xml:space="preserve"><value>Output</value></data>
+  <data name="ProductionOrder.Column.Scale" xml:space="preserve"><value>Scale</value></data>
+  <data name="ProductionOrder.Column.ExpectedOutput" xml:space="preserve"><value>Expected output</value></data>
+  <data name="ProductionOrder.Column.Request" xml:space="preserve"><value>Request</value></data>
+  <data name="ProductionOrder.Column.CreatedBy" xml:space="preserve"><value>Created by</value></data>
+  <data name="ProductionOrder.Empty" xml:space="preserve"><value>No production orders match the filters.</value></data>
+  <data name="ProductionOrder.RestockDriven" xml:space="preserve"><value>Restock-driven</value></data>
+  <data name="ProductionOrder.RestockRequest" xml:space="preserve"><value>Restock request #{0}</value></data>
+  <data name="ProductionOrder.BatchCount" xml:space="preserve"><value>{0} batches</value></data>
+  <data name="ProductionOrder.RunFactor" xml:space="preserve"><value>{0} factor</value></data>
+  <data name="ProductionOrder.Pagination" xml:space="preserve"><value>Page {0} of {1}</value></data>
+  <data name="ProductionOrder.Pagination.Label" xml:space="preserve"><value>Production order pagination</value></data>
+  <data name="Common.PreviousPage" xml:space="preserve"><value>Previous page</value></data>
+  <data name="Common.NextPage" xml:space="preserve"><value>Next page</value></data>
+  <data name="ProductionOrder.Status.Confirmed" xml:space="preserve"><value>Confirmed</value></data>
+  <data name="ProductionOrder.Status.Completed" xml:space="preserve"><value>Completed</value></data>
+  <data name="ProductionOrder.Status.Planned" xml:space="preserve"><value>Planned</value></data>
+  <data name="ProductionOrder.Status.Released" xml:space="preserve"><value>Released</value></data>
+  <data name="ProductionOrder.Status.InProgress" xml:space="preserve"><value>In progress</value></data>
+  <data name="ProductionOrder.Status.AwaitingAcceptance" xml:space="preserve"><value>Awaiting acceptance</value></data>
+  <data name="ProductionOrder.Status.AwaitingVarianceApproval" xml:space="preserve"><value>Awaiting variance approval</value></data>
+  <data name="ProductionOrder.Status.Cancelled" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="Capabilities.Title" xml:space="preserve"><value>Prepared-item production capacity</value></data>
+  <data name="Capabilities.Description" xml:space="preserve"><value>Control which prepared items can be produced internally and which stores have the capacity to produce them.</value></data>
+  <data name="Capabilities.Filter.Title" xml:space="preserve"><value>Stores and prepared items</value></data>
+  <data name="Capabilities.Filter.Description" xml:space="preserve"><value>Enable chain-wide production first, then enable only the stores that can actually produce the item.</value></data>
+  <data name="Capabilities.PreparedItem" xml:space="preserve"><value>Prepared item</value></data>
+  <data name="Capabilities.SearchPlaceholder" xml:space="preserve"><value>Search by name or code</value></data>
+  <data name="Capabilities.ConfigurationTitle" xml:space="preserve"><value>Configuration at {0}</value></data>
+  <data name="Capabilities.ConfigurationDescription" xml:space="preserve"><value>Enabling store capacity only creates a zero-balance inventory identity; it does not receive stock or create cost.</value></data>
+  <data name="Capabilities.Count" xml:space="preserve"><value>{0} prepared items</value></data>
+  <data name="Capabilities.ChainWide" xml:space="preserve"><value>Chain-wide</value></data>
+  <data name="Capabilities.AtStore" xml:space="preserve"><value>At store</value></data>
+  <data name="Capabilities.InventoryIdentity" xml:space="preserve"><value>Inventory identity</value></data>
+  <data name="Capabilities.Empty" xml:space="preserve"><value>No matching prepared items were found.</value></data>
+  <data name="Capabilities.ItemMetadata" xml:space="preserve"><value>Code: {0} · Base unit: {1}</value></data>
+  <data name="Capabilities.Allowed" xml:space="preserve"><value>Production allowed</value></data>
+  <data name="Capabilities.NotAllowed" xml:space="preserve"><value>Not allowed</value></data>
+  <data name="Capabilities.DisableGlobal" xml:space="preserve"><value>Disable</value></data>
+  <data name="Capabilities.EnableGlobal" xml:space="preserve"><value>Allow production</value></data>
+  <data name="Capabilities.StoreEnabled" xml:space="preserve"><value>Enabled</value></data>
+  <data name="Capabilities.StoreDisabled" xml:space="preserve"><value>Not enabled</value></data>
+  <data name="Capabilities.DisableStore" xml:space="preserve"><value>Disable at store</value></data>
+  <data name="Capabilities.EnableStore" xml:space="preserve"><value>Enable at store</value></data>
+  <data name="Capabilities.GlobalRequired" xml:space="preserve"><value>Chain-wide production must be allowed first.</value></data>
+  <data name="Capabilities.InventoryReady" xml:space="preserve"><value>Ready</value></data>
+  <data name="Capabilities.InventoryMissing" xml:space="preserve"><value>Not initialized</value></data>
+  <data name="Common.Pagination" xml:space="preserve"><value>Pagination</value></data>
+  <data name="Common.PageOf" xml:space="preserve"><value>Page {0} / {1}</value></data>
+  <data name="Common.Previous" xml:space="preserve"><value>Previous</value></data>
+  <data name="Common.Next" xml:space="preserve"><value>Next</value></data>
+  <data name="Create.Title" xml:space="preserve"><value>Standalone preparation</value></data>
+  <data name="Create.Breadcrumb" xml:space="preserve"><value>Production / BOM</value></data>
+  <data name="Create.Description" xml:space="preserve"><value>Record preparation outside the restock workflow. The recipe factor scales every recipe input and output proportionally.</value></data>
+  <data name="Create.BackToList" xml:space="preserve"><value>Back to list</value></data>
+  <data name="Create.DetailsTitle" xml:space="preserve"><value>Preparation details</value></data>
+  <data name="Create.SelectStore" xml:space="preserve"><value>-- Select store --</value></data>
+  <data name="Create.PreparedItemName" xml:space="preserve"><value>Prepared item</value></data>
+  <data name="Create.SelectPreparedItem" xml:space="preserve"><value>-- Select prepared item --</value></data>
+  <data name="Create.OutputAtFactorOne" xml:space="preserve"><value>{0} at factor = 1</value></data>
+  <data name="Create.RecipeHelp" xml:space="preserve"><value>Only active prepared-item recipes are shown; counter-sale products and toppings cannot be used for preparation orders.</value></data>
+  <data name="Create.ExpectedSku" xml:space="preserve"><value>Expected SKU</value></data>
+  <data name="Create.AutoGenerated" xml:space="preserve"><value>Generated automatically...</value></data>
+  <data name="Create.RecipeFactor" xml:space="preserve"><value>Recipe factor</value></data>
+  <data name="Create.Meaning" xml:space="preserve"><value>Meaning</value></data>
+  <data name="Create.ScaleMeaning" xml:space="preserve"><value>Scale the recipe proportionally</value></data>
+  <data name="Create.Notes" xml:space="preserve"><value>Preparation instructions</value></data>
+  <data name="Create.NotesPlaceholder" xml:space="preserve"><value>For example: Mince thoroughly and monitor the temperature...</value></data>
+  <data name="Create.ScheduledAt" xml:space="preserve"><value>Scheduled time / Production date</value></data>
+  <data name="Create.BomTitle" xml:space="preserve"><value>Consumed ingredients (BOM)</value></data>
+  <data name="Create.AutoCalculated" xml:space="preserve"><value>Calculated automatically from the recipe</value></data>
+  <data name="Create.NotPreviewed" xml:space="preserve"><value>Not previewed</value></data>
+  <data name="Create.PreviewHelp" xml:space="preserve"><value>Select a store, prepared item, and recipe factor to validate readiness.</value></data>
+  <data name="Create.Column.Input" xml:space="preserve"><value>Input</value></data>
+  <data name="Create.Column.Required" xml:space="preserve"><value>Required</value></data>
+  <data name="Create.Column.OnHand" xml:space="preserve"><value>On hand</value></data>
+  <data name="Create.Column.Reserved" xml:space="preserve"><value>Reserved</value></data>
+  <data name="Create.Column.Available" xml:space="preserve"><value>Available</value></data>
+  <data name="Create.Column.Shortage" xml:space="preserve"><value>Shortage</value></data>
+  <data name="Create.Column.FifoCost" xml:space="preserve"><value>FIFO cost</value></data>
+  <data name="Create.SelectPrompt" xml:space="preserve"><value>Select a prepared item and enter a quantity</value></data>
+  <data name="Create.ResetForm" xml:space="preserve"><value>Reset form</value></data>
+  <data name="Create.PrintLabel" xml:space="preserve"><value>Print label</value></data>
+  <data name="Create.RecordOrder" xml:space="preserve"><value>Record preparation order</value></data>
+  <data name="Create.History.Title" xml:space="preserve"><value>Recent preparation history</value></data>
+  <data name="Create.History.Description" xml:space="preserve"><value>Only orders confirmed into inventory change the available quantity.</value></data>
+  <data name="Create.Column.Code" xml:space="preserve"><value>Order code</value></data>
+  <data name="Create.Column.Recipe" xml:space="preserve"><value>Recipe</value></data>
+  <data name="Create.Column.RecordedBy" xml:space="preserve"><value>Recorded by</value></data>
+  <data name="Create.Column.ConfirmedAt" xml:space="preserve"><value>Confirmed at</value></data>
+  <data name="Create.Column.Inventory" xml:space="preserve"><value>Inventory</value></data>
+  <data name="Create.Column.Cost" xml:space="preserve"><value>Cost</value></data>
+  <data name="Create.UnnamedRecipe" xml:space="preserve"><value>Unnamed recipe</value></data>
+  <data name="Create.StockApplied" xml:space="preserve"><value>Applied to inventory</value></data>
+  <data name="Create.StockNotApplied" xml:space="preserve"><value>Not applied to inventory</value></data>
+  <data name="Create.OutputQuantity" xml:space="preserve"><value>Output quantity: {0}</value></data>
+  <data name="Create.CostComplete" xml:space="preserve"><value>Cost calculated</value></data>
+  <data name="Create.CostPending" xml:space="preserve"><value>Cost pending</value></data>
+  <data name="Create.TotalCost" xml:space="preserve"><value>Total: {0}</value></data>
+  <data name="Create.UnitCost" xml:space="preserve"><value>Per unit: {0}</value></data>
+  <data name="Create.ApplyStock" xml:space="preserve"><value>Apply to inventory</value></data>
+  <data name="Create.EmptyHistory" xml:space="preserve"><value>No preparation orders yet.</value></data>
+  <data name="Create.Js.SearchPreparedItem" xml:space="preserve"><value>-- Search prepared items --</value></data>
+  <data name="Create.Js.Ready" xml:space="preserve"><value>Ready</value></data>
+  <data name="Create.Js.Blocked" xml:space="preserve"><value>Not ready</value></data>
+  <data name="Create.Js.Incomplete" xml:space="preserve"><value>Incomplete</value></data>
+  <data name="Create.Js.Error" xml:space="preserve"><value>Error</value></data>
+  <data name="Create.Js.Ingredient" xml:space="preserve"><value>Ingredient</value></data>
+  <data name="Create.Js.PreparedItem" xml:space="preserve"><value>Prepared item</value></data>
+  <data name="Create.Js.ChildRecipe" xml:space="preserve"><value>Component recipe</value></data>
+  <data name="Create.Js.Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="Create.Js.MissingInput" xml:space="preserve"><value>Missing input data.</value></data>
+  <data name="Create.Js.Checking" xml:space="preserve"><value>Checking readiness...</value></data>
+  <data name="Create.Js.CannotPreview" xml:space="preserve"><value>Unable to preview</value></data>
+  <data name="Create.Js.NoBomInputs" xml:space="preserve"><value>The recipe has no valid BOM inputs.</value></data>
+  <data name="Create.Js.SelectedRecipeVersion" xml:space="preserve"><value> · uses the selected recipe version</value></data>
+  <data name="Create.Js.WriterMode" xml:space="preserve"><value>Inventory recording mode:</value></data>
+  <data name="Create.Js.MaximumFactor" xml:space="preserve"><value>Maximum factor</value></data>
+  <data name="Create.Js.OutputAtOne" xml:space="preserve"><value>Output at factor = 1</value></data>
+  <data name="Create.Js.RawOutput" xml:space="preserve"><value>Unnormalized total output</value></data>
+  <data name="Create.Js.NormalizedOutput" xml:space="preserve"><value>Normalized total output</value></data>
+  <data name="Create.Js.EstimatedBomCost" xml:space="preserve"><value>Estimated BOM cost</value></data>
+  <data name="Create.Js.ProjectedFifo" xml:space="preserve"><value>Projected FIFO before completion</value></data>
+  <data name="Create.Js.MissingEvidence" xml:space="preserve"><value>Missing evidence</value></data>
+  <data name="Create.Js.ConnectionLoadError" xml:space="preserve"><value>Server connection error. Unable to load readiness.</value></data>
+  <data name="Create.Js.ConnectionError" xml:space="preserve"><value>Connection error</value></data>
+  <data name="Create.Js.ApplyTitle" xml:space="preserve"><value>Apply to inventory?</value></data>
+  <data name="Create.Js.ApplyDescription" xml:space="preserve"><value>The system will deduct ingredient/prepared-item inputs and add the prepared-item output using the recorded recipe.</value></data>
+  <data name="Create.Js.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Create.Js.Processing" xml:space="preserve"><value>Processing...</value></data>
+  <data name="Create.Js.AppliedReplay" xml:space="preserve"><value>Already applied (replay)</value></data>
+  <data name="Create.Js.Applied" xml:space="preserve"><value>Applied to inventory</value></data>
+  <data name="Create.Js.InventoryUpdated" xml:space="preserve"><value>Inventory has been updated.</value></data>
+  <data name="Create.Js.NotReadyTitle" xml:space="preserve"><value>Not ready</value></data>
+  <data name="Create.Js.NotReadyMessage" xml:space="preserve"><value>Resolve all readiness issues before recording the order.</value></data>
+  <data name="Create.Js.InvalidFactorTitle" xml:space="preserve"><value>Invalid recipe factor</value></data>
+  <data name="Create.Js.InvalidFactorMessage" xml:space="preserve"><value>The recipe factor must be greater than 0 and no more than 9999.</value></data>
+  <data name="Create.Js.RecordTitle" xml:space="preserve"><value>Record preparation order?</value></data>
+  <data name="Create.Js.RecordDescription" xml:space="preserve"><value>The system will record the order idempotently. Inventory is not updated at this step.</value></data>
+  <data name="Create.Js.Confirm" xml:space="preserve"><value>Confirm</value></data>
+  <data name="Create.Js.Recorded" xml:space="preserve"><value>Recorded</value></data>
+  <data name="Create.Js.RecordedMessage" xml:space="preserve"><value>The preparation order was recorded. Inventory has not been updated.</value></data>
+  <data name="Create.Js.Failed" xml:space="preserve"><value>Failed</value></data>
+  <data name="Create.Js.RecordFailed" xml:space="preserve"><value>Unable to record the order.</value></data>
+  <data name="Create.Js.NetworkError" xml:space="preserve"><value>Network error</value></data>
+  <data name="Create.Js.NetworkMessage" xml:space="preserve"><value>Unable to connect to the server. You can retry with the same request key.</value></data>
+  <data name="Create.Js.MissingCostLayer" xml:space="preserve"><value>Missing cost layer {quantity} {unit}</value></data>
+  <data name="Create.Js.LegacyWriterTitle" xml:space="preserve"><value>Inventory is not ready for recording</value></data>
+  <data name="Create.Js.LegacyWriterMessage" xml:space="preserve"><value>The store is using the legacy inventory writer. Complete the prepared-item migration before applying this order.</value></data>
+  <data name="Create.Js.WriterBlockedTitle" xml:space="preserve"><value>Prepared-item inventory is temporarily locked</value></data>
+  <data name="Create.Js.WriterBlockedMessage" xml:space="preserve"><value>Prepared-item inventory cannot be updated at this time. Contact a system administrator.</value></data>
+  <data name="Create.Js.ApplyFailedTitle" xml:space="preserve"><value>Unable to update inventory</value></data>
+  <data name="Create.Js.ApplyFailedMessage" xml:space="preserve"><value>The preparation order was not applied. Reload the data and try again.</value></data>
+  <data name="Create.Js.CostEvidenceTitle" xml:space="preserve"><value>Missing cost evidence</value></data>
+  <data name="Create.Js.CostEvidenceMessage" xml:space="preserve"><value>The order cannot be completed because input inventory does not have sufficient cost evidence.</value></data>
+  <data name="Create.Js.CostEvidenceLine" xml:space="preserve"><value>required {required}, available cost layers {available}, missing {missing}</value></data>
+  <data name="Create.Js.LegacyShortTitle" xml:space="preserve"><value>Prepared-item inventory not migrated</value></data>
+  <data name="Create.Js.BlockedShortTitle" xml:space="preserve"><value>Prepared-item inventory locked</value></data>
+  <data name="Details.PageTitle" xml:space="preserve"><value>Order PR-{0}</value></data>
+  <data name="Details.Eyebrow" xml:space="preserve"><value>Production / Bill of materials</value></data>
+  <data name="Details.Title" xml:space="preserve"><value>Production order PR-{0}</value></data>
+  <data name="Details.Description" xml:space="preserve"><value>{0} · {1}. Track the plan, actual figures, and next processing step.</value></data>
+  <data name="Details.List" xml:space="preserve"><value>Production orders</value></data>
+  <data name="Details.Back" xml:space="preserve"><value>Back to orders</value></data>
+  <data name="Details.Progress" xml:space="preserve"><value>Production order progress</value></data>
+  <data name="Details.Step.Plan" xml:space="preserve"><value>Plan</value></data>
+  <data name="Details.Step.Release" xml:space="preserve"><value>Release</value></data>
+  <data name="Details.Step.Produce" xml:space="preserve"><value>Produce</value></data>
+  <data name="Details.Step.Record" xml:space="preserve"><value>Record actuals</value></data>
+  <data name="Details.Step.Accept" xml:space="preserve"><value>Accept output</value></data>
+  <data name="Details.Step.Complete" xml:space="preserve"><value>Complete</value></data>
+  <data name="Details.Role.StoreManager" xml:space="preserve"><value>Store manager</value></data>
+  <data name="Details.Role.ShiftSupervisor" xml:space="preserve"><value>Shift supervisor</value></data>
+  <data name="Details.Role.Owner" xml:space="preserve"><value>Business owner</value></data>
+  <data name="Details.Next.Planned" xml:space="preserve"><value>The store manager checks ingredient readiness and releases the order.</value></data>
+  <data name="Details.Next.Released" xml:space="preserve"><value>The shift supervisor starts production at the store.</value></data>
+  <data name="Details.Next.InProgress" xml:space="preserve"><value>The shift supervisor confirms actual inputs and output after production.</value></data>
+  <data name="Details.Next.Variance" xml:space="preserve"><value>A variance above the threshold requires independent approval before accepting the output.</value></data>
+  <data name="Details.Next.Acceptance" xml:space="preserve"><value>The output has been recorded and is awaiting acceptance into store inventory.</value></data>
+  <data name="Details.Next.CompletedTitle" xml:space="preserve"><value>Order completed</value></data>
+  <data name="Details.Next.Completed" xml:space="preserve"><value>Accepted output was recorded in inventory. Actual figures and history remain available for reconciliation.</value></data>
+  <data name="Details.Next.CancelledTitle" xml:space="preserve"><value>Order cancelled</value></data>
+  <data name="Details.Next.Cancelled" xml:space="preserve"><value>No operational action remains. Review history for the actor and cancellation reason.</value></data>
+  <data name="Details.Next.Default" xml:space="preserve"><value>Review status and history to determine the appropriate next step.</value></data>
+  <data name="Details.Plan.Title" xml:space="preserve"><value>Plan and requirements</value></data>
+  <data name="Details.Plan.Batches" xml:space="preserve"><value>Planned batches</value></data>
+  <data name="Details.Plan.Factor" xml:space="preserve"><value>Recipe factor</value></data>
+  <data name="Details.Plan.PerBatch" xml:space="preserve"><value>Output per batch</value></data>
+  <data name="Details.Plan.Expected" xml:space="preserve"><value>Expected output</value></data>
+  <data name="Details.Plan.Tolerance" xml:space="preserve"><value>Variance threshold</value></data>
+  <data name="Details.Restock.Reference" xml:space="preserve"><value>Replenishment request</value></data>
+  <data name="Details.Restock.Requested" xml:space="preserve"><value>Requested</value></data>
+  <data name="Details.Restock.Fulfilled" xml:space="preserve"><value>Fulfilled</value></data>
+  <data name="Details.Restock.Remaining" xml:space="preserve"><value>Remaining</value></data>
+  <data name="Details.Input.Title" xml:space="preserve"><value>Actual inputs</value></data>
+  <data name="Details.Input.Help" xml:space="preserve"><value>FIFO uses the confirmed actual quantities</value></data>
+  <data name="Details.Input.Column" xml:space="preserve"><value>INPUT</value></data>
+  <data name="Details.Plan.Column" xml:space="preserve"><value>PLAN</value></data>
+  <data name="Details.Actual.Column" xml:space="preserve"><value>ACTUAL</value></data>
+  <data name="Details.NotConfirmed" xml:space="preserve"><value>Not confirmed</value></data>
+  <data name="Details.Output.Title" xml:space="preserve"><value>Actual output</value></data>
+  <data name="Details.Output.Produced" xml:space="preserve"><value>Produced</value></data>
+  <data name="Details.Output.Accepted" xml:space="preserve"><value>Accepted output</value></data>
+  <data name="Details.Output.Rejected" xml:space="preserve"><value>Rejected / waste</value></data>
+  <data name="Details.Output.Variance" xml:space="preserve"><value>Variance</value></data>
+  <data name="Details.Reason" xml:space="preserve"><value>Reason:</value></data>
+  <data name="Details.Actions.Title" xml:space="preserve"><value>Valid next actions</value></data>
+  <data name="Details.Actions.Release" xml:space="preserve"><value>Release order</value></data>
+  <data name="Details.Actions.Start" xml:space="preserve"><value>Start production</value></data>
+  <data name="Details.Actions.ApprovalNote" xml:space="preserve"><value>Approval note</value></data>
+  <data name="Details.Actions.Approve" xml:space="preserve"><value>Approve variance</value></data>
+  <data name="Details.Actions.Accept" xml:space="preserve"><value>Accept output into inventory</value></data>
+  <data name="Details.Actions.CancelReason" xml:space="preserve"><value>Cancellation reason</value></data>
+  <data name="Details.Actions.Cancel" xml:space="preserve"><value>Cancel order</value></data>
+  <data name="Details.Actions.ReadOnly" xml:space="preserve"><value>This page is read-only. The role identified above performs the next action.</value></data>
+  <data name="Details.Record.Title" xml:space="preserve"><value>Confirm actual inputs and output</value></data>
+  <data name="Details.Record.Input" xml:space="preserve"><value>{0} actual ({1})</value></data>
+  <data name="Details.Record.Planned" xml:space="preserve"><value>Planned: {0} {1}</value></data>
+  <data name="Details.Record.Produced" xml:space="preserve"><value>Total actual output ({0})</value></data>
+  <data name="Details.Record.Accepted" xml:space="preserve"><value>Accepted output ({0})</value></data>
+  <data name="Details.Record.Rejected" xml:space="preserve"><value>Rejected quantity ({0})</value></data>
+  <data name="Details.Record.VarianceReason" xml:space="preserve"><value>Variance reason</value></data>
+  <data name="Details.Record.VariancePlaceholder" xml:space="preserve"><value>Required when above tolerance or accepted output is zero</value></data>
+  <data name="Details.Record.Submit" xml:space="preserve"><value>Confirm actual figures</value></data>
+  <data name="Details.History.Title" xml:space="preserve"><value>Status history</value></data>
+  <data name="Details.History.Empty" xml:space="preserve"><value>No status transitions yet.</value></data>
+</root>

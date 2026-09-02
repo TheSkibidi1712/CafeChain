@@ -1,6 +1,8 @@
 @model CafeChain.Application.DTOs.Admin.InventoryThresholds.InventoryThresholdListResultDto
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<InventoryResource> L
 @{
-    ViewData["Title"] = "Ngưỡng tồn kho";
+    ViewData["Title"] = L["Threshold.Title"];
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var currentPage = Model.Page;
     var totalPages = Math.Max(1, (int)Math.Ceiling(Model.Total / (double)Math.Max(1, Model.PageSize)));
@@ -13,32 +15,32 @@
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
 
 <main class="ops-shell cc-warehouse-page">
-    <header class="ops-header cc-warehouse-header">
+    <header class="ops-header cc-warehouse-header inventory-threshold-header">
         <div>
-            <div class="ops-eyebrow">Kho &amp; Cung ứng</div>
-            <h1 class="ops-title"><i class="fa-solid fa-gauge-simple-high me-2 text-warning" aria-hidden="true"></i> Ngưỡng tồn kho</h1>
-            <p class="ops-subtitle">Thiết lập ngưỡng cảnh báo và mức tồn mục tiêu theo từng chi nhánh. Cảnh báo dùng <strong>Tồn khả dụng = Tồn vật lý − Giữ chỗ</strong> và chỉ phát sinh khi khả dụng thấp hơn ngưỡng.</p>
+            <div class="ops-eyebrow">@L["Common.InventorySupply"]</div>
+            <h1 class="ops-title"><i class="fa-solid fa-gauge-simple-high me-2 text-warning" aria-hidden="true"></i> @L["Threshold.Title"]</h1>
+            <p class="ops-subtitle">@L["Threshold.SubtitleBefore"] <strong>@L["Threshold.Formula"]</strong> @L["Threshold.SubtitleAfter"]</p>
         </div>
         <div class="ops-actions">
-            <a class="ops-btn" asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index"><i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i> Tồn kho</a>
-            <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Cảnh báo</a>
+            <a class="ops-btn" asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index"><i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i> @L["Common.Inventory"]</a>
+            <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> @L["Common.Alerts"]</a>
         </div>
     </header>
 
     @if (TempData["SuccessMessage"] != null) { <div class="ops-notice ops-notice-success" role="status">@TempData["SuccessMessage"]</div> }
     @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMessage"]</div> }
-    @if (!canEdit) { <div class="ops-notice ops-notice-info">Bạn đang ở chế độ chỉ xem. Chỉ vai trò quản lý có phạm vi phù hợp mới được cập nhật ngưỡng.</div> }
+    @if (!canEdit) { <div class="ops-notice ops-notice-info">@L["Threshold.ReadOnlyNotice"]</div> }
 
-    <section class="ops-metrics cc-warehouse-summary-grid" aria-label="Tóm tắt ngưỡng trên trang">
-        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">Mặt hàng theo bộ lọc</span><strong class="ops-metric-value">@Model.Total</strong></div>
-        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">Đã cấu hình trên trang</span><strong class="ops-metric-value success">@configured</strong></div>
-        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">Chưa cấu hình trên trang</span><strong class="ops-metric-value warning">@(Model.Items.Count - configured)</strong></div>
-        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">Đang dưới ngưỡng</span><strong class="ops-metric-value danger">@low</strong></div>
+    <section class="ops-metrics cc-warehouse-summary-grid" aria-label="@L["Threshold.SummaryAria"]">
+        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">@L["Threshold.FilteredItems"]</span><strong class="ops-metric-value">@Model.Total</strong></div>
+        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">@L["Threshold.ConfiguredPage"]</span><strong class="ops-metric-value success">@configured</strong></div>
+        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">@L["Threshold.UnconfiguredPage"]</span><strong class="ops-metric-value warning">@(Model.Items.Count - configured)</strong></div>
+        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">@L["Threshold.BelowThreshold"]</span><strong class="ops-metric-value danger">@low</strong></div>
     </section>
 
     @if (Model.Stores.Count > 0)
     {
-        <nav class="ops-store-tabs" aria-label="Chọn cửa hàng">
+        <nav class="ops-store-tabs" aria-label="@L["Common.SelectStore"]">
             @foreach (var store in Model.Stores)
             {
                 <a class="ops-tab @(store.StoreId == Model.SelectedStoreId ? "active" : "")" asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Index" asp-route-storeId="@store.StoreId" asp-route-search="@search">@store.StoreName</a>
@@ -49,25 +51,25 @@
     <form method="get" class="ops-filterbar cc-warehouse-filter">
         <input type="hidden" name="storeId" value="@Model.SelectedStoreId" />
         <div class="ops-filter-group">
-            <label class="visually-hidden" for="thresholdSearch">Tìm mặt hàng</label>
+            <label class="visually-hidden" for="thresholdSearch">@L["Common.SearchItems"]</label>
             <div class="ops-search-field">
                 <i class="fa-solid fa-magnifying-glass ops-search-icon" aria-hidden="true"></i>
-                <input id="thresholdSearch" type="text" name="search" value="@search" class="ops-input ops-search-input" style="padding-left: 38px !important;" placeholder="Tìm nguyên liệu hoặc bán thành phẩm..." />
+                <input id="thresholdSearch" type="text" name="search" value="@search" class="ops-input ops-search-input" style="padding-left: 38px !important;" placeholder="@L["Threshold.SearchPlaceholder"]" />
             </div>
-            <button type="submit" class="ops-btn ops-btn-primary"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Tìm</button>
+            <button type="submit" class="ops-btn ops-btn-primary"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> @L["Common.Search"]</button>
         </div>
-        <span class="ops-secondary">Cửa hàng đang chọn: #@Model.SelectedStoreId</span>
+        <span class="ops-secondary">@L["Threshold.SelectedStore", Model.SelectedStoreId]</span>
     </form>
 
     @if (Model.Items.Count == 0)
     {
         <section class="ops-empty cc-warehouse-empty" aria-labelledby="thresholdEmptyTitle">
             <span class="ops-empty-icon"><i class="fa-solid fa-sliders" aria-hidden="true"></i></span>
-            <h2 id="thresholdEmptyTitle" class="ops-empty-title">Không tìm thấy mặt hàng cần cấu hình</h2>
-            <p class="ops-empty-copy">Thử đổi từ khóa hoặc chọn cửa hàng khác. Mặt hàng chỉ xuất hiện khi tài khoản có phạm vi xem kho tương ứng.</p>
+            <h2 id="thresholdEmptyTitle" class="ops-empty-title">@L["Threshold.EmptyTitle"]</h2>
+            <p class="ops-empty-copy">@L["Threshold.EmptyCopy"]</p>
             <div class="ops-empty-actions">
-                <a class="ops-btn" asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Index" asp-route-storeId="@Model.SelectedStoreId">Xóa từ khóa</a>
-                <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index" asp-route-storeId="@Model.SelectedStoreId">Mở tồn kho cửa hàng</a>
+                <a class="ops-btn" asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Index" asp-route-storeId="@Model.SelectedStoreId">@L["Common.ClearSearch"]</a>
+                <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index" asp-route-storeId="@Model.SelectedStoreId">@L["Threshold.OpenStoreInventory"]</a>
             </div>
         </section>
     }
@@ -76,26 +78,26 @@
         <section class="ops-table-wrap cc-warehouse-table-shell">
             <div class="ops-table-scroll">
                 <table class="ops-table">
-                    <thead><tr><th>Mặt hàng</th><th>Loại</th><th class="number">Tồn vật lý</th><th class="number">Giữ chỗ</th><th class="number">Tồn khả dụng</th><th>Trạng thái</th><th class="number">Ngưỡng cảnh báo tồn thấp</th><th class="number">Mức tồn mục tiêu</th><th class="text-center">Thao tác</th></tr></thead>
+                    <thead><tr><th>@L["Common.Item"]</th><th>@L["Common.Type"]</th><th class="number">@L["Common.OnHand"]</th><th class="number">@L["Common.Reserved"]</th><th class="number">@L["Common.AvailableInventory"]</th><th>@L["Common.Status"]</th><th class="number">@L["Threshold.LowStockThreshold"]</th><th class="number">@L["Threshold.TargetStock"]</th><th class="text-center">@L["Common.Actions"]</th></tr></thead>
                     <tbody>
                     @foreach (var item in Model.Items)
                     {
                         var isOut = item.UsableQty <= 0;
                         var isLow = item.IsLow;
                         <tr>
-                            <td><div class="ops-item-name">@item.ItemName</div><div class="ops-secondary">ĐVT: @(item.UnitCode ?? "—")@(string.IsNullOrWhiteSpace(item.TechnicalCode) ? "" : $" · Mã: {item.TechnicalCode}")</div></td>
+                            <td><div class="ops-item-name">@item.ItemName</div><div class="ops-secondary">@L["Common.Unit"]: @(item.UnitCode ?? "—")@(string.IsNullOrWhiteSpace(item.TechnicalCode) ? "" : $" · {L["Common.Code"]}: {item.TechnicalCode}")</div></td>
                             <td>@item.ItemTypeLabel</td>
                             <td class="number">@item.OnHandQty.ToString("N3")</td>
                             <td class="number">@item.ReservedQty.ToString("N3")</td>
                             <td class="number fw-bold @(isOut ? "ops-text-danger" : "")">@item.UsableQty.ToString("N3")</td>
                             <td>
-                                @if (!item.ThresholdConfigured) { <span class="ops-badge ops-badge-neutral">Chưa cấu hình</span> }
-                                else if (isOut) { <span class="ops-badge ops-badge-danger">Hết khả dụng</span> }
-                                else if (isLow) { <span class="ops-badge ops-badge-warning">Dưới ngưỡng</span> }
-                                else { <span class="ops-badge ops-badge-success">Bình thường</span> }
+                                @if (!item.ThresholdConfigured) { <span class="ops-badge ops-badge-neutral">@L["Threshold.Status.Unconfigured"]</span> }
+                                else if (isOut) { <span class="ops-badge ops-badge-danger">@L["Threshold.Status.Out"]</span> }
+                                else if (isLow) { <span class="ops-badge ops-badge-warning">@L["Threshold.Status.Low"]</span> }
+                                else { <span class="ops-badge ops-badge-success">@L["Threshold.Status.Normal"]</span> }
                             </td>
                             <td class="number">@(item.MinStockLevel?.ToString("N3") ?? "—")</td>
-                            <td class="number">@(item.IsCanonicalPreparedItem ? item.TargetStockLevel?.ToString("N3") ?? "Chưa cấu hình" : "Không áp dụng")</td>
+                            <td class="number">@(item.IsCanonicalPreparedItem ? item.TargetStockLevel?.ToString("N3") ?? L["Threshold.Status.Unconfigured"] : L["Common.NotApplicable"])</td>
                             <td class="text-center">
                                 @if (canEdit)
                                 {
@@ -107,15 +109,15 @@
                                         <input type="hidden" name="search" value="@search" />
                                         <input type="hidden" name="page" value="@currentPage" />
                                         <input type="hidden" name="preparedItemPolicy" value="@(item.IsCanonicalPreparedItem ? "true" : "false")" />
-                                        <input type="number" name="minStockLevel" class="ops-input ops-quantity-input" step="0.001" min="0" value="@(item.MinStockLevel?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "")" aria-label="Ngưỡng cảnh báo tồn thấp cho @item.ItemName" placeholder="Ngưỡng" />
+                                        <input type="number" name="minStockLevel" class="ops-input ops-quantity-input" step="0.001" min="0" value="@(item.MinStockLevel?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "")" aria-label="@L["Threshold.LowAria", item.ItemName]" placeholder="@L["Threshold.ThresholdPlaceholder"]" />
                                         @if (item.IsCanonicalPreparedItem)
                                         {
-                                            <input type="number" name="targetStockLevel" class="ops-input ops-quantity-input" step="0.001" min="0" value="@(item.TargetStockLevel?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "")" aria-label="Mức tồn mục tiêu cho @item.ItemName" placeholder="Mục tiêu" />
+                                            <input type="number" name="targetStockLevel" class="ops-input ops-quantity-input" step="0.001" min="0" value="@(item.TargetStockLevel?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "")" aria-label="@L["Threshold.TargetAria", item.ItemName]" placeholder="@L["Threshold.TargetPlaceholder"]" />
                                         }
-                                        <button type="submit" class="ops-btn ops-btn-primary">Lưu</button>
+                                        <button type="submit" class="ops-btn ops-btn-primary">@L["Common.Save"]</button>
                                     </form>
                                 }
-                                else { <span class="ops-secondary">Chỉ xem</span> }
+                                else { <span class="ops-secondary">@L["Common.ReadOnly"]</span> }
                             </td>
                         </tr>
                     }
@@ -124,10 +126,10 @@
             </div>
         </section>
         <div class="ops-pagination">
-            <span>Trang @currentPage / @totalPages · Tổng @Model.Total mặt hàng</span>
+            <span>@L["Threshold.Pagination", currentPage, totalPages, Model.Total]</span>
             <div class="ops-page-links">
-                @if (currentPage > 1) { <a class="ops-btn" asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Index" asp-route-storeId="@Model.SelectedStoreId" asp-route-search="@search" asp-route-page="@(currentPage - 1)">Trước</a> }
-                @if (currentPage < totalPages) { <a class="ops-btn" asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Index" asp-route-storeId="@Model.SelectedStoreId" asp-route-search="@search" asp-route-page="@(currentPage + 1)">Sau</a> }
+                @if (currentPage > 1) { <a class="ops-btn" asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Index" asp-route-storeId="@Model.SelectedStoreId" asp-route-search="@search" asp-route-page="@(currentPage - 1)">@L["Common.Previous"]</a> }
+                @if (currentPage < totalPages) { <a class="ops-btn" asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Index" asp-route-storeId="@Model.SelectedStoreId" asp-route-search="@search" asp-route-page="@(currentPage + 1)">@L["Common.Next"]</a> }
             </div>
         </div>
     }

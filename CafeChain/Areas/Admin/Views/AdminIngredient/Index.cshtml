@@ -2,7 +2,10 @@
 @using System.Security.Claims
 @using CafeChain.Application.Constants
 @using CafeChain.Application.Interfaces.Admin.Permissions
+@using Microsoft.Extensions.Localization
+@using System.Text.Json
 @inject IAdminPermissionService IngredientPermissionService
+@inject IStringLocalizer<InventoryResource> L
 @{
     var accountId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var parsedAccountId)
         ? parsedAccountId : 0;
@@ -23,77 +26,77 @@
 
     <header class="ingredient-page-header cc-warehouse-header">
         <div class="ingredient-page-header-copy">
-            <p class="ingredient-eyebrow">Kho &amp; Cung ứng / Nguyên liệu</p>
-            <h1><i class="fa-solid fa-mortar-pestle me-2 text-warning" aria-hidden="true"></i>Quản lý nguyên liệu</h1>
-            <p class="ingredient-subtitle">Danh mục nguyên liệu, đơn vị gốc và quản lý liên kết quy đổi của hệ thống CafeChain.</p>
+            <p class="ingredient-eyebrow">@L["Ingredient.Eyebrow"]</p>
+            <h1><i class="fa-solid fa-mortar-pestle me-2 text-warning" aria-hidden="true"></i>@L["Ingredient.Title"]</h1>
+            <p class="ingredient-subtitle">@L["Ingredient.Subtitle"]</p>
         </div>
         @if (canCreate)
         {
             <button type="button" class="ingredient-btn ingredient-btn-primary" id="btnCreate">
                 <i class="fa-solid fa-plus" aria-hidden="true"></i>
-                Thêm nguyên liệu
+                @L["Ingredient.AddButton"]
             </button>
         }
     </header>
 
-    <div class="ingredient-toolbar cc-warehouse-filter" aria-label="Bộ lọc nguyên liệu">
+    <div class="ingredient-toolbar cc-warehouse-filter" aria-label="@L["Ingredient.FilterAria"]">
         <div class="ingredient-filter-heading">
             <div>
-                <span>Phạm vi dữ liệu</span>
-                <strong>Bộ lọc nguyên liệu</strong>
+                <span>@L["Ingredient.DataScope"]</span>
+                <strong>@L["Ingredient.FilterHeading"]</strong>
             </div>
-            <span class="ingredient-filter-scope"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i>Theo quyền truy cập</span>
+            <span class="ingredient-filter-scope"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i>@L["Ingredient.Scope"]</span>
         </div>
         <div class="ingredient-filter-grid">
             <label class="ingredient-search">
-                <span>Tìm kiếm nguyên liệu</span>
+                <span>@L["Ingredient.SearchLabel"]</span>
                 <span class="ingredient-search-control">
                     <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                    <input id="searchBox" value="@ViewBag.Search" type="search" placeholder="Nhập mã hoặc tên nguyên liệu..." autocomplete="off" />
+                    <input id="searchBox" value="@ViewBag.Search" type="search" placeholder="@L["Ingredient.SearchPlaceholder"]" autocomplete="off" />
                 </span>
             </label>
             <label class="ingredient-filter-field">
-                <span>Trạng thái</span>
+                <span>@L["Common.Status"]</span>
                 <select id="statusFilter">
-                    <option value="" selected="@(string.IsNullOrEmpty(ViewBag.Status?.ToString()))">Tất cả trạng thái</option>
-                    <option value="true" selected="@(ViewBag.Status?.ToString() == "True")">Hoạt động</option>
-                    <option value="false" selected="@(ViewBag.Status?.ToString() == "False")">Ngưng hoạt động</option>
+                    <option value="" selected="@(string.IsNullOrEmpty(ViewBag.Status?.ToString()))">@L["Common.AllStatuses"]</option>
+                    <option value="true" selected="@(ViewBag.Status?.ToString() == "True")">@L["Common.Active"]</option>
+                    <option value="false" selected="@(ViewBag.Status?.ToString() == "False")">@L["Common.Inactive"]</option>
                 </select>
             </label>
             <div class="ingredient-filter-actions">
-                <button type="button" class="ingredient-btn ingredient-btn-light" id="btnReset">Đặt lại</button>
+                <button type="button" class="ingredient-btn ingredient-btn-light" id="btnReset">@L["Common.Reset"]</button>
                 <button type="button" class="ingredient-btn ingredient-btn-primary" id="btnFilter">
                     <i class="fa-solid fa-filter" aria-hidden="true"></i>
-                    Lọc
+                    @L["Common.Filter"]
                 </button>
             </div>
         </div>
         <div class="ingredient-filter-result">
             <span class="ingredient-result-count">
-                Hiển thị <strong>@Model.Count</strong> nguyên liệu
+                @Html.Raw(L["Ingredient.ResultCount", Model.Count].Value)
                 @if (!string.IsNullOrEmpty(ViewBag.Search?.ToString()))
                 {
-                    <span> cho "<em>@ViewBag.Search</em>"</span>
+                    <span>@L["Ingredient.ResultSearchSuffix"] "<em>@ViewBag.Search</em>"</span>
                 }
             </span>
         </div>
     </div>
 
     <div class="ingredient-workspace">
-        <section class="ingredient-list-panel" aria-label="Danh sách nguyên liệu">
+        <section class="ingredient-list-panel" aria-label="@L["Ingredient.ListAria"]">
             <div class="ingredient-list-heading">
                 <div class="ingredient-list-heading-main">
                     <span class="ingredient-list-heading-icon" aria-hidden="true">
                         <i class="fa-solid fa-flask"></i>
                     </span>
                     <div class="ingredient-list-heading-copy">
-                        <span class="ingredient-list-kicker">Danh mục vật lý</span>
-                        <h2>Nguyên liệu trong hệ thống</h2>
+                        <span class="ingredient-list-kicker">@L["Ingredient.ListKicker"]</span>
+                        <h2>@L["Ingredient.ListHeading"]</h2>
                     </div>
                 </div>
-                <span class="ingredient-list-total" aria-label="Tổng cộng @Model.Count nguyên liệu">
+                <span class="ingredient-list-total" aria-label="@L["Ingredient.TotalAria", Model.Count]">
                     <strong>@Model.Count</strong>
-                    <span>Nguyên liệu</span>
+                    <span>@L["Ingredient.TotalLabel"]</span>
                 </span>
             </div>
 
@@ -108,11 +111,7 @@
                     </colgroup>
                     <thead>
                         <tr>
-                            <th>Mã NL</th>
-                            <th>Tên nguyên liệu</th>
-                            <th>Đơn vị gốc</th>
-                            <th class="text-center">Trạng thái</th>
-                            <th class="text-center">Thao tác</th>
+                            <th>@L["Ingredient.Col.Code"]</th><th>@L["Ingredient.Col.Name"]</th><th>@L["Ingredient.Col.Unit"]</th><th class="text-center">@L["Common.Status"]</th><th class="text-center">@L["Common.Actions"]</th>
                         </tr>
                     </thead>
                     <tbody id="ingredientTable">
@@ -133,7 +132,7 @@
                                 </td>
                                 <td class="text-center">
                                     <span class="ingredient-status @(item.Active ? "is-active" : "is-inactive")">
-                                        <i class="fa-solid fa-circle ingredient-status-dot" aria-hidden="true"></i> @(item.Active ? "Hoạt động" : "Ngưng")
+                                        <i class="fa-solid fa-circle ingredient-status-dot" aria-hidden="true"></i> @(item.Active ? L["Ingredient.RowStatus.Active"] : L["Ingredient.RowStatus.Inactive"])
                                     </span>
                                 </td>
                                 <td class="text-center">
@@ -142,19 +141,19 @@
                                         {
                                             <button type="button" class="ingredient-btn ingredient-btn-light edit-btn"
                                                     data-id="@item.IngredientId"
-                                                    title="Chỉnh sửa nguyên liệu @item.Name"
-                                                    aria-label="Chỉnh sửa @item.Name">
-                                                <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Sửa
+                                                    title="@L["Ingredient.EditTitle", item.Name]"
+                                                    aria-label="@L["Ingredient.EditAria", item.Name]">
+                                                <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> @L["Ingredient.Edit"]
                                             </button>
                                         }
                                         @if (canToggle)
                                         {
                                             <button type="button" class="ingredient-btn @(item.Active ? "ingredient-btn-danger" : "ingredient-btn-success") toggle-btn"
                                                     data-id="@item.IngredientId"
-                                                    title="@(item.Active ? "Ngưng hoạt động" : "Kích hoạt")"
-                                                    aria-label="@(item.Active ? "Ngưng hoạt động" : "Kích hoạt") @item.Name">
+                                                    title="@(item.Active ? L["Ingredient.Toggle.Inactive"] : L["Ingredient.Toggle.Active"])"
+                                                    aria-label="@L["Ingredient.ToggleAria", item.Active ? L["Ingredient.Toggle.Inactive"] : L["Ingredient.Toggle.Active"], item.Name]">
                                                 <i class="fa-solid @(item.Active ? "fa-ban" : "fa-circle-check")" aria-hidden="true"></i>
-                                                @(item.Active ? "Ngưng" : "Kích hoạt")
+                                                @(item.Active ? L["Ingredient.Toggle.Inactive"] : L["Ingredient.Toggle.Active"])
                                             </button>
                                         }
                                     </div>
@@ -166,8 +165,7 @@
                             <tr>
                                 <td colspan="5" class="ingredient-empty cc-warehouse-empty" role="status">
                                     <i class="fa-solid fa-box-open ingredient-empty-icon" aria-hidden="true"></i>
-                                    <h2>Chưa có nguyên liệu</h2>
-                                    <p>Thêm nguyên liệu đầu tiên để cấu hình đơn vị, nguồn cung và công thức.</p>
+                                    <h2>@L["Ingredient.EmptyTitle"]</h2><p>@L["Ingredient.EmptyCopy"]</p>
                                 </td>
                             </tr>
                         }
@@ -177,18 +175,18 @@
 
             @if (ViewBag.TotalPages > 1)
             {
-                <nav class="ingredient-pagination" aria-label="Phân trang nguyên liệu">
+                <nav class="ingredient-pagination" aria-label="@L["Ingredient.PaginationAria"]">
                     @if (ViewBag.Page > 1)
                     {
-                        <a class="ingredient-page-link" href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@(ViewBag.Page - 1)" title="Trang trước">
-                            <i class="fa-solid fa-chevron-left" aria-hidden="true"></i> Trước
+                        <a class="ingredient-page-link" href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@(ViewBag.Page - 1)" title="@L["Common.PreviousPage"]">
+                            <i class="fa-solid fa-chevron-left" aria-hidden="true"></i> @L["Common.Previous"]
                         </a>
                     }
-                    <span>Trang <strong>@ViewBag.Page</strong> / @ViewBag.TotalPages</span>
+                    <span>@Html.Raw(L["Ingredient.PageInfo", ViewBag.Page, ViewBag.TotalPages].Value)</span>
                     @if (ViewBag.Page < ViewBag.TotalPages)
                     {
-                        <a class="ingredient-page-link" href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@(ViewBag.Page + 1)" title="Trang sau">
-                            Sau <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                        <a class="ingredient-page-link" href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@(ViewBag.Page + 1)" title="@L["Common.NextPage"]">
+                            @L["Common.Next"] <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                         </a>
                     }
                 </nav>
@@ -207,9 +205,9 @@
                 <div class="ingredient-row-icon">
                     <i class="fas fa-flask" aria-hidden="true"></i>
                 </div>
-                <h5 id="modalTitle">Nguyên liệu</h5>
+                <h5 id="modalTitle">@L["Ingredient.ModalTitle"]</h5>
             </div>
-            <button type="button" class="close-btn" id="btnClose" data-bs-dismiss="modal" aria-label="Đóng hộp thoại nguyên liệu">
+            <button type="button" class="close-btn" id="btnClose" data-bs-dismiss="modal" aria-label="@L["Ingredient.ModalCloseAria"]">
                 <i class="fas fa-times" aria-hidden="true"></i>
             </button>
         </div>
@@ -219,37 +217,37 @@
 
             <div class="row g-3 mb-3">
                 <div class="col-md-4">
-                    <label class="form-label">Mã nguyên liệu <span class="text-danger">*</span></label>
-                    <input id="code" class="form-control" placeholder="VD: NL001" />
+                    <label class="form-label">@L["Ingredient.Col.Code"] <span class="text-danger">*</span></label>
+                    <input id="code" class="form-control" placeholder="@L["Ingredient.CodePlaceholder"]" />
                 </div>
                 <div class="col-md-8">
-                    <label class="form-label">Tên nguyên liệu <span class="text-danger">*</span></label>
-                    <input id="name" class="form-control" placeholder="Nhập tên nguyên liệu..." />
+                    <label class="form-label">@L["Ingredient.Col.Name"] <span class="text-danger">*</span></label>
+                    <input id="name" class="form-control" placeholder="@L["Ingredient.NamePlaceholder"]" />
                 </div>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Đơn vị gốc <span class="text-danger">*</span></label>
+                <label class="form-label">@L["Ingredient.Col.Unit"] <span class="text-danger">*</span></label>
                 <select id="baseUnitId" class="form-select">
-                    <option value="">-- Chọn đơn vị --</option>
+                    <option value="">@L["Ingredient.UnitSelectPlaceholder"]</option>
                 </select>
-                <div class="form-text"><i class="fas fa-info-circle me-1 text-warning"></i>Đây là đơn vị cơ sở để tính toán quy đổi.</div>
+                <div class="form-text"><i class="fas fa-info-circle me-1 text-warning"></i>@L["Ingredient.UnitHelp"]</div>
             </div>
 
             <div class="alert alert-light border mt-3 mb-0">
-                Quy đổi đơn vị được quản lý riêng để tránh thay đổi ngoài ý muốn khi sửa nguyên liệu.
+                @L["Ingredient.UnitManageNote"]
                 <a asp-controller="AdminUnitConversion" asp-action="Index" class="alert-link ms-1">
-                    Mở Đơn vị và quy đổi
+                    @L["Ingredient.UnitManageLink"]
                 </a>
             </div>
         </div>
 
         <div class="modal-footer">
             <button id="btnClose2" type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i> Đóng
+                <i class="fas fa-times me-1"></i> @L["Common.Cancel"]
             </button>
             <button type="button" id="btnSave" class="btn btn-primary px-4">
-                <i class="fas fa-save me-1"></i> Lưu nguyên liệu
+                <i class="fas fa-save me-1"></i> @L["Ingredient.SaveButton"]
             </button>
         </div>
     </div>
@@ -257,11 +255,14 @@
 </div>
 
 @section Scripts {
+    <script id="ingredient-ui-catalog" type="application/json">@Html.Raw(JsonSerializer.Serialize(L.GetAllStrings().Where(x => x.Name.StartsWith("Ingredient.Js.") || x.Name.StartsWith("Common.")).ToDictionary(x => x.Name, x => x.Value)))</script>
     <script>
+        const ingredientCatalog = CafeChainUiCatalog.read('ingredient-ui-catalog');
+        const ingredientText = (key, values) => CafeChainUiCatalog.text(ingredientCatalog, key, values);
         // Ghi đè hàm toast toàn cục: Bắt tín hiệu có thông báo thành công và lưu vào sessionStorage trước khi trình duyệt kịp reload
         var _originalToast = window.toast;
         window.toast = function(message, type, options) {
-            if (message && (message.includes('Đã cập nhật trạng thái') || type === 'success')) {
+            if (message && type === 'success') {
                 sessionStorage.setItem('showSuccessToast', message);
             }
             if (typeof _originalToast === 'function') {
@@ -278,7 +279,7 @@
                     _originalToast(msg, 'success');
                 } else if (typeof Swal !== 'undefined') {
                     Swal.fire({
-                        title: 'Thành công',
+                        title: ingredientText('Common.Success'),
                         text: msg,
                         icon: 'success',
                         timer: 2000,

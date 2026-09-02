@@ -1,7 +1,8 @@
 @model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferDetailVM
+@inject Microsoft.Extensions.Localization.IStringLocalizer<CafeChain.InventoryResource> InventoryText
 
 @{
-    ViewData["Title"] = $"Phiếu chuyển kho {Model.Code}";
+    ViewData["Title"] = InventoryText["Transfer.Detail.PageTitle", Model.Code];
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryTransfer/inventorytransfer.css" />
@@ -19,4 +20,5 @@
     </main>
 </div>
 
+<partial name="_InventoryTransferUiCatalog" />
 <script src="~/js/Admin/InventoryTransfer/inventorytransfer-detail.js" asp-append-version="true"></script>

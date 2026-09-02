@@ -1,0 +1,866 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Transfer.Index.Title" xml:space="preserve"><value>Phiếu chuyển kho</value></data>
+  <data name="Transfer.Index.Eyebrow" xml:space="preserve"><value>Kho &amp; Cung ứng / Phiếu chuyển kho</value></data>
+  <data name="Transfer.Index.Description" xml:space="preserve"><value>Theo dõi toàn bộ phiếu chuyển nguyên liệu giữa các chi nhánh.</value></data>
+  <data name="Transfer.Index.Create" xml:space="preserve"><value>Tạo phiếu chuyển kho</value></data>
+  <data name="Transfer.Index.QuickFilter" xml:space="preserve"><value>Bộ lọc nhanh</value></data>
+  <data name="Transfer.Index.Find" xml:space="preserve"><value>Tìm phiếu chuyển kho</value></data>
+  <data name="Transfer.Index.FilterHint" xml:space="preserve"><value>Thu hẹp dữ liệu theo mã, chi nhánh, trạng thái</value></data>
+  <data name="Transfer.Code" xml:space="preserve"><value>Mã phiếu</value></data>
+  <data name="Transfer.Index.CodePlaceholder" xml:space="preserve"><value>Nhập mã phiếu...</value></data>
+  <data name="Common.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Transfer.Index.AllStatuses" xml:space="preserve"><value>Tất cả trạng thái</value></data>
+  <data name="Transfer.SourceStore" xml:space="preserve"><value>Kho nguồn</value></data>
+  <data name="Transfer.Index.AllSourceStores" xml:space="preserve"><value>Tất cả kho nguồn</value></data>
+  <data name="Transfer.DestinationStore" xml:space="preserve"><value>Kho đích</value></data>
+  <data name="Transfer.Index.AllDestinationStores" xml:space="preserve"><value>Tất cả kho đích</value></data>
+  <data name="Common.Filter" xml:space="preserve"><value>Lọc</value></data>
+  <data name="Common.ClearFilters" xml:space="preserve"><value>Xóa lọc</value></data>
+  <data name="Transfer.Index.List" xml:space="preserve"><value>Danh sách phiếu</value></data>
+  <data name="Transfer.Index.Total" xml:space="preserve"><value>{0} phiếu chuyển kho</value></data>
+  <data name="Transfer.Purpose" xml:space="preserve"><value>Mục đích</value></data>
+  <data name="Transfer.CreatedBy" xml:space="preserve"><value>Người lập</value></data>
+  <data name="Transfer.DocumentDate" xml:space="preserve"><value>Ngày chứng từ</value></data>
+  <data name="Common.LineCount" xml:space="preserve"><value>Số dòng</value></data>
+  <data name="Common.Actions" xml:space="preserve"><value>Thao tác</value></data>
+  <data name="Transfer.Index.Empty" xml:space="preserve"><value>Chưa có phiếu chuyển kho.</value></data>
+  <data name="Common.CreatedAt" xml:space="preserve"><value>Ngày tạo {0}</value></data>
+  <data name="Common.View" xml:space="preserve"><value>Xem</value></data>
+  <data name="Common.Previous" xml:space="preserve"><value>Trước</value></data>
+  <data name="Common.Next" xml:space="preserve"><value>Sau</value></data>
+  <data name="Common.PageOf" xml:space="preserve"><value>Trang {0} / {1}</value></data>
+  <data name="Transfer.Status.DRAFT" xml:space="preserve"><value>Nháp</value></data>
+  <data name="Transfer.Status.COMPLETED" xml:space="preserve"><value>Hoàn tất</value></data>
+  <data name="Transfer.Status.CANCELLED" xml:space="preserve"><value>Đã hủy</value></data>
+  <data name="Transfer.Status.DISPATCHED" xml:space="preserve"><value>Đã xuất kho</value></data>
+  <data name="Transfer.Purpose.REPLENISHMENT" xml:space="preserve"><value>Bổ sung tồn kho</value></data>
+  <data name="Transfer.Purpose.BALANCING" xml:space="preserve"><value>Cân bằng tồn kho</value></data>
+  <data name="Transfer.Purpose.OTHER" xml:space="preserve"><value>Khác</value></data>
+  <data name="Transfer.Create.CheckStockFirst" xml:space="preserve"><value>Kiểm tra tồn kho trước khi xác nhận.</value></data>
+  <data name="Common.Cancel" xml:space="preserve"><value>Hủy</value></data>
+  <data name="Common.SaveDraft" xml:space="preserve"><value>Lưu nháp</value></data>
+  <data name="Transfer.Create.ConfirmDisabledTitle" xml:space="preserve"><value>Hoàn thành kiểm tra tồn kho để mở khóa nút này</value></data>
+  <data name="Transfer.Create.Confirm" xml:space="preserve"><value>Xác nhận chuyển kho</value></data>
+  <data name="Transfer.Create.LinesTitle" xml:space="preserve"><value>Chi tiết hàng chuyển</value></data>
+  <data name="Transfer.Create.SelectSourceToLoad" xml:space="preserve"><value>Chọn kho nguồn để tải nguyên liệu và bán thành phẩm.</value></data>
+  <data name="Common.AddLine" xml:space="preserve"><value>Thêm dòng</value></data>
+  <data name="Common.Item" xml:space="preserve"><value>Hàng hóa</value></data>
+  <data name="Common.Unit" xml:space="preserve"><value>ĐVT</value></data>
+  <data name="Transfer.Create.SourceStock" xml:space="preserve"><value>Tồn kho nguồn</value></data>
+  <data name="Transfer.Create.TransferQuantity" xml:space="preserve"><value>Số chuyển</value></data>
+  <data name="Transfer.Create.RemainingTitle" xml:space="preserve"><value>Số tồn còn lại ở kho nguồn sau khi chuyển</value></data>
+  <data name="Transfer.Create.Remaining" xml:space="preserve"><value>Còn lại sau chuyển</value></data>
+  <data name="Transfer.Create.NoItems" xml:space="preserve"><value>Chưa có hàng hóa.</value></data>
+  <data name="Common.GeneralInformation" xml:space="preserve"><value>Thông tin chung</value></data>
+  <data name="Transfer.Create.DocumentInformation" xml:space="preserve"><value>Thông tin phiếu</value></data>
+  <data name="Common.AutomaticCode" xml:space="preserve"><value>Mã tự động</value></data>
+  <data name="Common.AutomaticallyGenerated" xml:space="preserve"><value>Tự động sinh</value></data>
+  <data name="Transfer.Create.InventoryDocuments" xml:space="preserve"><value>Phiếu kho</value></data>
+  <data name="Transfer.Create.InterBranchTransfer" xml:space="preserve"><value>Điều chuyển kho liên chi nhánh</value></data>
+  <data name="Transfer.Create.Title" xml:space="preserve"><value>Điều chuyển kho</value></data>
+  <data name="Transfer.Create.Description" xml:space="preserve"><value>Chuyển nguyên liệu giữa các chi nhánh trong hệ thống</value></data>
+  <data name="Transfer.Create.BackToList" xml:space="preserve"><value>Danh sách chuyển kho</value></data>
+  <data name="Common.Note" xml:space="preserve"><value>Ghi chú</value></data>
+  <data name="Transfer.Create.NotePlaceholder" xml:space="preserve"><value>Bổ sung nguyên liệu cho chi nhánh trước dịp lễ...</value></data>
+  <data name="Transfer.Create.StoreSelection" xml:space="preserve"><value>Lựa chọn kho nguồn &amp; kho đích</value></data>
+  <data name="Transfer.Create.SelectSourceStore" xml:space="preserve"><value>Chọn kho nguồn</value></data>
+  <data name="Transfer.Create.Transfer" xml:space="preserve"><value>Chuyển</value></data>
+  <data name="Transfer.Create.SelectDestinationStore" xml:space="preserve"><value>Chọn kho đích</value></data>
+  <data name="Transfer.Detail.PageTitle" xml:space="preserve"><value>Phiếu chuyển kho {0}</value></data>
+  <data name="Transfer.Js.MissingEndpoint" xml:space="preserve"><value>Thiếu cấu hình endpoint: {name}.</value></data>
+  <data name="Transfer.Js.SelectSource" xml:space="preserve"><value>Chọn kho nguồn để tải nguyên liệu.</value></data>
+  <data name="Transfer.Js.LoadingItems" xml:space="preserve"><value>Đang tải nguyên liệu...</value></data>
+  <data name="Transfer.Js.AvailableItems" xml:space="preserve"><value>{count} mặt hàng có thể chuyển.</value></data>
+  <data name="Transfer.Js.LoadItemsFailed" xml:space="preserve"><value>Không tải được nguyên liệu.</value></data>
+  <data name="Transfer.Js.SelectItem" xml:space="preserve"><value>Chọn hàng hóa</value></data>
+  <data name="Transfer.Js.RemoveLine" xml:space="preserve"><value>Xóa dòng</value></data>
+  <data name="Transfer.Js.ExceedsSourceStock" xml:space="preserve"><value>Vượt tồn nguồn; xuất kho sẽ bị chặn.</value></data>
+  <data name="Transfer.Js.DraftSaved" xml:space="preserve"><value>Đã lưu nháp phiếu chuyển kho.</value></data>
+  <data name="Transfer.Js.SaveDraftFailed" xml:space="preserve"><value>Không lưu được phiếu chuyển kho.</value></data>
+  <data name="Transfer.Js.PreflightBlocked" xml:space="preserve"><value>Kiểm tra số lượng/FIFO chưa đạt; không thể xuất kho.</value></data>
+  <data name="Transfer.Js.TransferConfirmed" xml:space="preserve"><value>Đã xác nhận phiếu chuyển kho.</value></data>
+  <data name="Transfer.Js.ConfirmFailed" xml:space="preserve"><value>Không xác nhận được phiếu chuyển kho.</value></data>
+  <data name="Transfer.Js.PreflightFailed" xml:space="preserve"><value>Không chạy được kiểm tra số lượng/FIFO.</value></data>
+  <data name="Transfer.Js.SourceRequired" xml:space="preserve"><value>Vui lòng chọn kho nguồn.</value></data>
+  <data name="Transfer.Js.DestinationRequired" xml:space="preserve"><value>Vui lòng chọn kho đích.</value></data>
+  <data name="Transfer.Js.StoresMustDiffer" xml:space="preserve"><value>Kho nguồn và kho đích phải khác nhau.</value></data>
+  <data name="Transfer.Js.ItemRequired" xml:space="preserve"><value>Vui lòng thêm ít nhất một mặt hàng.</value></data>
+  <data name="Transfer.Js.SingleItemTypeRequired" xml:space="preserve"><value>Vui lòng chọn đúng một nguyên liệu hoặc bán thành phẩm.</value></data>
+  <data name="Transfer.Js.DuplicateItem" xml:space="preserve"><value>Mỗi mặt hàng chỉ được xuất hiện một lần.</value></data>
+  <data name="Transfer.Js.UnitRequired" xml:space="preserve"><value>Vui lòng chọn đơn vị tính.</value></data>
+  <data name="Transfer.Js.QuantityPositive" xml:space="preserve"><value>Số lượng chuyển phải lớn hơn 0.</value></data>
+  <data name="Transfer.Js.RequestFailed" xml:space="preserve"><value>Yêu cầu không thành công.</value></data>
+  <data name="Transfer.Js.NoItems" xml:space="preserve"><value>Chưa có hàng hóa.</value></data>
+  <data name="Transfer.Js.Ok" xml:space="preserve"><value>Đạt</value></data>
+  <data name="Transfer.Js.Exceeded" xml:space="preserve"><value>Vượt</value></data>
+  <data name="Transfer.Js.WarningLines" xml:space="preserve"><value>{count} dòng cần kiểm tra tồn kho trước khi xác nhận.</value></data>
+  <data name="Transfer.Js.CheckStockFirst" xml:space="preserve"><value>Kiểm tra tồn kho trước khi xác nhận.</value></data>
+  <data name="Transfer.Js.AutomaticCode" xml:space="preserve"><value>Tự động sinh</value></data>
+  <data name="Transfer.Js.PreparedItem" xml:space="preserve"><value>Bán thành phẩm</value></data>
+  <data name="Transfer.Js.Ingredient" xml:space="preserve"><value>Nguyên liệu</value></data>
+  <data name="Transfer.Js.ItemOption" xml:space="preserve"><value>[{type}] {name} - tồn {available} {unit}</value></data>
+  <data name="Transfer.Js.ResolutionExceedsPending" xml:space="preserve"><value>Số lượng nhận và từ chối vượt lượng còn đang xử lý.</value></data>
+  <data name="Transfer.Js.RejectionDetailsRequired" xml:space="preserve"><value>Hãy chọn loại và nhập lý do cho hàng bị từ chối.</value></data>
+  <data name="Transfer.Js.ResolutionQuantityRequired" xml:space="preserve"><value>Hãy nhập số lượng nhận hoặc từ chối.</value></data>
+  <data name="Transfer.Js.FollowUpQuantityRequired" xml:space="preserve"><value>Hãy nhập số lượng cần xử lý.</value></data>
+  <data name="Transfer.Js.ResolutionLineExceeded" xml:space="preserve"><value>Số lượng xử lý vượt giới hạn của dòng hàng.</value></data>
+  <data name="Transfer.Js.ResolutionReasonRequired" xml:space="preserve"><value>Lý do xử lý là bắt buộc.</value></data>
+  <data name="Transfer.Js.Recording" xml:space="preserve"><value>Đang ghi nhận...</value></data>
+  <data name="Transfer.Js.ResolutionFailed" xml:space="preserve"><value>Không thể xử lý điều chuyển kho.</value></data>
+  <data name="Transfer.Js.FollowUpCreated" xml:space="preserve"><value>Đã tạo phiếu gửi bù.</value></data>
+  <data name="Transfer.Js.RecordedSuccessfully" xml:space="preserve"><value>Đã ghi nhận thành công.</value></data>
+  <data name="Transfer.Detail.Breadcrumb" xml:space="preserve"><value>Chi tiết điều chuyển kho</value></data>
+  <data name="Transfer.Detail.Description" xml:space="preserve"><value>Phiếu chuyển kho liên chi nhánh trong hệ thống.</value></data>
+  <data name="Transfer.Detail.BackToList" xml:space="preserve"><value>Danh sách phiếu</value></data>
+  <data name="Transfer.Detail.CreateNew" xml:space="preserve"><value>Tạo phiếu mới</value></data>
+  <data name="Common.ReadOnly" xml:space="preserve"><value>Chỉ xem</value></data>
+  <data name="Transfer.Detail.Type" xml:space="preserve"><value>Loại phiếu</value></data>
+  <data name="Transfer.Type.TRANSFER" xml:space="preserve"><value>Điều chuyển kho</value></data>
+  <data name="Common.CreatedDate" xml:space="preserve"><value>Ngày lập</value></data>
+  <data name="Common.ConfirmedBy" xml:space="preserve"><value>Người xác nhận</value></data>
+  <data name="Common.ConfirmedDate" xml:space="preserve"><value>Ngày xác nhận</value></data>
+  <data name="Common.CancelledBy" xml:space="preserve"><value>Người hủy</value></data>
+  <data name="Common.CancelledDate" xml:space="preserve"><value>Ngày hủy</value></data>
+  <data name="Common.TechnicalInformation" xml:space="preserve"><value>Thông tin kỹ thuật</value></data>
+  <data name="Transfer.Detail.Flow" xml:space="preserve"><value>Luồng chuyển kho</value></data>
+  <data name="Transfer.Detail.SourceAndDestination" xml:space="preserve"><value>Kho nguồn và kho đích</value></data>
+  <data name="Transfer.Detail.NoteTitle" xml:space="preserve"><value>Ghi chú phiếu</value></data>
+  <data name="Common.NoNote" xml:space="preserve"><value>Không có ghi chú.</value></data>
+  <data name="Transfer.Detail.Timeline" xml:space="preserve"><value>Nhật ký xử lý</value></data>
+  <data name="Transfer.Detail.ReceiptAndDiscrepancy" xml:space="preserve"><value>Nhận hàng và chênh lệch</value></data>
+  <data name="Transfer.Detail.NoTimeline" xml:space="preserve"><value>Chưa có lần nhận hoặc xử lý chênh lệch.</value></data>
+  <data name="Common.System" xml:space="preserve"><value>Hệ thống</value></data>
+  <data name="Transfer.Type.STORE_TO_STORE" xml:space="preserve"><value>Chuyển giữa chi nhánh</value></data>
+  <data name="Transfer.Detail.ItemList" xml:space="preserve"><value>Danh sách nguyên liệu và bán thành phẩm</value></data>
+  <data name="Transfer.Detail.QuantityEvidenceHint" xml:space="preserve"><value>Số lượng theo nguồn chứng từ xuất kho, nhận hàng và sổ chênh lệch.</value></data>
+  <data name="Transfer.Detail.Requested" xml:space="preserve"><value>Yêu cầu</value></data>
+  <data name="Transfer.Detail.Dispatched" xml:space="preserve"><value>Đã xuất</value></data>
+  <data name="Transfer.Detail.Accepted" xml:space="preserve"><value>Đích nhận</value></data>
+  <data name="Transfer.Detail.Rejected" xml:space="preserve"><value>Từ chối</value></data>
+  <data name="Transfer.Detail.Returned" xml:space="preserve"><value>Hoàn nguồn</value></data>
+  <data name="Transfer.Detail.WrittenOff" xml:space="preserve"><value>Mất/hỏng</value></data>
+  <data name="Transfer.Detail.ClosedShortage" xml:space="preserve"><value>Đóng thiếu</value></data>
+  <data name="Transfer.Detail.Pending" xml:space="preserve"><value>Còn xử lý</value></data>
+  <data name="Transfer.Detail.NoItems" xml:space="preserve"><value>Phiếu chưa có hàng hóa.</value></data>
+  <data name="Transfer.Detail.RestockRequestNumber" xml:space="preserve"><value>Yêu cầu nhập hàng #{0}</value></data>
+  <data name="Transfer.Resolution.Title" xml:space="preserve"><value>Xử lý chênh lệch</value></data>
+  <data name="Transfer.Resolution.Heading" xml:space="preserve"><value>Tiếp tục nhận hoặc kết thúc phần đang vận chuyển</value></data>
+  <data name="Transfer.Resolution.CostHint" xml:space="preserve"><value>Mọi thao tác dùng đúng giá vốn từ lần xuất kho gốc.</value></data>
+  <data name="Transfer.Resolution.SelectAction" xml:space="preserve"><value>Chọn thao tác</value></data>
+  <data name="Transfer.Resolution.Receive" xml:space="preserve"><value>Nhận hàng tại kho đích</value></data>
+  <data name="Transfer.Resolution.RequestReturn" xml:space="preserve"><value>Yêu cầu hoàn trả kho nguồn</value></data>
+  <data name="Transfer.Resolution.ConfirmReturn" xml:space="preserve"><value>Xác nhận kho nguồn đã nhận lại</value></data>
+  <data name="Transfer.Resolution.WriteOff" xml:space="preserve"><value>Ghi nhận mất/hư hỏng</value></data>
+  <data name="Transfer.Resolution.CloseShortage" xml:space="preserve"><value>Đóng phần thiếu</value></data>
+  <data name="Transfer.Resolution.FollowUp" xml:space="preserve"><value>Tạo điều chuyển gửi bù</value></data>
+  <data name="Transfer.Resolution.Warning" xml:space="preserve"><value>Đóng chênh lệch chỉ kết thúc điều chuyển. Nhu cầu nhập hàng tại chi nhánh có thể vẫn còn thiếu.</value></data>
+  <data name="Transfer.Resolution.PendingValue" xml:space="preserve"><value>Còn xử lý {0} {1}</value></data>
+  <data name="Transfer.Resolution.Quantity" xml:space="preserve"><value>Số lượng</value></data>
+  <data name="Transfer.Resolution.Accepted" xml:space="preserve"><value>Nhận hợp lệ</value></data>
+  <data name="Transfer.Resolution.Rejected" xml:space="preserve"><value>Từ chối/hư hỏng</value></data>
+  <data name="Transfer.Resolution.DiscrepancyType" xml:space="preserve"><value>Loại chênh lệch</value></data>
+  <data name="Transfer.Resolution.SelectType" xml:space="preserve"><value>Chọn loại</value></data>
+  <data name="Transfer.Discrepancy.DAMAGED" xml:space="preserve"><value>Hư hỏng</value></data>
+  <data name="Transfer.Discrepancy.SHORTAGE" xml:space="preserve"><value>Giao thiếu</value></data>
+  <data name="Transfer.Discrepancy.QUALITY_REJECTED" xml:space="preserve"><value>Không đạt chất lượng</value></data>
+  <data name="Transfer.Resolution.RejectionReason" xml:space="preserve"><value>Lý do từ chối</value></data>
+  <data name="Transfer.Resolution.ConditionPlaceholder" xml:space="preserve"><value>Mô tả tình trạng</value></data>
+  <data name="Transfer.Resolution.ActionReason" xml:space="preserve"><value>Lý do / ghi chú thao tác</value></data>
+  <data name="Transfer.Resolution.ActionReasonPlaceholder" xml:space="preserve"><value>Bắt buộc với hoàn trả, mất/hư hỏng và đóng thiếu</value></data>
+  <data name="Transfer.Resolution.ConfirmAction" xml:space="preserve"><value>Xác nhận thao tác</value></data>
+  <data name="Common.InventorySupply" xml:space="preserve"><value>Kho &amp; Cung ứng</value></data>
+  <data name="Common.SelectedStore" xml:space="preserve"><value>cửa hàng đang chọn</value></data>
+  <data name="Common.ViewInventory" xml:space="preserve"><value>Xem tồn kho</value></data>
+  <data name="Common.RestockRequests" xml:space="preserve"><value>Yêu cầu nhập hàng</value></data>
+  <data name="Common.ViewRestockRequests" xml:space="preserve"><value>Xem yêu cầu bổ sung</value></data>
+  <data name="Common.SelectBranch" xml:space="preserve"><value>Chọn chi nhánh</value></data>
+  <data name="Common.Branch" xml:space="preserve"><value>Chi nhánh</value></data>
+  <data name="Common.Apply" xml:space="preserve"><value>Áp dụng</value></data>
+  <data name="Common.FilteredResults" xml:space="preserve"><value>Kết quả theo bộ lọc</value></data>
+  <data name="Common.All" xml:space="preserve"><value>Tất cả</value></data>
+  <data name="Common.OnHand" xml:space="preserve"><value>Tồn vật lý</value></data>
+  <data name="Common.Reserved" xml:space="preserve"><value>Giữ chỗ</value></data>
+  <data name="Common.Available" xml:space="preserve"><value>Khả dụng</value></data>
+  <data name="Common.Source" xml:space="preserve"><value>Nguồn</value></data>
+  <data name="Common.Updated" xml:space="preserve"><value>Cập nhật</value></data>
+  <data name="Common.Details" xml:space="preserve"><value>Chi tiết</value></data>
+  <data name="StockAlert.Title" xml:space="preserve"><value>Cảnh báo kho</value></data>
+  <data name="StockAlert.Subtitle" xml:space="preserve"><value>Theo dõi thiếu hụt tại {0}. Trạng thái tồn kho và trạng thái xử lý được hiển thị riêng để quản lý ra quyết định rõ ràng.</value></data>
+  <data name="StockAlert.SummaryAria" xml:space="preserve"><value>Tóm tắt cảnh báo trên trang</value></data>
+  <data name="StockAlert.OutOfStockPage" xml:space="preserve"><value>Hết hàng trên trang</value></data>
+  <data name="StockAlert.LowStockPage" xml:space="preserve"><value>Sắp hết trên trang</value></data>
+  <data name="StockAlert.ManualReports" xml:space="preserve"><value>Nhân viên báo thiếu</value></data>
+  <data name="StockAlert.StatusFilterAria" xml:space="preserve"><value>Lọc theo trạng thái xử lý</value></data>
+  <data name="StockAlert.EmptyTitle" xml:space="preserve"><value>Không có cảnh báo kho phù hợp</value></data>
+  <data name="StockAlert.EmptyCopy" xml:space="preserve"><value>Kho trong phạm vi hiện tại không có cảnh báo theo bộ lọc này. Bạn có thể xem tồn kho hoặc đổi trạng thái để kiểm tra lại.</value></data>
+  <data name="StockAlert.ListAria" xml:space="preserve"><value>Danh sách cảnh báo kho</value></data>
+  <data name="StockAlert.InventoryStatus" xml:space="preserve"><value>Trạng thái tồn</value></data>
+  <data name="StockAlert.ThresholdTarget" xml:space="preserve"><value>Ngưỡng / mục tiêu</value></data>
+  <data name="StockAlert.Workflow" xml:space="preserve"><value>Luồng xử lý</value></data>
+  <data name="StockAlert.ManualTarget" xml:space="preserve"><value>Mục tiêu thủ công</value></data>
+  <data name="StockAlert.MinimumThreshold" xml:space="preserve"><value>Ngưỡng tối thiểu</value></data>
+  <data name="StockAlert.ReportedBy" xml:space="preserve"><value>Báo bởi {0}</value></data>
+  <data name="StockAlert.Pagination" xml:space="preserve"><value>Trang {0} / {1} · Tổng {2} cảnh báo</value></data>
+  <data name="StockAlert.Status.OPEN" xml:space="preserve"><value>Chờ quản lý</value></data>
+  <data name="StockAlert.Status.CONFIRMED" xml:space="preserve"><value>Đã xác nhận</value></data>
+  <data name="StockAlert.Status.MANAGER_REJECTED" xml:space="preserve"><value>Đã báo sai</value></data>
+  <data name="StockAlert.Status.RESOLVED" xml:space="preserve"><value>Đã khôi phục</value></data>
+  <data name="StockAlert.Type.OUT_OF_STOCK" xml:space="preserve"><value>Hết hàng</value></data>
+  <data name="StockAlert.Type.LOW_STOCK" xml:space="preserve"><value>Sắp hết</value></data>
+  <data name="StockAlert.Source.SALES_REPORT" xml:space="preserve"><value>Nhân viên báo</value></data>
+  <data name="StockAlert.Source.SYSTEM" xml:space="preserve"><value>Hệ thống</value></data>
+  <data name="Common.Inventory" xml:space="preserve"><value>Tồn kho</value></data>
+  <data name="Common.Alerts" xml:space="preserve"><value>Cảnh báo</value></data>
+  <data name="Common.SelectStore" xml:space="preserve"><value>Chọn cửa hàng</value></data>
+  <data name="Common.SearchItems" xml:space="preserve"><value>Tìm mặt hàng</value></data>
+  <data name="Common.Search" xml:space="preserve"><value>Tìm</value></data>
+  <data name="Common.ClearSearch" xml:space="preserve"><value>Xóa từ khóa</value></data>
+  <data name="Common.Type" xml:space="preserve"><value>Loại</value></data>
+  <data name="Common.AvailableInventory" xml:space="preserve"><value>Tồn khả dụng</value></data>
+  <data name="Common.Code" xml:space="preserve"><value>Mã</value></data>
+  <data name="Common.NotApplicable" xml:space="preserve"><value>Không áp dụng</value></data>
+  <data name="Common.Save" xml:space="preserve"><value>Lưu</value></data>
+  <data name="Threshold.Title" xml:space="preserve"><value>Ngưỡng tồn kho</value></data>
+  <data name="Threshold.SubtitleBefore" xml:space="preserve"><value>Thiết lập ngưỡng cảnh báo và mức tồn mục tiêu theo từng chi nhánh. Cảnh báo dùng</value></data>
+  <data name="Threshold.Formula" xml:space="preserve"><value>Tồn khả dụng = Tồn vật lý − Giữ chỗ</value></data>
+  <data name="Threshold.SubtitleAfter" xml:space="preserve"><value>và chỉ phát sinh khi khả dụng thấp hơn ngưỡng.</value></data>
+  <data name="Threshold.ReadOnlyNotice" xml:space="preserve"><value>Bạn đang ở chế độ chỉ xem. Chỉ vai trò quản lý có phạm vi phù hợp mới được cập nhật ngưỡng.</value></data>
+  <data name="Threshold.SummaryAria" xml:space="preserve"><value>Tóm tắt ngưỡng trên trang</value></data>
+  <data name="Threshold.FilteredItems" xml:space="preserve"><value>Mặt hàng theo bộ lọc</value></data>
+  <data name="Threshold.ConfiguredPage" xml:space="preserve"><value>Đã cấu hình trên trang</value></data>
+  <data name="Threshold.UnconfiguredPage" xml:space="preserve"><value>Chưa cấu hình trên trang</value></data>
+  <data name="Threshold.BelowThreshold" xml:space="preserve"><value>Đang dưới ngưỡng</value></data>
+  <data name="Threshold.SearchPlaceholder" xml:space="preserve"><value>Tìm nguyên liệu hoặc bán thành phẩm...</value></data>
+  <data name="Threshold.SelectedStore" xml:space="preserve"><value>Cửa hàng đang chọn: #{0}</value></data>
+  <data name="Threshold.EmptyTitle" xml:space="preserve"><value>Không tìm thấy mặt hàng cần cấu hình</value></data>
+  <data name="Threshold.EmptyCopy" xml:space="preserve"><value>Thử đổi từ khóa hoặc chọn cửa hàng khác. Mặt hàng chỉ xuất hiện khi tài khoản có phạm vi xem kho tương ứng.</value></data>
+  <data name="Threshold.OpenStoreInventory" xml:space="preserve"><value>Mở tồn kho cửa hàng</value></data>
+  <data name="Threshold.LowStockThreshold" xml:space="preserve"><value>Ngưỡng cảnh báo tồn thấp</value></data>
+  <data name="Threshold.TargetStock" xml:space="preserve"><value>Mức tồn mục tiêu</value></data>
+  <data name="Threshold.Status.Unconfigured" xml:space="preserve"><value>Chưa cấu hình</value></data>
+  <data name="Threshold.Status.Out" xml:space="preserve"><value>Hết khả dụng</value></data>
+  <data name="Threshold.Status.Low" xml:space="preserve"><value>Dưới ngưỡng</value></data>
+  <data name="Threshold.Status.Normal" xml:space="preserve"><value>Bình thường</value></data>
+  <data name="Threshold.LowAria" xml:space="preserve"><value>Ngưỡng cảnh báo tồn thấp cho {0}</value></data>
+  <data name="Threshold.TargetAria" xml:space="preserve"><value>Mức tồn mục tiêu cho {0}</value></data>
+  <data name="Threshold.ThresholdPlaceholder" xml:space="preserve"><value>Ngưỡng</value></data>
+  <data name="Threshold.TargetPlaceholder" xml:space="preserve"><value>Mục tiêu</value></data>
+  <data name="Threshold.Pagination" xml:space="preserve"><value>Trang {0} / {1} · Tổng {2} mặt hàng</value></data>
+  <data name="Common.Ingredients" xml:space="preserve"><value>Nguyên liệu</value></data>
+  <data name="Common.PreparedItems" xml:space="preserve"><value>Bán thành phẩm</value></data>
+  <data name="Common.Ingredient" xml:space="preserve"><value>Nguyên liệu</value></data>
+  <data name="Common.PreparedItem" xml:space="preserve"><value>Bán thành phẩm</value></data>
+  <data name="Common.Page" xml:space="preserve"><value>Trang {0}</value></data>
+  <data name="StoreInventory.Title" xml:space="preserve"><value>Tồn kho cửa hàng</value></data>
+  <data name="StoreInventory.Subtitle" xml:space="preserve"><value>Danh sách kho đang được lọc theo phạm vi được cấp cho nhân viên.</value></data>
+  <data name="StoreInventory.SearchAria" xml:space="preserve"><value>Tìm mặt hàng trong kho</value></data>
+  <data name="StoreInventory.SearchPrepared" xml:space="preserve"><value>Tìm mã hoặc tên bán thành phẩm...</value></data>
+  <data name="StoreInventory.SearchIngredient" xml:space="preserve"><value>Tìm mã hoặc tên nguyên liệu...</value></data>
+  <data name="StoreInventory.TypeAria" xml:space="preserve"><value>Loại tồn kho</value></data>
+  <data name="StoreInventory.PreparedCount" xml:space="preserve"><value>{0} bán thành phẩm trong phạm vi đang chọn</value></data>
+  <data name="StoreInventory.IngredientCount" xml:space="preserve"><value>{0} nguyên liệu trong phạm vi đang chọn</value></data>
+  <data name="StoreInventory.PreparedCode" xml:space="preserve"><value>Mã bán thành phẩm</value></data>
+  <data name="StoreInventory.IngredientCode" xml:space="preserve"><value>Mã nguyên liệu</value></data>
+  <data name="StoreInventory.OnHandTitle" xml:space="preserve"><value>Tổng số lượng trong kho</value></data>
+  <data name="StoreInventory.ReservedTitle" xml:space="preserve"><value>Số lượng đã được giữ cho đơn hàng hoặc phiếu</value></data>
+  <data name="StoreInventory.AvailableTitle" xml:space="preserve"><value>Số lượng có thể sử dụng ngay</value></data>
+  <data name="StoreInventory.ActualCost" xml:space="preserve"><value>Giá vốn thực tế</value></data>
+  <data name="StoreInventory.LatestSource" xml:space="preserve"><value>Nguồn gần nhất</value></data>
+  <data name="StoreInventory.LatestPurchasePrice" xml:space="preserve"><value>Giá nhập gần nhất</value></data>
+  <data name="StoreInventory.LatestSupplier" xml:space="preserve"><value>NCC nhập gần nhất</value></data>
+  <data name="StoreInventory.QuantityUnknown" xml:space="preserve"><value>Chưa xác nhận số lượng tồn theo đơn vị chuẩn.</value></data>
+  <data name="StoreInventory.CostLayer" xml:space="preserve"><value>Lô giá #{0}</value></data>
+  <data name="StoreInventory.NoFifoLayer" xml:space="preserve"><value>Chưa có lớp giá FIFO</value></data>
+  <data name="StoreInventory.ProductionRun" xml:space="preserve"><value>Lệnh sơ chế #{0}</value></data>
+  <data name="StoreInventory.InventoryCostLayer" xml:space="preserve"><value>Lô giá kho #{0}</value></data>
+  <data name="StoreInventory.EmptyPreparedTitle" xml:space="preserve"><value>Chưa có bán thành phẩm</value></data>
+  <data name="StoreInventory.EmptyIngredientTitle" xml:space="preserve"><value>Không tìm thấy nguyên liệu</value></data>
+  <data name="StoreInventory.EmptyPreparedCopy" xml:space="preserve"><value>Bán thành phẩm chỉ xuất hiện sau khi lệnh sản xuất hoàn tất và ghi tăng tồn kho.</value></data>
+  <data name="StoreInventory.EmptyIngredientCopy" xml:space="preserve"><value>Hãy kiểm tra lại từ khóa, loại tồn kho hoặc chi nhánh đang chọn.</value></data>
+  <data name="StoreInventory.PaginationAria" xml:space="preserve"><value>Phân trang tồn kho</value></data>
+  <data name="StoreInventory.SelectStoreAria" xml:space="preserve"><value>Chọn cửa hàng xem tồn kho</value></data>
+  <data name="StoreInventory.NoScopeTitle" xml:space="preserve"><value>Chưa có phạm vi xem kho</value></data>
+  <data name="StoreInventory.NoScopeCopy" xml:space="preserve"><value>Tài khoản hiện tại chưa được cấp quyền xem tồn kho tại bất kỳ cửa hàng nào.</value></data>
+  <data name="Common.Currency" xml:space="preserve"><value>đ</value></data>
+  <data name="InvDoc.Title" xml:space="preserve"><value>Quản lý phiếu kho</value></data>
+  <data name="InvDoc.Eyebrow" xml:space="preserve"><value>Kho &amp; Cung ứng / Phiếu kho</value></data>
+  <data name="InvDoc.Subtitle" xml:space="preserve"><value>Theo dõi xuất, kiểm kê và hủy kho trong một không gian rõ ràng, ưu tiên chứng từ cần xử lý.</value></data>
+  <data name="InvDoc.CreateNew" xml:space="preserve"><value>Tạo phiếu mới</value></data>
+  <data name="InvDoc.ExportExcel" xml:space="preserve"><value>Xuất Excel</value></data>
+  <data name="InvDoc.ListAria" xml:space="preserve"><value>Danh sách phiếu kho</value></data>
+  <data name="InvDoc.Card.Total" xml:space="preserve"><value>Tổng phiếu</value></data>
+  <data name="InvDoc.Card.TotalHint" xml:space="preserve"><value>Tất cả chứng từ</value></data>
+  <data name="InvDoc.Card.Draft" xml:space="preserve"><value>Bản nháp</value></data>
+  <data name="InvDoc.Card.DraftHint" xml:space="preserve"><value>Cần hoàn tất</value></data>
+  <data name="InvDoc.Card.Confirmed" xml:space="preserve"><value>Đã hoàn thành</value></data>
+  <data name="InvDoc.Card.ConfirmedHint" xml:space="preserve"><value>Đã cập nhật tồn</value></data>
+  <data name="InvDoc.Card.Cancelled" xml:space="preserve"><value>Đã hủy</value></data>
+  <data name="InvDoc.Card.CancelledHint" xml:space="preserve"><value>Ngừng xử lý</value></data>
+  <data name="InvDoc.Card.Month" xml:space="preserve"><value>Tháng này</value></data>
+  <data name="InvDoc.Card.MonthHint" xml:space="preserve"><value>Phát sinh mới</value></data>
+  <data name="InvDoc.Tab.All" xml:space="preserve"><value>Tất cả</value></data>
+  <data name="InvDoc.Tab.Export" xml:space="preserve"><value>Xuất</value></data>
+  <data name="InvDoc.Tab.StockTake" xml:space="preserve"><value>Kiểm kê</value></data>
+  <data name="InvDoc.Tab.Waste" xml:space="preserve"><value>Hủy</value></data>
+  <data name="InvDoc.Filter.Kicker" xml:space="preserve"><value>Bộ lọc nhanh</value></data>
+  <data name="InvDoc.Filter.Title" xml:space="preserve"><value>Tìm phiếu kho</value></data>
+  <data name="InvDoc.Filter.Hint" xml:space="preserve"><value>Thu hẹp dữ liệu theo nghiệp vụ, cửa hàng và thời gian chứng từ.</value></data>
+  <data name="InvDoc.Filter.Pill" xml:space="preserve"><value>3 loại phiếu</value></data>
+  <data name="InvDoc.Filter.Search" xml:space="preserve"><value>Tìm kiếm</value></data>
+  <data name="InvDoc.Filter.SearchPlaceholder" xml:space="preserve"><value>Tìm mã phiếu, cửa hàng, đối tác, người lập...</value></data>
+  <data name="InvDoc.Filter.SearchAria" xml:space="preserve"><value>Tìm kiếm phiếu kho</value></data>
+  <data name="InvDoc.Filter.Type" xml:space="preserve"><value>Loại phiếu</value></data>
+  <data name="InvDoc.Filter.AllTypes" xml:space="preserve"><value>Tất cả loại phiếu</value></data>
+  <data name="InvDoc.Filter.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="InvDoc.Filter.AllStatuses" xml:space="preserve"><value>Tất cả trạng thái</value></data>
+  <data name="InvDoc.Filter.Purpose" xml:space="preserve"><value>Mục đích</value></data>
+  <data name="InvDoc.Filter.AllPurposes" xml:space="preserve"><value>Tất cả mục đích</value></data>
+  <data name="InvDoc.Filter.SelectTypeFirst" xml:space="preserve"><value>Chọn loại phiếu trước</value></data>
+  <data name="InvDoc.Filter.Store" xml:space="preserve"><value>Cửa hàng</value></data>
+  <data name="InvDoc.Filter.AllStores" xml:space="preserve"><value>Tất cả cửa hàng</value></data>
+  <data name="InvDoc.Filter.FromDate" xml:space="preserve"><value>Từ ngày</value></data>
+  <data name="InvDoc.Filter.ToDate" xml:space="preserve"><value>Đến ngày</value></data>
+  <data name="InvDoc.Filter.Reset" xml:space="preserve"><value>Đặt lại</value></data>
+  <data name="InvDoc.Filter.Apply" xml:space="preserve"><value>Áp dụng</value></data>
+  <data name="InvDoc.Filter.HistorySuffix" xml:space="preserve"><value>{0} (lịch sử)</value></data>
+  <data name="InvDoc.Table.Kicker" xml:space="preserve"><value>Kết quả</value></data>
+  <data name="InvDoc.Table.Count" xml:space="preserve"><value>{0} phiếu kho</value></data>
+  <data name="InvDoc.Table.NewestFirst" xml:space="preserve"><value>Phiếu mới nhất được hiển thị trước.</value></data>
+  <data name="InvDoc.Table.ScrollHint" xml:space="preserve"><value>Cuộn trong vùng bảng</value></data>
+  <data name="InvDoc.Table.ScrollAria" xml:space="preserve"><value>Danh sách phiếu kho có thể cuộn ngang</value></data>
+  <data name="InvDoc.Col.Code" xml:space="preserve"><value>Mã phiếu</value></data>
+  <data name="InvDoc.Col.Type" xml:space="preserve"><value>Loại</value></data>
+  <data name="InvDoc.Col.Purpose" xml:space="preserve"><value>Mục đích</value></data>
+  <data name="InvDoc.Col.Store" xml:space="preserve"><value>Cửa hàng</value></data>
+  <data name="InvDoc.Col.Partner" xml:space="preserve"><value>Đối tác</value></data>
+  <data name="InvDoc.Col.Date" xml:space="preserve"><value>Ngày</value></data>
+  <data name="InvDoc.Col.Value" xml:space="preserve"><value>Giá trị chứng từ</value></data>
+  <data name="InvDoc.Col.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="InvDoc.Col.Actions" xml:space="preserve"><value>Thao tác</value></data>
+  <data name="InvDoc.Empty.Title" xml:space="preserve"><value>Chưa có phiếu kho</value></data>
+  <data name="InvDoc.Empty.Copy" xml:space="preserve"><value>Tạo phiếu đầu tiên hoặc thay đổi bộ lọc để xem dữ liệu.</value></data>
+  <data name="InvDoc.PendingNegative" xml:space="preserve"><value>Chờ duyệt xuất âm</value></data>
+  <data name="InvDoc.ViewDetail" xml:space="preserve"><value>Xem chi tiết</value></data>
+  <data name="InvDoc.OpenToReview" xml:space="preserve"><value>Mở để duyệt</value></data>
+  <data name="InvDoc.OpenToReviewTitle" xml:space="preserve"><value>Mở chi tiết để duyệt xuất âm</value></data>
+  <data name="InvDoc.ConfirmDraft" xml:space="preserve"><value>Xác nhận phiếu nháp</value></data>
+  <data name="InvDoc.ExportFile" xml:space="preserve"><value>Xuất file</value></data>
+  <data name="InvDoc.Showing" xml:space="preserve"><value>Hiển thị {0} - {1} trong {2} phiếu</value></data>
+  <data name="InvDoc.Export.Eyebrow" xml:space="preserve"><value>Phiếu kho / Xuất chứng từ</value></data>
+  <data name="InvDoc.Export.Title" xml:space="preserve"><value>Chọn định dạng xuất</value></data>
+  <data name="InvDoc.Export.Lead" xml:space="preserve"><value>Tải chứng từ rõ ràng để lưu trữ, in hoặc gửi đối tác.</value></data>
+  <data name="InvDoc.Export.PdfHint" xml:space="preserve"><value>Tối ưu để in, ký xác nhận và lưu trữ chính thức</value></data>
+  <data name="InvDoc.Export.Recommended" xml:space="preserve"><value>Khuyên dùng</value></data>
+  <data name="InvDoc.Export.WordHint" xml:space="preserve"><value>Phù hợp khi cần bổ sung hoặc hiệu chỉnh nội dung</value></data>
+  <data name="InvDoc.Export.Editable" xml:space="preserve"><value>Có thể chỉnh sửa</value></data>
+  <data name="InvDoc.Export.Note" xml:space="preserve"><value>File xuất chỉ chứa dữ liệu chứng từ, không thay đổi tồn kho hệ thống.</value></data>
+  <data name="InvDoc.Detail.Eyebrow" xml:space="preserve"><value>Phiếu kho / Chi tiết chứng từ</value></data>
+  <data name="InvDoc.Detail.TabGeneral" xml:space="preserve"><value>Thông tin chung</value></data>
+  <data name="InvDoc.Detail.TabDocument" xml:space="preserve"><value>Phiếu chứng từ</value></data>
+  <data name="InvDoc.Detail.NegativeTitle" xml:space="preserve"><value>Phê duyệt xuất âm #{0}</value></data>
+  <data name="InvDoc.Detail.Status" xml:space="preserve"><value>Trạng thái: {0}</value></data>
+  <data name="InvDoc.Detail.Reject" xml:space="preserve"><value>Từ chối</value></data>
+  <data name="InvDoc.Detail.ApproveNegative" xml:space="preserve"><value>Duyệt xuất âm</value></data>
+  <data name="InvDoc.General.InfoKicker" xml:space="preserve"><value>Thông tin chứng từ</value></data>
+  <data name="InvDoc.General.InfoTitle" xml:space="preserve"><value>Thông tin chung</value></data>
+  <data name="InvDoc.General.Code" xml:space="preserve"><value>Mã phiếu</value></data>
+  <data name="InvDoc.General.Type" xml:space="preserve"><value>Loại phiếu</value></data>
+  <data name="InvDoc.General.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="InvDoc.General.Purpose" xml:space="preserve"><value>Mục đích</value></data>
+  <data name="InvDoc.General.Date" xml:space="preserve"><value>Ngày chứng từ</value></data>
+  <data name="InvDoc.General.RequestKey" xml:space="preserve"><value>Khóa yêu cầu</value></data>
+  <data name="InvDoc.General.ScopeKicker" xml:space="preserve"><value>Phạm vi xử lý</value></data>
+  <data name="InvDoc.General.ScopeTitle" xml:space="preserve"><value>Kho và nhân sự</value></data>
+  <data name="InvDoc.General.Store" xml:space="preserve"><value>Cửa hàng</value></data>
+  <data name="InvDoc.General.Staff" xml:space="preserve"><value>Người lập</value></data>
+  <data name="InvDoc.General.Processing" xml:space="preserve"><value>Đang xử lý</value></data>
+  <data name="InvDoc.Yes" xml:space="preserve"><value>Có</value></data>
+  <data name="InvDoc.No" xml:space="preserve"><value>Không</value></data>
+  <data name="InvDoc.General.RelatedKicker" xml:space="preserve"><value>Đối soát</value></data>
+  <data name="InvDoc.General.RelatedTitle" xml:space="preserve"><value>Đối tượng liên quan</value></data>
+  <data name="InvDoc.General.Supplier" xml:space="preserve"><value>Nhà cung cấp</value></data>
+  <data name="InvDoc.General.Partner" xml:space="preserve"><value>Đối tác</value></data>
+  <data name="InvDoc.General.PartnerType" xml:space="preserve"><value>Loại đối tượng</value></data>
+  <data name="InvDoc.General.Subject" xml:space="preserve"><value>Đối tượng</value></data>
+  <data name="InvDoc.General.LinesKicker" xml:space="preserve"><value>Dữ liệu chứng từ</value></data>
+  <data name="InvDoc.General.LinesTitle" xml:space="preserve"><value>Chi tiết nguyên liệu</value></data>
+  <data name="InvDoc.General.IngredientName" xml:space="preserve"><value>Tên nguyên liệu</value></data>
+  <data name="InvDoc.General.Unit" xml:space="preserve"><value>ĐVT</value></data>
+  <data name="InvDoc.Qty.Actual" xml:space="preserve"><value>Số lượng thực tế</value></data>
+  <data name="InvDoc.Qty.Waste" xml:space="preserve"><value>Số lượng hủy</value></data>
+  <data name="InvDoc.Qty.Default" xml:space="preserve"><value>Số lượng</value></data>
+  <data name="InvDoc.Qty.ActualShort" xml:space="preserve"><value>SL thực tế</value></data>
+  <data name="InvDoc.Qty.WasteShort" xml:space="preserve"><value>SL hủy</value></data>
+  <data name="InvDoc.Qty.Short" xml:space="preserve"><value>SL</value></data>
+  <data name="InvDoc.General.Conversion" xml:space="preserve"><value>Quy đổi</value></data>
+  <data name="InvDoc.General.UnitPrice" xml:space="preserve"><value>Đơn giá</value></data>
+  <data name="InvDoc.General.LineTotal" xml:space="preserve"><value>Thành tiền</value></data>
+  <data name="InvDoc.Summary.Total" xml:space="preserve"><value>Tổng tiền</value></data>
+  <data name="InvDoc.Summary.Vat" xml:space="preserve"><value>VAT</value></data>
+  <data name="InvDoc.Summary.Final" xml:space="preserve"><value>Thành tiền</value></data>
+  <data name="InvDoc.Voucher.Import" xml:space="preserve"><value>PHIẾU NHẬP KHO</value></data>
+  <data name="InvDoc.Voucher.Export" xml:space="preserve"><value>PHIẾU XUẤT KHO</value></data>
+  <data name="InvDoc.Voucher.StockTake" xml:space="preserve"><value>PHIẾU KIỂM KÊ</value></data>
+  <data name="InvDoc.Voucher.Waste" xml:space="preserve"><value>PHIẾU HỦY KHO</value></data>
+  <data name="InvDoc.Voucher.ProdIn" xml:space="preserve"><value>PHIẾU NHẬP SẢN XUẤT</value></data>
+  <data name="InvDoc.Voucher.ProdOut" xml:space="preserve"><value>PHIẾU XUẤT SẢN XUẤT</value></data>
+  <data name="InvDoc.Voucher.SalesDeduction" xml:space="preserve"><value>PHIẾU TRỪ TỒN BÁN HÀNG</value></data>
+  <data name="InvDoc.Voucher.Default" xml:space="preserve"><value>PHIẾU KHO</value></data>
+  <data name="InvDoc.Voucher.ReadOnly" xml:space="preserve"><value>Chỉ xem</value></data>
+  <data name="InvDoc.Voucher.Number" xml:space="preserve"><value>Số phiếu</value></data>
+  <data name="InvDoc.Voucher.Warehouse" xml:space="preserve"><value>Kho</value></data>
+  <data name="InvDoc.Voucher.StockMode" xml:space="preserve"><value>Cách xử lý tồn</value></data>
+  <data name="InvDoc.Voucher.NegativeMode" xml:space="preserve"><value>Yêu cầu xuất vượt tồn</value></data>
+  <data name="InvDoc.Voucher.NormalMode" xml:space="preserve"><value>Xuất thường</value></data>
+  <data name="InvDoc.Voucher.ApprovalAria" xml:space="preserve"><value>Lịch sử phê duyệt tồn âm</value></data>
+  <data name="InvDoc.Voucher.ApprovalTitle" xml:space="preserve"><value>Phê duyệt tồn âm #{0}</value></data>
+  <data name="InvDoc.Voucher.Requester" xml:space="preserve"><value>Người đề nghị</value></data>
+  <data name="InvDoc.Voucher.Approver" xml:space="preserve"><value>Người duyệt</value></data>
+  <data name="InvDoc.Voucher.Policy" xml:space="preserve"><value>Chính sách</value></data>
+  <data name="InvDoc.Voucher.RequestedAt" xml:space="preserve"><value>Đề nghị lúc</value></data>
+  <data name="InvDoc.Voucher.ReviewedAt" xml:space="preserve"><value>Duyệt lúc</value></data>
+  <data name="InvDoc.Voucher.Reason" xml:space="preserve"><value>Lý do:</value></data>
+  <data name="InvDoc.Voucher.ReviewNote" xml:space="preserve"><value>Ghi chú duyệt:</value></data>
+  <data name="InvDoc.Voucher.Identity" xml:space="preserve"><value>Mã hàng</value></data>
+  <data name="InvDoc.Voucher.Before" xml:space="preserve"><value>Trước</value></data>
+  <data name="InvDoc.Voucher.Issue" xml:space="preserve"><value>Xuất</value></data>
+  <data name="InvDoc.Voucher.After" xml:space="preserve"><value>Sau</value></data>
+  <data name="InvDoc.Voucher.Limit" xml:space="preserve"><value>Giới hạn</value></data>
+  <data name="InvDoc.Voucher.IngredientId" xml:space="preserve"><value>Nguyên liệu #{0}</value></data>
+  <data name="InvDoc.Voucher.PreparedId" xml:space="preserve"><value>Bán thành phẩm #{0}</value></data>
+  <data name="InvDoc.Voucher.CostGapAria" xml:space="preserve"><value>Trạng thái chênh lệch giá vốn</value></data>
+  <data name="InvDoc.Voucher.CostGap" xml:space="preserve"><value>Chênh lệch giá vốn</value></data>
+  <data name="InvDoc.Voucher.Code" xml:space="preserve"><value>Mã</value></data>
+  <data name="InvDoc.Voucher.Source" xml:space="preserve"><value>Nguồn</value></data>
+  <data name="InvDoc.Voucher.Original" xml:space="preserve"><value>Ban đầu</value></data>
+  <data name="InvDoc.Voucher.Settled" xml:space="preserve"><value>Đã settle</value></data>
+  <data name="InvDoc.Voucher.Remaining" xml:space="preserve"><value>Còn lại</value></data>
+  <data name="InvDoc.Voucher.No" xml:space="preserve"><value>STT</value></data>
+  <data name="InvDoc.Voucher.ItemName" xml:space="preserve"><value>Tên hàng</value></data>
+  <data name="InvDoc.Voucher.CostPrice" xml:space="preserve"><value>Đơn giá vốn</value></data>
+  <data name="InvDoc.Create.Import" xml:space="preserve"><value>Tạo phiếu nhập kho</value></data>
+  <data name="InvDoc.Create.Export" xml:space="preserve"><value>Tạo phiếu xuất kho</value></data>
+  <data name="InvDoc.Create.StockTake" xml:space="preserve"><value>Tạo phiếu kiểm kê</value></data>
+  <data name="InvDoc.Create.Waste" xml:space="preserve"><value>Tạo phiếu hủy kho</value></data>
+  <data name="InvDoc.Create.Default" xml:space="preserve"><value>Tạo phiếu kho</value></data>
+  <data name="InvDoc.Create.SubImport" xml:space="preserve"><value>Chọn mục đích nhập để hệ thống đổi nghiệp vụ phù hợp</value></data>
+  <data name="InvDoc.Create.SubExport" xml:space="preserve"><value>Xuất nguyên liệu phục vụ nghiệp vụ bán hàng</value></data>
+  <data name="InvDoc.Create.SubStockTake" xml:space="preserve"><value>Ghi nhận số lượng kiểm kê thực tế</value></data>
+  <data name="InvDoc.Create.SubWaste" xml:space="preserve"><value>Ghi nhận hủy hàng hết hạn, hỏng hoặc thất thoát</value></data>
+  <data name="InvDoc.Create.SubDefault" xml:space="preserve"><value>Khởi tạo chứng từ kho</value></data>
+  <data name="InvDoc.Create.NoticeExport" xml:space="preserve"><value>Số lượng xuất được kiểm tra theo tồn khả dụng. Xuất vượt tồn phải có lý do và đi qua quy trình phê duyệt.</value></data>
+  <data name="InvDoc.Create.NoticeStockTake" xml:space="preserve"><value>Hoàn tất kiểm đếm thực tế trước khi xác nhận. Mọi chênh lệch cần được ghi chú rõ để đối soát.</value></data>
+  <data name="InvDoc.Create.NoticeWaste" xml:space="preserve"><value>Phiếu hủy làm giảm tồn kho sau khi xác nhận. Chỉ chọn nguyên liệu còn tồn và nhập số lượng không vượt tồn khả dụng.</value></data>
+  <data name="InvDoc.Create.NoticeDefault" xml:space="preserve"><value>Kiểm tra thông tin phiếu và chi tiết nguyên liệu trước khi xác nhận chứng từ.</value></data>
+  <data name="InvDoc.Create.Breadcrumb" xml:space="preserve"><value>Phiếu kho / Tạo phiếu mới</value></data>
+  <data name="InvDoc.Create.AutoCode" xml:space="preserve"><value>Tự động sinh khi lưu</value></data>
+  <data name="InvDoc.Create.Draft" xml:space="preserve"><value>Nháp</value></data>
+  <data name="InvDoc.Create.Close" xml:space="preserve"><value>Đóng</value></data>
+  <data name="InvDoc.Create.Cancel" xml:space="preserve"><value>Hủy</value></data>
+  <data name="InvDoc.Create.SaveDraft" xml:space="preserve"><value>Lưu nháp</value></data>
+  <data name="InvDoc.Create.Confirm" xml:space="preserve"><value>Tạo &amp; xác nhận</value></data>
+  <data name="InvDoc.Create.HintImport" xml:space="preserve"><value>Chọn mục đích nhập để hệ thống tải đúng nguồn nguyên liệu.</value></data>
+  <data name="InvDoc.Create.HintStockTake" xml:space="preserve"><value>Chọn nguyên liệu cần kiểm kê và nhập số lượng thực tế sau khi đếm.</value></data>
+  <data name="InvDoc.Create.HintWaste" xml:space="preserve"><value>Chọn nguyên liệu còn tồn, nhập số lượng hủy và ghi rõ lý do hủy.</value></data>
+  <data name="InvDoc.Create.HintDefault" xml:space="preserve"><value>Thêm nguyên liệu và nhập số lượng cần xử lý.</value></data>
+  <data name="InvDoc.Create.RefStock" xml:space="preserve"><value>Tồn hệ thống</value></data>
+  <data name="InvDoc.Create.RefAvailable" xml:space="preserve"><value>Tồn khả dụng</value></data>
+  <data name="InvDoc.Create.RefMoq" xml:space="preserve"><value>MOQ/Còn nhận</value></data>
+  <data name="InvDoc.Create.RefDefault" xml:space="preserve"><value>Tham chiếu</value></data>
+  <data name="InvDoc.Create.Step2" xml:space="preserve"><value>Bước 2 · Chi tiết nguyên liệu</value></data>
+  <data name="InvDoc.Create.LinesTitle" xml:space="preserve"><value>Danh sách nguyên liệu</value></data>
+  <data name="InvDoc.Create.AddIngredient" xml:space="preserve"><value>Thêm nguyên liệu</value></data>
+  <data name="InvDoc.Create.AddIngredientAria" xml:space="preserve"><value>Thêm nguyên liệu vào phiếu</value></data>
+  <data name="InvDoc.Create.UnitPriceIn" xml:space="preserve"><value>Đơn giá nhập</value></data>
+  <data name="InvDoc.Create.Variance" xml:space="preserve"><value>Chênh lệch</value></data>
+  <data name="InvDoc.Create.SelectIngredient" xml:space="preserve"><value>Chọn nguyên liệu</value></data>
+  <data name="InvDoc.Create.BaseUnit" xml:space="preserve"><value>Đơn vị gốc</value></data>
+  <data name="InvDoc.Create.NotSelected" xml:space="preserve"><value>Chưa chọn</value></data>
+  <data name="InvDoc.Create.StockLabel" xml:space="preserve"><value>Tồn: -</value></data>
+  <data name="InvDoc.Create.PriceSource" xml:space="preserve"><value>Nguồn giá: -</value></data>
+  <data name="InvDoc.Create.Conversion" xml:space="preserve"><value>Quy đổi: -</value></data>
+  <data name="InvDoc.Create.QtyPlaceholder" xml:space="preserve"><value>Nhập số lượng</value></data>
+  <data name="InvDoc.Create.RemoveRow" xml:space="preserve"><value>Xóa dòng nguyên liệu</value></data>
+  <data name="InvDoc.Create.SummaryAria" xml:space="preserve"><value>Tổng hợp phiếu kho</value></data>
+  <data name="InvDoc.Create.Step3" xml:space="preserve"><value>Bước 3 · Tổng hợp phiếu</value></data>
+  <data name="InvDoc.Create.SummaryHint" xml:space="preserve"><value>Cập nhật theo chi tiết nguyên liệu</value></data>
+  <data name="InvDoc.Create.Lines" xml:space="preserve"><value>Dòng</value></data>
+  <data name="InvDoc.Create.BaseQty" xml:space="preserve"><value>Quy đổi base</value></data>
+  <data name="InvDoc.Info.PurposeImport" xml:space="preserve"><value>Mục đích nhập kho</value></data>
+  <data name="InvDoc.Info.PurposeExport" xml:space="preserve"><value>Mục đích xuất kho</value></data>
+  <data name="InvDoc.Info.PurposeStockTake" xml:space="preserve"><value>Mục đích kiểm kê</value></data>
+  <data name="InvDoc.Info.PurposeWaste" xml:space="preserve"><value>Lý do hủy kho</value></data>
+  <data name="InvDoc.Info.PurposeDefault" xml:space="preserve"><value>Mục đích nghiệp vụ</value></data>
+  <data name="InvDoc.Info.Purchase" xml:space="preserve"><value>Nhập từ nhà cung cấp</value></data>
+  <data name="InvDoc.Info.PurchaseDesc" xml:space="preserve"><value>Tăng tồn kho từ đơn mua hàng</value></data>
+  <data name="InvDoc.Info.Sale" xml:space="preserve"><value>Xuất bán hàng</value></data>
+  <data name="InvDoc.Info.SaleDesc" xml:space="preserve"><value>Giảm tồn kho phục vụ bán hàng</value></data>
+  <data name="InvDoc.Info.StockTake" xml:space="preserve"><value>Kiểm kê</value></data>
+  <data name="InvDoc.Info.StockTakeDesc" xml:space="preserve"><value>Ghi nhận số lượng thực tế</value></data>
+  <data name="InvDoc.Info.Damaged" xml:space="preserve"><value>Hàng hỏng</value></data>
+  <data name="InvDoc.Info.DamagedDesc" xml:space="preserve"><value>Hủy do hư hỏng</value></data>
+  <data name="InvDoc.Info.Expired" xml:space="preserve"><value>Hết hạn</value></data>
+  <data name="InvDoc.Info.ExpiredDesc" xml:space="preserve"><value>Hủy do quá hạn sử dụng</value></data>
+  <data name="InvDoc.Info.Broken" xml:space="preserve"><value>Bị vỡ</value></data>
+  <data name="InvDoc.Info.BrokenDesc" xml:space="preserve"><value>Hủy do bị vỡ trong bảo quản hoặc vận hành</value></data>
+  <data name="InvDoc.Info.Contaminated" xml:space="preserve"><value>Nhiễm bẩn</value></data>
+  <data name="InvDoc.Info.ContaminatedDesc" xml:space="preserve"><value>Hủy do không còn đảm bảo vệ sinh</value></data>
+  <data name="InvDoc.Info.Lost" xml:space="preserve"><value>Thất thoát</value></data>
+  <data name="InvDoc.Info.LostDesc" xml:space="preserve"><value>Ghi nhận mất mát</value></data>
+  <data name="InvDoc.Info.None" xml:space="preserve"><value>Không xác định</value></data>
+  <data name="InvDoc.Info.NoneDesc" xml:space="preserve"><value>Chọn mục đích phù hợp</value></data>
+  <data name="InvDoc.Info.Step1" xml:space="preserve"><value>Bước 1 · Thông tin chung</value></data>
+  <data name="InvDoc.Info.Title" xml:space="preserve"><value>Thông tin phiếu</value></data>
+  <data name="InvDoc.Info.AutoBadge" xml:space="preserve"><value>Mã phiếu tự động</value></data>
+  <data name="InvDoc.Info.SelectStore" xml:space="preserve"><value>Chọn cửa hàng</value></data>
+  <data name="InvDoc.Info.SelectSupplier" xml:space="preserve"><value>Chọn nhà cung cấp</value></data>
+  <data name="InvDoc.Info.SupplierHelp" xml:space="preserve"><value>Chỉ dùng khi mục đích là nhập từ nhà cung cấp.</value></data>
+  <data name="InvDoc.Info.PartnerPlaceholder" xml:space="preserve"><value>Nhập tên đối tác nếu cần</value></data>
+  <data name="InvDoc.Info.PartnerHint" xml:space="preserve"><value>Hệ thống tự xác định loại đối tác theo mục đích nghiệp vụ.</value></data>
+  <data name="InvDoc.Info.Note" xml:space="preserve"><value>Ghi chú</value></data>
+  <data name="InvDoc.Info.NotePlaceholder" xml:space="preserve"><value>Nhập ghi chú cho phiếu kho</value></data>
+  <data name="InvDoc.Info.NoteHint" xml:space="preserve"><value>Phiếu điều chỉnh bắt buộc ghi rõ lý do điều chỉnh.</value></data>
+  <data name="InvDoc.Info.NegTitle" xml:space="preserve"><value>Cách xử lý khi không đủ tồn</value></data>
+  <data name="InvDoc.Info.NegNormal" xml:space="preserve"><value>Xuất trong tồn khả dụng</value></data>
+  <data name="InvDoc.Info.NegNormalDesc" xml:space="preserve"><value>Mặc định. Không dòng nào được làm tồn sau xuất nhỏ hơn 0.</value></data>
+  <data name="InvDoc.Info.NegRequest" xml:space="preserve"><value>Yêu cầu xuất vượt tồn</value></data>
+  <data name="InvDoc.Info.NegRequestDesc" xml:space="preserve"><value>Chỉ áp dụng khi số lượng xuất lớn hơn tồn khả dụng; cần lý do và phê duyệt.</value></data>
+  <data name="InvDoc.Info.PolicyInvalid" xml:space="preserve"><value>Cấu hình xuất vượt tồn chưa hợp lệ. Vui lòng liên hệ quản trị hệ thống.</value></data>
+  <data name="InvDoc.Info.PolicyOff" xml:space="preserve"><value>Cài đặt hệ thống đang tắt xuất vượt tồn.</value></data>
+  <data name="InvDoc.Info.PolicyOn" xml:space="preserve"><value>Chính sách xuất vượt tồn đang bật</value></data>
+  <data name="InvDoc.Info.PolicyOnApproval" xml:space="preserve"><value> và bắt buộc phê duyệt</value></data>
+  <data name="InvDoc.Info.ProjectionHead" xml:space="preserve"><value>Trạng thái dự kiến</value></data>
+  <data name="InvDoc.Info.ProjectionUnknown" xml:space="preserve"><value>Chưa thể xác định</value></data>
+  <data name="InvDoc.Info.ProjectionMsg" xml:space="preserve"><value>Chọn cửa hàng, nguyên liệu và nhập số lượng để hệ thống xác định cách xuất.</value></data>
+  <data name="InvDoc.Info.NegReason" xml:space="preserve"><value>Lý do cần xuất vượt tồn</value></data>
+  <data name="InvDoc.Info.NegReasonPlaceholder" xml:space="preserve"><value>Mô tả giao dịch thực tế và lý do cần xuất nhiều hơn tồn khả dụng</value></data>
+  <data name="InvDoc.Info.NegReasonHelp" xml:space="preserve"><value>Lý do phục vụ kiểm soát và phê duyệt; trạng thái xuất được xác định từ tồn khả dụng và số lượng xuất.</value></data>
+  <data name="Common.Active" xml:space="preserve"><value>Hoạt động</value></data>
+  <data name="Common.Inactive" xml:space="preserve"><value>Ngưng hoạt động</value></data>
+  <data name="Common.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Common.Actions" xml:space="preserve"><value>Thao tác</value></data>
+  <data name="Common.AllStatuses" xml:space="preserve"><value>Tất cả trạng thái</value></data>
+  <data name="Common.Reset" xml:space="preserve"><value>Đặt lại</value></data>
+  <data name="Common.Filter" xml:space="preserve"><value>Lọc</value></data>
+  <data name="Common.Back" xml:space="preserve"><value>Quay lại</value></data>
+  <data name="Common.Save" xml:space="preserve"><value>Lưu</value></data>
+  <data name="Common.ConfirmYes" xml:space="preserve"><value>Đồng ý</value></data>
+  <data name="Common.CancelLong" xml:space="preserve"><value>Hủy bỏ</value></data>
+  <data name="Common.Success" xml:space="preserve"><value>Thành công</value></data>
+  <data name="Common.PreviousPage" xml:space="preserve"><value>Trang trước</value></data>
+  <data name="Common.Previous" xml:space="preserve"><value>Trước</value></data>
+  <data name="Common.NextPage" xml:space="preserve"><value>Trang sau</value></data>
+  <data name="Common.Next" xml:space="preserve"><value>Sau</value></data>
+  <data name="Common.NotSet" xml:space="preserve"><value>Chưa đặt</value></data>
+  <data name="Common.NotConfigured" xml:space="preserve"><value>Chưa cấu hình</value></data>
+  <data name="Common.Unknown" xml:space="preserve"><value>Chưa xác định</value></data>
+  <data name="Common.System" xml:space="preserve"><value>Hệ thống</value></data>
+  <data name="Common.IngredientCode" xml:space="preserve"><value>Mã nguyên liệu</value></data>
+  <data name="Common.IngredientName" xml:space="preserve"><value>Tên nguyên liệu</value></data>
+  <data name="Common.InventoryAndSupply" xml:space="preserve"><value>Kho &amp; Cung ứng</value></data>
+  <data name="Common.Priority" xml:space="preserve"><value>Ưu tiên</value></data>
+  <data name="Common.Priority.Normal" xml:space="preserve"><value>Bình thường</value></data>
+  <data name="Common.Priority.High" xml:space="preserve"><value>Cao</value></data>
+  <data name="Common.Priority.Urgent" xml:space="preserve"><value>Khẩn cấp</value></data>
+  <data name="Ingredient.Eyebrow" xml:space="preserve"><value>Kho &amp; Cung ứng / Nguyên liệu</value></data>
+  <data name="Ingredient.Title" xml:space="preserve"><value>Quản lý nguyên liệu</value></data>
+  <data name="Ingredient.Subtitle" xml:space="preserve"><value>Danh mục nguyên liệu, đơn vị gốc và quản lý liên kết quy đổi của hệ thống CafeChain.</value></data>
+  <data name="Ingredient.AddButton" xml:space="preserve"><value>Thêm nguyên liệu</value></data>
+  <data name="Ingredient.FilterAria" xml:space="preserve"><value>Bộ lọc nguyên liệu</value></data>
+  <data name="Ingredient.DataScope" xml:space="preserve"><value>Phạm vi dữ liệu</value></data>
+  <data name="Ingredient.FilterHeading" xml:space="preserve"><value>Bộ lọc nguyên liệu</value></data>
+  <data name="Ingredient.Scope" xml:space="preserve"><value>Theo quyền truy cập</value></data>
+  <data name="Ingredient.SearchLabel" xml:space="preserve"><value>Tìm kiếm nguyên liệu</value></data>
+  <data name="Ingredient.SearchPlaceholder" xml:space="preserve"><value>Nhập mã hoặc tên nguyên liệu...</value></data>
+  <data name="Ingredient.ResultCount" xml:space="preserve"><value>Hiển thị &lt;strong&gt;{0}&lt;/strong&gt; nguyên liệu</value></data>
+  <data name="Ingredient.ResultSearchSuffix" xml:space="preserve"><value> cho "{0}"</value></data>
+  <data name="Ingredient.ListAria" xml:space="preserve"><value>Danh sách nguyên liệu</value></data>
+  <data name="Ingredient.ListKicker" xml:space="preserve"><value>Danh mục vật lý</value></data>
+  <data name="Ingredient.ListHeading" xml:space="preserve"><value>Nguyên liệu trong hệ thống</value></data>
+  <data name="Ingredient.TotalAria" xml:space="preserve"><value>Tổng cộng {0} nguyên liệu</value></data>
+  <data name="Ingredient.TotalLabel" xml:space="preserve"><value>Nguyên liệu</value></data>
+  <data name="Ingredient.Col.Code" xml:space="preserve"><value>Mã NL</value></data>
+  <data name="Ingredient.Col.Name" xml:space="preserve"><value>Tên nguyên liệu</value></data>
+  <data name="Ingredient.Col.Unit" xml:space="preserve"><value>Đơn vị gốc</value></data>
+  <data name="Ingredient.RowStatus.Active" xml:space="preserve"><value>Hoạt động</value></data>
+  <data name="Ingredient.RowStatus.Inactive" xml:space="preserve"><value>Ngưng</value></data>
+  <data name="Ingredient.EditTitle" xml:space="preserve"><value>Chỉnh sửa nguyên liệu {0}</value></data>
+  <data name="Ingredient.EditAria" xml:space="preserve"><value>Chỉnh sửa {0}</value></data>
+  <data name="Ingredient.Edit" xml:space="preserve"><value>Sửa</value></data>
+  <data name="Ingredient.ToggleAria" xml:space="preserve"><value>{0} {1}</value></data>
+  <data name="Ingredient.Toggle.Active" xml:space="preserve"><value>Kích hoạt</value></data>
+  <data name="Ingredient.EmptyTitle" xml:space="preserve"><value>Chưa có nguyên liệu</value></data>
+  <data name="Ingredient.EmptyCopy" xml:space="preserve"><value>Thêm nguyên liệu đầu tiên để cấu hình đơn vị, nguồn cung và công thức.</value></data>
+  <data name="Ingredient.PaginationAria" xml:space="preserve"><value>Phân trang nguyên liệu</value></data>
+  <data name="Ingredient.PageInfo" xml:space="preserve"><value>Trang &lt;strong&gt;{0}&lt;/strong&gt; / {1}</value></data>
+  <data name="Ingredient.ModalTitle" xml:space="preserve"><value>Nguyên liệu</value></data>
+  <data name="Ingredient.ModalCloseAria" xml:space="preserve"><value>Đóng hộp thoại nguyên liệu</value></data>
+  <data name="Ingredient.CodePlaceholder" xml:space="preserve"><value>VD: NL001</value></data>
+  <data name="Ingredient.NamePlaceholder" xml:space="preserve"><value>Nhập tên nguyên liệu...</value></data>
+  <data name="Ingredient.UnitSelectPlaceholder" xml:space="preserve"><value>-- Chọn đơn vị --</value></data>
+  <data name="Ingredient.UnitHelp" xml:space="preserve"><value>Đây là đơn vị cơ sở để tính toán quy đổi.</value></data>
+  <data name="Ingredient.UnitManageNote" xml:space="preserve"><value>Quy đổi đơn vị được quản lý riêng để tránh thay đổi ngoài ý muốn khi sửa nguyên liệu.</value></data>
+  <data name="Ingredient.UnitManageLink" xml:space="preserve"><value>Mở Đơn vị và quy đổi</value></data>
+  <data name="Ingredient.SaveButton" xml:space="preserve"><value>Lưu nguyên liệu</value></data>
+  <data name="Ingredient.Js.RequestFailed" xml:space="preserve"><value>Không thể thực hiện thao tác. Vui lòng thử lại.</value></data>
+  <data name="Ingredient.Js.NetworkError" xml:space="preserve"><value>Không thể kết nối máy chủ. Vui lòng kiểm tra mạng và thử lại.</value></data>
+  <data name="Ingredient.Js.InvalidResponse" xml:space="preserve"><value>Máy chủ trả về dữ liệu không hợp lệ.</value></data>
+  <data name="Ingredient.Js.LoadUnitsFailed" xml:space="preserve"><value>Không thể tải danh sách đơn vị.</value></data>
+  <data name="Ingredient.Js.InvalidUnitList" xml:space="preserve"><value>Máy chủ trả về danh sách đơn vị không hợp lệ.</value></data>
+  <data name="Ingredient.Js.SelectUnit" xml:space="preserve"><value>-- Chọn đơn vị --</value></data>
+  <data name="Ingredient.Js.ModalCreateTitle" xml:space="preserve"><value>Thêm nguyên liệu</value></data>
+  <data name="Ingredient.Js.LoadDetailFailed" xml:space="preserve"><value>Không thể tải thông tin nguyên liệu.</value></data>
+  <data name="Ingredient.Js.MissingDetail" xml:space="preserve"><value>Máy chủ không trả về thông tin nguyên liệu.</value></data>
+  <data name="Ingredient.Js.ModalEditTitle" xml:space="preserve"><value>Cập nhật nguyên liệu</value></data>
+  <data name="Ingredient.Js.ValidationError" xml:space="preserve"><value>Vui lòng nhập mã, tên và đơn vị tồn kho cơ sở.</value></data>
+  <data name="Ingredient.Js.UpdateFailed" xml:space="preserve"><value>Không thể cập nhật nguyên liệu.</value></data>
+  <data name="Ingredient.Js.CreateFailed" xml:space="preserve"><value>Không thể tạo nguyên liệu.</value></data>
+  <data name="Ingredient.Js.UpdateSuccess" xml:space="preserve"><value>Cập nhật thành công</value></data>
+  <data name="Ingredient.Js.CreateSuccess" xml:space="preserve"><value>Thêm thành công</value></data>
+  <data name="Ingredient.Js.SaveFailed" xml:space="preserve"><value>Không thể lưu nguyên liệu.</value></data>
+  <data name="Ingredient.Js.Action.Disable" xml:space="preserve"><value>ngưng hoạt động</value></data>
+  <data name="Ingredient.Js.Action.Enable" xml:space="preserve"><value>kích hoạt</value></data>
+  <data name="Ingredient.Js.ConfirmTitle" xml:space="preserve"><value>Xác nhận {0}</value></data>
+  <data name="Ingredient.Js.ConfirmText" xml:space="preserve"><value>Bạn có chắc chắn muốn {0} nguyên liệu này không?</value></data>
+  <data name="Ingredient.Js.ConfirmFallback" xml:space="preserve"><value>Xác nhận {0} nguyên liệu này?</value></data>
+  <data name="Ingredient.Js.ToggleFailed" xml:space="preserve"><value>Không thể cập nhật trạng thái nguyên liệu.</value></data>
+  <data name="Ingredient.Js.ToastStatusUpdated" xml:space="preserve"><value>Đã cập nhật trạng thái</value></data>
+  <data name="StockAlert.Details.Title" xml:space="preserve"><value>Chi tiết cảnh báo kho</value></data>
+  <data name="StockAlert.Details.Eyebrow" xml:space="preserve"><value>Cảnh báo #{0} · {1}</value></data>
+  <data name="StockAlert.Details.Subtitle" xml:space="preserve"><value>Cảnh báo ghi nhận lúc {0}. Số liệu hiện tại được tách riêng để đối chiếu an toàn.</value></data>
+  <data name="StockAlert.Details.ButtonList" xml:space="preserve"><value>Danh sách</value></data>
+  <data name="StockAlert.Details.ButtonInventory" xml:space="preserve"><value>Tồn kho</value></data>
+  <data name="StockAlert.Details.ResolvedButOpen" xml:space="preserve"><value>Cảnh báo đã hết điều kiện tồn thấp nhưng vẫn đang mở. Hãy hoàn tất quyết định của quản lý để đóng.</value></data>
+  <data name="StockAlert.Details.MetricsAria" xml:space="preserve"><value>Số liệu tồn kho</value></data>
+  <data name="StockAlert.Details.PhysicalNow" xml:space="preserve"><value>Tồn vật lý hiện tại</value></data>
+  <data name="StockAlert.Details.ReservedNow" xml:space="preserve"><value>Đang giữ chỗ</value></data>
+  <data name="StockAlert.Details.AvailableNow" xml:space="preserve"><value>Khả dụng hiện tại</value></data>
+  <data name="StockAlert.Details.Threshold" xml:space="preserve"><value>Ngưỡng cảnh báo tồn thấp</value></data>
+  <data name="StockAlert.Details.SummaryTitle" xml:space="preserve"><value>Tóm tắt cảnh báo</value></data>
+  <data name="StockAlert.Details.AvailableAtAlert" xml:space="preserve"><value>Khả dụng lúc cảnh báo</value></data>
+  <data name="StockAlert.Details.ManualTarget" xml:space="preserve"><value>Mục tiêu thủ công</value></data>
+  <data name="StockAlert.Details.ThresholdAtAlert" xml:space="preserve"><value>Ngưỡng lúc cảnh báo</value></data>
+  <data name="StockAlert.Details.DetectionSource" xml:space="preserve"><value>Nguồn phát hiện</value></data>
+  <data name="StockAlert.Details.LastUpdated" xml:space="preserve"><value>Cập nhật gần nhất</value></data>
+  <data name="StockAlert.Details.Reporter" xml:space="preserve"><value>Người báo</value></data>
+  <data name="StockAlert.Details.ItemType" xml:space="preserve"><value>Loại mặt hàng</value></data>
+  <data name="StockAlert.Details.NoteTitle" xml:space="preserve"><value>Ghi chú báo cáo</value></data>
+  <data name="StockAlert.Details.TimelineTitle" xml:space="preserve"><value>Dòng thời gian xử lý</value></data>
+  <data name="StockAlert.Details.Timeline.Detection" xml:space="preserve"><value>Phát hiện cảnh báo</value></data>
+  <data name="StockAlert.Details.Timeline.AvailablePrefix" xml:space="preserve"><value>Khả dụng</value></data>
+  <data name="StockAlert.Details.Timeline.Snapshot" xml:space="preserve"><value>Tồn vật lý {0} · Giữ chỗ {1} · Khả dụng {2}</value></data>
+  <data name="StockAlert.Details.Timeline.CreatedRequest" xml:space="preserve"><value>Đã tạo {0} #{1}</value></data>
+  <data name="StockAlert.Details.Timeline.StockRecovered" xml:space="preserve"><value>Tồn kho đã phục hồi</value></data>
+  <data name="StockAlert.Details.MovementsTitle" xml:space="preserve"><value>Biến động kho gần nhất</value></data>
+  <data name="StockAlert.Details.MovementsEmpty" xml:space="preserve"><value>Chưa có biến động kho để đối chiếu.</value></data>
+  <data name="StockAlert.Details.Movements.Time" xml:space="preserve"><value>Thời gian</value></data>
+  <data name="StockAlert.Details.Movements.Type" xml:space="preserve"><value>Loại biến động</value></data>
+  <data name="StockAlert.Details.Movements.Change" xml:space="preserve"><value>Thay đổi</value></data>
+  <data name="StockAlert.Details.Movements.Before" xml:space="preserve"><value>Trước</value></data>
+  <data name="StockAlert.Details.Movements.After" xml:space="preserve"><value>Sau</value></data>
+  <data name="StockAlert.Details.Movements.Reference" xml:space="preserve"><value>Chứng từ</value></data>
+  <data name="StockAlert.Details.Movements.Reference.Import" xml:space="preserve"><value>Phiếu nhận · dòng #{0}</value></data>
+  <data name="StockAlert.Details.Movements.Reference.Transfer" xml:space="preserve"><value>Điều chuyển #{0}</value></data>
+  <data name="StockAlert.Details.Movements.Reference.Order" xml:space="preserve"><value>Đơn hàng #{0}</value></data>
+  <data name="StockAlert.Details.Movements.Reference.Preparation" xml:space="preserve"><value>Lệnh sơ chế #{0}</value></data>
+  <data name="StockAlert.Details.Movements.Reference.Document" xml:space="preserve"><value>Chứng từ kho #{0}</value></data>
+  <data name="StockAlert.Details.Movements.Reference.Direct" xml:space="preserve"><value>Biến động trực tiếp</value></data>
+  <data name="StockAlert.Details.ManagerTitle" xml:space="preserve"><value>Quyết định của quản lý</value></data>
+  <data name="StockAlert.Details.ConfirmNoteLabel" xml:space="preserve"><value>Ghi chú xác nhận</value></data>
+  <data name="StockAlert.Details.ConfirmNotePlaceholder" xml:space="preserve"><value>Nêu kết quả kiểm tra và hướng xử lý...</value></data>
+  <data name="StockAlert.Details.ConfirmButton" xml:space="preserve"><value>Xác nhận cảnh báo</value></data>
+  <data name="StockAlert.Details.FalseReportDisclosure" xml:space="preserve"><value>Đánh dấu báo sai hoặc đóng cảnh báo</value></data>
+  <data name="StockAlert.Details.FalseReasonLabel" xml:space="preserve"><value>Lý do báo sai</value></data>
+  <data name="StockAlert.Details.FalseReasonPlaceholder" xml:space="preserve"><value>Nêu lý do số liệu hoặc báo cáo không chính xác...</value></data>
+  <data name="StockAlert.Details.FalseReportButton" xml:space="preserve"><value>Đánh dấu báo sai</value></data>
+  <data name="StockAlert.Details.CloseReasonLabel" xml:space="preserve"><value>Lý do đóng thủ công</value></data>
+  <data name="StockAlert.Details.CloseReasonPlaceholder" xml:space="preserve"><value>Lý do đóng cảnh báo...</value></data>
+  <data name="StockAlert.Details.CloseButton" xml:space="preserve"><value>Đóng cảnh báo</value></data>
+  <data name="StockAlert.Details.OpenRestockTitle" xml:space="preserve"><value>Nhu cầu bổ sung đang mở</value></data>
+  <data name="StockAlert.Details.OpenRestock.Code" xml:space="preserve"><value>Mã yêu cầu</value></data>
+  <data name="StockAlert.Details.OpenRestock.Quantity" xml:space="preserve"><value>Số lượng</value></data>
+  <data name="StockAlert.Details.OpenRestock.Link" xml:space="preserve"><value>Mở nhu cầu bổ sung</value></data>
+  <data name="StockAlert.Details.CreateReplenishment" xml:space="preserve"><value>Tạo nhu cầu bổ sung</value></data>
+  <data name="StockAlert.Details.CreateRestockRequest" xml:space="preserve"><value>Tạo yêu cầu nhập hàng</value></data>
+  <data name="StockAlert.Details.Create.Available" xml:space="preserve"><value>Tồn khả dụng</value></data>
+  <data name="StockAlert.Details.Create.ManualTarget" xml:space="preserve"><value>Mức tồn mục tiêu</value></data>
+  <data name="StockAlert.Details.Create.OpenProductionSource" xml:space="preserve"><value>Nguồn sản xuất đang mở</value></data>
+  <data name="StockAlert.Details.Create.StillNeeded" xml:space="preserve"><value>Còn cần bổ sung</value></data>
+  <data name="StockAlert.Details.Create.CannotCompute" xml:space="preserve"><value>Chưa thể tính</value></data>
+  <data name="StockAlert.Details.Create.QuantityLabel" xml:space="preserve"><value>Số lượng yêu cầu theo đơn vị mua hàng</value></data>
+  <data name="StockAlert.Details.Create.ServerRecalcHelp" xml:space="preserve"><value>Số lượng được tính lại trên máy chủ khi xác nhận; dữ liệu trên màn hình không phải quyền lực ghi nhận.</value></data>
+  <data name="StockAlert.Details.Create.VerifiedDemand" xml:space="preserve"><value>Nhu cầu đã xác minh: mục tiêu thủ công − khả dụng = {0}</value></data>
+  <data name="StockAlert.Details.Create.ThresholdTopUp" xml:space="preserve"><value>Bù đến ngưỡng tối thiểu: max(0, ngưỡng − khả dụng) = {0}</value></data>
+  <data name="StockAlert.Details.Create.InsufficientPurchaseUnit" xml:space="preserve"><value>chưa đủ dữ liệu đơn vị mua hàng</value></data>
+  <data name="StockAlert.Details.Create.InsufficientData" xml:space="preserve"><value>chưa đủ dữ liệu</value></data>
+  <data name="StockAlert.Details.Create.SnapshotNote" xml:space="preserve"><value>Dữ liệu tồn kho tại thời điểm ghi nhận: {0}</value></data>
+  <data name="StockAlert.Details.Create.PriorityLabel" xml:space="preserve"><value>Mức ưu tiên</value></data>
+  <data name="StockAlert.Details.Create.NotesPlaceholder" xml:space="preserve"><value>Thông tin cần lưu ý cho bộ phận kho...</value></data>
+  <data name="StockAlert.Details.Create.SubmitReplenishment" xml:space="preserve"><value>Xác nhận nhu cầu bổ sung</value></data>
+  <data name="StockAlert.Details.Create.SubmitRestockRequest" xml:space="preserve"><value>Gửi yêu cầu nhập</value></data>
+  <data name="StockAlert.Details.CloseDisclosure" xml:space="preserve"><value>Đóng cảnh báo mà không tạo yêu cầu</value></data>
+  <data name="StockAlert.Details.CloseReason" xml:space="preserve"><value>Lý do đóng</value></data>
+  <data name="StockAlert.Details.ConfirmClose" xml:space="preserve"><value>Xác nhận đóng</value></data>
+  <data name="StoreInventory.Transaction.FallbackStore" xml:space="preserve"><value>Cửa hàng</value></data>
+  <data name="StoreInventory.Transaction.Title" xml:space="preserve"><value>Lịch sử giao dịch kho</value></data>
+  <data name="StoreInventory.Transaction.Subtitle" xml:space="preserve"><value>Lịch sử nhập, xuất, điều chỉnh và hao hụt kho tại &lt;strong&gt;{0}&lt;/strong&gt;.</value></data>
+  <data name="StoreInventory.Transaction.ItemTypeLabel" xml:space="preserve"><value>Loại mặt hàng:</value></data>
+  <data name="StoreInventory.Transaction.FilterAria" xml:space="preserve"><value>Lọc loại mặt hàng</value></data>
+  <data name="StoreInventory.Transaction.All" xml:space="preserve"><value>Tất cả</value></data>
+  <data name="StoreInventory.Transaction.RawIngredient" xml:space="preserve"><value>Nguyên liệu thô</value></data>
+  <data name="StoreInventory.Transaction.SearchPlaceholder" xml:space="preserve"><value>Tìm tên mặt hàng...</value></data>
+  <data name="StoreInventory.Transaction.ResultMeta" xml:space="preserve"><value>Tìm thấy &lt;strong&gt;{0}&lt;/strong&gt; giao dịch kho.</value></data>
+  <data name="StoreInventory.Transaction.Col.Store" xml:space="preserve"><value>Kho</value></data>
+  <data name="StoreInventory.Transaction.Col.Item" xml:space="preserve"><value>Mặt hàng</value></data>
+  <data name="StoreInventory.Transaction.Col.Type" xml:space="preserve"><value>Loại</value></data>
+  <data name="StoreInventory.Transaction.Col.Source" xml:space="preserve"><value>Nguồn</value></data>
+  <data name="StoreInventory.Transaction.Col.Quantity" xml:space="preserve"><value>Số lượng</value></data>
+  <data name="StoreInventory.Transaction.Col.UnitPrice" xml:space="preserve"><value>Đơn giá</value></data>
+  <data name="StoreInventory.Transaction.Col.Total" xml:space="preserve"><value>Tổng tiền</value></data>
+  <data name="StoreInventory.Transaction.Col.Before" xml:space="preserve"><value>Trước</value></data>
+  <data name="StoreInventory.Transaction.Col.After" xml:space="preserve"><value>Sau</value></data>
+  <data name="StoreInventory.Transaction.Col.Date" xml:space="preserve"><value>Ngày giao dịch</value></data>
+  <data name="StoreInventory.Transaction.Col.DateShort" xml:space="preserve"><value>Ngày</value></data>
+  <data name="StoreInventory.Transaction.UnitUnconfirmed" xml:space="preserve"><value>Chưa xác nhận đơn vị tồn</value></data>
+  <data name="StoreInventory.Transaction.EmptyTitle" xml:space="preserve"><value>Chưa có giao dịch tồn kho</value></data>
+  <data name="StoreInventory.Transaction.EmptyCopy" xml:space="preserve"><value>Không tìm thấy lịch sử biến động kho nào tại cửa hàng này.</value></data>
+  <data name="StoreInventory.Transaction.EmptyCopyPartial" xml:space="preserve"><value>Chưa phát sinh nhập, xuất hoặc điều chỉnh kho trong phạm vi đang chọn.</value></data>
+  <data name="StoreInventory.Transaction.PaginationAria" xml:space="preserve"><value>Phân trang lịch sử giao dịch</value></data>
+  <data name="StoreInventory.Transaction.Js.EmptyFilter" xml:space="preserve"><value>Không tìm thấy giao dịch nào phù hợp với bộ lọc.</value></data>
+  <data name="StoreInventory.Transaction.Js.LoadingMore" xml:space="preserve"><value>Đang tải các trang khác...</value></data>
+  <data name="StoreInventory.Transaction.Js.ResultMeta" xml:space="preserve"><value>Hiển thị &lt;strong&gt;{0}&lt;/strong&gt; trên tổng số &lt;strong&gt;{1}&lt;/strong&gt; giao dịch phù hợp.</value></data>
+  <data name="StoreInventory.Transaction.ModalTitle" xml:space="preserve"><value>Lịch sử giao dịch kho</value></data>
+  <data name="StoreInventory.Transaction.ModalLoadingTitle" xml:space="preserve"><value>Đang tải lịch sử kho</value></data>
+  <data name="StoreInventory.Transaction.ModalLoadingCopy" xml:space="preserve"><value>Hệ thống đang lấy các giao dịch phù hợp với chi nhánh được chọn.</value></data>
+  <data name="UnitConversion.Title" xml:space="preserve"><value>Đơn vị và quy đổi</value></data>
+  <data name="UnitConversion.Eyebrow" xml:space="preserve"><value>Kho &amp; Cung ứng / Quy đổi</value></data>
+  <data name="UnitConversion.Subtitle" xml:space="preserve"><value>Quy đổi vật lý chuẩn là tham chiếu cố định. Quy đổi đo lường và quy cách nhà cung cấp phục vụ định lượng và giá vốn.</value></data>
+  <data name="UnitConversion.AddButton" xml:space="preserve"><value>Thêm quy đổi đo lường</value></data>
+  <data name="UnitConversion.TabAria" xml:space="preserve"><value>Nhóm dữ liệu đơn vị và quy đổi</value></data>
+  <data name="UnitConversion.Tab.Physical" xml:space="preserve"><value>Quy đổi vật lý chuẩn</value></data>
+  <data name="UnitConversion.Tab.Measuring" xml:space="preserve"><value>Quy đổi đo lường theo NL</value></data>
+  <data name="UnitConversion.Tab.Package" xml:space="preserve"><value>Quy cách đóng gói NCC</value></data>
+  <data name="UnitConversion.Physical.Kicker" xml:space="preserve"><value>Hệ thống tham chiếu</value></data>
+  <data name="UnitConversion.Physical.Heading" xml:space="preserve"><value>Quy đổi vật lý chuẩn (Chỉ đọc)</value></data>
+  <data name="UnitConversion.Physical.Status" xml:space="preserve"><value>Hệ thống chuẩn</value></data>
+  <data name="UnitConversion.Physical.Note" xml:space="preserve"><value>Nguồn: quy đổi vật lý chuẩn của hệ thống. Dữ liệu chỉ đọc và không thể thêm, sửa hoặc xóa tại trang quản trị.</value></data>
+  <data name="UnitConversion.Physical.TableAria" xml:space="preserve"><value>Quy đổi vật lý chuẩn</value></data>
+  <data name="UnitConversion.Physical.Col.Conversion" xml:space="preserve"><value>Quy đổi</value></data>
+  <data name="UnitConversion.Physical.Col.Direction" xml:space="preserve"><value>Chiều</value></data>
+  <data name="UnitConversion.Physical.Col.Source" xml:space="preserve"><value>Nguồn</value></data>
+  <data name="UnitConversion.Physical.NoEdit" xml:space="preserve"><value>Không sửa</value></data>
+  <data name="UnitConversion.Physical.Reference" xml:space="preserve"><value>Tham chiếu vật lý chuẩn:</value></data>
+  <data name="UnitConversion.Physical.Fixed" xml:space="preserve"><value>Hệ thống · cố định</value></data>
+  <data name="UnitConversion.FilterAria" xml:space="preserve"><value>Bộ lọc quy đổi đo lường</value></data>
+  <data name="UnitConversion.DataScope" xml:space="preserve"><value>Phạm vi dữ liệu</value></data>
+  <data name="UnitConversion.FilterHeading" xml:space="preserve"><value>Bộ lọc quy đổi đo lường</value></data>
+  <data name="UnitConversion.Scope" xml:space="preserve"><value>Theo nguyên liệu &amp; quy cách</value></data>
+  <data name="UnitConversion.SearchLabel" xml:space="preserve"><value>Tìm nguyên liệu</value></data>
+  <data name="UnitConversion.SearchPlaceholder" xml:space="preserve"><value>Nhập mã hoặc tên nguyên liệu...</value></data>
+  <data name="UnitConversion.StatusAll" xml:space="preserve"><value>Tất cả trạng thái</value></data>
+  <data name="UnitConversion.StatusValid" xml:space="preserve"><value>Hợp lệ</value></data>
+  <data name="UnitConversion.StatusConflict" xml:space="preserve"><value>Mâu thuẫn quy cách đóng gói</value></data>
+  <data name="UnitConversion.StatusReview" xml:space="preserve"><value>Cần xem xét</value></data>
+  <data name="UnitConversion.ListAria" xml:space="preserve"><value>Danh sách quy đổi đo lường</value></data>
+  <data name="UnitConversion.ListKicker" xml:space="preserve"><value>Danh mục quy đổi</value></data>
+  <data name="UnitConversion.ListHeading" xml:space="preserve"><value>Quy đổi đo lường theo nguyên liệu</value></data>
+  <data name="UnitConversion.TotalAria" xml:space="preserve"><value>Tổng cộng {0} nhóm</value></data>
+  <data name="UnitConversion.TotalConflict" xml:space="preserve"><value>Nhóm · {0} cần chú ý</value></data>
+  <data name="UnitConversion.EmptyTitle" xml:space="preserve"><value>Chưa có quy đổi đo lường</value></data>
+  <data name="UnitConversion.EmptyCopy" xml:space="preserve"><value>Các quy đổi vật lý chuẩn vẫn được áp dụng tự động cho hệ thống.</value></data>
+  <data name="UnitConversion.Group.BaseUnit" xml:space="preserve"><value>Đơn vị cơ sở: &lt;strong&gt;{0}&lt;/strong&gt; ({1})</value></data>
+  <data name="UnitConversion.Group.Label" xml:space="preserve"><value>Quy đổi đo lường</value></data>
+  <data name="UnitConversion.Group.NoConversion" xml:space="preserve"><value>Nguyên liệu này chưa có quy đổi riêng. Các quy đổi vật lý chuẩn vẫn áp dụng bình thường.</value></data>
+  <data name="UnitConversion.ReverseLine" xml:space="preserve"><value>Chiều ngược (suy ra): 1 {0} ≈ {1} {2}</value></data>
+  <data name="UnitConversion.Edit" xml:space="preserve"><value>Sửa</value></data>
+  <data name="UnitConversion.NoEditFactor" xml:space="preserve"><value>Không sửa hệ số</value></data>
+  <data name="UnitConversion.Package.SectionLabel" xml:space="preserve"><value>Quy cách đóng gói nhà cung cấp (nguồn chuẩn để tính giá vốn)</value></data>
+  <data name="UnitConversion.Package.Primary" xml:space="preserve"><value>Primary</value></data>
+  <data name="UnitConversion.Package.PricePerPack" xml:space="preserve"><value>Giá một gói:</value></data>
+  <data name="UnitConversion.Package.BaseCostLabel" xml:space="preserve"><value>Giá vốn theo đơn vị cơ sở:</value></data>
+  <data name="UnitConversion.Package.DataComplete" xml:space="preserve"><value>Đủ dữ liệu</value></data>
+  <data name="UnitConversion.Package.DataMissing" xml:space="preserve"><value>Thiếu dữ liệu</value></data>
+  <data name="UnitConversion.Package.ConflictAlert" xml:space="preserve"><value>&lt;strong&gt;Dữ liệu đang mâu thuẫn&lt;/strong&gt; giữa quy đổi đo lường và quy cách nhà cung cấp.</value></data>
+  <data name="UnitConversion.Package.ViewSupplier" xml:space="preserve"><value>Xem nhà cung cấp</value></data>
+  <data name="UnitConversion.PackageTab.Aria" xml:space="preserve"><value>Quy cách đóng gói NCC</value></data>
+  <data name="UnitConversion.PackageTab.Kicker" xml:space="preserve"><value>Nguồn chuẩn giá vốn</value></data>
+  <data name="UnitConversion.PackageTab.Heading" xml:space="preserve"><value>Quy cách đóng gói nhà cung cấp</value></data>
+  <data name="UnitConversion.PackageTab.Note" xml:space="preserve"><value>Dữ liệu thuộc &lt;strong&gt;IngredientSupplier&lt;/strong&gt; (PackageQuantity, UnitId, CurrentPrice). CRUD offer tại màn Nhà cung cấp.</value></data>
+  <data name="UnitConversion.PackageTab.EmptyTitle" xml:space="preserve"><value>Không có offer primary</value></data>
+  <data name="UnitConversion.PackageTab.EmptyCopy" xml:space="preserve"><value>Thử tìm nguyên liệu hoặc mở màn Nhà cung cấp để cập nhật quy cách.</value></data>
+  <data name="UnitConversion.PackageTab.TableAria" xml:space="preserve"><value>Quy cách gói</value></data>
+  <data name="UnitConversion.PackageTab.Col.Ingredient" xml:space="preserve"><value>Nguyên liệu</value></data>
+  <data name="UnitConversion.PackageTab.Col.Supplier" xml:space="preserve"><value>NCC</value></data>
+  <data name="UnitConversion.PackageTab.Col.NetQty" xml:space="preserve"><value>Số lượng tịnh / gói</value></data>
+  <data name="UnitConversion.PackageTab.Col.PackagePrice" xml:space="preserve"><value>Giá một gói</value></data>
+  <data name="UnitConversion.PackageTab.Col.BaseCost" xml:space="preserve"><value>Giá vốn / base</value></data>
+  <data name="UnitConversion.PackageTab.Incomplete" xml:space="preserve"><value>Thiếu</value></data>
+  <data name="UnitConversion.PackageTab.ViewSupplier" xml:space="preserve"><value>Xem NCC</value></data>
+  <data name="UnitConversion.Js.ActionFallback" xml:space="preserve"><value>Thay đổi trạng thái</value></data>
+  <data name="UnitConversion.Js.ConfirmTitle" xml:space="preserve"><value>Xác nhận {0}</value></data>
+  <data name="UnitConversion.Js.ConfirmText" xml:space="preserve"><value>Bạn có chắc chắn muốn {0} quy đổi này không?</value></data>
+  <data name="UnitConversion.Js.ConfirmFallback" xml:space="preserve"><value>Xác nhận {0} quy đổi này?</value></data>
+  <data name="UnitConversion.Js.ToastStatusUpdated" xml:space="preserve"><value>Đã cập nhật trạng thái thành công</value></data>
+  <data name="UnitConversion.CreateTitle" xml:space="preserve"><value>Tạo quy đổi đo lường theo nguyên liệu</value></data>
+  <data name="UnitConversion.Create.Kicker" xml:space="preserve"><value>Tạo quy đổi đo lường theo nguyên liệu</value></data>
+  <data name="UnitConversion.Create.Heading" xml:space="preserve"><value>Tạo quy đổi đo lường theo nguyên liệu</value></data>
+  <data name="UnitConversion.Create.Description" xml:space="preserve"><value>Chỉ tạo khi người vận hành đã xác nhận quy cách đo lường. Không suy diễn hệ số chỉ từ tên gói.</value></data>
+  <data name="UnitConversion.Create.PhysicalStrip" xml:space="preserve"><value>Quy đổi vật lý chuẩn (không tạo bản ghi):</value></data>
+  <data name="UnitConversion.Create.IngredientLabel" xml:space="preserve"><value>Nguyên liệu</value></data>
+  <data name="UnitConversion.Create.IngredientPlaceholder" xml:space="preserve"><value>-- Chọn nguyên liệu (mã + tên) --</value></data>
+  <data name="UnitConversion.Create.IngredientHelp" xml:space="preserve"><value>Tìm theo mã hoặc tên. Mỗi bản ghi thuộc một nguyên liệu.</value></data>
+  <data name="UnitConversion.Create.FromQtyLabel" xml:space="preserve"><value>SL đầu vào</value></data>
+  <data name="UnitConversion.Create.FromUnitLabel" xml:space="preserve"><value>Đơn vị đầu vào</value></data>
+  <data name="UnitConversion.Create.ToQtyLabel" xml:space="preserve"><value>SL đầu ra</value></data>
+  <data name="UnitConversion.Create.ToUnitLabel" xml:space="preserve"><value>ĐVT ra</value></data>
+  <data name="UnitConversion.Create.UnitPlaceholder" xml:space="preserve"><value>-- ĐVT --</value></data>
+  <data name="UnitConversion.Create.FromUnitTitle" xml:space="preserve"><value>Chọn đơn vị đầu vào</value></data>
+  <data name="UnitConversion.Create.ToUnitTitle" xml:space="preserve"><value>Chọn đơn vị đầu ra</value></data>
+  <data name="UnitConversion.Create.PackagingSuffix" xml:space="preserve"><value> · đếm/đóng gói</value></data>
+  <data name="UnitConversion.Create.PkgAckLabel" xml:space="preserve"><value>Tôi xác nhận mâu thuẫn với quy cách đóng gói NCC và vẫn lưu quy đổi đo lường (không đổi quy cách đóng gói; giá vốn vẫn dùng quy cách nhà cung cấp).</value></data>
+  <data name="UnitConversion.Create.EvalInitial" xml:space="preserve"><value>Đang kiểm tra hệ số và mâu thuẫn dữ liệu…</value></data>
+  <data name="UnitConversion.Create.Submit" xml:space="preserve"><value>Lưu quy đổi đo lường</value></data>
+  <data name="UnitConversion.Edit.Title" xml:space="preserve"><value>Sửa quy đổi đo lường</value></data>
+  <data name="UnitConversion.Edit.Heading" xml:space="preserve"><value>Sửa quy đổi đo lường #{0}</value></data>
+  <data name="UnitConversion.Edit.Description" xml:space="preserve"><value>Hệ thống kiểm tra lại hệ số trước khi lưu và không thay đổi cấu trúc quy cách đóng gói.</value></data>
+  <data name="UnitConversion.Edit.PhysicalStatus" xml:space="preserve"><value>Vật lý chuẩn · chỉ đọc</value></data>
+  <data name="UnitConversion.Edit.CrossDimensionAlert" xml:space="preserve"><value>Hàng hiện tại là quy đổi khối lượng ↔ thể tích. Không sửa hệ số — chỉ được xóa.</value></data>
+  <data name="UnitConversion.Edit.IngredientLabel" xml:space="preserve"><value>Nguyên liệu</value></data>
+  <data name="UnitConversion.Edit.FromQtyLabel" xml:space="preserve"><value>SL vào</value></data>
+  <data name="UnitConversion.Edit.FromUnitLabel" xml:space="preserve"><value>Đơn vị đầu vào</value></data>
+  <data name="UnitConversion.Edit.ToQtyLabel" xml:space="preserve"><value>SL ra</value></data>
+  <data name="UnitConversion.Edit.ToUnitLabel" xml:space="preserve"><value>ĐVT ra</value></data>
+  <data name="UnitConversion.Edit.FromUnitTitle" xml:space="preserve"><value>Chọn đơn vị đầu vào</value></data>
+  <data name="UnitConversion.Edit.ToUnitTitle" xml:space="preserve"><value>Chọn đơn vị đầu ra</value></data>
+  <data name="UnitConversion.Edit.PackagingSuffix" xml:space="preserve"><value> · đếm/đóng gói</value></data>
+  <data name="UnitConversion.Edit.PkgAckLabel" xml:space="preserve"><value>Xác nhận mâu thuẫn quy cách nhà cung cấp và vẫn lưu (quy cách đóng gói không đổi).</value></data>
+  <data name="UnitConversion.Edit.EvalInitial" xml:space="preserve"><value>Đang đánh giá…</value></data>
+  <data name="UnitConversion.Form.Js.InsufficientData" xml:space="preserve"><value>Chưa đủ dữ liệu để đánh giá.</value></data>
+  <data name="UnitConversion.Form.Js.FactorLabel" xml:space="preserve"><value>Hệ số:</value></data>
+  <data name="UnitConversion.Form.Js.FactorFormula" xml:space="preserve"><value>1 {0} = {1}</value></data>
+  <data name="UnitConversion.Form.Js.ReverseNote" xml:space="preserve"><value>Chiều ngược (suy ra, không lưu row): 1 {0} ≈ {1} {2}</value></data>
+  <data name="UnitConversion.Form.Js.Direction" xml:space="preserve"><value>Chiều: {0} → {1}</value></data>
+  <data name="UnitConversion.Form.Js.PhysicalConflict" xml:space="preserve"><value>PHYSICAL_CONVERSION_CONFLICT — dùng quy đổi vật lý chuẩn.</value></data>
+  <data name="UnitConversion.Form.Js.PhysicalNote" xml:space="preserve"><value>Quy đổi vật lý chuẩn — không lưu row.</value></data>
+  <data name="UnitConversion.Form.Js.CrossDimension" xml:space="preserve"><value>CROSS_DIMENSION — không hỗ trợ mass↔volume.</value></data>
+  <data name="UnitConversion.Form.Js.PackageConflict" xml:space="preserve"><value>Mâu thuẫn với package NCC</value></data>
+  <data name="UnitConversion.Form.Js.SupplierSpec" xml:space="preserve"><value>Quy cách NCC: {0} {1}/gói</value></data>
+  <data name="UnitConversion.Form.Js.ImpliedMeasuring" xml:space="preserve"><value>Quy đổi đo lường ngụ ý:</value></data>
+  <data name="UnitConversion.Form.Js.BaseCostNote" xml:space="preserve"><value>Giá vốn dùng quy cách nhà cung cấp — không tự chọn winner.</value></data>
+  <data name="UnitConversion.Form.Js.Valid" xml:space="preserve"><value>Hợp lệ</value></data>
+  <data name="UnitConversion.Form.Js.NeedPackageAck" xml:space="preserve"><value>(đã cần xác nhận package)</value></data>
+  <data name="UnitConversion.Form.Js.Loading" xml:space="preserve"><value>Đang đánh giá trên server…</value></data>
+  <data name="UnitConversion.Form.Js.Error" xml:space="preserve"><value>Lỗi evaluate (antiforgery/kết nối).</value></data>
+  <data name="Common.Close" xml:space="preserve"><value>Đóng</value></data>
+  <data name="Common.Dash" xml:space="preserve"><value>—</value></data>
+  <data name="Common.StaffNumber" xml:space="preserve"><value>Nhân viên #{0}</value></data>
+  <data name="Ingredient.Toggle.Inactive" xml:space="preserve"><value>Ngưng hoạt động</value></data>
+  <data name="StoreInventory.Transaction.PreparedItem" xml:space="preserve"><value>Bán thành phẩm (BTP)</value></data>
+  <data name="StockAlert.Details.DemandType" xml:space="preserve"><value>nhu cầu bổ sung</value></data>
+  <data name="StockAlert.Details.RestockType" xml:space="preserve"><value>yêu cầu nhập hàng</value></data>
+</root>

@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Staff.Index.Title" xml:space="preserve"><value>Staff management</value></data>
+  <data name="Staff.Index.Eyebrow" xml:space="preserve"><value>Workforce &amp; operations / Staff</value></data>
+  <data name="Staff.Index.Subtitle" xml:space="preserve"><value>Manage information, roles, and permissions of CafeChain staff.</value></data>
+  <data name="Staff.Index.Add" xml:space="preserve"><value>Add staff</value></data>
+  <data name="Staff.Index.Kpi.Total" xml:space="preserve"><value>Total staff</value></data>
+  <data name="Staff.Index.Kpi.Working" xml:space="preserve"><value>Working</value></data>
+  <data name="Staff.Index.Kpi.Locked" xml:space="preserve"><value>Locked</value></data>
+  <data name="Staff.Index.SearchLabel" xml:space="preserve"><value>Search staff</value></data>
+  <data name="Staff.Index.SearchPlaceholder" xml:space="preserve"><value>Staff name or email...</value></data>
+  <data name="Staff.Index.Role" xml:space="preserve"><value>Role</value></data>
+  <data name="Staff.Index.AllRoles" xml:space="preserve"><value>All roles</value></data>
+  <data name="Staff.Index.Filter" xml:space="preserve"><value>Filter</value></data>
+  <data name="Staff.Index.Reset" xml:space="preserve"><value>Reset</value></data>
+  <data name="Staff.Index.FoundPrefix" xml:space="preserve"><value>Found</value></data>
+  <data name="Staff.Index.FoundSuffix" xml:space="preserve"><value>staff</value></data>
+  <data name="Staff.Index.FoundFor" xml:space="preserve"><value>for</value></data>
+  <data name="Staff.Index.Col.Staff" xml:space="preserve"><value>Staff</value></data>
+  <data name="Staff.Index.Col.Email" xml:space="preserve"><value>Email</value></data>
+  <data name="Staff.Index.Col.Role" xml:space="preserve"><value>Role</value></data>
+  <data name="Staff.Index.Col.Store" xml:space="preserve"><value>Store</value></data>
+  <data name="Staff.Index.Col.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Staff.Index.Col.Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Staff.Index.Empty" xml:space="preserve"><value>No staff yet. Add one to get started!</value></data>
+  <data name="Staff.Index.EditTitle" xml:space="preserve"><value>Edit</value></data>
+  <data name="Staff.Index.LockTitle" xml:space="preserve"><value>Lock account</value></data>
+  <data name="Staff.Index.UnlockTitle" xml:space="preserve"><value>Unlock</value></data>
+  <data name="Staff.Index.ResetPasswordTitle" xml:space="preserve"><value>Reset password</value></data>
+  <data name="Staff.Index.NoEditTitle" xml:space="preserve"><value>No permission to edit</value></data>
+  <data name="Staff.Index.Superior" xml:space="preserve"><value>Reports to a superior</value></data>
+  <data name="Staff.Index.Showing" xml:space="preserve"><value>Showing {0} / {1} staff</value></data>
+  <data name="Staff.Js.LockVerb" xml:space="preserve"><value>lock</value></data>
+  <data name="Staff.Js.UnlockVerb" xml:space="preserve"><value>unlock</value></data>
+  <data name="Staff.Js.LockTitle" xml:space="preserve"><value>Lock account</value></data>
+  <data name="Staff.Js.UnlockTitle" xml:space="preserve"><value>Unlock account</value></data>
+  <data name="Staff.Js.ToggleLead" xml:space="preserve"><value>You are requesting to</value></data>
+  <data name="Staff.Js.ToggleOf" xml:space="preserve"><value>the account of</value></data>
+  <data name="Staff.Js.LockNote" xml:space="preserve"><value>The staff member will not be able to sign in until the account is unlocked.</value></data>
+  <data name="Staff.Js.UnlockNote" xml:space="preserve"><value>The staff member will be able to sign in and continue working.</value></data>
+  <data name="Staff.Js.LockConfirm" xml:space="preserve"><value>Lock account</value></data>
+  <data name="Staff.Js.UnlockConfirm" xml:space="preserve"><value>Unlock account</value></data>
+  <data name="Staff.Js.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Staff.Js.Success" xml:space="preserve"><value>Success!</value></data>
+  <data name="Staff.Js.Error" xml:space="preserve"><value>Error!</value></data>
+  <data name="Staff.Js.ServerError" xml:space="preserve"><value>Unable to connect to the server.</value></data>
+  <data name="Staff.Js.ResetTitle" xml:space="preserve"><value>Reset password</value></data>
+  <data name="Staff.Js.ResetLead" xml:space="preserve"><value>Create a new sign-in password for</value></data>
+  <data name="Staff.Js.ResetNote" xml:space="preserve"><value>The new password must have at least 6 characters. Share it with the staff member through a secure channel.</value></data>
+  <data name="Staff.Js.NewPassword" xml:space="preserve"><value>New password</value></data>
+  <data name="Staff.Js.NewPasswordPlaceholder" xml:space="preserve"><value>Enter at least 6 characters</value></data>
+  <data name="Staff.Js.ResetConfirm" xml:space="preserve"><value>Reset password</value></data>
+  <data name="Staff.Js.CancelShort" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Staff.Js.PasswordMin" xml:space="preserve"><value>Password must have at least 6 characters.</value></data>
+  <data name="Staff.Js.SuccessShort" xml:space="preserve"><value>Success</value></data>
+  <data name="Staff.Js.FailedShort" xml:space="preserve"><value>Unsuccessful</value></data>
+  <data name="Staff.Js.ErrorShort" xml:space="preserve"><value>Error</value></data>
+  <data name="Staff.Create.Title" xml:space="preserve"><value>Add new staff</value></data>
+  <data name="Staff.Create.Subtitle" xml:space="preserve"><value>Create profile, account, and work scope in one transaction.</value></data>
+  <data name="Staff.Create.Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Staff.Create.Tab.General" xml:space="preserve"><value>General</value></data>
+  <data name="Staff.Create.Tab.Scope" xml:space="preserve"><value>Role &amp; scope</value></data>
+  <data name="Staff.Create.Tab.Account" xml:space="preserve"><value>Work &amp; account</value></data>
+  <data name="Staff.Create.Avatar" xml:space="preserve"><value>Avatar</value></data>
+  <data name="Staff.Create.AvatarHint" xml:space="preserve"><value>Click to choose a photo</value></data>
+  <data name="Staff.Create.AvatarFormats" xml:space="preserve"><value>JPG, PNG, WebP · max 2 MB</value></data>
+  <data name="Staff.Create.AvatarAlt" xml:space="preserve"><value>Avatar preview</value></data>
+  <data name="Staff.Create.ChoosePhoto" xml:space="preserve"><value>Choose photo</value></data>
+  <data name="Staff.Create.RemovePhoto" xml:space="preserve"><value>Remove photo</value></data>
+  <data name="Staff.Create.Personal" xml:space="preserve"><value>Personal information</value></data>
+  <data name="Staff.Create.FullName" xml:space="preserve"><value>Full name</value></data>
+  <data name="Staff.Create.FullNamePlaceholder" xml:space="preserve"><value>Jane Doe</value></data>
+  <data name="Staff.Create.Cccd" xml:space="preserve"><value>National ID</value></data>
+  <data name="Staff.Create.CccdPlaceholder" xml:space="preserve"><value>12 digits</value></data>
+  <data name="Staff.Create.Gender" xml:space="preserve"><value>Gender</value></data>
+  <data name="Staff.Create.Gender.Female" xml:space="preserve"><value>Female</value></data>
+  <data name="Staff.Create.Gender.Male" xml:space="preserve"><value>Male</value></data>
+  <data name="Staff.Create.Gender.Other" xml:space="preserve"><value>Other</value></data>
+  <data name="Staff.Create.Dob" xml:space="preserve"><value>Date of birth</value></data>
+  <data name="Staff.Create.Phone" xml:space="preserve"><value>Phone number</value></data>
+  <data name="Staff.Create.AddressSection" xml:space="preserve"><value>Permanent address</value></data>
+  <data name="Staff.Create.Province" xml:space="preserve"><value>Province/City</value></data>
+  <data name="Staff.Create.SelectProvince" xml:space="preserve"><value>-- Select province/city --</value></data>
+  <data name="Staff.Create.Ward" xml:space="preserve"><value>Ward/commune</value></data>
+  <data name="Staff.Create.SelectWard" xml:space="preserve"><value>-- Select ward/commune --</value></data>
+  <data name="Staff.Create.Address" xml:space="preserve"><value>Detailed address</value></data>
+  <data name="Staff.Create.AddressPlaceholder" xml:space="preserve"><value>House number, street...</value></data>
+  <data name="Staff.Create.ScopeSection" xml:space="preserve"><value>Role and data scope</value></data>
+  <data name="Staff.Create.ScopeHelp" xml:space="preserve"><value>Choose a role first, then grant a data scope. The primary store is the daily workplace and must fall within the granted scope.</value></data>
+  <data name="Staff.Create.Role" xml:space="preserve"><value>Role</value></data>
+  <data name="Staff.Create.SelectRole" xml:space="preserve"><value>-- Select role --</value></data>
+  <data name="Staff.Create.ScopeType" xml:space="preserve"><value>Scope type</value></data>
+  <data name="Staff.Create.SelectRoleFirst" xml:space="preserve"><value>-- Select a role first --</value></data>
+  <data name="Staff.Create.ScopeRef" xml:space="preserve"><value>Granted scope</value></data>
+  <data name="Staff.Create.SelectScopeTypeFirst" xml:space="preserve"><value>-- Select a scope type first --</value></data>
+  <data name="Staff.Create.ScopeProvince" xml:space="preserve"><value>Scope province/city</value></data>
+  <data name="Staff.Create.PrimaryStore" xml:space="preserve"><value>Primary store</value></data>
+  <data name="Staff.Create.SelectScopeFirst" xml:space="preserve"><value>-- Select a scope first --</value></data>
+  <data name="Staff.Create.StoreHelp" xml:space="preserve"><value>Primary workplace for scheduling and POS; it does not replace the data scope.</value></data>
+  <data name="Staff.Create.AccountSection" xml:space="preserve"><value>Work and sign-in account</value></data>
+  <data name="Staff.Create.LoginEmail" xml:space="preserve"><value>Sign-in email</value></data>
+  <data name="Staff.Create.Password" xml:space="preserve"><value>Initial password</value></data>
+  <data name="Staff.Create.TogglePassword" xml:space="preserve"><value>Show or hide password</value></data>
+  <data name="Staff.Create.PasswordHelp" xml:space="preserve"><value>Staff can change the password after signing in.</value></data>
+  <data name="Staff.Create.StartDate" xml:space="preserve"><value>Start date</value></data>
+  <data name="Staff.Create.EmployeeStatus" xml:space="preserve"><value>Employment status</value></data>
+  <data name="Staff.Create.Status.Probation" xml:space="preserve"><value>Probation</value></data>
+  <data name="Staff.Create.Status.Official" xml:space="preserve"><value>Permanent</value></data>
+  <data name="Staff.Create.Status.Resigned" xml:space="preserve"><value>Resigned</value></data>
+  <data name="Staff.Create.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Staff.Create.Submit" xml:space="preserve"><value>Create staff</value></data>
+  <data name="Staff.Create.Js.Loading" xml:space="preserve"><value>Loading...</value></data>
+  <data name="Staff.Create.Js.LoadFailed" xml:space="preserve"><value>Unable to load data</value></data>
+  <data name="Staff.Create.Js.SelectPrimaryStore" xml:space="preserve"><value>-- Select primary store --</value></data>
+  <data name="Staff.Create.Js.NoMatchingStore" xml:space="preserve"><value>-- No matching store in this scope --</value></data>
+  <data name="Staff.Create.Js.SelectScopeType" xml:space="preserve"><value>-- Select scope type --</value></data>
+  <data name="Staff.Create.Js.SelectScope" xml:space="preserve"><value>-- Select scope --</value></data>
+  <data name="Staff.Create.Js.SelectProvinceFirst" xml:space="preserve"><value>-- Select province/city first --</value></data>
+  <data name="Staff.Create.Js.AvatarInvalid" xml:space="preserve"><value>Photo must be JPG, PNG, or WebP and no larger than 2 MB.</value></data>
+  <data name="Staff.Create.Js.NameRequired" xml:space="preserve"><value>Please enter full name.</value></data>
+  <data name="Staff.Create.Js.CccdRequired" xml:space="preserve"><value>Please enter national ID.</value></data>
+  <data name="Staff.Create.Js.CccdInvalid" xml:space="preserve"><value>Invalid national ID (must be exactly 12 digits).</value></data>
+  <data name="Staff.Create.Js.DobRequired" xml:space="preserve"><value>Please select date of birth.</value></data>
+  <data name="Staff.Create.Js.RoleRequired" xml:space="preserve"><value>Please select a role.</value></data>
+  <data name="Staff.Create.Js.ScopeTypeRequired" xml:space="preserve"><value>Please select a scope type.</value></data>
+  <data name="Staff.Create.Js.ScopeRefRequired" xml:space="preserve"><value>Please select a granted scope.</value></data>
+  <data name="Staff.Create.Js.StoreRequired" xml:space="preserve"><value>Please select a primary store.</value></data>
+  <data name="Staff.Create.Js.EmailRequired" xml:space="preserve"><value>Please enter sign-in email.</value></data>
+  <data name="Staff.Create.Js.EmailInvalid" xml:space="preserve"><value>Invalid email format (example: example@domain.com).</value></data>
+  <data name="Staff.Create.Js.PasswordRequired" xml:space="preserve"><value>Please enter an initial password.</value></data>
+  <data name="Staff.Create.Js.PasswordMin" xml:space="preserve"><value>Password must contain at least 6 characters.</value></data>
+  <data name="Staff.Create.Js.StartDateRequired" xml:space="preserve"><value>Please select a start date.</value></data>
+  <data name="Staff.Create.Js.InvalidTitle" xml:space="preserve"><value>Information is not valid</value></data>
+  <data name="Staff.Create.Js.CheckFields" xml:space="preserve"><value>Please check: {labels}.</value></data>
+  <data name="Staff.Create.Js.CheckRequired" xml:space="preserve"><value>Please review and complete all required fields.</value></data>
+  <data name="Staff.Create.Js.BackToCheck" xml:space="preserve"><value>Go back and review</value></data>
+  <data name="Staff.Create.Js.Forbidden" xml:space="preserve"><value>No permission</value></data>
+  <data name="Staff.Create.Js.CreateFailed" xml:space="preserve"><value>Unable to create staff</value></data>
+  <data name="Staff.Create.Js.RequestFailed" xml:space="preserve"><value>The request could not be processed.</value></data>
+  <data name="Staff.Create.Js.ConnectionTitle" xml:space="preserve"><value>Connection error</value></data>
+  <data name="Staff.Create.Js.ConnectionText" xml:space="preserve"><value>Unable to connect to the server. The data you entered is still kept.</value></data>
+  <data name="Staff.Edit.Title" xml:space="preserve"><value>Update staff</value></data>
+  <data name="Staff.Edit.Eyebrow" xml:space="preserve"><value>Workforce &amp; operations / Staff / Update</value></data>
+  <data name="Staff.Edit.Subtitle" xml:space="preserve"><value>Edit personal information; role and scope are managed on the permissions screen.</value></data>
+  <data name="Staff.Edit.Back" xml:space="preserve"><value>Back</value></data>
+  <data name="Staff.Edit.InfoSection" xml:space="preserve"><value>Staff information</value></data>
+  <data name="Staff.Edit.InfoHint" xml:space="preserve"><value>Identity details and current employment status.</value></data>
+  <data name="Staff.Edit.FullName" xml:space="preserve"><value>Full name *</value></data>
+  <data name="Staff.Edit.Email" xml:space="preserve"><value>Email *</value></data>
+  <data name="Staff.Edit.Cccd" xml:space="preserve"><value>National ID *</value></data>
+  <data name="Staff.Edit.Gender" xml:space="preserve"><value>Gender</value></data>
+  <data name="Staff.Edit.Dob" xml:space="preserve"><value>Date of birth *</value></data>
+  <data name="Staff.Edit.StartDate" xml:space="preserve"><value>Start date</value></data>
+  <data name="Staff.Edit.EmployeeStatus" xml:space="preserve"><value>Employment status</value></data>
+  <data name="Staff.Edit.Status.Resigned" xml:space="preserve"><value>Resigned</value></data>
+  <data name="Staff.Edit.Phone" xml:space="preserve"><value>Phone number</value></data>
+  <data name="Staff.Edit.Avatar" xml:space="preserve"><value>Avatar</value></data>
+  <data name="Staff.Edit.ChoosePhoto" xml:space="preserve"><value>Choose photo</value></data>
+  <data name="Staff.Edit.UnselectPhoto" xml:space="preserve"><value>Clear selection</value></data>
+  <data name="Staff.Edit.AvatarHint" xml:space="preserve"><value>JPG, PNG, WebP · max 2 MB</value></data>
+  <data name="Staff.Edit.AddressSection" xml:space="preserve"><value>Permanent address</value></data>
+  <data name="Staff.Edit.AddressHint" xml:space="preserve"><value>Area and contact address of the staff member.</value></data>
+  <data name="Staff.Edit.Province" xml:space="preserve"><value>Province/City *</value></data>
+  <data name="Staff.Edit.Ward" xml:space="preserve"><value>Ward/commune *</value></data>
+  <data name="Staff.Edit.Address" xml:space="preserve"><value>Detailed address *</value></data>
+  <data name="Staff.Edit.RequiredHint" xml:space="preserve"><value>Fields marked * are required.</value></data>
+  <data name="Staff.Edit.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Staff.Edit.Save" xml:space="preserve"><value>Save changes</value></data>
+  <data name="Staff.Edit.Js.AvatarInvalid" xml:space="preserve"><value>Photo must be JPG, PNG, or WebP and no larger than 2 MB.</value></data>
+  <data name="Staff.Edit.Js.Loading" xml:space="preserve"><value>Loading...</value></data>
+  <data name="Staff.Edit.Js.LoadFailed" xml:space="preserve"><value>Unable to load data</value></data>
+  <data name="Staff.Edit.Js.SelectWard" xml:space="preserve"><value>-- Select ward/commune --</value></data>
+  <data name="Staff.Edit.Js.CccdRequired" xml:space="preserve"><value>Please enter national ID.</value></data>
+  <data name="Staff.Edit.Js.CccdInvalid" xml:space="preserve"><value>Invalid national ID (must be exactly 12 digits).</value></data>
+  <data name="Staff.Edit.Js.DobRequired" xml:space="preserve"><value>Please select date of birth.</value></data>
+</root>

@@ -1,6 +1,8 @@
 @model CafeChain.ViewModels.Admin.Recipes.RecipeVersionCompareVM
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<CafeChain.ProductResource> ProductText
 @{
-    ViewData["Title"] = "So sánh phiên bản công thức - " + Model.BusinessName;
+    ViewData["Title"] = ProductText["Recipe.Compare.PageTitle", Model.BusinessName];
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 }
 
@@ -12,35 +14,35 @@
         <header class="recipe-compare__header">
             <div>
                 <span class="recipe-workspace__eyebrow">@Model.TargetLabel</span>
-                <h1>So sánh phiên bản · @Model.BusinessName</h1>
-                <p>Đối chiếu hai phiên bản của cùng một đối tượng công thức. Đây là bằng chứng chỉ đọc.</p>
+                <h1>@ProductText["Recipe.Compare.Title"] · @Model.BusinessName</h1>
+                <p>@ProductText["Recipe.Compare.Description"]</p>
             </div>
             <a asp-action="Visualize" asp-route-recipeId="@Model.To.RecipeId" class="btn btn-rb-outline">
                 <i class="fas fa-arrow-left" aria-hidden="true"></i>
-                Quay lại không gian công thức
+                @ProductText["Recipe.Compare.Back"]
             </a>
         </header>
 
-        <section class="recipe-compare__versions" aria-label="Hai phiên bản được so sánh">
+        <section class="recipe-compare__versions" aria-label="@ProductText["Recipe.Compare.VersionsAria"]">
             <article>
-                <span>Phiên bản trước</span>
-                <strong>@Model.From.VersionLabel</strong>
-                <small>@Model.From.StateLabel</small>
+                <span>@ProductText["Recipe.Compare.BeforeVersion"]</span>
+                <strong>@ProductText["Recipe.Compare.Version", Model.From.RecipeId]</strong>
+                <small>@ProductText[Model.From.IsCurrent ? "Recipe.Health.CURRENT" : "Recipe.Health.HISTORICAL"]</small>
                 <dl>
-                    <div><dt>Đầu ra</dt><dd>@Model.From.OutputDisplay</dd></div>
-                    <div><dt>Giá vốn thiết kế</dt><dd>@(Model.From.DesignCost.HasValue ? $"{Model.From.DesignCost:N0} đ" : "Chưa đủ dữ liệu")</dd></div>
-                    <div><dt>Dữ liệu giá</dt><dd>@Model.From.CostCompletenessLabel</dd></div>
+                    <div><dt>@ProductText["Recipe.Compare.Output"]</dt><dd>@Model.From.OutputDisplay</dd></div>
+                    <div><dt>@ProductText["Recipe.Compare.DesignCost"]</dt><dd>@(Model.From.DesignCost.HasValue ? $"{Model.From.DesignCost:N0} ₫" : ProductText["Recipe.Compare.InsufficientData"])</dd></div>
+                    <div><dt>@ProductText["Recipe.Compare.CostData"]</dt><dd>@ProductText[Model.From.CostComplete ? "Recipe.Compare.CostComplete" : "Recipe.Compare.CostIncomplete"]</dd></div>
                 </dl>
             </article>
             <div class="recipe-compare__direction" aria-hidden="true"><i class="fas fa-arrow-right"></i></div>
             <article>
-                <span>Phiên bản sau</span>
-                <strong>@Model.To.VersionLabel</strong>
-                <small>@Model.To.StateLabel</small>
+                <span>@ProductText["Recipe.Compare.AfterVersion"]</span>
+                <strong>@ProductText["Recipe.Compare.Version", Model.To.RecipeId]</strong>
+                <small>@ProductText[Model.To.IsCurrent ? "Recipe.Health.CURRENT" : "Recipe.Health.HISTORICAL"]</small>
                 <dl>
-                    <div><dt>Đầu ra</dt><dd>@Model.To.OutputDisplay</dd></div>
-                    <div><dt>Giá vốn thiết kế</dt><dd>@(Model.To.DesignCost.HasValue ? $"{Model.To.DesignCost:N0} đ" : "Chưa đủ dữ liệu")</dd></div>
-                    <div><dt>Dữ liệu giá</dt><dd>@Model.To.CostCompletenessLabel</dd></div>
+                    <div><dt>@ProductText["Recipe.Compare.Output"]</dt><dd>@Model.To.OutputDisplay</dd></div>
+                    <div><dt>@ProductText["Recipe.Compare.DesignCost"]</dt><dd>@(Model.To.DesignCost.HasValue ? $"{Model.To.DesignCost:N0} ₫" : ProductText["Recipe.Compare.InsufficientData"])</dd></div>
+                    <div><dt>@ProductText["Recipe.Compare.CostData"]</dt><dd>@ProductText[Model.To.CostComplete ? "Recipe.Compare.CostComplete" : "Recipe.Compare.CostIncomplete"]</dd></div>
                 </dl>
             </article>
         </section>
@@ -49,16 +51,16 @@
             <header class="recipe-workspace__section-heading bom-section-heading">
                 <span class="recipe-workspace__section-icon"><i class="fas fa-scale-balanced" aria-hidden="true"></i></span>
                 <div>
-                    <h2 id="compare-summary-title">Tóm tắt thay đổi</h2>
-                    <p>Đầu ra, mức đầy đủ dữ liệu giá và chênh lệch giá vốn thiết kế.</p>
+                    <h2 id="compare-summary-title">@ProductText["Recipe.Compare.SummaryTitle"]</h2>
+                    <p>@ProductText["Recipe.Compare.SummaryHint"]</p>
                 </div>
             </header>
             <div class="recipe-compare__summary-grid">
-                <article><span>Đầu ra</span><strong>@Model.OutputChangeLabel</strong></article>
-                <article><span>Dữ liệu giá</span><strong>@Model.CostCompletenessChangeLabel</strong></article>
+                <article><span>@ProductText["Recipe.Compare.Output"]</span><strong>@(Model.OutputChanged ? $"{Model.From.OutputDisplay} → {Model.To.OutputDisplay}" : ProductText["Recipe.Compare.Unchanged"])</strong></article>
+                <article><span>@ProductText["Recipe.Compare.CostData"]</span><strong>@ProductText[Model.From.CostComplete == Model.To.CostComplete ? (Model.To.CostComplete ? "Recipe.Compare.CostComplete" : "Recipe.Compare.CostIncomplete") : "Recipe.Compare.CostChanged"]</strong></article>
                 <article>
-                    <span>Chênh lệch giá vốn thiết kế</span>
-                    <strong>@(Model.DesignCostDelta.HasValue ? $"{Model.DesignCostDelta.Value:+#,##0;-#,##0;0} đ" : "Chưa thể xác định")</strong>
+                    <span>@ProductText["Recipe.Compare.DesignCostDelta"]</span>
+                    <strong>@(Model.DesignCostDelta.HasValue ? $"{Model.DesignCostDelta.Value:+#,##0;-#,##0;0} ₫" : ProductText["Recipe.Compare.Indeterminate"])</strong>
                 </article>
             </div>
         </section>
@@ -67,21 +69,21 @@
             <header class="recipe-workspace__section-heading bom-section-heading">
                 <span class="recipe-workspace__section-icon"><i class="fas fa-list-check" aria-hidden="true"></i></span>
                 <div>
-                    <h2 id="compare-lines-title">Thay đổi định mức</h2>
-                    <p>Phân biệt dòng thêm, dòng bỏ và dòng thay đổi theo thành phần nghiệp vụ.</p>
+                    <h2 id="compare-lines-title">@ProductText["Recipe.Compare.LineChanges"]</h2>
+                    <p>@ProductText["Recipe.Compare.LineChangesHint"]</p>
                 </div>
             </header>
             @if (!Model.HasLineChanges)
             {
-                <div class="recipe-workspace__history-empty">Không có thay đổi định mức giữa hai phiên bản.</div>
+                <div class="recipe-workspace__history-empty">@ProductText["Recipe.Compare.NoLineChanges"]</div>
             }
             else
             {
                 var groups = new[]
                 {
-                    (Title: "Dòng đã thêm", Css: "is-added", Items: Model.AddedLines),
-                    (Title: "Dòng đã bỏ", Css: "is-removed", Items: Model.RemovedLines),
-                    (Title: "Dòng đã thay đổi", Css: "is-changed", Items: Model.ChangedLines)
+                    (Title: ProductText["Recipe.Compare.AddedLines"].Value, Css: "is-added", Items: Model.AddedLines),
+                    (Title: ProductText["Recipe.Compare.RemovedLines"].Value, Css: "is-removed", Items: Model.RemovedLines),
+                    (Title: ProductText["Recipe.Compare.ChangedLines"].Value, Css: "is-changed", Items: Model.ChangedLines)
                 };
                 <div class="recipe-compare__change-groups">
                     @foreach (var group in groups.Where(x => x.Items.Count > 0))
@@ -92,20 +94,20 @@
                             {
                                 <article>
                                     <div>
-                                        <span>@line.InputTypeLabel</span>
+                                        <span>@ProductText[$"Recipe.Compare.InputType.{line.InputTypeCode}"]</span>
                                         <strong>@line.BusinessName</strong>
                                         @if (!string.IsNullOrWhiteSpace(line.TechnicalCode))
                                         {
-                                            <small>Mã: @line.TechnicalCode</small>
+                                            <small>@ProductText["Recipe.Compare.Code"]: @line.TechnicalCode</small>
                                         }
                                     </div>
                                     <dl>
-                                        <div><dt>Trước</dt><dd>@(line.BeforeQuantity ?? "Không có")</dd></div>
-                                        <div><dt>Sau</dt><dd>@(line.AfterQuantity ?? "Không có")</dd></div>
-                                        <div><dt>Chuẩn hóa trước</dt><dd>@(line.BeforeNormalizedQuantity ?? "Chưa có dữ liệu")</dd></div>
-                                        <div><dt>Chuẩn hóa sau</dt><dd>@(line.AfterNormalizedQuantity ?? "Chưa có dữ liệu")</dd></div>
+                                        <div><dt>@ProductText["Recipe.Compare.Before"]</dt><dd>@(line.BeforeQuantity ?? ProductText["Common.None"])</dd></div>
+                                        <div><dt>@ProductText["Recipe.Compare.After"]</dt><dd>@(line.AfterQuantity ?? ProductText["Common.None"])</dd></div>
+                                        <div><dt>@ProductText["Recipe.Compare.NormalizedBefore"]</dt><dd>@(line.BeforeNormalizedQuantity ?? ProductText["Recipe.Compare.NoData"])</dd></div>
+                                        <div><dt>@ProductText["Recipe.Compare.NormalizedAfter"]</dt><dd>@(line.AfterNormalizedQuantity ?? ProductText["Recipe.Compare.NoData"])</dd></div>
                                     </dl>
-                                    <p>@line.ChangeSummary</p>
+                                    <p>@string.Join(", ", line.ChangeCodes.Select(code => ProductText[$"Recipe.Compare.Change.{code}"].Value))</p>
                                 </article>
                             }
                         </section>

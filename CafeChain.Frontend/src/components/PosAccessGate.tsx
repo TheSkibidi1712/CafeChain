@@ -1,5 +1,6 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
+import { usePreferences } from '../contexts/PreferencesContext'
 import { API_BASE_URL, apiClient } from '../services/apiClient'
 import {
   clearPosAuthentication,
@@ -38,6 +39,7 @@ const redirectToStaffHub = (errorCode: string, message?: string) => {
 }
 
 export default function PosAccessGate({ children }: { children: ReactNode }) {
+  const { t } = usePreferences()
   const location = useLocation()
   const [snapshot, setSnapshot] = useState<PosAccessSnapshot | null>(null)
   const [networkError, setNetworkError] = useState<string | null>(null)
@@ -50,7 +52,7 @@ export default function PosAccessGate({ children }: { children: ReactNode }) {
     const session = getPosSession()
     if (!session.token) {
       if (isPosSessionEndInProgress()) return
-      redirectToStaffHub('POS_SESSION_INVALID', 'Bạn cần mở POS từ StaffHub.')
+      redirectToStaffHub('POS_SESSION_INVALID', t('access.openFromStaffHub'))
       return
     }
 
@@ -59,7 +61,7 @@ export default function PosAccessGate({ children }: { children: ReactNode }) {
     if (!response.ok || !response.data?.data) {
       const payload = response.data
       if (response.status === 0) {
-        setNetworkError('Không thể xác minh quyền POS. Kiểm tra kết nối rồi thử lại.')
+        setNetworkError(t('access.networkError'))
         setChecking(false)
         return
       }
@@ -76,7 +78,7 @@ export default function PosAccessGate({ children }: { children: ReactNode }) {
     setSnapshot(response.data.data)
     setNetworkError(null)
     setChecking(false)
-  }, [])
+  }, [t])
 
   useEffect(() => {
     queueMicrotask(() => void validate())
@@ -102,16 +104,16 @@ export default function PosAccessGate({ children }: { children: ReactNode }) {
   }, [validate])
 
   if (checking) {
-    return <div className="grid min-h-screen place-items-center bg-surface text-sm font-semibold text-text-secondary">Đang xác minh quyền truy cập POS…</div>
+    return <div className="grid min-h-screen place-items-center bg-surface text-sm font-semibold text-text-secondary">{t('access.checking')}</div>
   }
 
   if (networkError) {
     return (
       <main className="grid min-h-screen place-items-center bg-surface p-6">
         <section className="max-w-md rounded-2xl border border-border bg-white p-6 text-center shadow-sm">
-          <h1 className="text-lg font-bold text-text-primary">Chưa thể xác minh POS</h1>
+          <h1 className="text-lg font-bold text-text-primary">{t('access.unavailable')}</h1>
           <p className="mt-2 text-sm text-text-secondary">{networkError}</p>
-          <button type="button" onClick={() => { setChecking(true); void validate() }} className="mt-5 rounded-lg bg-brand-orange px-4 py-2 font-bold text-white">Thử lại</button>
+          <button type="button" onClick={() => { setChecking(true); void validate() }} className="mt-5 rounded-lg bg-brand-orange px-4 py-2 font-bold text-white">{t('access.retry')}</button>
         </section>
       </main>
     )

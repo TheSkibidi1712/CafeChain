@@ -1,0 +1,8 @@
+@using System.Text.Json
+@inject Microsoft.Extensions.Localization.IStringLocalizer<CafeChain.InventoryResource> InventoryText
+@{
+    var catalog = JsonSerializer.Serialize(InventoryText.GetAllStrings(includeParentCultures: false)
+        .Where(message => message.Name.StartsWith("Transfer.Js.", StringComparison.Ordinal))
+        .ToDictionary(message => message.Name, message => message.Value));
+}
+<script id="inventoryTransferUiCatalog" type="application/json">@Html.Raw(catalog)</script>

@@ -5,6 +5,14 @@
 (function (window, $) {
     'use strict';
 
+    var recipeCatalog = window.CafeChainUiCatalog ? window.CafeChainUiCatalog.read('recipeUiCatalog') : {};
+    var t = function (key, values) {
+        return window.CafeChainUiCatalog
+            ? window.CafeChainUiCatalog.text(recipeCatalog, key, values)
+            : (recipeCatalog[key] || key);
+    };
+    var locale = document.documentElement.dataset.culture || 'vi-VN';
+
     function antiforgeryHeaders() {
         if (window.CafeChainAdminAjax && window.CafeChainAdminAjax.antiforgeryHeaders) {
             return window.CafeChainAdminAjax.antiforgeryHeaders();
@@ -14,7 +22,7 @@
     }
 
     function formatMoney(n) {
-        return new Intl.NumberFormat('vi-VN').format(Math.round(n || 0));
+        return new Intl.NumberFormat(locale).format(Math.round(n || 0));
     }
 
     function formatUnitLabel(value) {
@@ -23,8 +31,8 @@
         if (code === 'kg' || code === 'kilogram') return 'kg';
         if (code === 'ml' || code === 'milliliter') return 'ml';
         if (code === 'l' || code === 'liter') return 'L';
-        if (code === 'pcs' || code === 'piece') return 'cái';
-        return value || 'ĐVT';
+        if (code === 'pcs' || code === 'piece') return t('Recipe.Js.Piece');
+        return value || t('Recipe.Js.Unit');
     }
 
     function buildItemDataMap() {
@@ -59,11 +67,11 @@
         var name = $opt.data('name') || data.text;
         var unit = $opt.data('baseunitcode') || '';
         var hasActive = String($opt.data('hasactive')) === '1' || String($opt.data('hasactive')) === 'true';
-        var activeLabel = hasActive ? 'Có' : 'Chưa có';
+        var activeLabel = hasActive ? t('Recipe.Js.Yes') : t('Recipe.Js.None');
         return $(
             '<div class="rb-pi-option">' +
             '<div class="fw-semibold">[' + code + '] ' + name + '</div>' +
-            '<div class="small text-muted">ĐVT tồn kho: ' + unit + ' · Công thức đang hoạt động: ' + activeLabel + '</div>' +
+            '<div class="small text-muted">' + t('Recipe.Js.InventoryUnit', { unit: unit }) + ' · ' + t('Recipe.Js.ActiveRecipe', { status: activeLabel }) + '</div>' +
             '</div>'
         );
     }
@@ -82,17 +90,17 @@
         var kind = $opt.data('kind') || '';
         if (kind === 'child_recipe') {
             var rid = $opt.data('recipeid') || data.id;
-            var pi = $opt.data('picode') ? ('BTP: [' + $opt.data('picode') + '] ' + ($opt.data('piname') || '')) : 'BTP: (chưa map)';
+            var pi = $opt.data('picode') ? (t('Recipe.Js.PreparedPrefix') + ': [' + $opt.data('picode') + '] ' + ($opt.data('piname') || '')) : t('Recipe.Js.PreparedPrefix') + ': (' + t('Recipe.Js.Unmapped') + ')';
             return $(
                 '<div><div class="fw-semibold">[REC#' + rid + '] ' + ($opt.data('label') || data.text) + '</div>' +
-                '<div class="small text-muted">Phiên bản pin · ' + pi + '</div></div>'
+                '<div class="small text-muted">' + t('Recipe.Js.PinnedVersion') + ' · ' + pi + '</div></div>'
             );
         }
         if (kind === 'ingredient') {
             var bu = $opt.data('baseunitcode') || $opt.data('unitname') || '';
             return $(
                 '<div><div class="fw-semibold">' + (data.text || '') + '</div>' +
-                '<div class="small text-muted">ĐVT cơ sở: ' + bu + '</div></div>'
+                '<div class="small text-muted">' + t('Recipe.Js.BaseUnit', { unit: bu }) + '</div></div>'
             );
         }
         return data.text;
@@ -133,36 +141,36 @@
             if (!$('#publicationTarget').length) return;
 
             var type = $('input[name="RecipeType"]:checked').val();
-            var target = 'Chưa chọn';
-            var output = 'Chưa xác định';
+            var target = t('Recipe.NotSelected');
+            var output = t('Recipe.Unknown');
             if (type === 'POS') {
                 var drink = selectedBusinessText('#drinkSelect');
                 var size = selectedBusinessText('#sizeSelect');
-                target = drink && size ? 'Món bán và cỡ: ' + drink + ' · ' + size : 'Chưa chọn đủ món bán và cỡ';
-                output = drink && size ? '1 phần ' + drink + ' · ' + size : 'Chưa xác định';
+                target = drink && size ? t('Recipe.Js.PosTarget', { drink: drink, size: size }) : t('Recipe.Js.PosTargetMissing');
+                output = drink && size ? t('Recipe.Js.PosOutput', { drink: drink, size: size }) : t('Recipe.Unknown');
             } else if (type === 'TOPPING') {
                 var topping = selectedBusinessText('#toppingSelect');
-                target = topping ? 'Topping: ' + topping : 'Chưa chọn topping';
-                output = topping ? '1 lựa chọn topping ' + topping : 'Chưa xác định';
+                target = topping ? t('Recipe.Js.ToppingTarget', { name: topping }) : t('Recipe.Js.ToppingMissing');
+                output = topping ? t('Recipe.Js.ToppingOutput', { name: topping }) : t('Recipe.Unknown');
             } else if (type === 'SUBRECIPE') {
                 var prepared = $('#preparedItemSelect option:selected').data('name') || selectedBusinessText('#preparedItemSelect');
                 var quantity = parseFloat($('#expectedYieldInput').val()) || 0;
                 var unit = selectedBusinessText('#outputUnitSelect');
-                target = prepared ? 'Bán thành phẩm: ' + prepared : 'Chưa chọn bán thành phẩm';
+                target = prepared ? t('Recipe.Js.PreparedTarget', { name: prepared }) : t('Recipe.Js.PreparedMissing');
                 output = prepared && quantity > 0 && unit
-                    ? 'Sản lượng chuẩn một mẻ: ' + quantity + ' ' + unit
-                    : 'Chưa xác định sản lượng chuẩn một mẻ';
+                    ? t('Recipe.Js.YieldOutput', { quantity: quantity, unit: unit })
+                    : t('Recipe.Js.YieldMissing');
             }
 
             var lines = currentLines();
             $('#publicationTarget').text(target);
             $('#publicationOutput').text(output);
             $('#publicationBomSummary').text(lines.length
-                ? lines.length + ' dòng · Số lượng chuẩn hóa theo đơn vị hiển thị từng dòng'
-                : 'Chưa có thành phần');
+                ? t('Recipe.Js.LineSummary', { count: lines.length })
+                : t('Recipe.NoComponents'));
 
             if (!cfg.isNewVersion) {
-                $('#publicationChangeSummary').text('Công thức mới sẽ được áp dụng ngay sau khi lưu.');
+                $('#publicationChangeSummary').text(t('Recipe.AppliedImmediately'));
                 return;
             }
 
@@ -178,13 +186,12 @@
                 var oldUnitId = parseInt(before[key].unitId, 10) || 0;
                 return oldQuantity !== after[key].qty || oldUnitId !== after[key].unitId;
             }).length;
-            $('#publicationChangeSummary').text(
-                'Dòng thêm: ' + added + ' · Dòng bỏ: ' + removed + ' · Dòng thay đổi: ' + changed);
+            $('#publicationChangeSummary').text(t('Recipe.Js.ChangeSummary', { added: added, removed: removed, changed: changed }));
         }
 
         function showFormError(message, errors) {
             var items = Array.isArray(errors) ? errors.filter(Boolean) : [];
-            var html = '<div class="fw-semibold">' + $('<div>').text(message || 'Dữ liệu công thức chưa hợp lệ.').html() + '</div>';
+            var html = '<div class="fw-semibold">' + $('<div>').text(message || t('Recipe.Js.Invalid')).html() + '</div>';
             if (items.length) {
                 html += '<ul class="mb-0 mt-2">';
                 items.forEach(function (item) {
@@ -200,7 +207,7 @@
             saveInFlight = isSaving;
             var btn = $('#btnSaveRecipe');
             btn.prop('disabled', isSaving || createBlockedByActiveRecipe);
-            btn.text(isSaving ? 'Đang áp dụng...' : 'Lưu và áp dụng ngay');
+            btn.text(isSaving ? t('Recipe.Js.Applying') : t('Recipe.SaveApply'));
             btn.attr('aria-busy', isSaving ? 'true' : 'false');
         }
 
@@ -208,7 +215,7 @@
             $('#preparedItemSelect').val(null).trigger('change');
             $('#expectedYieldInput').val('');
             $('#outputUnitSelect').val('');
-            setPreviewIdle('Nhập số lượng và đơn vị để xem quy đổi tồn kho.');
+            setPreviewIdle(t('Recipe.NormalizedHint'));
             $('#piSummary').hide().empty();
             $('#piActiveConflict').hide().empty();
             createBlockedByActiveRecipe = false;
@@ -224,8 +231,8 @@
 
         function setPreviewLoading() {
             $('#normalizedOutputPreview').html(
-                '<div class="rb-preview-main text-muted">Đang tính…</div>' +
-                '<div class="rb-preview-sub">Đang chuẩn hóa sản lượng đầu ra</div>'
+                '<div class="rb-preview-main text-muted">' + t('Recipe.Js.Calculating') + '</div>' +
+                '<div class="rb-preview-sub">' + t('Recipe.Js.Normalizing') + '</div>'
             );
         }
 
@@ -233,9 +240,9 @@
             var pi = parseInt($('#preparedItemSelect').val(), 10) || 0;
             var qty = parseFloat($('#expectedYieldInput').val()) || 0;
             var unit = parseInt($('#outputUnitSelect').val(), 10) || 0;
-            if (!pi) { setPreviewIdle('Chọn bán thành phẩm đầu ra.'); return; }
-            if (!qty || qty <= 0) { setPreviewIdle('Nhập sản lượng đầu ra của một mẻ.'); return; }
-            if (!unit) { setPreviewIdle('Chọn đơn vị đầu ra.'); return; }
+            if (!pi) { setPreviewIdle(t('Recipe.Js.SelectPreparedOutput')); return; }
+            if (!qty || qty <= 0) { setPreviewIdle(t('Recipe.Js.EnterYield')); return; }
+            if (!unit) { setPreviewIdle(t('Recipe.Js.SelectOutputUnit')); return; }
             setPreviewLoading();
             $.ajax({
                 url: cfg.previewUrl,
@@ -245,9 +252,9 @@
                 success: function (res) {
                     if (res.success) {
                         var main = (res.outputQuantity != null ? res.outputQuantity : qty) + ' ' +
-                            (res.outputUnitCode || '') + ' / mẻ';
+                            (res.outputUnitCode || '') + ' ' + t('Recipe.Js.PerBatch');
                         var sub = (res.normalizedQuantityInBase != null
-                            ? (Number(res.normalizedQuantityInBase).toLocaleString('vi-VN') + ' ' + (res.baseUnitCode || '') + ' tồn kho')
+                            ? t('Recipe.Js.InventoryQuantity', { quantity: Number(res.normalizedQuantityInBase).toLocaleString(locale), unit: res.baseUnitCode || '' })
                             : (res.preview || ''));
                         $('#normalizedOutputPreview').html(
                             '<div class="rb-preview-main">' + main + '</div>' +
@@ -255,15 +262,15 @@
                         );
                     } else {
                         $('#normalizedOutputPreview').html(
-                            '<div class="rb-preview-main text-danger">Không quy đổi được</div>' +
+                            '<div class="rb-preview-main text-danger">' + t('Recipe.Js.CannotConvert') + '</div>' +
                             '<div class="rb-preview-sub">' + (res.message || '') + '</div>'
                         );
                     }
                 },
                 error: function () {
                     $('#normalizedOutputPreview').html(
-                        '<div class="rb-preview-main text-danger">Lỗi xem trước</div>' +
-                        '<div class="rb-preview-sub">Phiên làm việc không hợp lệ hoặc mất kết nối</div>'
+                        '<div class="rb-preview-main text-danger">' + t('Recipe.Js.PreviewError') + '</div>' +
+                        '<div class="rb-preview-sub">' + t('Recipe.Js.SessionError') + '</div>'
                     );
                 }
             });
@@ -294,25 +301,24 @@
             var hasActive = String($opt.data('hasactive')) === '1' || String($opt.data('hasactive')) === 'true' || !!activeId;
 
             var html =
-                '<div class="small"><strong>Mã:</strong> ' + code + '</div>' +
-                '<div class="small"><strong>Tên:</strong> ' + name + '</div>' +
-                '<div class="small"><strong>Đơn vị tồn kho:</strong> ' + unitCode + (unitName ? ' (' + unitName + ')' : '') + '</div>' +
-                '<div class="small"><strong>Trạng thái:</strong> Hoạt động</div>' +
-                '<div class="small"><strong>Công thức đang hoạt động hiện tại:</strong> ' +
-                (hasActive ? (activeCode || 'Đã có công thức đang áp dụng') : 'Chưa có') +
+                '<div class="small"><strong>' + t('Recipe.Js.Code') + ':</strong> ' + code + '</div>' +
+                '<div class="small"><strong>' + t('Recipe.Js.Name') + ':</strong> ' + name + '</div>' +
+                '<div class="small"><strong>' + t('Recipe.Js.InventoryUnit', { unit: '' }) + '</strong> ' + unitCode + (unitName ? ' (' + unitName + ')' : '') + '</div>' +
+                '<div class="small"><strong>' + t('Recipe.Js.Status') + ':</strong> ' + t('Recipe.Js.Active') + '</div>' +
+                '<div class="small"><strong>' + t('Recipe.Js.CurrentActiveRecipe') + ':</strong> ' +
+                (hasActive ? (activeCode || t('Recipe.Js.ActiveExists')) : t('Recipe.Js.None')) +
                 '</div>' +
-                '<div class="small"><strong>Số phiên bản:</strong> ' + versionCount + '</div>';
+                '<div class="small"><strong>' + t('Recipe.Js.VersionCount') + ':</strong> ' + versionCount + '</div>';
             $('#piSummary').html(html).show();
 
             if (hasActive && activeId) {
                 createBlockedByActiveRecipe = true;
                 var editHref = (cfg.editUrlTemplate || '').replace('{id}', activeId);
                 $('#piActiveConflict').html(
-                    '<strong>Đã có công thức đang hoạt động</strong>' + (activeCode ? ' (' + activeCode + ')' : '') + '. ' +
-                    'Không thể tạo mới vì mỗi BTP chỉ có một phiên bản đang hoạt động. ' +
-                    'Hãy mở màn hình sửa để lưu trữ phiên bản cũ và tạo phiên bản mới.<br class="mb-1"/>' +
-                    '<a class="btn btn-sm btn-outline-secondary mt-1 me-1" href="' + editHref + '">Xem công thức</a>' +
-                    '<a class="btn btn-sm btn-outline-primary mt-1" href="' + editHref + '">Tạo phiên bản mới</a>'
+                    '<strong>' + t('Recipe.Js.ActiveConflictTitle') + '</strong>' + (activeCode ? ' (' + activeCode + ')' : '') + '. ' +
+                    t('Recipe.Js.ActiveConflictHint') + '<br class="mb-1"/>' +
+                    '<a class="btn btn-sm btn-outline-secondary mt-1 me-1" href="' + editHref + '">' + t('Recipe.Js.ViewRecipe') + '</a>' +
+                    '<a class="btn btn-sm btn-outline-primary mt-1" href="' + editHref + '">' + t('Recipe.Js.CreateVersion') + '</a>'
                 ).show();
                 $('#btnSaveRecipe').prop('disabled', true);
             } else {
@@ -330,7 +336,7 @@
             $('#preparedItemSelect').select2({
                 theme: 'bootstrap-5',
                 width: '100%',
-                placeholder: '-- Chọn BTP (mã + tên) --',
+                placeholder: t('Recipe.SelectPrepared'),
                 allowClear: true,
                 matcher: function (params, data) {
                     if ($.trim(params.term) === '') return data;
@@ -347,19 +353,19 @@
                 templateResult: formatPreparedOption,
                 templateSelection: formatPreparedSelection,
                 language: {
-                    noResults: function () { return 'Không tìm thấy BTP'; },
-                    searching: function () { return 'Đang tìm…'; }
+                    noResults: function () { return t('Recipe.Js.PreparedNotFound'); },
+                    searching: function () { return t('Recipe.Js.Searching'); }
                 }
             });
         }
 
         function refreshPreparedOptions() {
-            var $btn = $('#btnRefreshPreparedItems').prop('disabled', true).text('Đang tải…');
+            var $btn = $('#btnRefreshPreparedItems').prop('disabled', true).text(t('Recipe.Js.Loading'));
             $.getJSON(cfg.bomOptionsUrl)
                 .done(function (res) {
                     if (!res.success) return;
                     var current = $('#preparedItemSelect').val();
-                    var html = '<option value="">-- Chọn BTP (mã + tên) --</option>';
+                    var html = '<option value="">' + t('Recipe.SelectPrepared') + '</option>';
                     (res.data || []).forEach(function (p) {
                         html += '<option value="' + p.preparedItemId + '"' +
                             ' data-code="' + (p.code || '') + '"' +
@@ -380,16 +386,16 @@
                     }
                 })
                 .always(function () {
-                    $btn.prop('disabled', false).text('Làm mới danh sách');
+                    $btn.prop('disabled', false).text(t('Recipe.RefreshPrepared'));
                 });
         }
 
         function typeBadgeHtml(itemCode) {
             if (itemCode && itemCode.indexOf('ING_') === 0) {
-                return '<span class="rb-badge-raw">Nguyên liệu thô</span>';
+                return '<span class="rb-badge-raw">' + t('Recipe.RawIngredients') + '</span>';
             }
             if (itemCode && itemCode.indexOf('REC_') === 0) {
-                return '<span class="rb-badge-sub">Bán thành phẩm con</span>';
+                return '<span class="rb-badge-sub">' + t('Recipe.ChildPrepared') + '</span>';
             }
             return '<span class="text-muted small">—</span>';
         }
@@ -397,9 +403,9 @@
         function dataStatusHtml(itemInfo, itemCode) {
             if (!itemCode) return '';
             if (itemInfo && itemInfo.costcomplete && itemInfo.basecost > 0) {
-                return '<span class="rb-status-badge rb-status-complete">Đủ dữ liệu</span>';
+                return '<span class="rb-status-badge rb-status-complete">' + t('Recipe.Js.DataComplete') + '</span>';
             }
-            return '<span class="rb-status-badge rb-status-incomplete">Thiếu dữ liệu</span>';
+            return '<span class="rb-status-badge rb-status-incomplete">' + t('Recipe.Js.DataIncomplete') + '</span>';
         }
 
         function findDuplicateRows(itemCode, exceptTr) {
@@ -422,9 +428,9 @@
             var first = others[0];
             var warn = $(
                 '<div class="rb-dup-warn" role="alert">' +
-                'Thành phần này đã có ở dòng ' + nums + '. ' +
-                '<button type="button" class="btn btn-sm btn-outline-primary btn-merge-dup ms-1">Gộp với dòng ' + first.find('td:first').text() + '</button> ' +
-                '<button type="button" class="btn btn-sm btn-outline-secondary btn-clear-dup ms-1">Chọn thành phần khác</button>' +
+                t('Recipe.Js.Duplicate', { rows: nums }) + ' ' +
+                '<button type="button" class="btn btn-sm btn-outline-primary btn-merge-dup ms-1">' + t('Recipe.Js.MergeRow', { row: first.find('td:first').text() }) + '</button> ' +
+                '<button type="button" class="btn btn-sm btn-outline-secondary btn-clear-dup ms-1">' + t('Recipe.Js.ChooseOther') + '</button>' +
                 '</div>'
             );
             tr.find('td').eq(2).append(warn);
@@ -439,8 +445,8 @@
                     if (window.Swal) {
                         Swal.fire({
                             icon: 'warning',
-                            title: 'Không thể gộp thành phần',
-                            text: 'Hai dòng đang dùng đơn vị khác nhau (mã ' + unitA + ' và ' + unitB + '). Hãy quy đổi về cùng đơn vị trước khi gộp.',
+                            title: t('Recipe.Js.CannotMerge'),
+                            text: t('Recipe.Js.UnitMismatch', { unitA: unitA, unitB: unitB }),
                             confirmButtonColor: '#6f4e37',
                             customClass: { popup: 'rb-confirm-popup' }
                         });
@@ -484,7 +490,7 @@
                 $(this).find('.row-data-status').html(dataStatusHtml(itemInfo, itemCode));
 
                 if (!itemCode) {
-                    $(this).find('.row-total-display').html('<span class="text-muted small">Chưa chọn</span>');
+                    $(this).find('.row-total-display').html('<span class="text-muted small">' + t('Recipe.NotSelected') + '</span>');
                     return;
                 }
 
@@ -492,17 +498,17 @@
                 if (costComplete) {
                     var actualCost = quantity * itemInfo.basecost;
                     completeTotal += actualCost;
-                    var unitCode = itemInfo.baseunitcode || itemInfo.unitname || 'ĐVT';
+                    var unitCode = itemInfo.baseunitcode || itemInfo.unitname || t('Recipe.Js.Unit');
                     $(this).find('.row-total-display').html(
                         '<span class="rb-cost-sub">' + formatMoney(itemInfo.basecost) + ' ₫/' + unitCode + '</span>' +
                         '<span class="rb-cost-main d-block">' + formatMoney(actualCost) + ' <small>₫</small></span>'
                     );
                 } else {
                     anyIncomplete = true;
-                    var msg = (itemInfo && itemInfo.costmessage) ? itemInfo.costmessage : 'Chưa đủ dữ liệu giá vốn';
+                    var msg = (itemInfo && itemInfo.costmessage) ? itemInfo.costmessage : t('Recipe.Js.CostMissing');
                     issues.push({ code: itemCode, message: msg });
                     $(this).find('.row-total-display').html(
-                        '<span class="text-warning small">Chưa đủ dữ liệu</span>'
+                        '<span class="text-warning small">' + t('Recipe.Js.IncompleteData') + '</span>'
                     );
                 }
             });
@@ -514,7 +520,7 @@
             if (!anyRow) {
                 $panel.removeClass('complete').addClass('incomplete');
                 $('#displayTotalCost').text('—');
-                $('#displayCostStatus').text('Chưa chọn thành phần');
+                $('#displayCostStatus').text(t('Recipe.NoComponentSelected'));
                 $issues.hide();
                 $('#footerTotalCost').text('—');
                 $('#hiddenTotalCost').val(0);
@@ -526,22 +532,22 @@
             if (anyIncomplete || issues.length) {
                 $panel.removeClass('complete').addClass('incomplete');
                 $('#displayTotalCost').text('—');
-                $('#displayCostStatus').text('Không thể tính đầy đủ giá vốn');
+                $('#displayCostStatus').text(t('Recipe.Js.CostCannotCalculate'));
                 issues.forEach(function (iss) {
                     $issues.append('<li><code>' + iss.code + '</code> — ' + iss.message + '</li>');
                 });
                 $issues.show();
                 // Only real Admin routes
-                $ctas.append('<a class="btn btn-sm btn-outline-secondary" href="/Admin/AdminIngredient">Xem nguyên liệu</a>');
-                $ctas.append('<a class="btn btn-sm btn-outline-secondary" href="/Admin/AdminSupplier">Xem nhà cung cấp</a>');
-                $ctas.append('<a class="btn btn-sm btn-outline-secondary" href="/Admin/AdminUnitConversion">Xem quy đổi đơn vị</a>');
-                $('#footerTotalCost').text('CHƯA ĐẦY ĐỦ');
+                $ctas.append('<a class="btn btn-sm btn-outline-secondary" href="/Admin/AdminIngredient">' + t('Recipe.Js.ViewIngredients') + '</a>');
+                $ctas.append('<a class="btn btn-sm btn-outline-secondary" href="/Admin/AdminSupplier">' + t('Recipe.Js.ViewSuppliers') + '</a>');
+                $ctas.append('<a class="btn btn-sm btn-outline-secondary" href="/Admin/AdminUnitConversion">' + t('Recipe.Js.ViewConversions') + '</a>');
+                $('#footerTotalCost').text(t('Recipe.Js.IncompleteUpper'));
                 $('#hiddenTotalCost').val(0);
                 $('#footerFoodCostPct').text('—');
             } else {
                 $panel.removeClass('incomplete').addClass('complete');
-                $('#displayTotalCost').html(formatMoney(completeTotal) + ' <small>₫ / mẻ</small>');
-                $('#displayCostStatus').text('Giá vốn ước tính (đủ dữ liệu gói)');
+                $('#displayTotalCost').html(formatMoney(completeTotal) + ' <small>₫ ' + t('Recipe.Js.PerBatch') + '</small>');
+                $('#displayCostStatus').text(t('Recipe.Js.CostComplete'));
                 $issues.hide();
                 $('#footerTotalCost').text(formatMoney(completeTotal) + ' ₫');
                 $('#hiddenTotalCost').val(Math.round(completeTotal));
@@ -564,20 +570,20 @@
                 '<td class="text-center text-muted fw-bold">' + (index + 1) + '</td>' +
                 '<td class="row-type-badge"><span class="text-muted small">—</span></td>' +
                 '<td>' +
-                '<select name="Details[' + index + '].ItemCode" class="form-select form-select-sm item-select" required aria-label="Thành phần dòng ' + (index + 1) + '">' +
+                '<select name="Details[' + index + '].ItemCode" class="form-select form-select-sm item-select" required aria-label="' + t('Recipe.Js.ComponentRowAria', { row: index + 1 }) + '">' +
                 selectOptionsHtml +
                 '</select></td>' +
                 '<td><input type="number" step="0.01" min="0.01" name="Details[' + index + '].Quantity" ' +
-                'class="form-control form-control-sm text-end item-qty" value="' + (prefill && prefill.qty ? prefill.qty : '1') + '" required aria-label="Số lượng" /></td>' +
+                'class="form-control form-control-sm text-end item-qty" value="' + (prefill && prefill.qty ? prefill.qty : '1') + '" required aria-label="' + t('Recipe.Column.Quantity') + '" /></td>' +
                 '<td>' +
-                '<input type="text" class="form-control form-control-sm production-readonly-field item-unitname" name="Details[' + index + '].UnitName" readonly tabindex="-1" aria-label="Đơn vị được xác định tự động" placeholder="Tự động" />' +
+                '<input type="text" class="form-control form-control-sm production-readonly-field item-unitname" name="Details[' + index + '].UnitName" readonly tabindex="-1" aria-label="' + t('Recipe.Js.AutoUnitAria') + '" placeholder="' + t('Recipe.Js.Auto') + '" />' +
                 '<input type="hidden" name="Details[' + index + '].UnitId" class="item-unitid" value="0" />' +
                 '<input type="hidden" name="Details[' + index + '].YieldPercentage" class="item-yield" value="100" />' +
                 '</td>' +
-                '<td class="text-center row-total-display"><span class="text-muted small">Chưa chọn</span></td>' +
+                '<td class="text-center row-total-display"><span class="text-muted small">' + t('Recipe.NotSelected') + '</span></td>' +
                 '<td class="text-center row-data-status"></td>' +
                 '<td class="text-center">' +
-                '<button type="button" class="btn btn-sm btn-outline-danger btn-remove-row" aria-label="Xóa dòng">Xóa dòng</button>' +
+                '<button type="button" class="btn btn-sm btn-outline-danger btn-remove-row" aria-label="' + t('Recipe.Js.RemoveRow') + '">' + t('Recipe.Js.RemoveRow') + '</button>' +
                 '</td>'
             );
             tableBody.append(tr);
@@ -585,10 +591,10 @@
             var newSelect = tr.find('.item-select');
             newSelect.select2({
                 theme: 'bootstrap-5',
-                placeholder: '-- Tìm thành phần --',
+                placeholder: t('Recipe.Js.SearchComponent'),
                 width: '100%',
                 templateResult: formatBomOption,
-                language: { noResults: function () { return 'Không có thành phần'; } }
+                language: { noResults: function () { return t('Recipe.Js.NoComponent'); } }
             });
 
             newSelect.on('select2:select', function (e) {
@@ -662,8 +668,8 @@
             calculateTotal();
         });
 
-        $('#drinkSelect').select2({ theme: 'bootstrap-5', placeholder: '-- Tìm sản phẩm --', width: '100%' });
-        $('#toppingSelect').select2({ theme: 'bootstrap-5', placeholder: '-- Tìm topping --', width: '100%' });
+        $('#drinkSelect').select2({ theme: 'bootstrap-5', placeholder: t('Recipe.Js.SearchProduct'), width: '100%' });
+        $('#toppingSelect').select2({ theme: 'bootstrap-5', placeholder: t('Recipe.Js.SearchTopping'), width: '100%' });
         initPreparedSelect();
 
         $('#drinkSelect').on('change', function () {
@@ -672,15 +678,15 @@
             var sizeSelect = $('#sizeSelect');
             if (!drinkId) {
                 sizeSection.hide();
-                sizeSelect.html('<option value="">-- Chọn Size --</option>');
+                sizeSelect.html('<option value="">' + t('Recipe.Js.SelectSize') + '</option>');
                 return;
             }
             $.getJSON(cfg.sizesUrl, { drinkId: drinkId }, function (data) {
-                var html = '<option value="">-- Chọn Size --</option>';
+                var html = '<option value="">' + t('Recipe.Js.SelectSize') + '</option>';
                 if (data && data.length) {
                     data.forEach(function (s) {
                         var price = formatMoney(s.price);
-                        html += '<option value="' + s.sizeId + '" data-price="' + s.price + '">' + s.sizeName + ' (' + price + 'đ)</option>';
+                        html += '<option value="' + s.sizeId + '" data-price="' + s.price + '">' + s.sizeName + ' (' + price + ' ₫)</option>';
                     });
                 }
                 sizeSelect.html(html);
@@ -706,7 +712,7 @@
             if (saveInFlight) return;
 
             if (createBlockedByActiveRecipe) {
-                showFormError('BTP đã có công thức đang hoạt động. Hãy tạo phiên bản mới từ màn hình sửa.');
+                showFormError(t('Recipe.Js.ActivePreparedConflict'));
                 return;
             }
             var recipeType = $('input[name="RecipeType"]:checked').val();
@@ -740,18 +746,18 @@
             });
 
             if (!payload.Details.length) {
-                showFormError('Vui lòng thêm ít nhất một thành phần vào công thức.');
+                showFormError(t('Recipe.Js.AtLeastOne'));
                 return;
             }
             if (hasDup) {
-                showFormError('Có thành phần trùng mã. Hãy gộp dòng hoặc chọn thành phần khác trước khi lưu.');
+                showFormError(t('Recipe.Js.DuplicateBeforeSave'));
                 return;
             }
 
             $('#formErrorSummary').hide();
             setSaving(true);
             if (window.Swal) {
-                Swal.fire({ title: 'Đang lưu…', allowOutsideClick: false, didOpen: function () { Swal.showLoading(); } });
+                Swal.fire({ title: t('Recipe.Js.Saving'), allowOutsideClick: false, didOpen: function () { Swal.showLoading(); } });
             }
 
             $.ajax({
@@ -763,13 +769,13 @@
                 success: function (res) {
                     if (res.success) {
                         if (window.Swal) {
-                            Swal.fire({ icon: 'success', title: 'Đã áp dụng', text: res.message, confirmButtonColor: '#6f4e37', customClass: { popup: 'rb-confirm-popup' } })
+                            Swal.fire({ icon: 'success', title: t('Recipe.Js.Applied'), text: res.message, confirmButtonColor: '#6f4e37', customClass: { popup: 'rb-confirm-popup' } })
                                 .then(function () { window.location.href = res.redirectUrl || cfg.indexUrl; });
                         } else {
                             window.location.href = res.redirectUrl || cfg.indexUrl;
                         }
                     } else {
-                        var msg = res.message || 'Lỗi lưu công thức';
+                        var msg = res.message || t('Recipe.Js.SaveError');
                         showFormError(msg, res.errors);
                         if (window.Swal) Swal.close();
                     }
@@ -777,10 +783,10 @@
                 error: function (xhr) {
                     var res = xhr.responseJSON || {};
                     var fallback = xhr.status === 409
-                        ? 'Công thức đang bị trùng với một phiên bản đang hoạt động.'
+                        ? t('Recipe.Js.Conflict')
                         : (xhr.status >= 500
-                            ? 'Không thể lưu công thức lúc này. Vui lòng thử lại hoặc liên hệ quản trị viên.'
-                            : 'Dữ liệu công thức chưa hợp lệ.');
+                            ? t('Recipe.Js.ServerError')
+                            : t('Recipe.Js.Invalid'));
                     showFormError(res.message || fallback, res.errors);
                     if (window.Swal) Swal.close();
                 },
@@ -815,16 +821,16 @@
                 var token = $('input[name="__RequestVerificationToken"]').val() || '';
                 return { 'RequestVerificationToken': token, 'Content-Type': 'application/json' };
             }
-            var t;
+            var editPreviewTimer;
             function preview() {
                 var pi = parseInt($('#preparedItemSelect').val() || $('input[name="PreparedItemId"]').val(), 10) || 0;
                 var qty = parseFloat($('#expectedYieldInput').val()) || 0;
                 var unit = parseInt($('#outputUnitSelect').val(), 10) || 0;
                 if (!pi || !qty || !unit) {
-                    $('#normalizedOutputPreview').html('<div class="rb-preview-sub text-muted">Nhập đủ BTP, sản lượng, đơn vị.</div>');
+                    $('#normalizedOutputPreview').html('<div class="rb-preview-sub text-muted">' + t('Recipe.Js.EnterPreparedYieldUnit') + '</div>');
                     return;
                 }
-                $('#normalizedOutputPreview').html('<div class="rb-preview-sub">Đang tính…</div>');
+                $('#normalizedOutputPreview').html('<div class="rb-preview-sub">' + t('Recipe.Js.Calculating') + '</div>');
                 $.ajax({
                     url: cfg.previewUrl,
                     type: 'POST',
@@ -833,17 +839,17 @@
                     success: function (res) {
                         if (res.success) {
                             $('#normalizedOutputPreview').html(
-                                '<div class="rb-preview-main">' + (res.outputQuantity || qty) + ' ' + (res.outputUnitCode || '') + ' / mẻ</div>' +
-                                '<div class="rb-preview-sub">' + (res.normalizedQuantityInBase != null ? Number(res.normalizedQuantityInBase).toLocaleString('vi-VN') + ' ' + (res.baseUnitCode || '') + ' tồn kho' : (res.preview || '')) + '</div>'
+                                '<div class="rb-preview-main">' + (res.outputQuantity || qty) + ' ' + (res.outputUnitCode || '') + ' ' + t('Recipe.Js.PerBatch') + '</div>' +
+                                '<div class="rb-preview-sub">' + (res.normalizedQuantityInBase != null ? t('Recipe.Js.InventoryQuantity', { quantity: Number(res.normalizedQuantityInBase).toLocaleString(locale), unit: res.baseUnitCode || '' }) : (res.preview || '')) + '</div>'
                             );
                         } else {
-                            $('#normalizedOutputPreview').html('<div class="text-danger small">' + (res.message || 'Lỗi') + '</div>');
+                            $('#normalizedOutputPreview').html('<div class="text-danger small">' + (res.message || t('Recipe.Js.Error')) + '</div>');
                         }
                     }
                 });
             }
             $('#expectedYieldInput, #outputUnitSelect, #preparedItemSelect').on('change input', function () {
-                clearTimeout(t); t = setTimeout(preview, 350);
+                clearTimeout(editPreviewTimer); editPreviewTimer = setTimeout(preview, 350);
             });
             preview();
 

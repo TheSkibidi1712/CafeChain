@@ -1,6 +1,8 @@
 @model CafeChain.ViewModels.Admin.StoreScope.AdminStoreScopeErrorVM
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<CafeChain.SharedResource> SharedText
 @{
-    ViewData["Title"] = "Phạm vi cửa hàng";
+    ViewData["Title"] = SharedText["StoreScope.Title"];
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 }
 
@@ -10,7 +12,7 @@
     <section class="ops-panel">
         <div class="ops-panel-body text-center py-5">
             <i class="fa-solid fa-store-slash fa-2x text-danger mb-3" aria-hidden="true"></i>
-            <h1 class="ops-panel-title mb-2">Không thể xác định cửa hàng</h1>
+            <h1 class="ops-panel-title mb-2">@SharedText["StoreScope.ErrorTitle"]</h1>
             <p class="ops-secondary mb-2">@Model.Message</p>
         </div>
     </section>

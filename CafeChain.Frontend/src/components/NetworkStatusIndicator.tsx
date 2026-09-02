@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/CafeChainPOSDB'
+import { usePreferences } from '../contexts/PreferencesContext'
 
 // ============================================================
 // NetworkStatusIndicator — Online/Offline Banner + Sync Badge
@@ -19,6 +20,7 @@ import { db } from '../db/CafeChainPOSDB'
  * Nhúng vào: POSLayout → Category Header (top bar cột 2)
  */
 export default function NetworkStatusIndicator() {
+  const { t } = usePreferences()
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine)
 
   // ─── Reactive count từ IndexedDB (dexie liveQuery) ───
@@ -50,7 +52,7 @@ export default function NetworkStatusIndicator() {
   // ═══════════════════════════════════════════════
   if (!isOnline) {
     return (
-      <div className="flex items-center gap-1 select-none" role="status" aria-label={`Mất kết nối mạng. ${pendingCount} đơn chờ đồng bộ`}>
+      <div className="flex items-center gap-1 select-none" role="status" aria-label={t('network.offlineAria', { count: pendingCount })}>
         {/* Offline Banner */}
         <div className="pos-touch-target flex items-center justify-center gap-1.5 px-2 rounded-lg bg-[var(--pos-danger-soft)] text-danger border border-danger/30">
           {/* Wi-Fi Crossed Icon — SVG Solid White on Solid Red BG */}
@@ -65,13 +67,13 @@ export default function NetworkStatusIndicator() {
             <line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
           </svg>
           <span className="hidden 2xl:inline text-xs font-bold whitespace-nowrap">
-            Mất kết nối · Đang bán offline
+            {t('network.offlineSelling')}
           </span>
         </div>
 
         {/* Badge đơn chờ sync (nếu có) */}
         {pendingCount > 0 && (
-          <span className="inline-flex items-center justify-center min-w-5 h-5 rounded-md bg-warning text-white text-xs font-bold" title="Số đơn hàng đang chờ đồng bộ">
+          <span className="inline-flex items-center justify-center min-w-5 h-5 rounded-md bg-warning text-white text-xs font-bold" title={t('network.pendingTitle')}>
             {pendingCount}
           </span>
         )}
@@ -84,7 +86,7 @@ export default function NetworkStatusIndicator() {
   // ═══════════════════════════════════════════════
   if (pendingCount > 0) {
     return (
-      <div className="pos-touch-target relative flex items-center gap-1.5 px-2 rounded-lg bg-[var(--pos-warning-soft)] border border-warning/30" role="status" aria-label={`${pendingCount} đơn đang chờ đồng bộ`}>
+      <div className="pos-touch-target relative flex items-center gap-1.5 px-2 rounded-lg bg-[var(--pos-warning-soft)] border border-warning/30" role="status" aria-label={t('network.pendingAria', { count: pendingCount })}>
         {/* Wi-Fi Icon — Xám (đang online) */}
         <svg
           className="w-4 h-4 text-text-secondary"
@@ -98,7 +100,7 @@ export default function NetworkStatusIndicator() {
 
         {/* Pending count badge — Cam đặc */}
         <span className="hidden 2xl:inline text-xs font-bold text-warning whitespace-nowrap">
-          Đồng bộ
+          {t('network.sync')}
         </span>
         <span className="inline-flex items-center justify-center min-w-5 h-5 rounded-md bg-warning text-white text-xs font-bold">
           {pendingCount}
@@ -111,7 +113,7 @@ export default function NetworkStatusIndicator() {
   // STATE 3: ONLINE + queue trống — compact icon
   // ═══════════════════════════════════════════════
   return (
-    <div className="pos-touch-target flex items-center justify-center gap-1 px-2 rounded-lg" title="Kết nối ổn định" role="status" aria-label="Đang online, kết nối ổn định">
+    <div className="pos-touch-target flex items-center justify-center gap-1 px-2 rounded-lg" title={t('network.stable')} role="status" aria-label={t('network.onlineAria')}>
       {/* Wi-Fi Icon — Xám nhạt, tinh tế */}
       <svg
         className="w-3.5 h-3.5 text-text-muted"
@@ -122,7 +124,7 @@ export default function NetworkStatusIndicator() {
       >
         <path strokeLinecap="round" strokeLinejoin="round" d="M8.288 15.038a5.25 5.25 0 017.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12 18.75h.007v.008H12v-.008z" />
       </svg>
-      <span className="text-xs text-text-muted hidden 2xl:inline">Online</span>
+      <span className="text-xs text-text-muted hidden 2xl:inline">{t('network.online')}</span>
     </div>
   )
 }

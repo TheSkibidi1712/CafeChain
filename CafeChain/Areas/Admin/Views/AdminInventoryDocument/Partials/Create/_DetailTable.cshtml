@@ -1,29 +1,31 @@
 @model CafeChain.ViewModels.Admin.InventoryDocuments.Create.AdminInventoryDocumentCreateVM
 @using CafeChain.Models.Enums.Inventory;
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<InventoryResource> L
 
 @{
     var hint = Model.Type == InventoryDocumentType.IMPORT
-        ? "Chọn mục đích nhập để hệ thống tải đúng nguồn nguyên liệu."
+        ? L["InvDoc.Create.HintImport"].Value
         : Model.Type == InventoryDocumentType.STOCK_TAKE
-            ? "Chọn nguyên liệu cần kiểm kê và nhập số lượng thực tế sau khi đếm."
+            ? L["InvDoc.Create.HintStockTake"].Value
             : Model.Type == InventoryDocumentType.WASTE
-                ? "Chọn nguyên liệu còn tồn, nhập số lượng hủy và ghi rõ lý do hủy."
-                : "Thêm nguyên liệu và nhập số lượng cần xử lý.";
+                ? L["InvDoc.Create.HintWaste"].Value
+                : L["InvDoc.Create.HintDefault"].Value;
 
     var quantityHeader = Model.Type switch
     {
-        InventoryDocumentType.STOCK_TAKE => "Số lượng thực tế",
-        InventoryDocumentType.WASTE => "Số lượng hủy",
-        _ => "Số lượng"
+        InventoryDocumentType.STOCK_TAKE => L["InvDoc.Qty.Actual"].Value,
+        InventoryDocumentType.WASTE => L["InvDoc.Qty.Waste"].Value,
+        _ => L["InvDoc.Qty.Default"].Value
     };
 
     var referenceHeader = Model.Type switch
     {
-        InventoryDocumentType.STOCK_TAKE => "Tồn hệ thống",
-        InventoryDocumentType.WASTE => "Tồn khả dụng",
-        InventoryDocumentType.EXPORT => "Tồn khả dụng",
-        InventoryDocumentType.IMPORT => "MOQ/Còn nhận",
-        _ => "Tham chiếu"
+        InventoryDocumentType.STOCK_TAKE => L["InvDoc.Create.RefStock"].Value,
+        InventoryDocumentType.WASTE => L["InvDoc.Create.RefAvailable"].Value,
+        InventoryDocumentType.EXPORT => L["InvDoc.Create.RefAvailable"].Value,
+        InventoryDocumentType.IMPORT => L["InvDoc.Create.RefMoq"].Value,
+        _ => L["InvDoc.Create.RefDefault"].Value
     };
 
     var hideMoneyColumns =
@@ -86,19 +88,19 @@
             </span>
             <div>
                 <span class="create-section-eyebrow">
-                    Bước 2 · Chi tiết nguyên liệu
+                    @L["InvDoc.Create.Step2"]
                 </span>
-                <h5>Danh sách nguyên liệu</h5>
+                <h5>@L["InvDoc.Create.LinesTitle"]</h5>
             </div>
         </div>
 
         <button type="button"
                 class="create-add-row-btn"
                 id="btnAddIngredient"
-                title="Thêm nguyên liệu"
-                aria-label="Thêm nguyên liệu vào phiếu">
+                title="@L["InvDoc.Create.AddIngredient"]"
+                aria-label="@L["InvDoc.Create.AddIngredientAria"]">
             <i class="fas fa-plus"></i>
-            Thêm nguyên liệu
+            @L["InvDoc.Create.AddIngredient"]
         </button>
     </div>
 
@@ -114,15 +116,15 @@
             <thead>
                 <tr>
                     <th class="create-col-index">#</th>
-                    <th>Nguyên liệu</th>
-                    <th class="create-col-unit">ĐVT</th>
+                    <th>@L["Common.Ingredient"]</th>
+                    <th class="create-col-unit">@L["InvDoc.General.Unit"]</th>
                     <th class="create-col-qty">@quantityHeader</th>
                     <th class="create-col-price @(hideMoneyColumns ? "d-none" : "")"
-                        id="unitPriceHeader">Đơn giá nhập</th>
+                        id="unitPriceHeader">@L["InvDoc.Create.UnitPriceIn"]</th>
                     <th class="create-col-moq" id="quantityReferenceHeader">@referenceHeader</th>
-                    <th class="create-col-variance @(showVarianceColumn ? "" : "d-none")">Chênh lệch</th>
-                    <th class="create-col-total @(hideMoneyColumns ? "d-none" : "")">Thành tiền</th>
-                    <th class="create-col-action text-center">Thao tác</th>
+                    <th class="create-col-variance @(showVarianceColumn ? "" : "d-none")">@L["InvDoc.Create.Variance"]</th>
+                    <th class="create-col-total @(hideMoneyColumns ? "d-none" : "")">@L["InvDoc.General.LineTotal"]</th>
+                    <th class="create-col-action text-center">@L["InvDoc.Col.Actions"]</th>
                 </tr>
             </thead>
 

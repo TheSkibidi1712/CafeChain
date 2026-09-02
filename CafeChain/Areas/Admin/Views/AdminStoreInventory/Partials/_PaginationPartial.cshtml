@@ -1,5 +1,8 @@
 ﻿@model CafeChain.ViewModels.Admin.StoreInventories.InventoryIndexVM
 
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<InventoryResource> L
+
 @{
     var currentPage = Model.Page;
     var totalPages = Model.TotalPages;
@@ -7,12 +10,12 @@
 
 @if (totalPages > 1)
 {
-    <nav class="pagination" aria-label="Phân trang tồn kho">
+    <nav class="pagination" aria-label="@L["StoreInventory.PaginationAria"]">
 
         @if (currentPage > 1)
         {
             <a class="page-btn"
-               aria-label="Trang trước"
+               aria-label="@L["Common.Previous"]"
                href="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, inventoryType = Model.ActiveTab, search = Model.Search, page = currentPage - 1 })">
                 <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
             </a>
@@ -21,7 +24,7 @@
         @for (int i = 1; i <= totalPages; i++)
         {
             <a class="page-btn @(i == currentPage ? "active" : "")"
-               aria-label="Trang @i"
+               aria-label="@L["Common.Page", i]"
                aria-current="@(i == currentPage ? "page" : null)"
                href="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, inventoryType = Model.ActiveTab, search = Model.Search, page = i })">
                 @i
@@ -31,7 +34,7 @@
         @if (currentPage < totalPages)
         {
             <a class="page-btn"
-               aria-label="Trang sau"
+               aria-label="@L["Common.Next"]"
                href="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, inventoryType = Model.ActiveTab, search = Model.Search, page = currentPage + 1 })">
                 <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
             </a>

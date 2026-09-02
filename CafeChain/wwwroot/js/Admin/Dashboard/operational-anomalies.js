@@ -1,5 +1,7 @@
 document.addEventListener('click', async event => {
     const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    const catalog = window.CafeChainUiCatalog?.read('anomalies-ui-catalog') || {};
+    const t = (key, values) => window.CafeChainUiCatalog?.text(catalog, key, values) || key;
 
     const postAction = async (button, payload) => {
         button.disabled = true;
@@ -12,13 +14,13 @@ document.addEventListener('click', async event => {
             const body = await response.json().catch(() => ({}));
             if (response.ok) return body;
             if (response.status === 409) {
-                await Swal.fire({ icon: 'warning', title: 'Dữ liệu đã thay đổi', text: body.message || 'Tín hiệu đã được cập nhật. Hãy tải lại dữ liệu trước khi thao tác tiếp.' });
+                await Swal.fire({ icon: 'warning', title: t('Anomalies.Js.DataChanged'), text: body.message || t('Anomalies.Js.SignalUpdated') });
                 return null;
             }
-            await Swal.fire({ icon: 'error', title: 'Không thể cập nhật', text: body.message || 'Dữ liệu đã thay đổi.' });
+            await Swal.fire({ icon: 'error', title: t('Anomalies.Js.UpdateFailed'), text: body.message || t('Anomalies.Js.UpdateFailedFallback') });
             return null;
         } catch (error) {
-            await Swal.fire({ icon: 'error', title: 'Lỗi kết nối', text: 'Không thể lưu thao tác lúc này. Vui lòng thử lại.' });
+            await Swal.fire({ icon: 'error', title: t('Anomalies.Js.ConnectionError'), text: t('Anomalies.Js.ConnectionErrorText') });
             return null;
         } finally {
             button.disabled = false;
@@ -29,12 +31,12 @@ document.addEventListener('click', async event => {
         const wrapper = document.createElement('div');
         wrapper.className = 'text-start';
         const explanation = document.createElement('p');
-        explanation.textContent = body.data?.explanation || body.message || 'Không thể giải thích tín hiệu.';
+        explanation.textContent = body.data?.explanation || body.message || t('Anomalies.Js.ExplainFallback');
         wrapper.appendChild(explanation);
 
         const contextBlocks = [
-            ['Ảnh hưởng có thể xảy ra:', body.presentation?.impactSummary],
-            ['Vì sao có thông báo:', body.presentation?.whyDetected]
+            [t('Anomalies.Js.ImpactLabel'), body.presentation?.impactSummary],
+            [t('Anomalies.Js.WhyLabel'), body.presentation?.whyDetected]
         ];
         contextBlocks.forEach(([title, value]) => {
             if (!value) return;
@@ -49,7 +51,7 @@ document.addEventListener('click', async event => {
         const checks = body.presentation?.suggestedChecks || [];
         if (checks.length) {
             const heading = document.createElement('strong');
-            heading.textContent = 'Dữ liệu nên kiểm tra:';
+            heading.textContent = t('Anomalies.Js.ChecksLabel');
             wrapper.appendChild(heading);
             const list = document.createElement('ul');
             checks.forEach(check => {
@@ -61,8 +63,8 @@ document.addEventListener('click', async event => {
         }
 
         const actionGroups = [
-            ['Việc cần làm ngay:', body.presentation?.immediateActions],
-            ['Hồ sơ cần chuẩn bị:', body.presentation?.preparationChecklist]
+            [t('Anomalies.Js.ImmediateLabel'), body.presentation?.immediateActions],
+            [t('Anomalies.Js.PreparationLabel'), body.presentation?.preparationChecklist]
         ];
         actionGroups.forEach(([title, values]) => {
             if (!values?.length) return;
@@ -80,7 +82,7 @@ document.addEventListener('click', async event => {
 
         const warning = document.createElement('p');
         warning.className = 'small text-muted mb-0';
-        warning.textContent = 'Đây chỉ là tín hiệu hỗ trợ kiểm tra, chưa đủ cơ sở kết luận nguyên nhân, sai phạm hoặc trách nhiệm cá nhân.';
+        warning.textContent = t('Anomalies.Js.Disclaimer');
         wrapper.appendChild(warning);
         return wrapper;
     };
@@ -89,12 +91,12 @@ document.addEventListener('click', async event => {
     if (explain) {
         const originalText = explain.textContent;
         explain.disabled = true;
-        explain.textContent = 'Đang phân tích...';
+        explain.textContent = t('Anomalies.Js.Analyzing');
 
         // Show loading Swal
         Swal.fire({
-            title: 'Đang phân tích...',
-            text: 'Hệ thống AI đang phân tích dữ liệu tín hiệu vận hành, vui lòng đợi trong giây lát.',
+            title: t('Anomalies.Js.Analyzing'),
+            text: t('Anomalies.Js.AnalyzingText'),
             allowOutsideClick: false,
             allowEscapeKey: false,
             didOpen: () => {
@@ -111,14 +113,14 @@ document.addEventListener('click', async event => {
             const body = await response.json();
             await Swal.fire({
                 icon: body.success ? 'info' : 'error',
-                title: body.presentation?.metricDisplayName || 'Giải thích tín hiệu',
+                title: body.presentation?.metricDisplayName || t('Anomalies.Js.ExplainTitle'),
                 html: buildExplanationContent(body)
             });
         } catch (err) {
             await Swal.fire({
                 icon: 'error',
-                title: 'Lỗi kết nối',
-                text: 'Không thể kết nối đến hệ thống AI để giải thích tín hiệu lúc này.'
+                title: t('Anomalies.Js.ConnectionError'),
+                text: t('Anomalies.Js.AiConnectionErrorText')
             });
         } finally {
             explain.disabled = false;
@@ -136,12 +138,12 @@ document.addEventListener('click', async event => {
     const resolve = event.target.closest('[data-resolve]');
     if (resolve) {
         const answer = await Swal.fire({
-            title: 'Xác nhận đã xử lý',
+            title: t('Anomalies.Js.ResolveTitle'),
             input: 'textarea',
-            inputLabel: 'Ghi chú xử lý',
+            inputLabel: t('Anomalies.Js.ResolveNote'),
             showCancelButton: true,
-            confirmButtonText: 'Đánh dấu đã xử lý',
-            cancelButtonText: 'Hủy'
+            confirmButtonText: t('Anomalies.Js.ResolveConfirm'),
+            cancelButtonText: t('Anomalies.Js.CancelShort')
         });
         if (answer.isConfirmed)
             if (await postAction(resolve, { id: Number(resolve.dataset.resolve), action: 'RESOLVE', rowVersion: resolve.dataset.version, note: answer.value })) location.reload();
@@ -151,24 +153,24 @@ document.addEventListener('click', async event => {
     const feedback = event.target.closest('[data-feedback]');
     if (feedback) {
         const answer = await Swal.fire({
-            title: 'Phản hồi tín hiệu',
+            title: t('Anomalies.Js.FeedbackTitle'),
             input: 'select',
-            inputOptions: { Useful: 'Hữu ích', NotUseful: 'Không hữu ích', FalsePositive: 'Cảnh báo không phù hợp' },
+            inputOptions: { Useful: t('Anomalies.Js.FeedbackUseful'), NotUseful: t('Anomalies.Js.FeedbackNotUseful'), FalsePositive: t('Anomalies.Js.FeedbackFalsePositive') },
             showCancelButton: true,
-            confirmButtonText: 'Gửi phản hồi',
-            cancelButtonText: 'Hủy'
+            confirmButtonText: t('Anomalies.Js.FeedbackConfirm'),
+            cancelButtonText: t('Anomalies.Js.CancelShort')
         });
         if (answer.isConfirmed) {
             const result = await postAction(feedback, { id: Number(feedback.dataset.feedback), action: 'FEEDBACK', rowVersion: feedback.dataset.version, feedback: answer.value });
             if (result?.success) {
                 const data = result.data || {};
                 feedback.dataset.version = data.rowVersion || feedback.dataset.version;
-                feedback.textContent = data.feedbackDisplay || result.message || 'Đã ghi nhận phản hồi';
+                feedback.textContent = data.feedbackDisplay || result.message || t('Anomalies.Js.FeedbackRecorded');
                 feedback.classList.add('is-completed');
                 feedback.disabled = true;
                 const status = document.querySelector(`[data-feedback-status="${feedback.dataset.feedback}"]`);
-                if (status) status.textContent = data.feedbackDisplay || result.message || 'Đã ghi nhận phản hồi';
-                await Swal.fire({ icon: 'success', title: 'Đã ghi nhận phản hồi', text: result.message || 'Phản hồi đã được lưu.', timer: 1600, showConfirmButton: false });
+                if (status) status.textContent = data.feedbackDisplay || result.message || t('Anomalies.Js.FeedbackRecorded');
+                await Swal.fire({ icon: 'success', title: t('Anomalies.Js.FeedbackRecorded'), text: result.message || t('Anomalies.Js.FeedbackSaved'), timer: 1600, showConfirmButton: false });
             }
         }
     }

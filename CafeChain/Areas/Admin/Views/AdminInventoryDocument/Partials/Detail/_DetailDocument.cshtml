@@ -1,17 +1,19 @@
 @model CafeChain.ViewModels.Admin.InventoryDocuments.Detail.AdminInventoryDocumentDetailVM
 @using CafeChain.Models.Enums.Inventory
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<InventoryResource> L
 
 @{
     var documentTitle = Model.Type switch
     {
-        InventoryDocumentType.IMPORT => "PHIẾU NHẬP KHO",
-        InventoryDocumentType.EXPORT => "PHIẾU XUẤT KHO",
-        InventoryDocumentType.STOCK_TAKE => "PHIẾU KIỂM KÊ",
-        InventoryDocumentType.WASTE => "PHIẾU HỦY KHO",
-        InventoryDocumentType.PRODUCTION_IN => "PHIẾU NHẬP SẢN XUẤT",
-        InventoryDocumentType.PRODUCTION_OUT => "PHIẾU XUẤT SẢN XUẤT",
-        InventoryDocumentType.SALES_DEDUCTION => "PHIẾU TRỪ TỒN BÁN HÀNG",
-        _ => "PHIẾU KHO"
+        InventoryDocumentType.IMPORT => L["InvDoc.Voucher.Import"].Value,
+        InventoryDocumentType.EXPORT => L["InvDoc.Voucher.Export"].Value,
+        InventoryDocumentType.STOCK_TAKE => L["InvDoc.Voucher.StockTake"].Value,
+        InventoryDocumentType.WASTE => L["InvDoc.Voucher.Waste"].Value,
+        InventoryDocumentType.PRODUCTION_IN => L["InvDoc.Voucher.ProdIn"].Value,
+        InventoryDocumentType.PRODUCTION_OUT => L["InvDoc.Voucher.ProdOut"].Value,
+        InventoryDocumentType.SALES_DEDUCTION => L["InvDoc.Voucher.SalesDeduction"].Value,
+        _ => L["InvDoc.Voucher.Default"].Value
     };
 
     var isSupplierPurchase = Model.Type == InventoryDocumentType.IMPORT && Model.Purpose == InventoryDocumentPurpose.IMPORT_PURCHASE;
@@ -20,10 +22,10 @@
         || Model.Type == InventoryDocumentType.WASTE;
     var quantityLabel =
         Model.Type == InventoryDocumentType.STOCK_TAKE
-            ? "SL thực tế"
+            ? L["InvDoc.Qty.ActualShort"].Value
             : Model.Type == InventoryDocumentType.WASTE
-                ? "SL hủy"
-                : "SL";
+                ? L["InvDoc.Qty.WasteShort"].Value
+                : L["InvDoc.Qty.Short"].Value;
 }
 
 <link rel="stylesheet"
@@ -38,7 +40,7 @@
         <h5>@documentTitle</h5>
 
         <span class="voucher-readonly-badge">
-            Chỉ xem
+            @L["InvDoc.Voucher.ReadOnly"]
         </span>
 
     </div>
@@ -46,34 +48,34 @@
     <div class="voucher-info voucher-readonly-grid">
 
         <div class="voucher-readonly-field">
-            <label>Số phiếu</label>
+            <label>@L["InvDoc.Voucher.Number"]</label>
             <strong>@Model.Code</strong>
         </div>
 
         <div class="voucher-readonly-field">
-            <label>Ngày chứng từ</label>
+            <label>@L["InvDoc.General.Date"]</label>
             <strong>@Model.DocumentDate.ToString("dd/MM/yyyy")</strong>
         </div>
 
         <div class="voucher-readonly-field">
-            <label>Kho</label>
+            <label>@L["InvDoc.Voucher.Warehouse"]</label>
             <strong>@Model.StoreName</strong>
         </div>
 
         <div class="voucher-readonly-field">
-            <label>Người lập</label>
+            <label>@L["InvDoc.General.Staff"]</label>
             <strong>@Model.StaffName</strong>
         </div>
 
         <div class="voucher-readonly-field">
-            <label>Nhà cung cấp</label>
+            <label>@L["InvDoc.General.Supplier"]</label>
             <strong>@(Model.SupplierName ?? "-")</strong>
         </div>
 
         @if (!isSupplierPurchase && !string.IsNullOrWhiteSpace(Model.PartnerName))
         {
             <div class="voucher-readonly-field">
-                <label>Đối tác</label>
+                <label>@L["InvDoc.General.Partner"]</label>
                 <strong>@Model.PartnerName</strong>
             </div>
         }
@@ -81,8 +83,8 @@
         @if (Model.Type == InventoryDocumentType.EXPORT)
         {
             <div class="voucher-readonly-field">
-                <label>Cách xử lý tồn</label>
-                <strong>@(Model.AllowNegativeStock ? "Yêu cầu xuất vượt tồn" : "Xuất thường")</strong>
+                <label>@L["InvDoc.Voucher.StockMode"]</label>
+                <strong>@(Model.AllowNegativeStock ? L["InvDoc.Voucher.NegativeMode"].Value : L["InvDoc.Voucher.NormalMode"].Value)</strong>
             </div>
         }
 
@@ -90,28 +92,28 @@
 
     @if (Model.NegativeApproval != null)
     {
-        <section class="voucher-approval-panel" aria-label="Lịch sử phê duyệt tồn âm">
-            <h6>Phê duyệt tồn âm #@Model.NegativeApproval.ApprovalId</h6>
+        <section class="voucher-approval-panel" aria-label="@L["InvDoc.Voucher.ApprovalAria"]">
+            <h6>@L["InvDoc.Voucher.ApprovalTitle", Model.NegativeApproval.ApprovalId]</h6>
             <div class="voucher-readonly-grid">
-                <div class="voucher-readonly-field"><label>Trạng thái</label><strong>@Model.NegativeApproval.Status</strong></div>
-                <div class="voucher-readonly-field"><label>Người đề nghị</label><strong>@Model.NegativeApproval.RequesterName</strong></div>
-                <div class="voucher-readonly-field"><label>Người duyệt</label><strong>@(Model.NegativeApproval.ApproverName ?? "-")</strong></div>
-                <div class="voucher-readonly-field"><label>Policy</label><strong>@Model.NegativeApproval.PolicyVersion</strong></div>
-                <div class="voucher-readonly-field"><label>Đề nghị lúc</label><strong>@Model.NegativeApproval.RequestedAt.ToString("dd/MM/yyyy HH:mm")</strong></div>
-                <div class="voucher-readonly-field"><label>Duyệt lúc</label><strong>@(Model.NegativeApproval.ReviewedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</strong></div>
+                <div class="voucher-readonly-field"><label>@L["InvDoc.General.Status"]</label><strong>@Model.NegativeApproval.Status</strong></div>
+                <div class="voucher-readonly-field"><label>@L["InvDoc.Voucher.Requester"]</label><strong>@Model.NegativeApproval.RequesterName</strong></div>
+                <div class="voucher-readonly-field"><label>@L["InvDoc.Voucher.Approver"]</label><strong>@(Model.NegativeApproval.ApproverName ?? "-")</strong></div>
+                <div class="voucher-readonly-field"><label>@L["InvDoc.Voucher.Policy"]</label><strong>@Model.NegativeApproval.PolicyVersion</strong></div>
+                <div class="voucher-readonly-field"><label>@L["InvDoc.Voucher.RequestedAt"]</label><strong>@Model.NegativeApproval.RequestedAt.ToString("dd/MM/yyyy HH:mm")</strong></div>
+                <div class="voucher-readonly-field"><label>@L["InvDoc.Voucher.ReviewedAt"]</label><strong>@(Model.NegativeApproval.ReviewedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</strong></div>
             </div>
-            <p><strong>Lý do:</strong> @Model.NegativeApproval.Reason</p>
+            <p><strong>@L["InvDoc.Voucher.Reason"]</strong> @Model.NegativeApproval.Reason</p>
             @if (!string.IsNullOrWhiteSpace(Model.NegativeApproval.ReviewNote))
             {
-                <p><strong>Ghi chú duyệt:</strong> @Model.NegativeApproval.ReviewNote</p>
+                <p><strong>@L["InvDoc.Voucher.ReviewNote"]</strong> @Model.NegativeApproval.ReviewNote</p>
             }
             <table class="voucher-table voucher-readonly-table">
-                <thead><tr><th>Identity</th><th class="text-end">Before</th><th class="text-end">Issue</th><th class="text-end">After</th><th class="text-end">Limit</th></tr></thead>
+                <thead><tr><th>@L["InvDoc.Voucher.Identity"]</th><th class="text-end">@L["InvDoc.Voucher.Before"]</th><th class="text-end">@L["InvDoc.Voucher.Issue"]</th><th class="text-end">@L["InvDoc.Voucher.After"]</th><th class="text-end">@L["InvDoc.Voucher.Limit"]</th></tr></thead>
                 <tbody>
                 @foreach (var line in Model.NegativeApproval.Lines)
                 {
                     <tr>
-                        <td>@(line.IngredientId.HasValue ? $"Ingredient #{line.IngredientId}" : $"PreparedItem #{line.PreparedItemId}")</td>
+                        <td>@(line.IngredientId.HasValue ? L["InvDoc.Voucher.IngredientId", line.IngredientId].Value : L["InvDoc.Voucher.PreparedId", line.PreparedItemId].Value)</td>
                         <td class="text-end">@line.BeforeQty.ToString("0.###")</td>
                         <td class="text-end">@line.IssueQty.ToString("0.###")</td>
                         <td class="text-end">@line.ProjectedAfterQty.ToString("0.###")</td>
@@ -125,10 +127,10 @@
 
     @if (Model.CostGaps.Count > 0)
     {
-        <section class="voucher-approval-panel" aria-label="Trạng thái cost gap">
-            <h6>Cost-gap</h6>
+        <section class="voucher-approval-panel" aria-label="@L["InvDoc.Voucher.CostGapAria"]">
+            <h6>@L["InvDoc.Voucher.CostGap"]</h6>
             <table class="voucher-table voucher-readonly-table">
-                <thead><tr><th>Mã</th><th>Nguồn</th><th>Trạng thái</th><th class="text-end">Ban đầu</th><th class="text-end">Đã settle</th><th class="text-end">Còn lại</th></tr></thead>
+                <thead><tr><th>@L["InvDoc.Voucher.Code"]</th><th>@L["InvDoc.Voucher.Source"]</th><th>@L["InvDoc.General.Status"]</th><th class="text-end">@L["InvDoc.Voucher.Original"]</th><th class="text-end">@L["InvDoc.Voucher.Settled"]</th><th class="text-end">@L["InvDoc.Voucher.Remaining"]</th></tr></thead>
                 <tbody>
                 @foreach (var gap in Model.CostGaps)
                 {
@@ -152,18 +154,18 @@
 
                 <tr>
 
-                    <th>STT</th>
-                    <th>Tên hàng</th>
+                    <th>@L["InvDoc.Voucher.No"]</th>
+                    <th>@L["InvDoc.Voucher.ItemName"]</th>
                     <th class="text-center">
-                        DVT
+                        @L["InvDoc.General.Unit"]
                     </th>
                     <th class="text-end">@quantityLabel</th>
                     @if (!hideMoneyColumns)
                     {
                         <th class="text-end">
-                            Đơn giá vốn
+                            @L["InvDoc.Voucher.CostPrice"]
                         </th>
-                        <th class="text-end">Thành tiền</th>
+                        <th class="text-end">@L["InvDoc.Summary.Final"]</th>
                     }
 
                 </tr>
@@ -226,17 +228,17 @@
         <div class="voucher-summary">
 
             <div>
-                <span>Tổng tiền</span>
+                <span>@L["InvDoc.Summary.Total"]</span>
                 <strong>@(Model.TotalAmount?.ToString("N0") ?? "0")</strong>
             </div>
 
             <div>
-                <span>VAT</span>
+                <span>@L["InvDoc.Summary.Vat"]</span>
                 <strong>@(Model.VatAmount?.ToString("N0") ?? "0")</strong>
             </div>
 
             <div class="final">
-                <span>Thành tiền</span>
+                <span>@L["InvDoc.Summary.Final"]</span>
                 <strong>@(Model.FinalAmount?.ToString("N0") ?? "0")</strong>
             </div>
 

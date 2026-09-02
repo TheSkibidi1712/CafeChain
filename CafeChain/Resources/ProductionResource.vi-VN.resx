@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Production.Breadcrumb" xml:space="preserve"><value>Sản xuất / Định mức nguyên liệu</value></data>
+  <data name="ProductionOrder.Title" xml:space="preserve"><value>Lệnh sản xuất</value></data>
+  <data name="ProductionOrder.PageTitle" xml:space="preserve"><value>Lệnh sản xuất theo mẻ</value></data>
+  <data name="ProductionOrder.Description" xml:space="preserve"><value>Theo dõi kế hoạch theo mẻ, sản lượng thực tế, chênh lệch và tiến độ đáp ứng nhu cầu tại cửa hàng.</value></data>
+  <data name="ProductionOrder.Capabilities" xml:space="preserve"><value>Năng lực sản xuất</value></data>
+  <data name="ProductionOrder.Standalone" xml:space="preserve"><value>Sơ chế độc lập</value></data>
+  <data name="ProductionOrder.Filter.Title" xml:space="preserve"><value>Bộ lọc vận hành</value></data>
+  <data name="ProductionOrder.Filter.Description" xml:space="preserve"><value>Thu hẹp danh sách theo cửa hàng và trạng thái xử lý.</value></data>
+  <data name="Common.Store" xml:space="preserve"><value>Cửa hàng</value></data>
+  <data name="Common.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Common.AllStatuses" xml:space="preserve"><value>Tất cả trạng thái</value></data>
+  <data name="Common.Apply" xml:space="preserve"><value>Áp dụng</value></data>
+  <data name="Common.ResetFilters" xml:space="preserve"><value>Đặt lại bộ lọc</value></data>
+  <data name="Common.Actions" xml:space="preserve"><value>Thao tác</value></data>
+  <data name="Common.Details" xml:space="preserve"><value>Chi tiết</value></data>
+  <data name="ProductionOrder.List.Title" xml:space="preserve"><value>Danh sách lệnh sản xuất</value></data>
+  <data name="ProductionOrder.List.Description" xml:space="preserve"><value>Theo dõi quy mô, sản lượng dự kiến và người phụ trách từng lệnh.</value></data>
+  <data name="ProductionOrder.List.Count" xml:space="preserve"><value>{0} lệnh</value></data>
+  <data name="ProductionOrder.Column.Order" xml:space="preserve"><value>Lệnh</value></data>
+  <data name="ProductionOrder.Column.Output" xml:space="preserve"><value>Đầu ra</value></data>
+  <data name="ProductionOrder.Column.Scale" xml:space="preserve"><value>Quy mô</value></data>
+  <data name="ProductionOrder.Column.ExpectedOutput" xml:space="preserve"><value>Sản lượng dự kiến</value></data>
+  <data name="ProductionOrder.Column.Request" xml:space="preserve"><value>Yêu cầu</value></data>
+  <data name="ProductionOrder.Column.CreatedBy" xml:space="preserve"><value>Người lập</value></data>
+  <data name="ProductionOrder.Empty" xml:space="preserve"><value>Chưa có lệnh sản xuất phù hợp với bộ lọc.</value></data>
+  <data name="ProductionOrder.RestockDriven" xml:space="preserve"><value>Theo nhu cầu nhập hàng</value></data>
+  <data name="ProductionOrder.RestockRequest" xml:space="preserve"><value>Nhu cầu bổ sung #{0}</value></data>
+  <data name="ProductionOrder.BatchCount" xml:space="preserve"><value>{0} mẻ</value></data>
+  <data name="ProductionOrder.RunFactor" xml:space="preserve"><value>{0} hệ số</value></data>
+  <data name="ProductionOrder.Pagination" xml:space="preserve"><value>Trang {0} trên {1}</value></data>
+  <data name="ProductionOrder.Pagination.Label" xml:space="preserve"><value>Phân trang lệnh sản xuất</value></data>
+  <data name="Common.PreviousPage" xml:space="preserve"><value>Trang trước</value></data>
+  <data name="Common.NextPage" xml:space="preserve"><value>Trang sau</value></data>
+  <data name="ProductionOrder.Status.Confirmed" xml:space="preserve"><value>Đã xác nhận</value></data>
+  <data name="ProductionOrder.Status.Completed" xml:space="preserve"><value>Hoàn tất</value></data>
+  <data name="ProductionOrder.Status.Planned" xml:space="preserve"><value>Đã lập kế hoạch</value></data>
+  <data name="ProductionOrder.Status.Released" xml:space="preserve"><value>Đã phát hành</value></data>
+  <data name="ProductionOrder.Status.InProgress" xml:space="preserve"><value>Đang sản xuất</value></data>
+  <data name="ProductionOrder.Status.AwaitingAcceptance" xml:space="preserve"><value>Chờ nhận đầu ra</value></data>
+  <data name="ProductionOrder.Status.AwaitingVarianceApproval" xml:space="preserve"><value>Chờ duyệt chênh lệch</value></data>
+  <data name="ProductionOrder.Status.Cancelled" xml:space="preserve"><value>Đã hủy</value></data>
+  <data name="Capabilities.Title" xml:space="preserve"><value>Năng lực sản xuất bán thành phẩm</value></data>
+  <data name="Capabilities.Description" xml:space="preserve"><value>Quyết định bán thành phẩm nào được sản xuất nội bộ và cửa hàng nào có năng lực thực hiện.</value></data>
+  <data name="Capabilities.Filter.Title" xml:space="preserve"><value>Cửa hàng và bán thành phẩm</value></data>
+  <data name="Capabilities.Filter.Description" xml:space="preserve"><value>Bật cấp toàn chuỗi trước, sau đó bật riêng tại cửa hàng thực sự có năng lực sản xuất.</value></data>
+  <data name="Capabilities.PreparedItem" xml:space="preserve"><value>Bán thành phẩm</value></data>
+  <data name="Capabilities.SearchPlaceholder" xml:space="preserve"><value>Tìm theo tên hoặc mã</value></data>
+  <data name="Capabilities.ConfigurationTitle" xml:space="preserve"><value>Cấu hình tại {0}</value></data>
+  <data name="Capabilities.ConfigurationDescription" xml:space="preserve"><value>Bật năng lực cửa hàng chỉ tạo danh tính tồn kho bằng 0; không nhập tồn và không tạo giá vốn.</value></data>
+  <data name="Capabilities.Count" xml:space="preserve"><value>{0} bán thành phẩm</value></data>
+  <data name="Capabilities.ChainWide" xml:space="preserve"><value>Toàn chuỗi</value></data>
+  <data name="Capabilities.AtStore" xml:space="preserve"><value>Tại cửa hàng</value></data>
+  <data name="Capabilities.InventoryIdentity" xml:space="preserve"><value>Danh tính tồn kho</value></data>
+  <data name="Capabilities.Empty" xml:space="preserve"><value>Không tìm thấy bán thành phẩm phù hợp.</value></data>
+  <data name="Capabilities.ItemMetadata" xml:space="preserve"><value>Mã: {0} · Đơn vị cơ sở: {1}</value></data>
+  <data name="Capabilities.Allowed" xml:space="preserve"><value>Được phép sản xuất</value></data>
+  <data name="Capabilities.NotAllowed" xml:space="preserve"><value>Chưa cho phép</value></data>
+  <data name="Capabilities.DisableGlobal" xml:space="preserve"><value>Ngừng cho phép</value></data>
+  <data name="Capabilities.EnableGlobal" xml:space="preserve"><value>Cho phép sản xuất</value></data>
+  <data name="Capabilities.StoreEnabled" xml:space="preserve"><value>Đã bật</value></data>
+  <data name="Capabilities.StoreDisabled" xml:space="preserve"><value>Chưa bật</value></data>
+  <data name="Capabilities.DisableStore" xml:space="preserve"><value>Tắt tại cửa hàng</value></data>
+  <data name="Capabilities.EnableStore" xml:space="preserve"><value>Bật tại cửa hàng</value></data>
+  <data name="Capabilities.GlobalRequired" xml:space="preserve"><value>Cần được cho phép ở cấp toàn chuỗi trước.</value></data>
+  <data name="Capabilities.InventoryReady" xml:space="preserve"><value>Đã sẵn sàng</value></data>
+  <data name="Capabilities.InventoryMissing" xml:space="preserve"><value>Chưa khởi tạo</value></data>
+  <data name="Common.Pagination" xml:space="preserve"><value>Phân trang</value></data>
+  <data name="Common.PageOf" xml:space="preserve"><value>Trang {0} / {1}</value></data>
+  <data name="Common.Previous" xml:space="preserve"><value>Trước</value></data>
+  <data name="Common.Next" xml:space="preserve"><value>Sau</value></data>
+  <data name="Create.Title" xml:space="preserve"><value>Sơ chế độc lập</value></data>
+  <data name="Create.Breadcrumb" xml:space="preserve"><value>Sản xuất / BOM</value></data>
+  <data name="Create.Description" xml:space="preserve"><value>Ghi nhận sơ chế ngoài luồng nhu cầu nhập hàng. Hệ số công thức nhân tỷ lệ toàn bộ đầu vào và đầu ra của công thức.</value></data>
+  <data name="Create.BackToList" xml:space="preserve"><value>Quay lại danh sách</value></data>
+  <data name="Create.DetailsTitle" xml:space="preserve"><value>Thông tin sơ chế chi tiết</value></data>
+  <data name="Create.SelectStore" xml:space="preserve"><value>-- Chọn cửa hàng --</value></data>
+  <data name="Create.PreparedItemName" xml:space="preserve"><value>Tên thành phẩm sơ chế</value></data>
+  <data name="Create.SelectPreparedItem" xml:space="preserve"><value>-- Chọn thành phẩm --</value></data>
+  <data name="Create.OutputAtFactorOne" xml:space="preserve"><value>{0} khi hệ số = 1</value></data>
+  <data name="Create.RecipeHelp" xml:space="preserve"><value>Chỉ hiển thị công thức BTP đang hoạt động; món bán tại quầy và topping không dùng cho lệnh sơ chế.</value></data>
+  <data name="Create.ExpectedSku" xml:space="preserve"><value>Mã SKU dự kiến</value></data>
+  <data name="Create.AutoGenerated" xml:space="preserve"><value>Tự động tạo...</value></data>
+  <data name="Create.RecipeFactor" xml:space="preserve"><value>Hệ số công thức</value></data>
+  <data name="Create.Meaning" xml:space="preserve"><value>Ý nghĩa</value></data>
+  <data name="Create.ScaleMeaning" xml:space="preserve"><value>Nhân tỷ lệ công thức</value></data>
+  <data name="Create.Notes" xml:space="preserve"><value>Ghi chú hướng dẫn sơ chế</value></data>
+  <data name="Create.NotesPlaceholder" xml:space="preserve"><value>Ví dụ: Cần băm nhuyễn, chú ý nhiệt độ...</value></data>
+  <data name="Create.ScheduledAt" xml:space="preserve"><value>Thời gian dự kiến / Ngày thực hiện</value></data>
+  <data name="Create.BomTitle" xml:space="preserve"><value>Nguyên liệu tiêu hao (BOM)</value></data>
+  <data name="Create.AutoCalculated" xml:space="preserve"><value>Tính toán tự động theo định mức</value></data>
+  <data name="Create.NotPreviewed" xml:space="preserve"><value>Chưa xem trước</value></data>
+  <data name="Create.PreviewHelp" xml:space="preserve"><value>Chọn cửa hàng, bán thành phẩm và hệ số công thức để kiểm tra.</value></data>
+  <data name="Create.Column.Input" xml:space="preserve"><value>Đầu vào</value></data>
+  <data name="Create.Column.Required" xml:space="preserve"><value>Yêu cầu</value></data>
+  <data name="Create.Column.OnHand" xml:space="preserve"><value>Hiện có</value></data>
+  <data name="Create.Column.Reserved" xml:space="preserve"><value>Đã giữ</value></data>
+  <data name="Create.Column.Available" xml:space="preserve"><value>Khả dụng</value></data>
+  <data name="Create.Column.Shortage" xml:space="preserve"><value>Thiếu</value></data>
+  <data name="Create.Column.FifoCost" xml:space="preserve"><value>Giá vốn theo FIFO</value></data>
+  <data name="Create.SelectPrompt" xml:space="preserve"><value>Vui lòng chọn thành phẩm và nhập số lượng</value></data>
+  <data name="Create.ResetForm" xml:space="preserve"><value>Làm lại form</value></data>
+  <data name="Create.PrintLabel" xml:space="preserve"><value>In nhãn</value></data>
+  <data name="Create.RecordOrder" xml:space="preserve"><value>Ghi nhận lệnh sơ chế</value></data>
+  <data name="Create.History.Title" xml:space="preserve"><value>Lịch sử sơ chế gần đây</value></data>
+  <data name="Create.History.Description" xml:space="preserve"><value>Chỉ các lệnh đã xác nhận tồn kho mới làm thay đổi số lượng khả dụng.</value></data>
+  <data name="Create.Column.Code" xml:space="preserve"><value>Mã lệnh</value></data>
+  <data name="Create.Column.Recipe" xml:space="preserve"><value>Công thức</value></data>
+  <data name="Create.Column.RecordedBy" xml:space="preserve"><value>Người ghi nhận</value></data>
+  <data name="Create.Column.ConfirmedAt" xml:space="preserve"><value>Xác nhận</value></data>
+  <data name="Create.Column.Inventory" xml:space="preserve"><value>Tồn kho</value></data>
+  <data name="Create.Column.Cost" xml:space="preserve"><value>Giá vốn</value></data>
+  <data name="Create.UnnamedRecipe" xml:space="preserve"><value>Công thức chưa có tên</value></data>
+  <data name="Create.StockApplied" xml:space="preserve"><value>Đã áp dụng vào kho</value></data>
+  <data name="Create.StockNotApplied" xml:space="preserve"><value>Chưa áp dụng vào kho</value></data>
+  <data name="Create.OutputQuantity" xml:space="preserve"><value>Sản lượng đầu ra: {0}</value></data>
+  <data name="Create.CostComplete" xml:space="preserve"><value>Đã tính giá vốn</value></data>
+  <data name="Create.CostPending" xml:space="preserve"><value>Chờ tính giá vốn</value></data>
+  <data name="Create.TotalCost" xml:space="preserve"><value>Tổng: {0}</value></data>
+  <data name="Create.UnitCost" xml:space="preserve"><value>Mỗi đơn vị: {0}</value></data>
+  <data name="Create.ApplyStock" xml:space="preserve"><value>Áp dụng vào kho</value></data>
+  <data name="Create.EmptyHistory" xml:space="preserve"><value>Chưa có lệnh sơ chế nào.</value></data>
+  <data name="Create.Js.SearchPreparedItem" xml:space="preserve"><value>-- Tìm BTP sơ chế --</value></data>
+  <data name="Create.Js.Ready" xml:space="preserve"><value>Sẵn sàng</value></data>
+  <data name="Create.Js.Blocked" xml:space="preserve"><value>Chưa sẵn sàng</value></data>
+  <data name="Create.Js.Incomplete" xml:space="preserve"><value>Chưa đầy đủ</value></data>
+  <data name="Create.Js.Error" xml:space="preserve"><value>Có lỗi</value></data>
+  <data name="Create.Js.Ingredient" xml:space="preserve"><value>Nguyên liệu</value></data>
+  <data name="Create.Js.PreparedItem" xml:space="preserve"><value>Bán thành phẩm</value></data>
+  <data name="Create.Js.ChildRecipe" xml:space="preserve"><value>Công thức thành phần</value></data>
+  <data name="Create.Js.Unknown" xml:space="preserve"><value>Chưa xác định</value></data>
+  <data name="Create.Js.MissingInput" xml:space="preserve"><value>Thiếu dữ liệu đầu vào.</value></data>
+  <data name="Create.Js.Checking" xml:space="preserve"><value>Đang kiểm tra mức độ sẵn sàng...</value></data>
+  <data name="Create.Js.CannotPreview" xml:space="preserve"><value>Không thể xem trước</value></data>
+  <data name="Create.Js.NoBomInputs" xml:space="preserve"><value>Công thức chưa có đầu vào BOM hợp lệ.</value></data>
+  <data name="Create.Js.SelectedRecipeVersion" xml:space="preserve"><value> · dùng phiên bản công thức đã chọn</value></data>
+  <data name="Create.Js.WriterMode" xml:space="preserve"><value>Cách ghi nhận tồn kho:</value></data>
+  <data name="Create.Js.MaximumFactor" xml:space="preserve"><value>Hệ số tối đa</value></data>
+  <data name="Create.Js.OutputAtOne" xml:space="preserve"><value>Đầu ra khi hệ số = 1</value></data>
+  <data name="Create.Js.RawOutput" xml:space="preserve"><value>Tổng đầu ra chưa chuẩn hóa</value></data>
+  <data name="Create.Js.NormalizedOutput" xml:space="preserve"><value>Đầu ra tổng chuẩn hóa</value></data>
+  <data name="Create.Js.EstimatedBomCost" xml:space="preserve"><value>Giá vốn BOM ước tính</value></data>
+  <data name="Create.Js.ProjectedFifo" xml:space="preserve"><value>FIFO dự kiến trước khi hoàn tất</value></data>
+  <data name="Create.Js.MissingEvidence" xml:space="preserve"><value>Thiếu bằng chứng</value></data>
+  <data name="Create.Js.ConnectionLoadError" xml:space="preserve"><value>Lỗi kết nối máy chủ. Không thể tải mức độ sẵn sàng.</value></data>
+  <data name="Create.Js.ConnectionError" xml:space="preserve"><value>Lỗi kết nối</value></data>
+  <data name="Create.Js.ApplyTitle" xml:space="preserve"><value>Áp dụng vào kho?</value></data>
+  <data name="Create.Js.ApplyDescription" xml:space="preserve"><value>Hệ thống sẽ trừ nguyên liệu/BTP đầu vào và cộng bán thành phẩm đầu ra theo công thức đã ghi nhận.</value></data>
+  <data name="Create.Js.Cancel" xml:space="preserve"><value>Hủy</value></data>
+  <data name="Create.Js.Processing" xml:space="preserve"><value>Đang xử lý...</value></data>
+  <data name="Create.Js.AppliedReplay" xml:space="preserve"><value>Đã áp dụng (replay)</value></data>
+  <data name="Create.Js.Applied" xml:space="preserve"><value>Đã áp dụng vào kho</value></data>
+  <data name="Create.Js.InventoryUpdated" xml:space="preserve"><value>Tồn kho đã được cập nhật.</value></data>
+  <data name="Create.Js.NotReadyTitle" xml:space="preserve"><value>Chưa sẵn sàng</value></data>
+  <data name="Create.Js.NotReadyMessage" xml:space="preserve"><value>Vui lòng xử lý các nguyên nhân chưa sẵn sàng trước khi ghi nhận lệnh.</value></data>
+  <data name="Create.Js.InvalidFactorTitle" xml:space="preserve"><value>Hệ số công thức không hợp lệ</value></data>
+  <data name="Create.Js.InvalidFactorMessage" xml:space="preserve"><value>Hệ số công thức phải lớn hơn 0 và không vượt quá 9999.</value></data>
+  <data name="Create.Js.RecordTitle" xml:space="preserve"><value>Ghi nhận lệnh sơ chế?</value></data>
+  <data name="Create.Js.RecordDescription" xml:space="preserve"><value>Hệ thống sẽ ghi nhận lệnh theo cơ chế idempotent. Tồn kho chưa được cập nhật ở bước này.</value></data>
+  <data name="Create.Js.Confirm" xml:space="preserve"><value>Xác nhận</value></data>
+  <data name="Create.Js.Recorded" xml:space="preserve"><value>Đã ghi nhận</value></data>
+  <data name="Create.Js.RecordedMessage" xml:space="preserve"><value>Lệnh sơ chế đã được ghi nhận. Tồn kho chưa được cập nhật.</value></data>
+  <data name="Create.Js.Failed" xml:space="preserve"><value>Thất bại</value></data>
+  <data name="Create.Js.RecordFailed" xml:space="preserve"><value>Không ghi nhận được lệnh.</value></data>
+  <data name="Create.Js.NetworkError" xml:space="preserve"><value>Lỗi mạng</value></data>
+  <data name="Create.Js.NetworkMessage" xml:space="preserve"><value>Không kết nối được với máy chủ. Bạn có thể thử lại với cùng mã yêu cầu.</value></data>
+  <data name="Create.Js.MissingCostLayer" xml:space="preserve"><value>Thiếu lớp giá {quantity} {unit}</value></data>
+  <data name="Create.Js.LegacyWriterTitle" xml:space="preserve"><value>Chưa sẵn sàng ghi nhận tồn kho</value></data>
+  <data name="Create.Js.LegacyWriterMessage" xml:space="preserve"><value>Cửa hàng đang dùng cách ghi nhận tồn kho cũ. Vui lòng hoàn tất chuyển đổi sang bán thành phẩm trước khi áp dụng lệnh sơ chế.</value></data>
+  <data name="Create.Js.WriterBlockedTitle" xml:space="preserve"><value>Kho bán thành phẩm đang tạm khóa</value></data>
+  <data name="Create.Js.WriterBlockedMessage" xml:space="preserve"><value>Chưa thể cập nhật tồn kho bán thành phẩm tại thời điểm này. Vui lòng liên hệ quản trị hệ thống.</value></data>
+  <data name="Create.Js.ApplyFailedTitle" xml:space="preserve"><value>Không thể cập nhật tồn kho</value></data>
+  <data name="Create.Js.ApplyFailedMessage" xml:space="preserve"><value>Lệnh sơ chế chưa được áp dụng. Vui lòng tải lại dữ liệu và thử lại.</value></data>
+  <data name="Create.Js.CostEvidenceTitle" xml:space="preserve"><value>Thiếu bằng chứng giá vốn</value></data>
+  <data name="Create.Js.CostEvidenceMessage" xml:space="preserve"><value>Không thể hoàn tất lệnh sơ chế vì tồn kho đầu vào chưa có đủ bằng chứng giá vốn.</value></data>
+  <data name="Create.Js.CostEvidenceLine" xml:space="preserve"><value>cần {required}, lớp giá hiện có {available}, thiếu {missing}</value></data>
+  <data name="Create.Js.LegacyShortTitle" xml:space="preserve"><value>Chưa chuyển đổi kho BTP</value></data>
+  <data name="Create.Js.BlockedShortTitle" xml:space="preserve"><value>Kho BTP đang khóa</value></data>
+  <data name="Details.PageTitle" xml:space="preserve"><value>Lệnh PR-{0}</value></data>
+  <data name="Details.Eyebrow" xml:space="preserve"><value>Sản xuất / Định mức nguyên liệu</value></data>
+  <data name="Details.Title" xml:space="preserve"><value>Lệnh sản xuất PR-{0}</value></data>
+  <data name="Details.Description" xml:space="preserve"><value>{0} · {1}. Theo dõi kế hoạch, số liệu thực tế và bước xử lý tiếp theo.</value></data>
+  <data name="Details.List" xml:space="preserve"><value>Lệnh sản xuất</value></data>
+  <data name="Details.Back" xml:space="preserve"><value>Danh sách lệnh</value></data>
+  <data name="Details.Progress" xml:space="preserve"><value>Tiến trình lệnh sản xuất</value></data>
+  <data name="Details.Step.Plan" xml:space="preserve"><value>Lập kế hoạch</value></data>
+  <data name="Details.Step.Release" xml:space="preserve"><value>Phát hành</value></data>
+  <data name="Details.Step.Produce" xml:space="preserve"><value>Sản xuất</value></data>
+  <data name="Details.Step.Record" xml:space="preserve"><value>Ghi nhận thực tế</value></data>
+  <data name="Details.Step.Accept" xml:space="preserve"><value>Nhận đầu ra</value></data>
+  <data name="Details.Step.Complete" xml:space="preserve"><value>Hoàn tất</value></data>
+  <data name="Details.Role.StoreManager" xml:space="preserve"><value>Quản lý cửa hàng</value></data>
+  <data name="Details.Role.ShiftSupervisor" xml:space="preserve"><value>Giám sát ca</value></data>
+  <data name="Details.Role.Owner" xml:space="preserve"><value>Chủ doanh nghiệp</value></data>
+  <data name="Details.Next.Planned" xml:space="preserve"><value>Quản lý cửa hàng kiểm tra khả năng đáp ứng nguyên liệu và phát hành lệnh.</value></data>
+  <data name="Details.Next.Released" xml:space="preserve"><value>Giám sát ca bắt đầu thực hiện lệnh sản xuất tại cửa hàng.</value></data>
+  <data name="Details.Next.InProgress" xml:space="preserve"><value>Giám sát ca xác nhận đầu vào thực tế và sản lượng sau khi hoàn tất sản xuất.</value></data>
+  <data name="Details.Next.Variance" xml:space="preserve"><value>Chênh lệch vượt ngưỡng cần một người có quyền độc lập xem xét trước khi nhận đầu ra.</value></data>
+  <data name="Details.Next.Acceptance" xml:space="preserve"><value>Đầu ra đã được ghi nhận và đang chờ xác nhận nhập vào tồn kho cửa hàng.</value></data>
+  <data name="Details.Next.CompletedTitle" xml:space="preserve"><value>Lệnh đã hoàn tất</value></data>
+  <data name="Details.Next.Completed" xml:space="preserve"><value>Sản lượng đạt đã được ghi nhận vào tồn kho. Các số liệu thực tế và lịch sử được giữ để đối chiếu.</value></data>
+  <data name="Details.Next.CancelledTitle" xml:space="preserve"><value>Lệnh đã hủy</value></data>
+  <data name="Details.Next.Cancelled" xml:space="preserve"><value>Không còn thao tác vận hành trên lệnh này. Xem lịch sử để biết người thực hiện và lý do hủy.</value></data>
+  <data name="Details.Next.Default" xml:space="preserve"><value>Theo dõi trạng thái và lịch sử để xác định bước xử lý phù hợp.</value></data>
+  <data name="Details.Plan.Title" xml:space="preserve"><value>Kế hoạch và nhu cầu</value></data>
+  <data name="Details.Plan.Batches" xml:space="preserve"><value>Số mẻ kế hoạch</value></data>
+  <data name="Details.Plan.Factor" xml:space="preserve"><value>Hệ số công thức</value></data>
+  <data name="Details.Plan.PerBatch" xml:space="preserve"><value>Sản lượng mỗi mẻ</value></data>
+  <data name="Details.Plan.Expected" xml:space="preserve"><value>Sản lượng dự kiến</value></data>
+  <data name="Details.Plan.Tolerance" xml:space="preserve"><value>Ngưỡng chênh lệch</value></data>
+  <data name="Details.Restock.Reference" xml:space="preserve"><value>Nhu cầu bổ sung</value></data>
+  <data name="Details.Restock.Requested" xml:space="preserve"><value>Nhu cầu</value></data>
+  <data name="Details.Restock.Fulfilled" xml:space="preserve"><value>Đã đáp ứng</value></data>
+  <data name="Details.Restock.Remaining" xml:space="preserve"><value>Còn lại</value></data>
+  <data name="Details.Input.Title" xml:space="preserve"><value>Đầu vào thực tế</value></data>
+  <data name="Details.Input.Help" xml:space="preserve"><value>Nhập trước - xuất trước (FIFO) dùng số lượng thực tế đã xác nhận</value></data>
+  <data name="Details.Input.Column" xml:space="preserve"><value>ĐẦU VÀO</value></data>
+  <data name="Details.Plan.Column" xml:space="preserve"><value>KẾ HOẠCH</value></data>
+  <data name="Details.Actual.Column" xml:space="preserve"><value>THỰC TẾ</value></data>
+  <data name="Details.NotConfirmed" xml:space="preserve"><value>Chưa xác nhận</value></data>
+  <data name="Details.Output.Title" xml:space="preserve"><value>Sản lượng thực tế</value></data>
+  <data name="Details.Output.Produced" xml:space="preserve"><value>Đã sản xuất</value></data>
+  <data name="Details.Output.Accepted" xml:space="preserve"><value>Sản lượng đạt</value></data>
+  <data name="Details.Output.Rejected" xml:space="preserve"><value>Loại bỏ / hao hụt</value></data>
+  <data name="Details.Output.Variance" xml:space="preserve"><value>Chênh lệch</value></data>
+  <data name="Details.Reason" xml:space="preserve"><value>Lý do:</value></data>
+  <data name="Details.Actions.Title" xml:space="preserve"><value>Thao tác hợp lệ tiếp theo</value></data>
+  <data name="Details.Actions.Release" xml:space="preserve"><value>Phát hành lệnh</value></data>
+  <data name="Details.Actions.Start" xml:space="preserve"><value>Bắt đầu sản xuất</value></data>
+  <data name="Details.Actions.ApprovalNote" xml:space="preserve"><value>Ghi chú phê duyệt</value></data>
+  <data name="Details.Actions.Approve" xml:space="preserve"><value>Duyệt chênh lệch</value></data>
+  <data name="Details.Actions.Accept" xml:space="preserve"><value>Xác nhận nhập đầu ra</value></data>
+  <data name="Details.Actions.CancelReason" xml:space="preserve"><value>Lý do hủy</value></data>
+  <data name="Details.Actions.Cancel" xml:space="preserve"><value>Hủy lệnh</value></data>
+  <data name="Details.Actions.ReadOnly" xml:space="preserve"><value>Trang đang ở chế độ theo dõi. Thao tác tiếp theo do vai trò được nêu phía trên thực hiện.</value></data>
+  <data name="Details.Record.Title" xml:space="preserve"><value>Xác nhận đầu vào và sản lượng thực tế</value></data>
+  <data name="Details.Record.Input" xml:space="preserve"><value>{0} thực tế ({1})</value></data>
+  <data name="Details.Record.Planned" xml:space="preserve"><value>Kế hoạch: {0} {1}</value></data>
+  <data name="Details.Record.Produced" xml:space="preserve"><value>Tổng sản lượng thực tế ({0})</value></data>
+  <data name="Details.Record.Accepted" xml:space="preserve"><value>Sản lượng đạt ({0})</value></data>
+  <data name="Details.Record.Rejected" xml:space="preserve"><value>Lượng loại bỏ ({0})</value></data>
+  <data name="Details.Record.VarianceReason" xml:space="preserve"><value>Lý do chênh lệch</value></data>
+  <data name="Details.Record.VariancePlaceholder" xml:space="preserve"><value>Bắt buộc khi vượt ngưỡng hoặc sản lượng đạt bằng 0</value></data>
+  <data name="Details.Record.Submit" xml:space="preserve"><value>Xác nhận số liệu thực tế</value></data>
+  <data name="Details.History.Title" xml:space="preserve"><value>Lịch sử trạng thái</value></data>
+  <data name="Details.History.Empty" xml:space="preserve"><value>Chưa có lịch sử chuyển trạng thái.</value></data>
+</root>

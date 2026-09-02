@@ -4,6 +4,14 @@
     const app = document.getElementById('profitabilityApp');
     if (!app) return;
 
+    const catalog = window.CafeChainUiCatalog?.read('profitabilityUiCatalog') ?? {};
+    const t = (key, values) => window.CafeChainUiCatalog?.text(catalog, key, values) ?? catalog[key] ?? key;
+    const locale = document.documentElement.dataset.culture || 'vi-VN';
+    const numberFormatter = new Intl.NumberFormat(locale, { maximumFractionDigits: 5 });
+    const percentFormatter = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 });
+    const currencyFormatter = new Intl.NumberFormat(locale, {
+        style: 'currency', currency: 'VND', maximumFractionDigits: 0
+    });
     const canUpdatePrice = app.dataset.canUpdatePrice === 'true';
     const canManagePolicy = app.dataset.canManagePolicy === 'true';
     const token = app.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
@@ -22,23 +30,14 @@
     let selectedRow = null;
     let policyPayload = { policies: [], options: [], legacyReviews: [] };
 
-    const currency = value => value == null ? 'Chưa đủ dữ liệu' : `${Number(value).toLocaleString('vi-VN')}đ`;
-    const percent = value => value == null ? '—' : `${Number(value).toLocaleString('vi-VN', { maximumFractionDigits: 2 })}%`;
-    const number = value => Number(value ?? 0).toLocaleString('vi-VN', { maximumFractionDigits: 5 });
+    const currency = value => value == null ? t('Profit.Js.IncompleteData') : currencyFormatter.format(Number(value));
+    const percent = value => value == null ? '—' : `${percentFormatter.format(Number(value))}%`;
+    const number = value => numberFormatter.format(Number(value ?? 0));
     const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
     const isComplete = row => row.costStatus === 'COMPLETE';
 
-    const statusLabels = {
-        EXACT_READY: 'BOM đúng size', GENERIC_FALLBACK_ONLY: 'Chỉ có BOM chung', MISSING_RECIPE: 'Thiếu BOM theo size',
-        MULTIPLE_ACTIVE_RECIPE: 'Trùng BOM hiệu lực', INVALID_RECIPE: 'BOM không hợp lệ', FUTURE_RECIPE_ONLY: 'BOM chưa đến ngày hiệu lực',
-        COMPLETE: 'Đầy đủ', INCOMPLETE: 'Chưa đầy đủ', MISSING_DEFAULT_TOPPING_POLICY: 'Cấu hình topping cũ cần xác nhận',
-        MISSING_COST_LAYER: 'Thiếu lớp giá FIFO', INSUFFICIENT_COST_QUANTITY: 'Không đủ lượng FIFO',
-        MISSING_CONVERSION: 'Thiếu quy đổi', INVALID_BOM: 'BOM không hợp lệ'
-    };
-    const treatmentLabels = {
-        INCLUDED_IN_BASE_PRICE: 'Đã gồm trong giá gốc', ADD_TOPPING_PRICE: 'Cộng giá topping',
-        INCLUDED_IN_DRINK_RECIPE: 'Đã gồm trong BOM đồ uống', ADD_TOPPING_RECIPE_COST: 'Cộng thêm giá vốn topping', DISPLAY_ONLY: 'Cấu hình cũ cần xác nhận'
-    };
+    const statusLabel = code => t(`Profit.Status.${code}`);
+    const treatmentLabel = code => t(`Profit.Treatment.${code}`);
 
     async function request(url, options = {}) {
         const headers = { Accept: 'application/json', ...(options.headers || {}) };
@@ -47,7 +46,7 @@
         const response = await fetch(url, { credentials: 'same-origin', ...options, headers });
         const payload = await response.json().catch(() => ({ success: false, message: `HTTP ${response.status}` }));
         if (!response.ok || payload.success === false) {
-            const error = new Error(payload.message || 'Không thể xử lý yêu cầu.');
+            const error = new Error(payload.message || t('Profit.Js.RequestFailed'));
             error.code = payload.errorCode;
             throw error;
         }
@@ -81,7 +80,7 @@
     function renderPreview(data) {
         const rows = data?.sizes ?? [];
         if (rows.length === 0) { setState('empty'); return; }
-        els.timestamp.textContent = new Date(data.costTimestampUtc).toLocaleString('vi-VN');
+        els.timestamp.textContent = new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'medium' }).format(new Date(data.costTimestampUtc));
         els.sizeCount.textContent = rows.length;
         els.readyCount.textContent = rows.filter(isComplete).length;
         els.rows.innerHTML = rows.map(renderRow).join('');
@@ -92,27 +91,27 @@
         const ready = isComplete(row);
         const statusClass = ready ? 'pf-status-ready' : row.knownCost > 0 ? 'pf-status-warning' : 'pf-status-error';
         const priceButton = canUpdatePrice
-            ? `<button type="button" class="pf-row-button" data-price-id="${row.drinkSizeId}"><i class="fas fa-pen me-1"></i>Cập nhật giá</button>` : '';
+            ? `<button type="button" class="pf-row-button" data-price-id="${row.drinkSizeId}"><i class="fas fa-pen me-1"></i>${escapeHtml(t('Profit.Js.UpdatePrice'))}</button>` : '';
         const policyButton = canManagePolicy
             ? `<button type="button" class="pf-row-button" data-policy-id="${row.drinkSizeId}"><i class="fas fa-cookie-bite me-1"></i>Topping</button>` : '';
         return `<tr>
-            <td><span class="pf-size-name">${escapeHtml(row.sizeName)}</span><span class="pf-subtext">${escapeHtml(row.recipeCode || 'Chưa có BOM')} · ${escapeHtml(statusLabels[row.recipeStatus] || row.recipeStatus)}</span></td>
-            <td><span class="pf-status ${statusClass}">${escapeHtml(statusLabels[row.costStatus] || row.costStatus)}</span><span class="pf-subtext">${escapeHtml(row.costMessage)}</span></td>
-            <td class="pf-number">${currency(row.estimatedCost)}${!ready && row.knownCost > 0 ? `<span class="pf-subtext">Đã biết: ${currency(row.knownCost)}</span>` : ''}</td>
+            <td><span class="pf-size-name">${escapeHtml(row.sizeName)}</span><span class="pf-subtext">${escapeHtml(row.recipeCode || t('Profit.Js.NoBom'))} · ${escapeHtml(statusLabel(row.recipeStatus))}</span></td>
+            <td><span class="pf-status ${statusClass}">${escapeHtml(statusLabel(row.costStatus))}</span><span class="pf-subtext">${escapeHtml(row.costMessage)}</span></td>
+            <td class="pf-number">${currency(row.estimatedCost)}${!ready && row.knownCost > 0 ? `<span class="pf-subtext">${escapeHtml(t('Profit.Js.KnownCost'))}: ${currency(row.knownCost)}</span>` : ''}</td>
             <td class="pf-number">${currency(row.currentGlobalPrice)}${row.defaultToppingPriceImpact ? `<span class="pf-subtext">Topping: +${currency(row.defaultToppingPriceImpact)}</span>` : ''}</td>
             <td class="pf-number">${currency(row.grossProfit)}</td>
             <td class="pf-number">${percent(row.grossMarginPercent)}</td>
             <td class="pf-number">${percent(row.markupPercent)}</td>
-            <td><div class="pf-row-actions"><button type="button" class="pf-row-button" data-detail-id="${row.drinkSizeId}"><i class="fas fa-info-circle me-1"></i>Chi tiết</button>${priceButton}${policyButton}</div></td>
+            <td><div class="pf-row-actions"><button type="button" class="pf-row-button" data-detail-id="${row.drinkSizeId}"><i class="fas fa-info-circle me-1"></i>${escapeHtml(t('Profit.Js.Details'))}</button>${priceButton}${policyButton}</div></td>
         </tr>
         <tr class="pf-detail-row" id="detail-${row.drinkSizeId}" hidden><td colspan="8">${renderDetails(row)}</td></tr>`;
     }
 
     function renderDetails(row) {
-        const sections = row.costSections?.map(x => `<article class="pf-completeness-item"><span>${escapeHtml(x.label)}</span><strong class="pf-status ${x.status === 'COMPLETE' ? 'pf-status-ready' : 'pf-status-warning'}">${escapeHtml(statusLabels[x.status] || 'Chưa đầy đủ')}</strong><small>${escapeHtml(x.message)}</small></article>`).join('') ?? '';
-        const components = row.components?.length ? row.components.map(x => `<tr><td>${escapeHtml(x.itemName)}<span class="pf-subtext">${escapeHtml(x.itemTypeLabel)} · ${escapeHtml(x.sourceLabel)}</span></td><td>${number(x.requiredQuantity)} ${escapeHtml(x.unitName)}</td><td>${number(x.coveredQuantity)} ${escapeHtml(x.unitName)}</td><td>${currency(x.knownCost)}</td><td>${escapeHtml(statusLabels[x.status] || 'Chưa đầy đủ')}<span class="pf-subtext">${escapeHtml(x.message)}</span></td></tr>`).join('') : '<tr><td colspan="5">Chưa có thành phần chi phí.</td></tr>';
-        const toppings = row.defaultToppings?.length ? row.defaultToppings.map(x => `<tr><td>${escapeHtml(x.toppingName)}</td><td>${number(x.quantityPerDrink)} phần</td><td>${escapeHtml(treatmentLabels[x.priceTreatment] || 'Chưa xác định')}</td><td>${escapeHtml(treatmentLabels[x.costTreatment] || 'Chưa xác định')}</td><td>${currency(x.priceImpact)}</td><td>${currency(x.costImpact)}</td></tr>`).join('') : '<tr><td colspan="6">Chưa có topping mặc định đang áp dụng.</td></tr>';
-        return `<div class="pf-completeness-grid">${sections}</div><div class="pf-detail-grid"><section><h4>Phân bổ giá vốn theo nhập trước - xuất trước (FIFO)</h4><div class="pf-table-wrap"><table class="pf-mini-table"><thead><tr><th>Thành phần</th><th>Số lượng cần</th><th>Số lượng đã có dữ liệu giá</th><th>Chi phí tính được</th><th>Trạng thái</th></tr></thead><tbody>${components}</tbody></table></div></section><section><h4>Topping mặc định</h4><div class="pf-table-wrap"><table class="pf-mini-table"><thead><tr><th>Topping</th><th>Số lượng</th><th>Ảnh hưởng giá bán</th><th>Ảnh hưởng giá vốn</th><th>Giá tăng</th><th>Vốn tăng</th></tr></thead><tbody>${toppings}</tbody></table></div></section></div>`;
+        const sections = row.costSections?.map(x => `<article class="pf-completeness-item"><span>${escapeHtml(x.label)}</span><strong class="pf-status ${x.status === 'COMPLETE' ? 'pf-status-ready' : 'pf-status-warning'}">${escapeHtml(statusLabel(x.status))}</strong><small>${escapeHtml(x.message)}</small></article>`).join('') ?? '';
+        const components = row.components?.length ? row.components.map(x => `<tr><td>${escapeHtml(x.itemName)}<span class="pf-subtext">${escapeHtml(x.itemTypeLabel)} · ${escapeHtml(x.sourceLabel)}</span></td><td>${number(x.requiredQuantity)} ${escapeHtml(x.unitName)}</td><td>${number(x.coveredQuantity)} ${escapeHtml(x.unitName)}</td><td>${currency(x.knownCost)}</td><td>${escapeHtml(statusLabel(x.status))}<span class="pf-subtext">${escapeHtml(x.message)}</span></td></tr>`).join('') : `<tr><td colspan="5">${escapeHtml(t('Profit.Js.NoComponents'))}</td></tr>`;
+        const toppings = row.defaultToppings?.length ? row.defaultToppings.map(x => `<tr><td>${escapeHtml(x.toppingName)}</td><td>${number(x.quantityPerDrink)} ${escapeHtml(t('Profit.Js.RecipePortion'))}</td><td>${escapeHtml(treatmentLabel(x.priceTreatment))}</td><td>${escapeHtml(treatmentLabel(x.costTreatment))}</td><td>${currency(x.priceImpact)}</td><td>${currency(x.costImpact)}</td></tr>`).join('') : `<tr><td colspan="6">${escapeHtml(t('Profit.Js.NoDefaultToppings'))}</td></tr>`;
+        return `<div class="pf-completeness-grid">${sections}</div><div class="pf-detail-grid"><section><h4>${escapeHtml(t('Profit.Js.CostAllocation'))}</h4><div class="pf-table-wrap"><table class="pf-mini-table"><thead><tr><th>${escapeHtml(t('Profit.Js.Component'))}</th><th>${escapeHtml(t('Profit.Js.RequiredQuantity'))}</th><th>${escapeHtml(t('Profit.Js.CoveredQuantity'))}</th><th>${escapeHtml(t('Profit.Js.CalculatedCost'))}</th><th>${escapeHtml(t('Profit.Js.Status'))}</th></tr></thead><tbody>${components}</tbody></table></div></section><section><h4>${escapeHtml(t('Profit.Js.DefaultToppings'))}</h4><div class="pf-table-wrap"><table class="pf-mini-table"><thead><tr><th>Topping</th><th>${escapeHtml(t('Profit.Js.Quantity'))}</th><th>${escapeHtml(t('Profit.Js.PriceImpact'))}</th><th>${escapeHtml(t('Profit.Js.CostImpact'))}</th><th>${escapeHtml(t('Profit.Js.PriceIncrease'))}</th><th>${escapeHtml(t('Profit.Js.CostIncrease'))}</th></tr></thead><tbody>${toppings}</tbody></table></div></section></div>`;
     }
 
     function findRow(id) { return preview?.sizes?.find(x => x.drinkSizeId === Number(id)); }
@@ -158,7 +157,7 @@
             const data = payload.data;
             const result = document.getElementById('suggestionResult');
             const difference = data.roundedSuggestedPrice - selectedRow.currentGlobalPrice;
-            result.innerHTML = `<strong>Giá đề xuất: ${currency(data.roundedSuggestedPrice)}</strong><br>Giá hiện tại: ${currency(selectedRow.currentGlobalPrice)} · Chênh lệch: ${difference >= 0 ? '+' : ''}${currency(difference)}<br>Lợi nhuận mới: ${currency(data.effectiveGrossProfit)} · Biên lợi nhuận mới: ${percent(data.effectiveMarginPercent)} · Tỷ lệ cộng giá mới: ${percent(data.effectiveMarkupPercent)} <button type="button" class="pf-row-button" id="applySuggestion">Dùng giá này</button>`;
+            result.innerHTML = `<strong>${escapeHtml(t('Profit.Js.SuggestedPrice', { price: currency(data.roundedSuggestedPrice) }))}</strong><br>${escapeHtml(t('Profit.Js.CurrentPrice', { price: currency(selectedRow.currentGlobalPrice) }))} · ${escapeHtml(t('Profit.Js.Difference', { value: `${difference >= 0 ? '+' : ''}${currency(difference)}` }))}<br>${escapeHtml(t('Profit.Js.NewProfit', { value: currency(data.effectiveGrossProfit) }))} · ${escapeHtml(t('Profit.Js.NewMargin', { value: percent(data.effectiveMarginPercent) }))} · ${escapeHtml(t('Profit.Js.NewMarkup', { value: percent(data.effectiveMarkupPercent) }))} <button type="button" class="pf-row-button" id="applySuggestion">${escapeHtml(t('Profit.Js.UsePrice'))}</button>`;
             result.hidden = false;
             document.getElementById('applySuggestion').addEventListener('click', () => { document.getElementById('newSellingPrice').value = data.roundedSuggestedPrice; });
         } catch (error) {
@@ -170,11 +169,11 @@
         if (!selectedRow) return;
         const reason = document.getElementById('priceReason').value.trim();
         if (!reason) {
-            showInline('priceFormError', 'Vui lòng nhập lý do thay đổi giá bán.');
+            showInline('priceFormError', t('Profit.Js.PriceReasonRequired'));
             return;
         }
         if (!isComplete(selectedRow) && !document.getElementById('confirmIncomplete').checked) {
-            showInline('priceFormError', 'Giá vốn chưa đầy đủ. Hãy xác nhận cảnh báo và nhập lý do.');
+            showInline('priceFormError', t('Profit.Js.IncompleteConfirmation'));
             return;
         }
         const button = document.getElementById('savePrice');
@@ -187,7 +186,7 @@
                 reason,
                 confirmIncompleteCost: document.getElementById('confirmIncomplete').checked
             }) });
-            window.toast?.('Đã cập nhật giá bán toàn hệ thống.', 'success');
+            window.toast?.(t('Profit.Js.PriceUpdated'), 'success');
             closeDrawers();
             await loadPreview();
         } catch (error) { showInline('priceFormError', error.message); }
@@ -210,19 +209,19 @@
 
     function renderPolicies() {
         const list = document.getElementById('policyList');
-        const activeMarkup = policyPayload.policies.length ? policyPayload.policies.map(x => `<article class="pf-policy-item"><div><strong>${escapeHtml(x.toppingName)}</strong><p>${number(x.quantityPerDrink)} phần công thức · ${escapeHtml(treatmentLabels[x.priceTreatment])} · ${escapeHtml(treatmentLabels[x.costTreatment])}${x.isDefaultSelected ? ' · Chọn mặc định trên POS' : ''}${x.isRequired ? ' · Bắt buộc' : ''}</p></div><button type="button" class="pf-row-button" data-edit-policy="${x.policyId}">Sửa</button></article>`).join('') : '<div class="pf-empty-policy">Chưa có chính sách topping đang áp dụng cho món và size này.</div>';
-        const reviewMarkup = (policyPayload.legacyReviews ?? []).map(x => `<article class="pf-policy-item pf-policy-review"><div><strong>${escapeHtml(x.toppingName)}</strong><p>${escapeHtml(x.message)}</p></div><span class="pf-status pf-status-warning">Cần xác nhận</span></article>`).join('');
+        const activeMarkup = policyPayload.policies.length ? policyPayload.policies.map(x => `<article class="pf-policy-item"><div><strong>${escapeHtml(x.toppingName)}</strong><p>${number(x.quantityPerDrink)} ${escapeHtml(t('Profit.Js.RecipePortion'))} · ${escapeHtml(treatmentLabel(x.priceTreatment))} · ${escapeHtml(treatmentLabel(x.costTreatment))}${x.isDefaultSelected ? ` · ${escapeHtml(t('Profit.Js.DefaultOnPos'))}` : ''}${x.isRequired ? ` · ${escapeHtml(t('Profit.Js.Required'))}` : ''}</p></div><button type="button" class="pf-row-button" data-edit-policy="${x.policyId}">${escapeHtml(t('Profit.Js.Edit'))}</button></article>`).join('') : `<div class="pf-empty-policy">${escapeHtml(t('Profit.Js.NoPolicies'))}</div>`;
+        const reviewMarkup = (policyPayload.legacyReviews ?? []).map(x => `<article class="pf-policy-item pf-policy-review"><div><strong>${escapeHtml(x.toppingName)}</strong><p>${escapeHtml(x.message)}</p></div><span class="pf-status pf-status-warning">${escapeHtml(t('Profit.Js.NeedsReview'))}</span></article>`).join('');
         list.innerHTML = activeMarkup + reviewMarkup;
         document.getElementById('policyTopping').innerHTML = policyPayload.options.map(x => `<option value="${x.toppingId}">${escapeHtml(x.name)} · ${currency(x.price)}</option>`).join('');
         document.getElementById('policyFormSection').hidden = policyPayload.options.length === 0;
-        if (policyPayload.options.length === 0) list.insertAdjacentHTML('beforeend', '<div class="pf-empty-policy">Món/size này chưa có topping phù hợp. Hãy cấu hình danh mục topping cho món trước.</div>');
+        if (policyPayload.options.length === 0) list.insertAdjacentHTML('beforeend', `<div class="pf-empty-policy">${escapeHtml(t('Profit.Js.NoEligibleToppings'))}</div>`);
         list.querySelectorAll('[data-edit-policy]').forEach(button => button.addEventListener('click', () => editPolicy(button.dataset.editPolicy)));
     }
 
     function editPolicy(id) {
         const policy = policyPayload.policies.find(x => x.policyId === Number(id));
         if (!policy) return;
-        document.getElementById('policyFormTitle').textContent = `Sửa ${policy.toppingName}`;
+        document.getElementById('policyFormTitle').textContent = t('Profit.Js.EditPolicy', { name: policy.toppingName });
         document.getElementById('policyId').value = policy.policyId;
         document.getElementById('policyRowVersion').value = policy.rowVersion;
         document.getElementById('policyTopping').value = policy.toppingId;
@@ -237,7 +236,7 @@
     }
 
     function resetPolicyForm() {
-        document.getElementById('policyFormTitle').textContent = 'Thêm chính sách';
+        document.getElementById('policyFormTitle').textContent = t('Profit.Js.AddPolicy');
         document.getElementById('policyId').value = '';
         document.getElementById('policyRowVersion').value = '';
         document.getElementById('policyTopping').disabled = false;
@@ -255,7 +254,7 @@
         if (!selectedRow) return;
         const reason = document.getElementById('policyReason').value.trim();
         if (!reason) {
-            showInline('policyFormError', 'Vui lòng nhập lý do thay đổi chính sách topping.');
+            showInline('policyFormError', t('Profit.Js.PolicyReasonRequired'));
             return;
         }
         const button = document.getElementById('savePolicy');
@@ -275,7 +274,7 @@
                 expectedRowVersion: document.getElementById('policyRowVersion').value || null,
                 reason
             }) });
-            window.toast?.('Đã lưu chính sách topping mặc định.', 'success');
+            window.toast?.(t('Profit.Js.PolicySaved'), 'success');
             await openPolicies(selectedRow.drinkSizeId);
         } catch (error) { showInline('policyFormError', error.message); }
         finally { button.disabled = false; }

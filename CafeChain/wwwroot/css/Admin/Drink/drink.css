@@ -1862,3 +1862,42 @@
 .drink-default-switch-input:checked + .drink-default-switch-custom i {
     color: #FFD700;
 }
+
+/* Theme contract: feature surfaces consume semantic tokens; media remains untouched. */
+:root[data-theme="dark"] :is(.drink-page, .drink-form-page) {
+    color: var(--cc-text);
+}
+
+:root[data-theme="dark"] :is(
+    .drink-summary-card, .drink-toolbar, .drink-table-card, .drink-list-heading,
+    .drink-table-footer, .drink-form-page .card, .drink-form-page .card-header,
+    .drink-form-page .card-body, .drink-modal-content, .drink-image-upload-panel,
+    .drink-image-gallery-panel, .drink-image-card, .edit-image-panel
+) {
+    background: var(--cc-surface-raised) !important;
+    color: var(--cc-text) !important;
+    border-color: var(--cc-border) !important;
+    box-shadow: var(--cc-shadow-sm) !important;
+}
+
+:root[data-theme="dark"] :is(.drink-search-box, .drink-search-box input, .drink-page-size select,
+    .drink-form-page .form-control, .drink-form-page .form-select) {
+    background: var(--cc-surface-muted) !important;
+    color: var(--cc-text) !important;
+    border-color: var(--cc-border-strong) !important;
+}
+
+:root[data-theme="dark"] .drink-table :is(th, td) {
+    background: transparent !important;
+    color: var(--cc-text) !important;
+    border-color: var(--cc-border) !important;
+}
+
+:root[data-theme="dark"] .drink-table tbody tr:hover {
+    background: var(--cc-surface-active) !important;
+}
+
+:root[data-theme="dark"] :is(.drink-list-heading p, .drink-summary-card small, .drink-empty-state,
+    .drink-form-page .text-muted, .drink-modal-content .text-muted) {
+    color: var(--cc-text-secondary) !important;
+}

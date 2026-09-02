@@ -894,3 +894,35 @@
     gap: 4px;
 }
 
+:root[data-theme="dark"] .size-admin-page {
+    color: var(--cc-text);
+}
+
+:root[data-theme="dark"] :is(.size-admin-page .main-card, .size-table-wrap, .catalog-table-footer,
+    .size-module-modal .modal-content, .size-module-modal .modal-header,
+    .size-module-modal .modal-body, .size-module-modal .modal-footer,
+    .drink-card, .ai-suggestion-panel, .ai-option-card, .price-modal-card) {
+    background: var(--cc-surface-raised) !important;
+    color: var(--cc-text) !important;
+    border-color: var(--cc-border) !important;
+    box-shadow: var(--cc-shadow-sm) !important;
+}
+
+:root[data-theme="dark"] .size-admin-page .table :is(th, td) {
+    background: transparent !important;
+    color: var(--cc-text) !important;
+    border-color: var(--cc-border) !important;
+}
+
+:root[data-theme="dark"] .size-admin-page .table tbody tr:hover,
+:root[data-theme="dark"] .size-module-modal .drink-card:hover,
+:root[data-theme="dark"] .size-module-modal .ai-option-card:hover {
+    background: var(--cc-surface-active) !important;
+}
+
+:root[data-theme="dark"] .size-module-modal :is(.form-control, .form-select, .cc-price-addon) {
+    background: var(--cc-surface-muted) !important;
+    color: var(--cc-text) !important;
+    border-color: var(--cc-border-strong) !important;
+}
+

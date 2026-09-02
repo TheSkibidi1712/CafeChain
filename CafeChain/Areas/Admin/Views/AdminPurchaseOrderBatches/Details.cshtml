@@ -1,9 +1,12 @@
 @using CafeChain.Application.Constants
 @using CafeChain.Application.DTOs.Admin.Procurement
 @using CafeChain.ViewModels.Admin.Shared
+@using Microsoft.Extensions.Localization
+@using System.Text.Json
+@inject IStringLocalizer<ProcurementResource> L
 @model PurchaseOrderBatchDetailPageDto
 @{
-    ViewData["Title"] = $"Đơn đặt hàng gộp {Model.Batch.BatchNumber}";
+    ViewData["Title"] = L["PurchaseOrderBatch.Details.Title", Model.Batch.BatchNumber];
     var batch = Model.Batch;
     var canDocument = ViewBag.CanDocument is true;
     var canApprove = ViewBag.CanApprove is true
@@ -18,28 +21,28 @@
 
 <main class="pa-page pa-batch-detail-page cc-warehouse-page">
 <header class="pa-header cc-warehouse-header cc-warehouse-header--compact cc-warehouse-header--detail">
-        <div><div class="pa-eyebrow">@batch.BatchNumber · @AdminStatusDisplay.PurchaseOrderBatch(batch.Status).Label</div><h1>@batch.SupplierName</h1><p class="pa-subtitle">Giao dự kiến @AdminStatusDisplay.Date(batch.ExpectedDeliveryFrom) - @AdminStatusDisplay.Date(batch.ExpectedDeliveryTo) · @batch.StoreCount chi nhánh.</p></div>
+        <div><div class="pa-eyebrow">@batch.BatchNumber · @AdminStatusDisplay.PurchaseOrderBatch(batch.Status).Label</div><h1>@batch.SupplierName</h1><p class="pa-subtitle">@L["PurchaseOrderBatch.Details.Subtitle", AdminStatusDisplay.Date(batch.ExpectedDeliveryFrom), AdminStatusDisplay.Date(batch.ExpectedDeliveryTo), batch.StoreCount]</p></div>
         <div class="pa-actions">
-            <a class="pa-action" asp-action="Index"><i class="fas fa-arrow-left"></i> Danh sách đơn đặt hàng gộp</a>
-            @if (canApprove) { <form asp-action="Approve" asp-route-id="@batch.PurchaseOrderBatchId" method="post" data-loading-form>@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@batch.RowVersion" /><button class="pa-action pa-action-primary" type="submit" data-submit-label="Đang duyệt..."><i class="fas fa-check"></i> Duyệt đơn đặt hàng gộp</button></form> }
+            <a class="pa-action" asp-action="Index"><i class="fas fa-arrow-left"></i> @L["PurchaseOrderBatch.Details.BackList"]</a>
+            @if (canApprove) { <form asp-action="Approve" asp-route-id="@batch.PurchaseOrderBatchId" method="post" data-loading-form>@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@batch.RowVersion" /><button class="pa-action pa-action-primary" type="submit" data-submit-label="@L["PurchaseOrderBatch.Details.Approving"]"><i class="fas fa-check"></i> @L["PurchaseOrderBatch.Details.Approve"]</button></form> }
         </div>
     </header>
-    @if (TempData["Error"] is string error) { <div class="pa-alert" role="alert">@error <a href="" class="pa-alert-link">Tải lại dữ liệu</a></div> }
+    @if (TempData["Error"] is string error) { <div class="pa-alert" role="alert">@error <a href="" class="pa-alert-link">@L["Common.ReloadData"]</a></div> }
     @if (TempData["Success"] is string success) { <div class="pa-alert pa-alert-success" role="status">@success</div> }
-    @if (batch.Status == PurchaseOrderBatchStatuses.SentToSupplier) { <div class="pa-info-band"><i class="fas fa-circle-info"></i><div><strong>Đã ghi nhận gửi tài liệu.</strong><span>Trạng thái này không đồng nghĩa nhà cung cấp đã xác nhận đơn hàng.</span></div></div> }
+    @if (batch.Status == PurchaseOrderBatchStatuses.SentToSupplier) { <div class="pa-info-band"><i class="fas fa-circle-info"></i><div><strong>@L["PurchaseOrderBatch.Details.SentNoticeTitle"]</strong><span>@L["PurchaseOrderBatch.Details.SentNoticeCopy"]</span></div></div> }
 
     <section class="pa-batch-metrics">
-        <div><span>Tổng giá trị</span><strong>@AdminStatusDisplay.Currency(batch.TotalAmount)</strong></div>
-        <div><span>Đơn đặt hàng chi nhánh</span><strong>@batch.ChildPurchaseOrders.Count</strong></div>
-        <div><span>Nguyên liệu</span><strong>@batch.Lines.Count</strong></div>
-        <div><span>Phiên bản PDF</span><strong>@Model.DocumentRevisions.Count</strong></div>
+        <div><span>@L["PurchaseOrderBatch.Details.TotalValue"]</span><strong>@AdminStatusDisplay.Currency(batch.TotalAmount)</strong></div>
+        <div><span>@L["PurchaseOrderBatch.Details.ChildOrders"]</span><strong>@batch.ChildPurchaseOrders.Count</strong></div>
+        <div><span>@L["Common.Ingredient"]</span><strong>@batch.Lines.Count</strong></div>
+        <div><span>@L["PurchaseOrderBatch.Details.PdfVersions"]</span><strong>@Model.DocumentRevisions.Count</strong></div>
     </section>
 
     <div class="pa-detail-grid">
         <div class="pa-detail-main">
             <section class="pa-band">
-                <div class="pa-section-heading"><div><div class="pa-eyebrow">Tiến độ giao theo chi nhánh</div><h2>Đơn đặt hàng chi nhánh</h2></div><span class="pa-muted">Số lượng đã nhận hợp lệ được tổng hợp từ phiếu nhận hàng tại chi nhánh.</span></div>
-                <div class="pa-table-wrap pa-table-flat cc-warehouse-table-shell"><table class="pa-table"><thead><tr><th>Mã đơn</th><th>Chi nhánh</th><th>Trạng thái</th><th class="pa-number">Đã đặt</th><th class="pa-number">Đã nhận hợp lệ</th><th class="pa-number">Còn phải giao</th></tr></thead><tbody>
+                <div class="pa-section-heading"><div><div class="pa-eyebrow">@L["PurchaseOrderBatch.Details.ProgressEyebrow"]</div><h2>@L["PurchaseOrderBatch.Details.ChildOrders"]</h2></div><span class="pa-muted">@L["PurchaseOrderBatch.Details.ProgressHelp"]</span></div>
+                <div class="pa-table-wrap pa-table-flat cc-warehouse-table-shell"><table class="pa-table"><thead><tr><th>@L["PurchaseOrderBatch.Details.ColCode"]</th><th>@L["Common.Branch"]</th><th>@L["Common.Status"]</th><th class="pa-number">@L["PurchaseOrderBatch.Details.ColOrdered"]</th><th class="pa-number">@L["PurchaseOrderBatch.Details.ColAccepted"]</th><th class="pa-number">@L["PurchaseOrderBatch.Details.ColRemaining"]</th></tr></thead><tbody>
                 @foreach (var child in batch.ChildPurchaseOrders.OrderBy(x => x.StoreName))
                 {
                     var usesProcurement = child.OrderedProcurementQuantity.HasValue;
@@ -47,21 +50,21 @@
                         ? (child.OrderedProcurementQuantity <= 0 ? 0 : Math.Min(100, child.AcceptedProcurementQuantity.GetValueOrDefault() / child.OrderedProcurementQuantity.Value * 100))
                         : (child.OrderedBaseQuantity <= 0 ? 0 : Math.Min(100, child.AcceptedBaseQuantity / child.OrderedBaseQuantity * 100));
                     var hasSingleBaseUnit = !string.IsNullOrWhiteSpace(child.BaseUnitName);
-                    <tr><td><a class="pa-code" asp-controller="AdminPurchaseOrders" asp-action="Details" asp-route-id="@child.PurchaseOrderId">@child.Code</a></td><td><strong>@child.StoreName</strong><progress class="pa-progress-native" value="@completion" max="100" aria-label="Tiến độ nhận hàng @completion.ToString("0") phần trăm">@completion.ToString("0")%</progress></td><td><span class="pa-badge">@AdminStatusDisplay.PurchaseOrder(child.Status).Label</span></td><td class="pa-number">@(usesProcurement ? AdminStatusDisplay.Quantity(child.OrderedProcurementQuantity!.Value) + " " + AdminStatusDisplay.Unit(child.ProcurementUnitName) : hasSingleBaseUnit ? AdminStatusDisplay.Quantity(child.OrderedBaseQuantity) + " " + AdminStatusDisplay.Unit(child.BaseUnitName) : "Theo từng dòng")</td><td class="pa-number">@(usesProcurement ? AdminStatusDisplay.Quantity(child.AcceptedProcurementQuantity.GetValueOrDefault()) + " " + AdminStatusDisplay.Unit(child.ProcurementUnitName) : hasSingleBaseUnit ? AdminStatusDisplay.Quantity(child.AcceptedBaseQuantity) + " " + AdminStatusDisplay.Unit(child.BaseUnitName) : "Theo từng dòng")</td><td class="pa-number"><strong>@(usesProcurement ? AdminStatusDisplay.Quantity(child.RemainingProcurementQuantity.GetValueOrDefault()) + " " + AdminStatusDisplay.Unit(child.ProcurementUnitName) : hasSingleBaseUnit ? AdminStatusDisplay.Quantity(child.RemainingBaseQuantity) + " " + AdminStatusDisplay.Unit(child.BaseUnitName) : "Xem chi tiết")</strong></td></tr>
+                    <tr><td><a class="pa-code" asp-controller="AdminPurchaseOrders" asp-action="Details" asp-route-id="@child.PurchaseOrderId">@child.Code</a></td><td><strong>@child.StoreName</strong><progress class="pa-progress-native" value="@completion" max="100" aria-label="@L["PurchaseOrderBatch.Details.ProgressAria", completion.ToString("0")]">@completion.ToString("0")%</progress></td><td><span class="pa-badge">@AdminStatusDisplay.PurchaseOrder(child.Status).Label</span></td><td class="pa-number">@(usesProcurement ? AdminStatusDisplay.Quantity(child.OrderedProcurementQuantity!.Value) + " " + AdminStatusDisplay.Unit(child.ProcurementUnitName) : hasSingleBaseUnit ? AdminStatusDisplay.Quantity(child.OrderedBaseQuantity) + " " + AdminStatusDisplay.Unit(child.BaseUnitName) : L["PurchaseOrderBatch.Details.ByLine"].Value)</td><td class="pa-number">@(usesProcurement ? AdminStatusDisplay.Quantity(child.AcceptedProcurementQuantity.GetValueOrDefault()) + " " + AdminStatusDisplay.Unit(child.ProcurementUnitName) : hasSingleBaseUnit ? AdminStatusDisplay.Quantity(child.AcceptedBaseQuantity) + " " + AdminStatusDisplay.Unit(child.BaseUnitName) : L["PurchaseOrderBatch.Details.ByLine"].Value)</td><td class="pa-number"><strong>@(usesProcurement ? AdminStatusDisplay.Quantity(child.RemainingProcurementQuantity.GetValueOrDefault()) + " " + AdminStatusDisplay.Unit(child.ProcurementUnitName) : hasSingleBaseUnit ? AdminStatusDisplay.Quantity(child.RemainingBaseQuantity) + " " + AdminStatusDisplay.Unit(child.BaseUnitName) : L["PurchaseOrderBatch.Details.SeeDetails"].Value)</strong></td></tr>
                 }
                 </tbody></table></div>
             </section>
 
             <section class="pa-band">
-                <div class="pa-section-heading"><div><div class="pa-eyebrow">Truy vết nguồn nhu cầu</div><h2>Phân bổ nguyên liệu</h2></div><span class="pa-muted">Giá và quy cách được lưu tại thời điểm tạo đơn đặt hàng gộp.</span></div>
+                <div class="pa-section-heading"><div><div class="pa-eyebrow">@L["PurchaseOrderBatch.Details.TraceEyebrow"]</div><h2>@L["PurchaseOrderBatch.Details.AllocTitle"]</h2></div><span class="pa-muted">@L["PurchaseOrderBatch.Details.AllocHelp"]</span></div>
                 @foreach (var line in batch.Lines.OrderBy(x => x.IngredientName))
                 {
                     <article class="pa-allocation-block">
-                        <div class="pa-allocation-head"><div><strong>@line.IngredientName</strong>@if (line.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Loose) { <span>Mua rời theo @AdminStatusDisplay.Unit(line.ProcurementUnitName)</span> } else { <span>@AdminStatusDisplay.Quantity(line.TotalPackageCount.GetValueOrDefault()) gói · 1 gói = @AdminStatusDisplay.Quantity(line.PackageQuantitySnapshot.GetValueOrDefault()) @AdminStatusDisplay.Unit(line.PackageUnitName)</span> }@if (line.TotalProcurementQuantity.HasValue) { <span>Đặt @AdminStatusDisplay.Quantity(line.TotalProcurementQuantity.Value) @AdminStatusDisplay.Unit(line.ProcurementUnitName) · phủ @AdminStatusDisplay.Quantity(line.DemandCoveredProcurementQuantity.GetValueOrDefault()) @AdminStatusDisplay.Unit(line.ProcurementUnitName) · dư @AdminStatusDisplay.Quantity(line.RoundingSurplusProcurementQuantity.GetValueOrDefault()) @AdminStatusDisplay.Unit(line.ProcurementUnitName)</span> } else { <span>Đặt @AdminStatusDisplay.Quantity(line.TotalBaseQuantity) @AdminStatusDisplay.Unit(line.BaseUnitName) · phủ @AdminStatusDisplay.Quantity(line.DemandCoveredBaseQuantity) @AdminStatusDisplay.Unit(line.BaseUnitName) · dư @AdminStatusDisplay.Quantity(line.RoundingSurplusBaseQuantity) @AdminStatusDisplay.Unit(line.BaseUnitName)</span> }</div><div><strong>@AdminStatusDisplay.Currency(line.LineTotal)</strong><span>@(line.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Loose ? $"{AdminStatusDisplay.Currency(line.UnitPricePerProcurementUnit.GetValueOrDefault())}/{AdminStatusDisplay.Unit(line.ProcurementUnitName)}" : $"{AdminStatusDisplay.Currency(line.PackagePriceSnapshot.GetValueOrDefault())}/gói")</span></div></div>
+                        <div class="pa-allocation-head"><div><strong>@line.IngredientName</strong>@if (line.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Loose) { <span>@L["PurchaseOrderBatch.Details.LooseBy", AdminStatusDisplay.Unit(line.ProcurementUnitName)]</span> } else { <span>@L["PurchaseOrderBatch.Details.PackMeta", AdminStatusDisplay.Quantity(line.TotalPackageCount.GetValueOrDefault()), AdminStatusDisplay.Quantity(line.PackageQuantitySnapshot.GetValueOrDefault()), AdminStatusDisplay.Unit(line.PackageUnitName)]</span> }@if (line.TotalProcurementQuantity.HasValue) { <span>@L["PurchaseOrderBatch.Details.CoverMeta", AdminStatusDisplay.Quantity(line.TotalProcurementQuantity.Value), AdminStatusDisplay.Unit(line.ProcurementUnitName), AdminStatusDisplay.Quantity(line.DemandCoveredProcurementQuantity.GetValueOrDefault()), AdminStatusDisplay.Quantity(line.RoundingSurplusProcurementQuantity.GetValueOrDefault())]</span> } else { <span>@L["PurchaseOrderBatch.Details.CoverMeta", AdminStatusDisplay.Quantity(line.TotalBaseQuantity), AdminStatusDisplay.Unit(line.BaseUnitName), AdminStatusDisplay.Quantity(line.DemandCoveredBaseQuantity), AdminStatusDisplay.Quantity(line.RoundingSurplusBaseQuantity)]</span> }</div><div><strong>@AdminStatusDisplay.Currency(line.LineTotal)</strong><span>@(line.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Loose ? $"{AdminStatusDisplay.Currency(line.UnitPricePerProcurementUnit.GetValueOrDefault())}/{AdminStatusDisplay.Unit(line.ProcurementUnitName)}" : L["PurchaseOrderBatch.Details.PerPack", AdminStatusDisplay.Currency(line.PackagePriceSnapshot.GetValueOrDefault())].Value)</span></div></div>
                         <div class="pa-allocation-rows">
                             @foreach (var allocation in line.Allocations.OrderBy(x => x.StoreName))
                             {
-                                <div><span><a class="pa-code" asp-controller="AdminPurchaseAdvices" asp-action="Details" asp-route-id="@allocation.PurchaseAdviceId">@allocation.AdviceNumber</a> · @allocation.StoreName</span><strong>@if (allocation.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Packaged) { <span>@AdminStatusDisplay.Quantity(allocation.AllocatedPackageQuantity.GetValueOrDefault()) gói</span> } @if (allocation.AllocatedProcurementQuantity.HasValue) { <span>· đặt @AdminStatusDisplay.Quantity(allocation.AllocatedProcurementQuantity.Value) @AdminStatusDisplay.Unit(allocation.ProcurementUnitName) · phủ @AdminStatusDisplay.Quantity(allocation.DemandCoveredProcurementQuantity.GetValueOrDefault()) @AdminStatusDisplay.Unit(allocation.ProcurementUnitName) · dư @AdminStatusDisplay.Quantity(allocation.RoundingSurplusProcurementQuantity.GetValueOrDefault()) @AdminStatusDisplay.Unit(allocation.ProcurementUnitName)</span> } else { <span>· đặt @AdminStatusDisplay.Quantity(allocation.AllocatedBaseQuantity) @AdminStatusDisplay.Unit(line.BaseUnitName) · phủ @AdminStatusDisplay.Quantity(allocation.DemandCoveredBaseQuantity) @AdminStatusDisplay.Unit(line.BaseUnitName) · dư @AdminStatusDisplay.Quantity(allocation.RoundingSurplusBaseQuantity) @AdminStatusDisplay.Unit(line.BaseUnitName)</span> }</strong></div>
+                                <div><span><a class="pa-code" asp-controller="AdminPurchaseAdvices" asp-action="Details" asp-route-id="@allocation.PurchaseAdviceId">@allocation.AdviceNumber</a> · @allocation.StoreName</span><strong>@if (allocation.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Packaged) { <span>@L["PurchaseOrderBatch.Details.AllocPacks", AdminStatusDisplay.Quantity(allocation.AllocatedPackageQuantity.GetValueOrDefault())]</span> } @if (allocation.AllocatedProcurementQuantity.HasValue) { <span>@L["PurchaseOrderBatch.Details.AllocCover", AdminStatusDisplay.Quantity(allocation.AllocatedProcurementQuantity.Value), AdminStatusDisplay.Unit(allocation.ProcurementUnitName), AdminStatusDisplay.Quantity(allocation.DemandCoveredProcurementQuantity.GetValueOrDefault()), AdminStatusDisplay.Quantity(allocation.RoundingSurplusProcurementQuantity.GetValueOrDefault())]</span> } else { <span>@L["PurchaseOrderBatch.Details.AllocCover", AdminStatusDisplay.Quantity(allocation.AllocatedBaseQuantity), AdminStatusDisplay.Unit(line.BaseUnitName), AdminStatusDisplay.Quantity(allocation.DemandCoveredBaseQuantity), AdminStatusDisplay.Quantity(allocation.RoundingSurplusBaseQuantity)]</span> }</strong></div>
                             }
                         </div>
                     </article>
@@ -71,20 +74,20 @@
 
         <aside class="pa-detail-side">
             <section class="pa-band">
-                <div class="pa-section-heading"><div><div class="pa-eyebrow">Tài liệu nhà cung cấp</div><h2>PDF &amp; gửi Nhà cung cấp</h2></div></div>
+                <div class="pa-section-heading"><div><div class="pa-eyebrow">@L["PurchaseOrderBatch.Details.DocEyebrow"]</div><h2>@L["PurchaseOrderBatch.Details.PdfTitle"]</h2></div></div>
                 <div class="pa-document-actions">
-                    @if (canGenerate) { <form asp-action="GeneratePdf" asp-route-id="@batch.PurchaseOrderBatchId" method="post" data-loading-form>@Html.AntiForgeryToken()<button class="pa-action pa-action-primary pa-action-block" type="submit" data-submit-label="Đang tạo PDF..."><i class="fas fa-file-pdf"></i> Xuất PDF</button></form> }
+                    @if (canGenerate) { <form asp-action="GeneratePdf" asp-route-id="@batch.PurchaseOrderBatchId" method="post" data-loading-form>@Html.AntiForgeryToken()<button class="pa-action pa-action-primary pa-action-block" type="submit" data-submit-label="@L["PurchaseOrderBatch.Details.GeneratingPdf"]"><i class="fas fa-file-pdf"></i> @L["PurchaseOrderBatch.Details.ExportPdf"]</button></form> }
                     @if (latestRevision != null)
                     {
-                        <a class="pa-action pa-action-block" asp-action="DownloadRevision" asp-route-revisionId="@latestRevision.RevisionId"><i class="fas fa-download"></i> Tải PDF @latestRevision.FileName</a>
-                        <a class="pa-action pa-action-block" asp-action="PrintRevision" asp-route-revisionId="@latestRevision.RevisionId" target="_blank" rel="noopener"><i class="fas fa-print"></i> Mở để in PDF</a>
+                        <a class="pa-action pa-action-block" asp-action="DownloadRevision" asp-route-revisionId="@latestRevision.RevisionId"><i class="fas fa-download"></i> @L["PurchaseOrderBatch.Details.DownloadPdf", latestRevision.FileName]</a>
+                        <a class="pa-action pa-action-block" asp-action="PrintRevision" asp-route-revisionId="@latestRevision.RevisionId" target="_blank" rel="noopener"><i class="fas fa-print"></i> @L["PurchaseOrderBatch.Details.PrintPdf"]</a>
                     }
                 </div>
-                @if (latestRevision == null) { <div class="pa-draft-empty pa-draft-empty-compact"><i class="fas fa-file-circle-xmark"></i><h2>Chưa có PDF</h2><p>Đơn đặt hàng gộp phải được duyệt trước khi xuất tài liệu.</p></div> }
+                @if (latestRevision == null) { <div class="pa-draft-empty pa-draft-empty-compact"><i class="fas fa-file-circle-xmark"></i><h2>@L["PurchaseOrderBatch.Details.NoPdfTitle"]</h2><p>@L["PurchaseOrderBatch.Details.NoPdfCopy"]</p></div> }
                 else
                 {
-                    <div class="pa-field"><label for="zalo-message">Nội dung gửi Zalo</label><textarea id="zalo-message" rows="8" readonly>@Model.ZaloMessage</textarea></div>
-                    <button class="pa-action pa-action-block" type="button" id="copy-zalo"><i class="fas fa-copy"></i> Sao chép nội dung gửi Zalo</button>
+                    <div class="pa-field"><label for="zalo-message">@L["PurchaseOrderBatch.Details.ZaloContent"]</label><textarea id="zalo-message" rows="8" readonly>@Model.ZaloMessage</textarea></div>
+                    <button class="pa-action pa-action-block" type="button" id="copy-zalo"><i class="fas fa-copy"></i> @L["PurchaseOrderBatch.Details.CopyZalo"]</button>
                     <div id="copy-feedback" class="pa-copy-feedback" role="status"></div>
                 }
                 @if (sendableRevision != null && canDocument)
@@ -94,41 +97,41 @@
                         <input type="hidden" name="RowVersion" value="@sendableRevision.RowVersion" />
                         <input type="hidden" name="IdempotencyKey" value="@Guid.NewGuid().ToString("N")" />
                         <div class="pa-field">
-                            <label for="send-channel">Kênh đã gửi</label>
+                            <label for="send-channel">@L["PurchaseOrderBatch.Details.SendChannel"]</label>
                             <select id="send-channel" name="Channel" required>
-                                <option value="@PurchaseOrderBatchDocumentChannels.ZaloManual">Zalo</option>
-                                <option value="@PurchaseOrderBatchDocumentChannels.EmailManual">Email</option>
-                                <option value="@PurchaseOrderBatchDocumentChannels.OtherManual">Khác</option>
+                                <option value="@PurchaseOrderBatchDocumentChannels.ZaloManual">@L["PurchaseOrderBatch.Details.Channel.Zalo"]</option>
+                                <option value="@PurchaseOrderBatchDocumentChannels.EmailManual">@L["PurchaseOrderBatch.Details.Channel.Email"]</option>
+                                <option value="@PurchaseOrderBatchDocumentChannels.OtherManual">@L["PurchaseOrderBatch.Details.Channel.Other"]</option>
                             </select>
                         </div>
-                        <div class="pa-field"><label for="send-note">Ghi chú / bằng chứng gửi</label><input id="send-note" name="Note" maxlength="500" placeholder="Ví dụ: gửi nhóm Zalo Nhà cung cấp lúc 09:30" /></div>
-                        <button class="pa-action pa-action-primary pa-action-block" type="submit" data-submit-label="Đang ghi nhận..."><i class="fas fa-paper-plane"></i> Đánh dấu đã gửi Nhà cung cấp</button>
+                        <div class="pa-field"><label for="send-note">@L["PurchaseOrderBatch.Details.SendNote"]</label><input id="send-note" name="Note" maxlength="500" placeholder="@L["PurchaseOrderBatch.Details.SendNotePlaceholder"]" /></div>
+                        <button class="pa-action pa-action-primary pa-action-block" type="submit" data-submit-label="@L["PurchaseOrderBatch.Details.MarkingSent"]"><i class="fas fa-paper-plane"></i> @L["PurchaseOrderBatch.Details.MarkSent"]</button>
                     </form>
                 }
             </section>
 
             <section class="pa-band">
-                <div class="pa-section-heading"><div><div class="pa-eyebrow">Phiên bản tài liệu</div><h2>Lịch sử PDF và gửi Nhà cung cấp</h2></div></div>
+                <div class="pa-section-heading"><div><div class="pa-eyebrow">@L["PurchaseOrderBatch.Details.RevEyebrow"]</div><h2>@L["PurchaseOrderBatch.Details.RevTitle"]</h2></div></div>
                 <div class="pa-revision-list">
                     @foreach (var revision in Model.DocumentRevisions.OrderByDescending(x => x.RevisionNumber))
                     {
                         <article class="pa-revision-item">
-                            <div><strong>Phiên bản R@revision.RevisionNumber</strong><span class="pa-badge @AdminStatusDisplay.PurchaseOrderBatchDocument(revision.Status).CssClass">@AdminStatusDisplay.PurchaseOrderBatchDocument(revision.Status).Label</span></div>
+                            <div><strong>@L["PurchaseOrderBatch.Details.Revision", revision.RevisionNumber]</strong><span class="pa-badge @AdminStatusDisplay.PurchaseOrderBatchDocument(revision.Status).CssClass">@AdminStatusDisplay.PurchaseOrderBatchDocument(revision.Status).Label</span></div>
                             <p>@revision.FileName</p>
-                            <small>Tạo bởi @revision.GeneratedByName · @AdminStatusDisplay.DateTime(revision.GeneratedAtUtc.ToLocalTime())</small>
-                            @if (revision.SentAtUtc.HasValue) { <small class="pa-sent-meta">Gửi qua @AdminStatusDisplay.PurchaseOrderBatchDocumentChannel(revision.SentChannel) bởi @(revision.SentByName ?? $"Nhân viên #{revision.SentByStaffId}") · @AdminStatusDisplay.DateTime(revision.SentAtUtc.Value.ToLocalTime())</small> }
-                            @if (!string.IsNullOrWhiteSpace(revision.SentNote)) { <small>Ghi chú: @revision.SentNote</small> }
-                            <a asp-action="DownloadRevision" asp-route-revisionId="@revision.RevisionId">Tải phiên bản PDF này</a>
-                            <a asp-action="PrintRevision" asp-route-revisionId="@revision.RevisionId" target="_blank" rel="noopener">Mở để in phiên bản này</a>
+                            <small>@L["PurchaseOrderBatch.Details.GeneratedBy", revision.GeneratedByName, AdminStatusDisplay.DateTime(revision.GeneratedAtUtc.ToLocalTime())]</small>
+                            @if (revision.SentAtUtc.HasValue) { <small class="pa-sent-meta">@L["PurchaseOrderBatch.Details.SentMeta", AdminStatusDisplay.PurchaseOrderBatchDocumentChannel(revision.SentChannel), revision.SentByName ?? L["Common.StaffNumber", revision.SentByStaffId].Value, AdminStatusDisplay.DateTime(revision.SentAtUtc.Value.ToLocalTime())]</small> }
+                            @if (!string.IsNullOrWhiteSpace(revision.SentNote)) { <small>@L["Common.Notes"]: @revision.SentNote</small> }
+                            <a asp-action="DownloadRevision" asp-route-revisionId="@revision.RevisionId">@L["PurchaseOrderBatch.Details.DownloadThis"]</a>
+                            <a asp-action="PrintRevision" asp-route-revisionId="@revision.RevisionId" target="_blank" rel="noopener">@L["PurchaseOrderBatch.Details.PrintThis"]</a>
                         </article>
                     }
-                    @if (Model.DocumentRevisions.Count == 0) { <p class="pa-muted">Lịch sử sẽ xuất hiện sau lần tạo PDF đầu tiên.</p> }
+                    @if (Model.DocumentRevisions.Count == 0) { <p class="pa-muted">@L["PurchaseOrderBatch.Details.NoHistory"]</p> }
                 </div>
             </section>
 
             @if (canCancel)
             {
-                <section class="pa-band pa-danger-zone"><h2>Hủy đơn đặt hàng gộp</h2><p>Chỉ hủy khi chưa phát sinh nhận hàng. Số lượng phân bổ sẽ được trả lại đề nghị mua.</p><form asp-action="Cancel" asp-route-id="@batch.PurchaseOrderBatchId" method="post" data-loading-form>@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@batch.RowVersion" /><div class="pa-field"><label for="cancel-reason">Lý do hủy</label><textarea id="cancel-reason" name="Reason" maxlength="500" required rows="2"></textarea></div><button class="pa-action pa-action-danger pa-action-block" type="submit" data-submit-label="Đang hủy..." onclick="return confirm('Hủy đơn đặt hàng gộp và các đơn chi nhánh chưa nhận hàng?')"><i class="fas fa-ban"></i> Hủy đơn đặt hàng gộp</button></form></section>
+                <section class="pa-band pa-danger-zone"><h2>@L["PurchaseOrderBatch.Details.CancelTitle"]</h2><p>@L["PurchaseOrderBatch.Details.CancelHelp"]</p><form asp-action="Cancel" asp-route-id="@batch.PurchaseOrderBatchId" method="post" data-loading-form>@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@batch.RowVersion" /><div class="pa-field"><label for="cancel-reason">@L["PurchaseOrderBatch.Details.CancelReason"]</label><textarea id="cancel-reason" name="Reason" maxlength="500" required rows="2"></textarea></div><button class="pa-action pa-action-danger pa-action-block" type="submit" data-submit-label="@L["PurchaseOrderBatch.Details.Cancelling"]" onclick="return confirm(@Html.Raw(JsonSerializer.Serialize(L["PurchaseOrderBatch.Details.CancelConfirm"].Value)));"><i class="fas fa-ban"></i> @L["PurchaseOrderBatch.Details.CancelTitle"]</button></form></section>
             }
         </aside>
     </div>
@@ -140,21 +143,26 @@
     const copyButton = document.getElementById('copy-zalo');
     const message = document.getElementById('zalo-message');
     const feedback = document.getElementById('copy-feedback');
+    const i18n = {
+        copiedZalo: @Html.Raw(JsonSerializer.Serialize(L["PurchaseOrderBatch.Details.CopiedZalo"].Value)),
+        copied: @Html.Raw(JsonSerializer.Serialize(L["PurchaseOrderBatch.Details.Copied"].Value)),
+        processing: @Html.Raw(JsonSerializer.Serialize(L["PurchaseOrderBatch.Details.Processing"].Value))
+    };
     copyButton?.addEventListener('click', async () => {
         try {
             await navigator.clipboard.writeText(message.value);
-            feedback.textContent = 'Đã sao chép. Hãy đính kèm đúng file PDF khi gửi Zalo.';
+            feedback.textContent = i18n.copiedZalo;
         } catch {
             message.select();
             document.execCommand('copy');
-            feedback.textContent = 'Đã sao chép nội dung.';
+            feedback.textContent = i18n.copied;
         }
     });
     document.querySelectorAll('[data-loading-form]').forEach(form => form.addEventListener('submit', () => {
         const button = form.querySelector('button[type="submit"]');
         if (!button || button.disabled) return;
         button.disabled = true;
-        button.textContent = button.dataset.submitLabel || 'Đang xử lý...';
+        button.textContent = button.dataset.submitLabel || i18n.processing;
     }));
 })();
 </script>

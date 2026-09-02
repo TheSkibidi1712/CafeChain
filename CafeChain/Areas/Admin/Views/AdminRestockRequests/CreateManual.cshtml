@@ -1,225 +1,54 @@
+@using Microsoft.Extensions.Localization
+@using System.Globalization
+@using System.Text.Json
 @model CafeChain.Application.DTOs.Admin.RestockRequests.CreateProcurementDemandRequest
+@inject IStringLocalizer<ProcurementResource> L
 @{
-    ViewData["Title"] = "Tạo yêu cầu bổ sung";
+    ViewData["Title"] = L["RestockForm.ManualTitle"];
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var ingredients = ViewBag.Ingredients;
     var units = ViewBag.Units;
+    var uiCatalog = new Dictionary<string, string> {
+        ["dash"] = "—", ["loadingUnits"] = L["RestockForm.LoadingUnits"], ["selectIngredientFirst"] = L["RestockForm.SelectIngredientFirst"],
+        ["selectDemandUnit"] = L["RestockForm.SelectDemandUnit"], ["unitsUnavailable"] = L["RestockForm.UnitsUnavailable"], ["unitLoadError"] = L["RestockForm.UnitLoadError"],
+        ["checkError"] = L["RestockForm.CheckError"], ["notSet"] = L["RestockForm.NotSet"], ["creating"] = L["RestockForm.Creating"]
+    };
 }
-
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
-
 <main class="restock-page restock-form-page ops-shell cc-warehouse-page">
-<header class="ops-header cc-warehouse-header cc-warehouse-header--compact">
-        <div>
-            <div class="ops-eyebrow">KHO &amp; CUNG ỨNG / YÊU CẦU BỔ SUNG</div>
-            <h1 class="ops-title">Tạo yêu cầu bổ sung</h1>
-            <p class="ops-subtitle">Ghi nhận một nhu cầu vận hành mới theo đơn vị phù hợp với nguyên liệu. Yêu cầu này chưa tạo đề nghị mua cho đến khi bộ phận phụ trách chọn nguồn “Mua ngoài”.</p>
-        </div>
-        <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách yêu cầu</a>
-    </header>
-
-    @if (!ViewData.ModelState.IsValid)
-    {
-        <div asp-validation-summary="All" class="ops-notice ops-notice-error cc-warehouse-alert cc-warehouse-alert-danger" role="alert"></div>
-    }
-
-    <section id="activeDemandCard" class="ops-panel" hidden aria-live="polite">
-        <div class="ops-panel-header"><h2 class="ops-panel-title">Nguyên liệu đã có yêu cầu đang xử lý</h2></div>
-        <div class="ops-panel-body">
-            <div class="ops-notice ops-notice-warning">
-                <strong>Không tạo thêm yêu cầu trùng.</strong>
-                <div id="activeDemandMessage" class="ops-secondary mt-1"></div>
-            </div>
-            <div class="ops-data-grid mt-3">
-                <div><span class="ops-data-label">Yêu cầu hiện tại</span><span id="activeDemandCode" class="ops-data-value"></span></div>
-                <div><span class="ops-data-label">Trạng thái</span><span id="activeDemandStatus" class="ops-data-value"></span></div>
-                <div><span class="ops-data-label">Tổng nhu cầu</span><span id="activeDemandRequested" class="ops-data-value"></span></div>
-                <div><span class="ops-data-label">Đã phân bổ</span><span id="activeDemandAllocated" class="ops-data-value"></span></div>
-                <div><span class="ops-data-label">Chưa xác định nguồn</span><span id="activeDemandRemaining" class="ops-data-value"></span></div>
-                <div><span class="ops-data-label">Cần trước ngày</span><span id="activeDemandNeedBy" class="ops-data-value"></span></div>
-            </div>
-            <div class="ops-inline-actions mt-3">
-                <a id="activeDemandDetails" class="ops-btn ops-btn-primary" href="#">Xem yêu cầu hiện tại</a>
-                <a id="activeDemandAdd" class="ops-btn" href="#">Bổ sung nhu cầu</a>
-                <button id="chooseAnotherIngredient" class="ops-btn" type="button">Chọn nguyên liệu khác</button>
-            </div>
-        </div>
-    </section>
-
-    <section class="ops-panel">
-        <div class="ops-panel-header"><h2 class="ops-panel-title">Thông tin nhu cầu</h2></div>
-        <div class="ops-panel-body">
-            <form id="createDemandForm" asp-action="CreateManual" method="post" data-check-url="@Url.Action("CheckActive", "AdminRestockRequests", new { area = "Admin" })" data-units-url="@Url.Action("GetDemandUnitOptions", "AdminRestockRequests", new { area = "Admin" })">
-                @Html.AntiForgeryToken()
-                <input type="hidden" asp-for="StoreId" />
-                <input type="hidden" asp-for="SourceType" />
-                <input type="hidden" asp-for="SourceReferenceId" />
-                <div class="ops-form-grid restock-form-grid">
-                    <div class="restock-form-section-label"><i class="fa-solid fa-box" aria-hidden="true"></i><span><strong>Nhu cầu cần bổ sung</strong><small>Chọn mặt hàng, đơn vị và số lượng vận hành.</small></span></div>
-                    <div class="ops-form-field">
-                        <label class="ops-form-label" asp-for="IngredientId">Nguyên liệu <span class="ops-required">*</span></label>
-                        <select class="ops-select w-100" asp-for="IngredientId" required>
-                            <option value="">Chọn nguyên liệu</option>
-                            @foreach (var item in ingredients) { <option value="@item.IngredientId">@item.Name</option> }
-                        </select>
-                        <span asp-validation-for="IngredientId" class="ops-text-danger"></span>
-                    </div>
-                    <div class="ops-form-field">
-                        <label class="ops-form-label" asp-for="ProcurementUnitId">Đơn vị nhu cầu <span class="ops-required">*</span></label>
-                        <select class="ops-select w-100" asp-for="ProcurementUnitId" required disabled>
-                            <option value="">Chọn nguyên liệu trước</option>
-                            @foreach (var unit in units) { <option value="@unit.UnitId">@unit.UnitCode · @unit.Name</option> }
-                        </select>
-                        <span asp-validation-for="ProcurementUnitId" class="ops-text-danger"></span>
-                    </div>
-                    <div class="ops-form-field">
-                        <label class="ops-form-label" asp-for="RequestedProcurementQuantity">Số lượng yêu cầu <span class="ops-required">*</span></label>
-                        <input class="ops-input w-100" asp-for="RequestedProcurementQuantity" type="number" min="0.001" step="0.001" required />
-                        <span asp-validation-for="RequestedProcurementQuantity" class="ops-text-danger"></span>
-                    </div>
-                    <div class="restock-form-section-label"><i class="fa-solid fa-calendar-day" aria-hidden="true"></i><span><strong>Thời điểm và mức ưu tiên</strong><small>Xác định hạn cần hàng để bộ phận kho sắp xếp nguồn.</small></span></div>
-                    <div class="ops-form-field">
-                        <label class="ops-form-label" asp-for="NeedByDate">Cần trước ngày</label>
-                        <input class="ops-input w-100" asp-for="NeedByDate" type="date" />
-                        <div class="ops-help">Ngày/tháng/năm</div>
-                        <span asp-validation-for="NeedByDate" class="ops-text-danger"></span>
-                    </div>
-                    <div class="ops-form-field">
-                        <label class="ops-form-label" asp-for="Priority">Mức ưu tiên</label>
-                        <select class="ops-select w-100" asp-for="Priority">
-                            <option value="NORMAL">Bình thường</option>
-                            <option value="HIGH">Cao</option>
-                            <option value="URGENT">Khẩn cấp</option>
-                        </select>
-                        <span asp-validation-for="Priority" class="ops-text-danger"></span>
-                    </div>
-                    <div class="ops-form-field">
-                        <label class="ops-form-label">Mã yêu cầu</label>
-                        <input class="ops-input w-100" type="text" value="(Hệ thống tự động tạo sau khi lưu)" disabled readonly />
-                        <div class="ops-help">Tự động tạo mã dạng PR-YYYYMMDD-XXXX</div>
-                    </div>
-                    <div class="restock-form-section-label"><i class="fa-solid fa-message" aria-hidden="true"></i><span><strong>Bối cảnh nhu cầu</strong><small>Ghi lý do để người xét nguồn đưa ra quyết định chính xác.</small></span></div>
-                    <div class="ops-form-field ops-form-field-wide">
-                        <label class="ops-form-label" asp-for="Note">Lý do / ghi chú</label>
-                        <textarea class="ops-textarea" asp-for="Note" maxlength="500" rows="3" placeholder="Nêu nguyên nhân phát sinh nhu cầu..."></textarea>
-                        <span asp-validation-for="Note" class="ops-text-danger"></span>
-                    </div>
-                </div>
-                <div class="ops-help mt-3"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Mỗi chi nhánh chỉ có một yêu cầu đang hoạt động cho cùng nguyên liệu. Khi đã có yêu cầu, hãy bổ sung nhu cầu vào yêu cầu đó để không tách lịch sử và phân bổ nguồn cung.</div>
-                <div class="ops-form-actions">
-                    <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId">Hủy</a>
-                    <button id="createDemandSubmit" class="ops-btn ops-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Tạo yêu cầu bổ sung</button>
-                </div>
-            </form>
-        </div>
-    </section>
+    <header class="ops-header cc-warehouse-header cc-warehouse-header--compact"><div><div class="ops-eyebrow">@L["RestockForm.ManualEyebrow"]</div><h1 class="ops-title">@L["RestockForm.ManualTitle"]</h1><p class="ops-subtitle">@L["RestockForm.ManualSubtitle"]</p></div><a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> @L["RestockForm.Back"]</a></header>
+    @if (!ViewData.ModelState.IsValid) { <div asp-validation-summary="All" class="ops-notice ops-notice-error cc-warehouse-alert cc-warehouse-alert-danger" role="alert"></div> }
+    <section id="activeDemandCard" class="ops-panel" hidden aria-live="polite"><div class="ops-panel-header"><h2 class="ops-panel-title">@L["RestockForm.ExistingTitle"]</h2></div><div class="ops-panel-body"><div class="ops-notice ops-notice-warning"><strong>@L["RestockForm.NoDuplicate"]</strong><div id="activeDemandMessage" class="ops-secondary mt-1"></div></div><div class="ops-data-grid mt-3">
+        <div><span class="ops-data-label">@L["RestockForm.CurrentRequest"]</span><span id="activeDemandCode" class="ops-data-value"></span></div><div><span class="ops-data-label">@L["Common.Status"]</span><span id="activeDemandStatus" class="ops-data-value"></span></div><div><span class="ops-data-label">@L["RestockForm.TotalDemand"]</span><span id="activeDemandRequested" class="ops-data-value"></span></div><div><span class="ops-data-label">@L["RestockForm.Allocated"]</span><span id="activeDemandAllocated" class="ops-data-value"></span></div><div><span class="ops-data-label">@L["RestockForm.Unsourced"]</span><span id="activeDemandRemaining" class="ops-data-value"></span></div><div><span class="ops-data-label">@L["RestockForm.NeedBy"]</span><span id="activeDemandNeedBy" class="ops-data-value"></span></div>
+    </div><div class="ops-inline-actions mt-3"><a id="activeDemandDetails" class="ops-btn ops-btn-primary" href="#">@L["RestockForm.ViewCurrent"]</a><a id="activeDemandAdd" class="ops-btn" href="#">@L["RestockForm.AddDemand"]</a><button id="chooseAnotherIngredient" class="ops-btn" type="button">@L["RestockForm.ChooseAnother"]</button></div></div></section>
+    <section class="ops-panel"><div class="ops-panel-header"><h2 class="ops-panel-title">@L["RestockForm.Information"]</h2></div><div class="ops-panel-body">
+        <form id="createDemandForm" asp-action="CreateManual" method="post" data-check-url="@Url.Action("CheckActive", "AdminRestockRequests", new { area = "Admin" })" data-units-url="@Url.Action("GetDemandUnitOptions", "AdminRestockRequests", new { area = "Admin" })">
+            @Html.AntiForgeryToken()<input type="hidden" asp-for="StoreId" /><input type="hidden" asp-for="SourceType" /><input type="hidden" asp-for="SourceReferenceId" />
+            <div class="ops-form-grid restock-form-grid">
+                <div class="restock-form-section-label"><i class="fa-solid fa-box" aria-hidden="true"></i><span><strong>@L["RestockForm.DemandSection"]</strong><small>@L["RestockForm.DemandSectionHelp"]</small></span></div>
+                <div class="ops-form-field"><label class="ops-form-label" asp-for="IngredientId">@L["RestockForm.Ingredient"] <span class="ops-required">*</span></label><select class="ops-select w-100" asp-for="IngredientId" required><option value="">@L["RestockForm.SelectIngredient"]</option>@foreach (var item in ingredients) { <option value="@item.IngredientId">@item.Name</option> }</select><span asp-validation-for="IngredientId" class="ops-text-danger"></span></div>
+                <div class="ops-form-field"><label class="ops-form-label" asp-for="ProcurementUnitId">@L["RestockForm.DemandUnit"] <span class="ops-required">*</span></label><select class="ops-select w-100" asp-for="ProcurementUnitId" required disabled><option value="">@L["RestockForm.SelectIngredientFirst"]</option>@foreach (var unit in units) { <option value="@unit.UnitId">@unit.UnitCode · @unit.Name</option> }</select><span asp-validation-for="ProcurementUnitId" class="ops-text-danger"></span></div>
+                <div class="ops-form-field"><label class="ops-form-label" asp-for="RequestedProcurementQuantity">@L["RestockForm.RequestedQuantity"] <span class="ops-required">*</span></label><input class="ops-input w-100" asp-for="RequestedProcurementQuantity" type="number" min="0.001" step="0.001" required /><span asp-validation-for="RequestedProcurementQuantity" class="ops-text-danger"></span></div>
+                <div class="restock-form-section-label"><i class="fa-solid fa-calendar-day" aria-hidden="true"></i><span><strong>@L["RestockForm.ScheduleSection"]</strong><small>@L["RestockForm.ScheduleHelp"]</small></span></div>
+                <div class="ops-form-field"><label class="ops-form-label" asp-for="NeedByDate">@L["RestockForm.NeedBy"]</label><input class="ops-input w-100" asp-for="NeedByDate" type="date" /><div class="ops-help">@L["RestockForm.DateHelp"]</div><span asp-validation-for="NeedByDate" class="ops-text-danger"></span></div>
+                <div class="ops-form-field"><label class="ops-form-label" asp-for="Priority">@L["Common.Priority"]</label><select class="ops-select w-100" asp-for="Priority"><option value="NORMAL">@L["Priority.NORMAL"]</option><option value="HIGH">@L["Priority.HIGH"]</option><option value="URGENT">@L["Priority.URGENT"]</option></select><span asp-validation-for="Priority" class="ops-text-danger"></span></div>
+                <div class="ops-form-field"><label class="ops-form-label">@L["RestockForm.RequestCode"]</label><input class="ops-input w-100" type="text" value="@L["RestockForm.AutoCode"]" disabled readonly /><div class="ops-help">@L["RestockForm.AutoCodeHelp"]</div></div>
+                <div class="restock-form-section-label"><i class="fa-solid fa-message" aria-hidden="true"></i><span><strong>@L["RestockForm.ContextSection"]</strong><small>@L["RestockForm.ContextHelp"]</small></span></div>
+                <div class="ops-form-field ops-form-field-wide"><label class="ops-form-label" asp-for="Note">@L["RestockForm.Note"]</label><textarea class="ops-textarea" asp-for="Note" maxlength="500" rows="3" placeholder="@L["RestockForm.NotePlaceholder"]"></textarea><span asp-validation-for="Note" class="ops-text-danger"></span></div>
+            </div><div class="ops-help mt-3"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> @L["RestockForm.OneActiveHelp"]</div><div class="ops-form-actions"><a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId">@L["RestockForm.Cancel"]</a><button id="createDemandSubmit" class="ops-btn ops-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> @L["RestockForm.Create"]</button></div>
+        </form>
+    </div></section>
 </main>
-
+<script id="restockManualCatalog" type="application/json">@Html.Raw(JsonSerializer.Serialize(uiCatalog))</script>
 <script>
 (() => {
-    const form = document.getElementById('createDemandForm');
-    const ingredient = document.getElementById('IngredientId');
-    const demandUnit = document.getElementById('ProcurementUnitId');
-    const submit = document.getElementById('createDemandSubmit');
-    const card = document.getElementById('activeDemandCard');
-    const storeId = document.getElementById('StoreId').value;
-    let activeExists = false;
-    let requestVersion = 0;
-    let unitRequestVersion = 0;
-
-    const setText = (id, value) => { document.getElementById(id).textContent = value ?? '—'; };
-    const quantity = value => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 3 }).format(Number(value || 0));
-    const resetConflict = () => {
-        activeExists = false;
-        card.hidden = true;
-        submit.disabled = false;
-    };
-
-    async function checkActive() {
-        const ingredientId = ingredient.value;
-        const version = ++requestVersion;
-        resetConflict();
-        if (!ingredientId) return;
-        submit.disabled = true;
-        try {
-            const url = new URL(form.dataset.checkUrl, window.location.origin);
-            url.searchParams.set('storeId', storeId);
-            url.searchParams.set('ingredientId', ingredientId);
-            const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
-            if (version !== requestVersion) return;
-            if (response.status !== 409) {
-                if (!response.ok) throw new Error('Không thể kiểm tra yêu cầu hiện tại.');
-                resetConflict();
-                return;
-            }
-            const data = await response.json();
-            activeExists = true;
-            card.hidden = false;
-            submit.disabled = true;
-            setText('activeDemandMessage', data.message);
-            setText('activeDemandCode', data.existingRequestCode);
-            setText('activeDemandStatus', data.existingStatus);
-            setText('activeDemandRequested', `${quantity(data.existingRequestedQty)} ${data.procurementUnit}`);
-            setText('activeDemandAllocated', `${quantity(data.existingAllocatedQty)} ${data.procurementUnit}`);
-            setText('activeDemandRemaining', `${quantity(data.existingRemainingQty)} ${data.procurementUnit}`);
-            setText('activeDemandNeedBy', data.needByDate ? new Date(data.needByDate).toLocaleDateString('vi-VN') : 'Chưa đặt');
-            document.getElementById('activeDemandDetails').href = data.detailUrl;
-            document.getElementById('activeDemandAdd').href = `${data.detailUrl}#add-demand`;
-        } catch (error) {
-            if (version === requestVersion) {
-                resetConflict();
-                console.error('[RestockRequest] Active request check failed.', error);
-            }
-        }
-    }
-
-    async function loadDemandUnits() {
-        const ingredientId = ingredient.value;
-        const version = ++unitRequestVersion;
-        demandUnit.disabled = true;
-        demandUnit.innerHTML = `<option value="">${ingredientId ? 'Đang tải đơn vị...' : 'Chọn nguyên liệu trước'}</option>`;
-        if (!ingredientId) return;
-
-        try {
-            const url = new URL(form.dataset.unitsUrl, window.location.origin);
-            url.searchParams.set('ingredientId', ingredientId);
-            const response = await fetch(url, { headers: { Accept: 'application/json' } });
-            const payload = await response.json();
-            if (version !== unitRequestVersion) return;
-            if (!response.ok || payload.success !== true) {
-                throw new Error(payload.message || 'Không thể tải đơn vị nhu cầu.');
-            }
-
-            demandUnit.innerHTML = '<option value="">Chọn đơn vị nhu cầu</option>';
-            for (const item of payload.data || []) {
-                const option = document.createElement('option');
-                option.value = item.unitId;
-                option.textContent = `${item.unitCode} · ${item.unitName}`;
-                demandUnit.append(option);
-            }
-            demandUnit.disabled = false;
-        } catch (error) {
-            if (version !== unitRequestVersion) return;
-            demandUnit.innerHTML = '<option value="">Không tải được đơn vị</option>';
-            console.error('[RestockRequest] Demand unit load failed.', error);
-        }
-    }
-
-    ingredient.addEventListener('change', () => Promise.all([checkActive(), loadDemandUnits()]));
-    document.getElementById('chooseAnotherIngredient').addEventListener('click', () => {
-        ingredient.value = '';
-        resetConflict();
-        ingredient.focus();
-    });
-    form.addEventListener('submit', event => {
-        if (activeExists) {
-            event.preventDefault();
-            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return;
-        }
-        submit.disabled = true;
-        submit.textContent = 'Đang tạo yêu cầu...';
-    });
-    if (ingredient.value) Promise.all([checkActive(), loadDemandUnits()]);
+    const catalog = window.CafeChainUiCatalog.read('restockManualCatalog'); const t = key => window.CafeChainUiCatalog.text(catalog, key);
+    const form = document.getElementById('createDemandForm'), ingredient = document.getElementById('IngredientId'), demandUnit = document.getElementById('ProcurementUnitId'), submit = document.getElementById('createDemandSubmit'), card = document.getElementById('activeDemandCard'), storeId = document.getElementById('StoreId').value;
+    const locale = document.documentElement.dataset.culture || 'vi-VN'; let activeExists = false, requestVersion = 0, unitRequestVersion = 0;
+    const setText = (id, value) => { document.getElementById(id).textContent = value ?? t('dash'); }; const quantity = value => new Intl.NumberFormat(locale, { maximumFractionDigits: 3 }).format(Number(value || 0));
+    const resetConflict = () => { activeExists = false; card.hidden = true; submit.disabled = false; };
+    async function checkActive() { const ingredientId = ingredient.value, version = ++requestVersion; resetConflict(); if (!ingredientId) return; submit.disabled = true; try { const url = new URL(form.dataset.checkUrl, location.origin); url.searchParams.set('storeId', storeId); url.searchParams.set('ingredientId', ingredientId); const response = await fetch(url, { headers: { Accept: 'application/json' } }); if (version !== requestVersion) return; if (response.status !== 409) { if (!response.ok) throw new Error(t('checkError')); resetConflict(); return; } const data = await response.json(); activeExists = true; card.hidden = false; submit.disabled = true; setText('activeDemandMessage', data.message); setText('activeDemandCode', data.existingRequestCode); setText('activeDemandStatus', data.existingStatus); setText('activeDemandRequested', `${quantity(data.existingRequestedQty)} ${data.procurementUnit}`); setText('activeDemandAllocated', `${quantity(data.existingAllocatedQty)} ${data.procurementUnit}`); setText('activeDemandRemaining', `${quantity(data.existingRemainingQty)} ${data.procurementUnit}`); setText('activeDemandNeedBy', data.needByDate ? new Date(data.needByDate).toLocaleDateString(locale) : t('notSet')); document.getElementById('activeDemandDetails').href = data.detailUrl; document.getElementById('activeDemandAdd').href = `${data.detailUrl}#add-demand`; } catch (error) { if (version === requestVersion) resetConflict(); console.error('[RestockRequest] Active request check failed.', error); } }
+    async function loadDemandUnits() { const ingredientId = ingredient.value, version = ++unitRequestVersion; demandUnit.disabled = true; demandUnit.innerHTML = `<option value="">${t(ingredientId ? 'loadingUnits' : 'selectIngredientFirst')}</option>`; if (!ingredientId) return; try { const url = new URL(form.dataset.unitsUrl, location.origin); url.searchParams.set('ingredientId', ingredientId); const response = await fetch(url, { headers: { Accept: 'application/json' } }); const payload = await response.json(); if (version !== unitRequestVersion) return; if (!response.ok || payload.success !== true) throw new Error(payload.message || t('unitLoadError')); demandUnit.innerHTML = `<option value="">${t('selectDemandUnit')}</option>`; for (const item of payload.data || []) { const option = document.createElement('option'); option.value = item.unitId; option.textContent = `${item.unitCode} · ${item.unitName}`; demandUnit.append(option); } demandUnit.disabled = false; } catch (error) { if (version !== unitRequestVersion) return; demandUnit.innerHTML = `<option value="">${t('unitsUnavailable')}</option>`; console.error('[RestockRequest] Demand unit load failed.', error); } }
+    ingredient.addEventListener('change', () => Promise.all([checkActive(), loadDemandUnits()])); document.getElementById('chooseAnotherIngredient').addEventListener('click', () => { ingredient.value = ''; resetConflict(); loadDemandUnits(); ingredient.focus(); }); form.addEventListener('submit', event => { if (activeExists) { event.preventDefault(); card.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; } submit.disabled = true; submit.textContent = t('creating'); }); if (ingredient.value) Promise.all([checkActive(), loadDemandUnits()]);
 })();
 </script>

@@ -1,16 +1,22 @@
 @model CafeChain.Application.DTOs.Admin.Procurement.CreateSupplierReceiptIssuePageDto
 @using CafeChain.Application.Constants
 @using CafeChain.ViewModels.Admin.Shared
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<ProcurementResource> L
 @{
-    ViewData["Title"] = "Ghi nhận sự cố nhà cung cấp";
+    ViewData["Title"] = L["SupplierQuality.Create.Title"];
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var types = new[]
     {
-        (SupplierReceiptIssueTypes.LateDelivery, "Giao trễ"), (SupplierReceiptIssueTypes.ShortDelivery, "Giao thiếu"),
-        (SupplierReceiptIssueTypes.WrongItem, "Sai mặt hàng"), (SupplierReceiptIssueTypes.Damaged, "Hư hỏng"),
-        (SupplierReceiptIssueTypes.Expired, "Hết hạn"), (SupplierReceiptIssueTypes.QualityFailure, "Không đạt chất lượng"),
-        (SupplierReceiptIssueTypes.PackagingFailure, "Lỗi bao bì"), (SupplierReceiptIssueTypes.DocumentMismatch, "Sai chứng từ"),
-        (SupplierReceiptIssueTypes.Other, "Khác")
+        (SupplierReceiptIssueTypes.LateDelivery, L["SupplierQuality.Issue.Late"].Value),
+        (SupplierReceiptIssueTypes.ShortDelivery, L["SupplierQuality.Issue.Short"].Value),
+        (SupplierReceiptIssueTypes.WrongItem, L["SupplierQuality.Issue.Wrong"].Value),
+        (SupplierReceiptIssueTypes.Damaged, L["SupplierQuality.Issue.Damaged"].Value),
+        (SupplierReceiptIssueTypes.Expired, L["SupplierQuality.Issue.Expired"].Value),
+        (SupplierReceiptIssueTypes.QualityFailure, L["SupplierQuality.Issue.Quality"].Value),
+        (SupplierReceiptIssueTypes.PackagingFailure, L["SupplierQuality.Issue.Packaging"].Value),
+        (SupplierReceiptIssueTypes.DocumentMismatch, L["SupplierQuality.Issue.Document"].Value),
+        (SupplierReceiptIssueTypes.Other, L["SupplierQuality.Issue.Other"].Value)
     };
 }
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
@@ -18,52 +24,52 @@
 <header class="ops-header cc-warehouse-header cc-warehouse-header--compact">
         <div>
             <div class="ops-eyebrow">@Model.Context.BranchReceiptCode · @Model.Context.PurchaseOrderCode</div>
-            <h1 class="ops-title">Ghi nhận sự cố nhà cung cấp</h1>
-            <p class="ops-subtitle">@Model.Context.SupplierName · @Model.Context.StoreName. Ghi nhận đúng bằng chứng tại thời điểm nhận hàng để phục vụ đánh giá sau này.</p>
+            <h1 class="ops-title">@L["SupplierQuality.Create.Title"]</h1>
+            <p class="ops-subtitle">@L["SupplierQuality.Create.Subtitle", Model.Context.SupplierName, Model.Context.StoreName]</p>
         </div>
-        <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.Context.StoreId" asp-route-supplierId="@Model.Context.SupplierId"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Quay lại</a>
+        <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.Context.StoreId" asp-route-supplierId="@Model.Context.SupplierId"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> @L["SupplierQuality.Create.Back"]</a>
     </header>
 
     @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMessage"]</div> }
     @if (!ViewData.ModelState.IsValid) { <div asp-validation-summary="All" class="ops-notice ops-notice-error cc-warehouse-alert cc-warehouse-alert-danger" role="alert"></div> }
     @if (!string.IsNullOrWhiteSpace(Model.Context.SuggestedIssueType))
     {
-        <div class="ops-notice ops-notice-warning" role="status"><strong>Gợi ý cần kiểm tra:</strong> hệ thống phát hiện giao trễ hoặc có lượng bị loại bỏ. Người dùng phải xác nhận trước khi lưu; đây không phải kết luận tự động.</div>
+        <div class="ops-notice ops-notice-warning" role="status"><strong>@L["SupplierQuality.Create.SuggestTitle"]</strong> @L["SupplierQuality.Create.SuggestCopy"]</div>
     }
 
-    <section class="ops-metrics" aria-label="Tóm tắt dòng nhận hàng">
-        <div class="ops-metric"><span class="ops-metric-label">Mặt hàng</span><strong class="ops-metric-value fs-5">@Model.Context.IngredientName</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Chấp nhận</span><strong class="ops-metric-value success">@AdminStatusDisplay.Quantity(Model.Context.AcceptedBaseQuantity)</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Loại bỏ</span><strong class="ops-metric-value warning">@AdminStatusDisplay.Quantity(Model.Context.RejectedBaseQuantity)</strong></div>
+    <section class="ops-metrics" aria-label="@L["SupplierQuality.Create.SummaryAria"]">
+        <div class="ops-metric"><span class="ops-metric-label">@L["SupplierQuality.ColItem"]</span><strong class="ops-metric-value fs-5">@Model.Context.IngredientName</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">@L["SupplierQuality.Create.Accepted"]</span><strong class="ops-metric-value success">@AdminStatusDisplay.Quantity(Model.Context.AcceptedBaseQuantity)</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">@L["SupplierQuality.Create.Rejected"]</span><strong class="ops-metric-value warning">@AdminStatusDisplay.Quantity(Model.Context.RejectedBaseQuantity)</strong></div>
     </section>
 
     <form method="post">
         <section class="ops-panel">
             <div class="ops-panel-header">
-                <div><h2 class="ops-panel-title">Thông tin sự cố</h2><div class="ops-secondary">Mô tả sự việc theo bằng chứng thực tế, không suy diễn nguyên nhân.</div></div>
+                <div><h2 class="ops-panel-title">@L["SupplierQuality.Create.InfoTitle"]</h2><div class="ops-secondary">@L["SupplierQuality.Create.InfoHelp"]</div></div>
             </div>
             <div class="ops-panel-body">
                 <input name="BranchReceiptLineId" value="@Model.Input.BranchReceiptLineId" type="hidden" />
                 <div class="ops-form-grid">
                     <div class="ops-form-field">
-                        <label class="ops-form-label" for="supplierIssueType">Loại sự cố <span class="ops-required">*</span></label>
+                        <label class="ops-form-label" for="supplierIssueType">@L["SupplierQuality.Create.Type"] <span class="ops-required">*</span></label>
                         <select id="supplierIssueType" name="IssueType" class="ops-select w-100" required>@foreach(var type in types){<option value="@type.Item1" selected="@(type.Item1 == Model.Input.IssueType)">@type.Item2</option>}</select>
                     </div>
                     <div class="ops-form-field">
-                        <label class="ops-form-label" for="affectedBaseQuantity">Số lượng ảnh hưởng (đơn vị cơ sở)</label>
+                        <label class="ops-form-label" for="affectedBaseQuantity">@L["SupplierQuality.Create.AffectedQty"]</label>
                         <input id="affectedBaseQuantity" name="AffectedBaseQuantity" value="@Model.Input.AffectedBaseQuantity" class="ops-input w-100" type="number" min="0" step="0.001" />
-                        <div class="ops-help">Nhập phần số lượng bị ảnh hưởng trong dòng nhận hàng này.</div>
+                        <div class="ops-help">@L["SupplierQuality.Create.AffectedHelp"]</div>
                     </div>
                     <div class="ops-form-field ops-form-field-wide">
-                        <label class="ops-form-label" for="supplierIssueDescription">Mô tả / bằng chứng <span class="ops-required">*</span></label>
-                        <textarea id="supplierIssueDescription" name="Description" class="ops-textarea" maxlength="1000" required placeholder="Mô tả tình trạng hàng, chứng từ hoặc thời điểm giao...">@Model.Input.Description</textarea>
+                        <label class="ops-form-label" for="supplierIssueDescription">@L["SupplierQuality.Create.Description"] <span class="ops-required">*</span></label>
+                        <textarea id="supplierIssueDescription" name="Description" class="ops-textarea" maxlength="1000" required placeholder="@L["SupplierQuality.Create.DescriptionPlaceholder"]">@Model.Input.Description</textarea>
                     </div>
                 </div>
             </div>
         </section>
         <div class="ops-form-actions">
-            <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.Context.StoreId" asp-route-supplierId="@Model.Context.SupplierId">Hủy</a>
-            <button class="ops-btn ops-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Ghi nhận sự cố</button>
+            <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.Context.StoreId" asp-route-supplierId="@Model.Context.SupplierId">@L["Common.Cancel"]</a>
+            <button class="ops-btn ops-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> @L["SupplierQuality.Create.Submit"]</button>
         </div>
     </form>
 </main>

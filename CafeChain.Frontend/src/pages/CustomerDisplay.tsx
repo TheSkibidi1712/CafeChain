@@ -5,9 +5,8 @@ import {
   type CustomerDisplaySnapshot,
 } from '../services/customerDisplay'
 import VietQrCode from '../components/pos/VietQrCode'
-
-const formatVND = (amount: number): string =>
-  new Intl.NumberFormat('vi-VN').format(amount) + 'đ'
+import { usePreferences } from '../contexts/PreferencesContext'
+import { useLocaleFormatters } from '../hooks/useLocaleFormatters'
 
 const readExpectedWorkShiftId = (): number | null => {
   const value = Number(new URLSearchParams(window.location.search).get('workShiftId'))
@@ -15,6 +14,8 @@ const readExpectedWorkShiftId = (): number | null => {
 }
 
 export default function CustomerDisplay() {
+  const { t } = usePreferences()
+  const { formatMoney } = useLocaleFormatters()
   const expectedWorkShiftId = useMemo(() => readExpectedWorkShiftId(), [])
   const [snapshot, setSnapshot] = useState<CustomerDisplaySnapshot | null>(() =>
     readCustomerDisplaySnapshot(expectedWorkShiftId)
@@ -71,7 +72,7 @@ export default function CustomerDisplay() {
           <div>
             <h1 className="text-xl font-extrabold text-text-primary">CafeChain</h1>
             <p className="text-sm font-semibold text-text-secondary">
-              Chi nhánh #{snapshot?.storeId ?? '-'}
+              {t('common.branch', { id: snapshot?.storeId ?? '-' })}
             </p>
           </div>
         </div>
@@ -80,43 +81,43 @@ export default function CustomerDisplay() {
           onClick={() => void requestFullscreen()}
           className="pos-touch-target rounded-lg border border-border bg-white px-4 text-sm font-bold text-text-primary hover:bg-surface-hover"
         >
-          Toàn màn hình
+          {t('customerDisplay.fullscreen')}
         </button>
       </header>
 
       <section className="customer-display-content">
         {!snapshot && (
-          <DisplayMessage title="Xin chào quý khách" detail="CafeChain sẵn sàng phục vụ." />
+          <DisplayMessage title={t('customerDisplay.welcome')} detail={t('customerDisplay.ready')} />
         )}
 
         {snapshot?.state === 'offline' && (
           <DisplayMessage
-            title="Quầy đang mất kết nối"
-            detail="Đơn tiền mặt vẫn có thể được phục vụ. Vui lòng chờ nhân viên hỗ trợ."
+            title={t('customerDisplay.offlineTitle')}
+            detail={t('customerDisplay.offlineDetail')}
             tone="warning"
           />
         )}
 
         {snapshot?.state === 'success' && (
           <DisplayMessage
-            title="Thanh toán thành công"
-            detail={snapshot.message || 'Cảm ơn quý khách. Chúc quý khách một ngày vui vẻ!'}
+            title={t('customerDisplay.successTitle')}
+            detail={snapshot.message || t('customerDisplay.successDetail')}
             tone="success"
           />
         )}
 
         {snapshot?.state === 'cancelled' && (
           <DisplayMessage
-            title="Giao dịch đã hủy"
-            detail="Quý khách vui lòng chọn lại phương thức thanh toán cùng nhân viên."
+            title={t('customerDisplay.cancelledTitle')}
+            detail={t('customerDisplay.cancelledDetail')}
             tone="warning"
           />
         )}
 
         {(snapshot?.state === 'expired' || isQrExpired) && (
           <DisplayMessage
-            title="Mã VietQR đã hết hạn"
-            detail="Quý khách vui lòng yêu cầu nhân viên tạo mã mới."
+            title={t('customerDisplay.expiredTitle')}
+            detail={t('customerDisplay.expiredDetail')}
             tone="warning"
           />
         )}
@@ -128,21 +129,21 @@ export default function CustomerDisplay() {
         {snapshot?.state === 'vietqr' && !isQrExpired && (
           <div className="customer-display-qr-layout">
             <div className="customer-display-qr-copy">
-              <p className="text-sm font-bold uppercase text-text-secondary">Thanh toán VietQR</p>
+              <p className="text-sm font-bold uppercase text-text-secondary">{t('customerDisplay.vietQrPayment')}</p>
               <strong className="mt-2 block text-4xl font-extrabold text-brand-orange tabular-nums">
-                {formatVND(snapshot.totalAmount)}
+                {formatMoney(snapshot.totalAmount)}
               </strong>
               {snapshot.orderId && (
-                <p className="mt-2 text-base font-bold text-text-secondary">Mã đơn #{snapshot.orderId}</p>
+                <p className="mt-2 text-base font-bold text-text-secondary">{t('customerDisplay.orderCode', { id: snapshot.orderId })}</p>
               )}
-              <p className="mt-6 text-lg font-bold text-text-primary">Quét mã để thanh toán</p>
-              <p className="mt-1 text-sm text-text-secondary">Thời gian còn lại: {countdown}</p>
+              <p className="mt-6 text-lg font-bold text-text-primary">{t('customerDisplay.scanToPay')}</p>
+              <p className="mt-1 text-sm text-text-secondary">{t('customerDisplay.timeRemaining', { time: countdown })}</p>
             </div>
             <div className="customer-display-qr-frame">
               <VietQrCode
                 value={snapshot.qrCode}
                 size={900}
-                alt={`Mã VietQR đơn ${snapshot.orderId ?? ''}`}
+                alt={t('customerDisplay.qrAlt', { id: snapshot.orderId ?? '' })}
               />
             </div>
           </div>
@@ -153,13 +154,15 @@ export default function CustomerDisplay() {
 }
 
 function CartPreview({ snapshot }: { snapshot: CustomerDisplaySnapshot }) {
+  const { t } = usePreferences()
+  const { formatMoney } = useLocaleFormatters()
   return (
     <div className="customer-display-cart-layout">
       <div className="min-w-0">
         <p className="text-sm font-bold uppercase text-text-secondary">
-          {snapshot.orderType === 'take-away' ? 'Đơn mang đi' : 'Đơn dùng tại quán'}
+          {snapshot.orderType === 'take-away' ? t('customerDisplay.takeAwayOrder') : t('customerDisplay.dineInOrder')}
         </p>
-        <h2 className="mt-1 text-3xl font-extrabold text-text-primary">Đơn hàng của quý khách</h2>
+        <h2 className="mt-1 text-3xl font-extrabold text-text-primary">{t('customerDisplay.yourOrder')}</h2>
         <div className="customer-display-item-list mt-5">
           {snapshot.items.map((item, index) => (
             <div key={`${item.name}-${index}`} className="customer-display-item-row">
@@ -172,15 +175,15 @@ function CartPreview({ snapshot }: { snapshot: CustomerDisplaySnapshot }) {
                 )}
               </div>
               <strong className="shrink-0 text-lg font-extrabold text-text-primary tabular-nums">
-                {formatVND(item.lineTotal)}
+                {formatMoney(item.lineTotal)}
               </strong>
             </div>
           ))}
         </div>
       </div>
       <div className="customer-display-total">
-        <span>Tổng cộng</span>
-        <strong>{formatVND(snapshot.totalAmount)}</strong>
+        <span>{t('customerDisplay.total')}</span>
+        <strong>{formatMoney(snapshot.totalAmount)}</strong>
       </div>
     </div>
   )

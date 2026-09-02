@@ -1,8 +1,11 @@
 @model CafeChain.ViewModels.Admin.Staffs.StaffEditVM
 @using CafeChain.Application.Constants.Cloudinaries
+@using Microsoft.Extensions.Localization
+@using System.Text.Json
+@inject IStringLocalizer<StaffResource> L
 @{
     var provinces = ViewBag.Provinces as List<CafeChain.Models.Locations.Province> ?? new();
-    ViewData["Title"] = "Cập nhật nhân viên";
+    ViewData["Title"] = L["Staff.Edit.Title"].Value;
     Layout = "_AdminLayout";
 }
 
@@ -14,16 +17,16 @@
 <div class="admin-wo-page staff-edit-page">
     <header class="page-header staff-edit-header cc-admin-heading">
         <div class="cc-admin-heading__copy">
-            <div class="cc-admin-heading__eyebrow">Nhân sự &amp; Vận hành / Quản lý nhân viên / Cập nhật</div>
+            <div class="cc-admin-heading__eyebrow">@L["Staff.Edit.Eyebrow"]</div>
             <div class="cc-admin-heading__row">
                 <span class="staff-edit-heading-icon cc-admin-heading__icon" aria-hidden="true"><i class="fas fa-user-pen"></i></span>
                 <div class="cc-admin-heading__text">
-                    <h1>Cập nhật nhân viên</h1>
-                    <p>Chỉnh sửa thông tin cá nhân; vai trò và phạm vi được quản lý ở màn hình phân quyền.</p>
+                    <h1>@L["Staff.Edit.Title"]</h1>
+                    <p>@L["Staff.Edit.Subtitle"]</p>
                 </div>
             </div>
         </div>
-        <a asp-action="Index" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Quay lại</a>
+        <a asp-action="Index" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>@L["Staff.Edit.Back"]</a>
     </header>
     <form asp-action="Edit" method="post" enctype="multipart/form-data" id="editStaffForm" class="card admin-wo-card staff-edit-card">
         @Html.AntiForgeryToken()
@@ -38,25 +41,25 @@
         <div class="card-body">
             <div asp-validation-summary="ModelOnly" class="staff-form-validation text-danger mb-3"></div>
             <section class="staff-form-section">
-                <div class="staff-edit-section-title"><span><i class="fas fa-id-card"></i></span><div><strong>Thông tin nhân viên</strong><small>Thông tin định danh và trạng thái làm việc hiện tại.</small></div></div>
+                <div class="staff-edit-section-title"><span><i class="fas fa-id-card"></i></span><div><strong>@L["Staff.Edit.InfoSection"]</strong><small>@L["Staff.Edit.InfoHint"]</small></div></div>
                 <div class="row g-3">
-                <div class="col-md-6"><label asp-for="FullName" class="form-label">Họ và tên *</label><input asp-for="FullName" class="form-control" /><span asp-validation-for="FullName" class="text-danger"></span></div>
-                <div class="col-md-6"><label asp-for="Email" class="form-label">Email *</label><input asp-for="Email" class="form-control" /><span asp-validation-for="Email" class="text-danger"></span></div>
-                <div class="col-md-4"><label asp-for="CCCD" class="form-label">CCCD *</label><input asp-for="CCCD" class="form-control" /></div>
-                <div class="col-md-4"><label asp-for="Gender" class="form-label">Giới tính</label><select asp-for="Gender" class="form-select"><option value="0">Nữ</option><option value="1">Nam</option><option value="2">Khác</option></select></div>
-                <div class="col-md-4"><label asp-for="DateOfBirth" class="form-label">Ngày sinh *</label><input asp-for="DateOfBirth" type="date" class="form-control" /></div>
-                <div class="col-md-4"><label asp-for="StartDate" class="form-label">Ngày bắt đầu</label><input asp-for="StartDate" type="date" class="form-control" /></div>
-                <div class="col-md-4"><label asp-for="EmployeeStatus" class="form-label">Trạng thái nhân sự</label><select asp-for="EmployeeStatus" class="form-select"><option value="1">Thử việc</option><option value="2">Chính thức</option><option value="3">Nghỉ việc</option></select></div>
-                <div class="col-md-4"><label class="form-label">Số điện thoại</label><input name="Phones[0]" value="@(Model.Phones.FirstOrDefault())" class="form-control" /></div>
+                <div class="col-md-6"><label asp-for="FullName" class="form-label">@L["Staff.Edit.FullName"]</label><input asp-for="FullName" class="form-control" /><span asp-validation-for="FullName" class="text-danger"></span></div>
+                <div class="col-md-6"><label asp-for="Email" class="form-label">@L["Staff.Edit.Email"]</label><input asp-for="Email" class="form-control" /><span asp-validation-for="Email" class="text-danger"></span></div>
+                <div class="col-md-4"><label asp-for="CCCD" class="form-label">@L["Staff.Edit.Cccd"]</label><input asp-for="CCCD" class="form-control" /></div>
+                <div class="col-md-4"><label asp-for="Gender" class="form-label">@L["Staff.Edit.Gender"]</label><select asp-for="Gender" class="form-select"><option value="0">@L["Staff.Create.Gender.Female"]</option><option value="1">@L["Staff.Create.Gender.Male"]</option><option value="2">@L["Staff.Create.Gender.Other"]</option></select></div>
+                <div class="col-md-4"><label asp-for="DateOfBirth" class="form-label">@L["Staff.Edit.Dob"]</label><input asp-for="DateOfBirth" type="date" class="form-control" /></div>
+                <div class="col-md-4"><label asp-for="StartDate" class="form-label">@L["Staff.Edit.StartDate"]</label><input asp-for="StartDate" type="date" class="form-control" /></div>
+                <div class="col-md-4"><label asp-for="EmployeeStatus" class="form-label">@L["Staff.Edit.EmployeeStatus"]</label><select asp-for="EmployeeStatus" class="form-select"><option value="1">@L["Staff.Create.Status.Probation"]</option><option value="2">@L["Staff.Create.Status.Official"]</option><option value="3">@L["Staff.Edit.Status.Resigned"]</option></select></div>
+                <div class="col-md-4"><label class="form-label">@L["Staff.Edit.Phone"]</label><input name="Phones[0]" value="@(Model.Phones.FirstOrDefault())" class="form-control" /></div>
                     <div class="col-12">
-                        <label class="form-label">Ảnh đại diện</label>
+                        <label class="form-label">@L["Staff.Edit.Avatar"]</label>
                         <div class="staff-edit-avatar d-flex gap-3 align-items-center">
                             <img id="staffAvatarPreview" src="@(string.IsNullOrWhiteSpace(Model.CurrentAvatarUrl) ? DefaultImages.StaffAvatarUrl : Model.CurrentAvatarUrl)" width="64" height="64" class="rounded-circle" onerror="this.src='@DefaultImages.StaffAvatarUrl'" />
                             <input asp-for="AvatarFile" id="editAvatarInput" type="file" class="d-none" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
                             <div class="avatar-actions d-flex flex-wrap align-items-center gap-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary" id="chooseEditAvatar"><i class="fas fa-upload me-1"></i>Chọn ảnh</button>
-                                <button type="button" class="btn btn-sm btn-outline-danger d-none" id="removeEditAvatar"><i class="fas fa-trash me-1"></i>Bỏ chọn</button>
-                                <small class="text-muted ms-1">Định dạng JPG, PNG, WebP · tối đa 2 MB</small>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="chooseEditAvatar"><i class="fas fa-upload me-1"></i>@L["Staff.Edit.ChoosePhoto"]</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger d-none" id="removeEditAvatar"><i class="fas fa-trash me-1"></i>@L["Staff.Edit.UnselectPhoto"]</button>
+                                <small class="text-muted ms-1">@L["Staff.Edit.AvatarHint"]</small>
                             </div>
                         </div>
                         <span asp-validation-for="AvatarFile" class="text-danger small"></span>
@@ -65,22 +68,25 @@
             </section>
 
             <section class="staff-form-section">
-                <div class="staff-edit-section-title"><span><i class="fas fa-location-dot"></i></span><div><strong>Địa chỉ thường trú</strong><small>Thông tin khu vực và địa chỉ liên hệ của nhân viên.</small></div></div>
+                <div class="staff-edit-section-title"><span><i class="fas fa-location-dot"></i></span><div><strong>@L["Staff.Edit.AddressSection"]</strong><small>@L["Staff.Edit.AddressHint"]</small></div></div>
                 <div class="row g-3">
-                <div class="col-md-6"><label asp-for="ProvinceId" class="form-label">Tỉnh/Thành phố *</label><select asp-for="ProvinceId" id="editProvince" class="form-select"><option value="">-- Chọn Tỉnh/Thành phố --</option>@foreach (var p in provinces) { <option value="@p.ProvinceId">@p.Name</option> }</select></div>
-                <div class="col-md-6"><label asp-for="WardId" class="form-label">Xã/Phường/Đặc khu *</label><select asp-for="WardId" id="editWard" class="form-select"><option value="">-- Chọn Xã/Phường/Đặc khu --</option></select></div>
-                <div class="col-12"><label asp-for="Address" class="form-label">Địa chỉ chi tiết *</label><input asp-for="Address" class="form-control" placeholder="Số nhà, tên đường..." /><span asp-validation-for="Address" class="text-danger"></span></div>
+                <div class="col-md-6"><label asp-for="ProvinceId" class="form-label">@L["Staff.Edit.Province"]</label><select asp-for="ProvinceId" id="editProvince" class="form-select"><option value="">@L["Staff.Create.SelectProvince"]</option>@foreach (var p in provinces) { <option value="@p.ProvinceId">@p.Name</option> }</select></div>
+                <div class="col-md-6"><label asp-for="WardId" class="form-label">@L["Staff.Edit.Ward"]</label><select asp-for="WardId" id="editWard" class="form-select"><option value="">@L["Staff.Create.SelectWard"]</option></select></div>
+                <div class="col-12"><label asp-for="Address" class="form-label">@L["Staff.Edit.Address"]</label><input asp-for="Address" class="form-control" placeholder="@L["Staff.Create.AddressPlaceholder"]" /><span asp-validation-for="Address" class="text-danger"></span></div>
                 </div>
             </section>
         </div>
-        <div class="card-footer staff-form-actions"><span class="staff-form-actions__hint"><i class="fas fa-circle-info"></i> Các trường có dấu * là bắt buộc.</span><div><a asp-action="Index" class="btn btn-outline-secondary">Hủy</a><button type="submit" class="btn btn-primary"><i class="fas fa-floppy-disk me-1"></i>Lưu thay đổi</button></div></div>
+        <div class="card-footer staff-form-actions"><span class="staff-form-actions__hint"><i class="fas fa-circle-info"></i> @L["Staff.Edit.RequiredHint"]</span><div><a asp-action="Index" class="btn btn-outline-secondary">@L["Staff.Edit.Cancel"]</a><button type="submit" class="btn btn-primary"><i class="fas fa-floppy-disk me-1"></i>@L["Staff.Edit.Save"]</button></div></div>
     </form>
 </div>
 
 @section Scripts {
 <partial name="_ValidationScriptsPartial" />
+<script type="application/json" id="staff-edit-ui-catalog">@Html.Raw(JsonSerializer.Serialize(L.GetAllStrings().Where(x => x.Name.StartsWith("Staff.Edit.Js.")).ToDictionary(x => x.Name, x => x.Value)))</script>
 <script>
 (() => {
+    const catalog = CafeChainUiCatalog.read('staff-edit-ui-catalog');
+    const t = (key, values) => CafeChainUiCatalog.text(catalog, key, values);
     const avatarInput = document.getElementById('editAvatarInput');
     const avatarPreview = document.getElementById('staffAvatarPreview');
     const chooseAvatarBtn = document.getElementById('chooseEditAvatar');
@@ -95,7 +101,7 @@
             if (!file) return;
             if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
                 avatarInput.value = '';
-                alert('Ảnh phải là JPG, PNG hoặc WebP và không vượt quá 2 MB.');
+                alert(t('Staff.Edit.Js.AvatarInvalid'));
                 return;
             }
             const reader = new FileReader();
@@ -121,7 +127,7 @@
         select.disabled = true; select.innerHTML = `<option value="">${placeholder}</option>`;
     };
     const load = async (select, url, parameter, parent, placeholder, selected, isCurrent) => {
-        reset(select, 'Đang tải...');
+        reset(select, t('Staff.Edit.Js.Loading'));
         if (!parent) { reset(select, placeholder); return []; }
         try {
             const response = await fetch(`${url}?${parameter}=${encodeURIComponent(parent)}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
@@ -133,20 +139,20 @@
             select.disabled = rows.length === 0;
             return rows;
         } catch {
-            if (isCurrent()) reset(select, 'Không tải được dữ liệu');
+            if (isCurrent()) reset(select, t('Staff.Edit.Js.LoadFailed'));
             return [];
         }
     };
     province.addEventListener('change', async () => {
         const parentProvinceId = province.value;
         const version = ++wardRequestVersion;
-        reset(ward, '-- Chọn Xã/Phường/Đặc khu --');
-        if (parentProvinceId) await load(ward, wardsEndpoint, 'provinceId', parentProvinceId, '-- Chọn Xã/Phường/Đặc khu --', '', () => version === wardRequestVersion && province.value === parentProvinceId);
+        reset(ward, t('Staff.Edit.Js.SelectWard'));
+        if (parentProvinceId) await load(ward, wardsEndpoint, 'provinceId', parentProvinceId, t('Staff.Edit.Js.SelectWard'), '', () => version === wardRequestVersion && province.value === parentProvinceId);
     });
     (async () => {
         const provinceId = province.value;
         const wardVersion = ++wardRequestVersion;
-        await load(ward, wardsEndpoint, 'provinceId', provinceId, '-- Chọn Xã/Phường/Đặc khu --', initialWard, () => wardVersion === wardRequestVersion && province.value === provinceId);
+        await load(ward, wardsEndpoint, 'provinceId', provinceId, t('Staff.Edit.Js.SelectWard'), initialWard, () => wardVersion === wardRequestVersion && province.value === provinceId);
     })();
 
     const editForm = document.getElementById('editStaffForm');
@@ -160,9 +166,9 @@
         if (editCccdField) {
             const val = editCccdField.value.trim();
             if (!val) {
-                editCccdField.setCustomValidity('Vui lòng nhập căn cước công dân.');
+                editCccdField.setCustomValidity(t('Staff.Edit.Js.CccdRequired'));
             } else if (!/^\d{12}$/.test(val)) {
-                editCccdField.setCustomValidity('Căn cước công dân không hợp lệ (phải gồm đúng 12 chữ số).');
+                editCccdField.setCustomValidity(t('Staff.Edit.Js.CccdInvalid'));
             } else {
                 editCccdField.setCustomValidity('');
             }
@@ -171,7 +177,7 @@
         if (editDobField) {
             const val = editDobField.value;
             if (!val) {
-                editDobField.setCustomValidity('Vui lòng chọn ngày sinh.');
+                editDobField.setCustomValidity(t('Staff.Edit.Js.DobRequired'));
             } else {
                 editDobField.setCustomValidity('');
             }

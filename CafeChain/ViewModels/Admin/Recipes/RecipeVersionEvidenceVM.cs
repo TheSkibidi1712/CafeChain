@@ -48,6 +48,7 @@ public sealed class RecipeVersionCompareVM
     public RecipeVersionCompareSideVM From { get; set; } = new();
     public RecipeVersionCompareSideVM To { get; set; } = new();
     public string OutputChangeLabel { get; set; } = "Không thay đổi";
+    public bool OutputChanged { get; set; }
     public decimal? DesignCostDelta { get; set; }
     public string CostCompletenessChangeLabel { get; set; } = "";
     public List<RecipeVersionLineChangeVM> AddedLines { get; set; } = new();
@@ -64,16 +65,20 @@ public sealed class RecipeVersionCompareSideVM
     public string OutputDisplay { get; set; } = "";
     public decimal? DesignCost { get; set; }
     public string CostCompletenessLabel { get; set; } = "";
+    public bool IsCurrent { get; set; }
+    public bool CostComplete { get; set; }
 }
 
 public sealed class RecipeVersionLineChangeVM
 {
     public string BusinessName { get; set; } = "";
     public string InputTypeLabel { get; set; } = "";
+    public string InputTypeCode { get; set; } = "";
     public string? TechnicalCode { get; set; }
     public string? BeforeQuantity { get; set; }
     public string? AfterQuantity { get; set; }
     public string? BeforeNormalizedQuantity { get; set; }
     public string? AfterNormalizedQuantity { get; set; }
     public string ChangeSummary { get; set; } = "";
+    public List<string> ChangeCodes { get; set; } = new();
 }

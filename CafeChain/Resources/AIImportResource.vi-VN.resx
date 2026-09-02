@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Page.Title" xml:space="preserve"><value>Nhập dữ liệu thông minh bằng AI</value></data>
+  <data name="Hero.Eyebrow" xml:space="preserve"><value>DỮ LIỆU NỀN / NHẬP THÔNG MINH</value></data>
+  <data name="Hero.Description" xml:space="preserve"><value>Phân tích XLSX, DOCX và PDF có lớp văn bản; kiểm tra từng bản ghi trước khi nhập trọn vẹn.</value></data>
+  <data name="Action.History" xml:space="preserve"><value>Lịch sử</value></data>
+  <data name="Upload.Drop" xml:space="preserve"><value>Thả một hoặc nhiều tệp .xlsx, .docx hoặc .pdf vào đây</value></data>
+  <data name="Upload.Limits" xml:space="preserve"><value>Tối đa 10 tệp · 10 MiB/tệp · 50 MiB/phiên</value></data>
+  <data name="Upload.Choose" xml:space="preserve"><value>Chọn tài liệu</value></data>
+  <data name="Upload.EntityHint" xml:space="preserve"><value>Gợi ý loại dữ liệu</value></data>
+  <data name="Upload.Auto" xml:space="preserve"><value>Tự động</value></data>
+  <data name="Entity.Category" xml:space="preserve"><value>Danh mục</value></data>
+  <data name="Entity.Drink" xml:space="preserve"><value>Đồ uống</value></data>
+  <data name="Entity.Size" xml:space="preserve"><value>Kích cỡ</value></data>
+  <data name="Entity.Ingredient" xml:space="preserve"><value>Nguyên liệu</value></data>
+  <data name="Entity.Supplier" xml:space="preserve"><value>Nhà cung cấp</value></data>
+  <data name="Ocr.Checking" xml:space="preserve"><value>Đang kiểm tra cấu hình nhận dạng ký tự quang học (OCR)…</value></data>
+  <data name="Ocr.Aria" xml:space="preserve"><value>Nhận dạng ký tự quang học cho PDF quét ảnh</value></data>
+  <data name="Ocr.Label" xml:space="preserve"><value>OCR cho PDF quét ảnh</value></data>
+  <data name="Ocr.Ready" xml:space="preserve"><value>{provider} · {version} · {languages} sẵn sàng</value></data>
+  <data name="Ocr.Unavailable" xml:space="preserve"><value>Tesseract local chưa sẵn sàng.</value></data>
+  <data name="Action.Analyze" xml:space="preserve"><value>Phân tích</value></data>
+  <data name="State.Processing" xml:space="preserve"><value>Đang xử lý dữ liệu…</value></data>
+  <data name="Session.CloseTitle" xml:space="preserve"><value>Chỉ đóng phần hiển thị; phiên vẫn được giữ trong lịch sử</value></data>
+  <data name="Session.Close" xml:space="preserve"><value>Đóng phiên</value></data>
+  <data name="Session.Reanalyze" xml:space="preserve"><value>Phân tích lại</value></data>
+  <data name="Session.Cancel" xml:space="preserve"><value>Hủy phiên</value></data>
+  <data name="Session.Confirm" xml:space="preserve"><value>Xác nhận nhập</value></data>
+  <data name="Preview.SourceRegion" xml:space="preserve"><value>Nguồn / vùng</value></data>
+  <data name="Preview.Title" xml:space="preserve"><value>Bản xem trước</value></data>
+  <data name="Preview.SourceFile" xml:space="preserve"><value>Tệp nguồn</value></data>
+  <data name="Common.All" xml:space="preserve"><value>Tất cả</value></data>
+  <data name="Preview.DataType" xml:space="preserve"><value>Loại dữ liệu</value></data>
+  <data name="Common.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Status.Valid" xml:space="preserve"><value>Hợp lệ</value></data>
+  <data name="Status.Warning" xml:space="preserve"><value>Cảnh báo</value></data>
+  <data name="Status.Error" xml:space="preserve"><value>Lỗi</value></data>
+  <data name="Status.Review" xml:space="preserve"><value>Cần xem lại</value></data>
+  <data name="Status.Skipped" xml:space="preserve"><value>Bỏ qua</value></data>
+  <data name="Status.Imported" xml:space="preserve"><value>Đã nhập</value></data>
+  <data name="Common.Unknown" xml:space="preserve"><value>Chưa xác định</value></data>
+  <data name="Action.Create" xml:space="preserve"><value>Tạo mới</value></data>
+  <data name="Action.Skip" xml:space="preserve"><value>Bỏ qua</value></data>
+  <data name="Mapping.Title" xml:space="preserve"><value>Loại dữ liệu và ánh xạ cột</value></data>
+  <data name="Mapping.Save" xml:space="preserve"><value>Lưu ánh xạ cột</value></data>
+  <data name="Mapping.SourceColumn" xml:space="preserve"><value>Cột nguồn</value></data>
+  <data name="Mapping.Sample" xml:space="preserve"><value>Giá trị mẫu</value></data>
+  <data name="Mapping.Target" xml:space="preserve"><value>Trường đích</value></data>
+  <data name="Table.SourcePosition" xml:space="preserve"><value>Vị trí nguồn</value></data>
+  <data name="Table.BusinessData" xml:space="preserve"><value>Dữ liệu nghiệp vụ</value></data>
+  <data name="Table.Issues" xml:space="preserve"><value>Lỗi/cảnh báo</value></data>
+  <data name="Common.Actions" xml:space="preserve"><value>Thao tác</value></data>
+  <data name="History.Title" xml:space="preserve"><value>Lịch sử của tài khoản hiện tại</value></data>
+  <data name="Common.Close" xml:space="preserve"><value>Đóng</value></data>
+  <data name="Edit.Title" xml:space="preserve"><value>Sửa bản ghi nguồn</value></data>
+  <data name="Edit.Description" xml:space="preserve"><value>Kiểm tra theo cùng quy tắc với biểu mẫu tạo mới.</value></data>
+  <data name="Edit.ManualReview" xml:space="preserve"><value>Tôi đã đối chiếu từng trường cần xem lại với bằng chứng nguồn/OCR và xác nhận dữ liệu đúng</value></data>
+  <data name="Edit.SourceData" xml:space="preserve"><value>Dữ liệu nguồn bổ sung</value></data>
+  <data name="Edit.Acknowledge" xml:space="preserve"><value>Tôi đã kiểm tra và vẫn muốn tạo bản ghi này</value></data>
+  <data name="Edit.OverrideReason" xml:space="preserve"><value>Lý do vẫn tạo nhà cung cấp gần trùng</value></data>
+  <data name="Edit.OverridePlaceholder" xml:space="preserve"><value>Nêu rõ lý do vẫn tạo nhà cung cấp này</value></data>
+  <data name="Edit.Skip" xml:space="preserve"><value>Bỏ qua dòng</value></data>
+  <data name="Edit.Save" xml:space="preserve"><value>Lưu và kiểm tra lại</value></data>
+</root>

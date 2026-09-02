@@ -1,0 +1,866 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Transfer.Index.Title" xml:space="preserve"><value>Inventory transfers</value></data>
+  <data name="Transfer.Index.Eyebrow" xml:space="preserve"><value>Inventory &amp; Supply / Inventory transfers</value></data>
+  <data name="Transfer.Index.Description" xml:space="preserve"><value>Track all ingredient transfers between branches.</value></data>
+  <data name="Transfer.Index.Create" xml:space="preserve"><value>Create inventory transfer</value></data>
+  <data name="Transfer.Index.QuickFilter" xml:space="preserve"><value>Quick filters</value></data>
+  <data name="Transfer.Index.Find" xml:space="preserve"><value>Find inventory transfers</value></data>
+  <data name="Transfer.Index.FilterHint" xml:space="preserve"><value>Filter by code, branch, and status</value></data>
+  <data name="Transfer.Code" xml:space="preserve"><value>Transfer code</value></data>
+  <data name="Transfer.Index.CodePlaceholder" xml:space="preserve"><value>Enter a transfer code...</value></data>
+  <data name="Common.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Transfer.Index.AllStatuses" xml:space="preserve"><value>All statuses</value></data>
+  <data name="Transfer.SourceStore" xml:space="preserve"><value>Source branch</value></data>
+  <data name="Transfer.Index.AllSourceStores" xml:space="preserve"><value>All source branches</value></data>
+  <data name="Transfer.DestinationStore" xml:space="preserve"><value>Destination branch</value></data>
+  <data name="Transfer.Index.AllDestinationStores" xml:space="preserve"><value>All destination branches</value></data>
+  <data name="Common.Filter" xml:space="preserve"><value>Filter</value></data>
+  <data name="Common.ClearFilters" xml:space="preserve"><value>Clear filters</value></data>
+  <data name="Transfer.Index.List" xml:space="preserve"><value>Transfer list</value></data>
+  <data name="Transfer.Index.Total" xml:space="preserve"><value>{0} inventory transfers</value></data>
+  <data name="Transfer.Purpose" xml:space="preserve"><value>Purpose</value></data>
+  <data name="Transfer.CreatedBy" xml:space="preserve"><value>Created by</value></data>
+  <data name="Transfer.DocumentDate" xml:space="preserve"><value>Document date</value></data>
+  <data name="Common.LineCount" xml:space="preserve"><value>Lines</value></data>
+  <data name="Common.Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Transfer.Index.Empty" xml:space="preserve"><value>No inventory transfers found.</value></data>
+  <data name="Common.CreatedAt" xml:space="preserve"><value>Created {0}</value></data>
+  <data name="Common.View" xml:space="preserve"><value>View</value></data>
+  <data name="Common.Previous" xml:space="preserve"><value>Previous</value></data>
+  <data name="Common.Next" xml:space="preserve"><value>Next</value></data>
+  <data name="Common.PageOf" xml:space="preserve"><value>Page {0} / {1}</value></data>
+  <data name="Transfer.Status.DRAFT" xml:space="preserve"><value>Draft</value></data>
+  <data name="Transfer.Status.COMPLETED" xml:space="preserve"><value>Completed</value></data>
+  <data name="Transfer.Status.CANCELLED" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="Transfer.Status.DISPATCHED" xml:space="preserve"><value>Dispatched</value></data>
+  <data name="Transfer.Purpose.REPLENISHMENT" xml:space="preserve"><value>Replenishment</value></data>
+  <data name="Transfer.Purpose.BALANCING" xml:space="preserve"><value>Inventory balancing</value></data>
+  <data name="Transfer.Purpose.OTHER" xml:space="preserve"><value>Other</value></data>
+  <data name="Transfer.Create.CheckStockFirst" xml:space="preserve"><value>Check inventory before confirming.</value></data>
+  <data name="Common.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Common.SaveDraft" xml:space="preserve"><value>Save draft</value></data>
+  <data name="Transfer.Create.ConfirmDisabledTitle" xml:space="preserve"><value>Complete the inventory check to enable this button</value></data>
+  <data name="Transfer.Create.Confirm" xml:space="preserve"><value>Confirm transfer</value></data>
+  <data name="Transfer.Create.LinesTitle" xml:space="preserve"><value>Transfer lines</value></data>
+  <data name="Transfer.Create.SelectSourceToLoad" xml:space="preserve"><value>Select a source branch to load ingredients and prepared items.</value></data>
+  <data name="Common.AddLine" xml:space="preserve"><value>Add line</value></data>
+  <data name="Common.Unit" xml:space="preserve"><value>Unit</value></data>
+  <data name="Transfer.Create.SourceStock" xml:space="preserve"><value>Source inventory</value></data>
+  <data name="Transfer.Create.TransferQuantity" xml:space="preserve"><value>Transfer quantity</value></data>
+  <data name="Transfer.Create.RemainingTitle" xml:space="preserve"><value>Inventory remaining at the source after transfer</value></data>
+  <data name="Transfer.Create.Remaining" xml:space="preserve"><value>Remaining after transfer</value></data>
+  <data name="Transfer.Create.NoItems" xml:space="preserve"><value>No items added.</value></data>
+  <data name="Common.GeneralInformation" xml:space="preserve"><value>General information</value></data>
+  <data name="Transfer.Create.DocumentInformation" xml:space="preserve"><value>Transfer information</value></data>
+  <data name="Common.AutomaticCode" xml:space="preserve"><value>Automatic code</value></data>
+  <data name="Common.AutomaticallyGenerated" xml:space="preserve"><value>Automatically generated</value></data>
+  <data name="Transfer.Create.InventoryDocuments" xml:space="preserve"><value>Inventory documents</value></data>
+  <data name="Transfer.Create.InterBranchTransfer" xml:space="preserve"><value>Inter-branch transfer</value></data>
+  <data name="Transfer.Create.Title" xml:space="preserve"><value>Inventory transfer</value></data>
+  <data name="Transfer.Create.Description" xml:space="preserve"><value>Move ingredients between branches in the system</value></data>
+  <data name="Transfer.Create.BackToList" xml:space="preserve"><value>Transfer list</value></data>
+  <data name="Common.Note" xml:space="preserve"><value>Note</value></data>
+  <data name="Transfer.Create.NotePlaceholder" xml:space="preserve"><value>Add ingredients for the branch before the holiday...</value></data>
+  <data name="Transfer.Create.StoreSelection" xml:space="preserve"><value>Select source and destination branches</value></data>
+  <data name="Transfer.Create.SelectSourceStore" xml:space="preserve"><value>Select a source branch</value></data>
+  <data name="Transfer.Create.Transfer" xml:space="preserve"><value>Transfer</value></data>
+  <data name="Transfer.Create.SelectDestinationStore" xml:space="preserve"><value>Select a destination branch</value></data>
+  <data name="Transfer.Detail.PageTitle" xml:space="preserve"><value>Inventory transfer {0}</value></data>
+  <data name="Transfer.Js.MissingEndpoint" xml:space="preserve"><value>Missing endpoint configuration: {name}.</value></data>
+  <data name="Transfer.Js.SelectSource" xml:space="preserve"><value>Select a source branch to load items.</value></data>
+  <data name="Transfer.Js.LoadingItems" xml:space="preserve"><value>Loading items...</value></data>
+  <data name="Transfer.Js.AvailableItems" xml:space="preserve"><value>{count} items can be transferred.</value></data>
+  <data name="Transfer.Js.LoadItemsFailed" xml:space="preserve"><value>Items could not be loaded.</value></data>
+  <data name="Transfer.Js.SelectItem" xml:space="preserve"><value>Select an item</value></data>
+  <data name="Transfer.Js.RemoveLine" xml:space="preserve"><value>Remove line</value></data>
+  <data name="Transfer.Js.ExceedsSourceStock" xml:space="preserve"><value>Exceeds source inventory; dispatch will be blocked.</value></data>
+  <data name="Transfer.Js.DraftSaved" xml:space="preserve"><value>Transfer draft saved.</value></data>
+  <data name="Transfer.Js.SaveDraftFailed" xml:space="preserve"><value>Transfer draft could not be saved.</value></data>
+  <data name="Transfer.Js.PreflightBlocked" xml:space="preserve"><value>Quantity/FIFO checks did not pass; dispatch is blocked.</value></data>
+  <data name="Transfer.Js.TransferConfirmed" xml:space="preserve"><value>Inventory transfer confirmed.</value></data>
+  <data name="Transfer.Js.ConfirmFailed" xml:space="preserve"><value>Inventory transfer could not be confirmed.</value></data>
+  <data name="Transfer.Js.PreflightFailed" xml:space="preserve"><value>Quantity/FIFO checks could not run.</value></data>
+  <data name="Transfer.Js.SourceRequired" xml:space="preserve"><value>Select a source branch.</value></data>
+  <data name="Transfer.Js.DestinationRequired" xml:space="preserve"><value>Select a destination branch.</value></data>
+  <data name="Transfer.Js.StoresMustDiffer" xml:space="preserve"><value>Source and destination branches must differ.</value></data>
+  <data name="Transfer.Js.ItemRequired" xml:space="preserve"><value>Add at least one item.</value></data>
+  <data name="Transfer.Js.SingleItemTypeRequired" xml:space="preserve"><value>Select exactly one ingredient or prepared item.</value></data>
+  <data name="Transfer.Js.DuplicateItem" xml:space="preserve"><value>Each item may appear only once.</value></data>
+  <data name="Transfer.Js.UnitRequired" xml:space="preserve"><value>Select a unit.</value></data>
+  <data name="Transfer.Js.QuantityPositive" xml:space="preserve"><value>Transfer quantity must be greater than zero.</value></data>
+  <data name="Transfer.Js.RequestFailed" xml:space="preserve"><value>The request was unsuccessful.</value></data>
+  <data name="Transfer.Js.NoItems" xml:space="preserve"><value>No items added.</value></data>
+  <data name="Transfer.Js.Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="Transfer.Js.Exceeded" xml:space="preserve"><value>Exceeded</value></data>
+  <data name="Transfer.Js.WarningLines" xml:space="preserve"><value>{count} lines require an inventory check before confirmation.</value></data>
+  <data name="Transfer.Js.CheckStockFirst" xml:space="preserve"><value>Check inventory before confirming.</value></data>
+  <data name="Transfer.Js.AutomaticCode" xml:space="preserve"><value>Automatically generated</value></data>
+  <data name="Transfer.Js.PreparedItem" xml:space="preserve"><value>Prepared item</value></data>
+  <data name="Transfer.Js.Ingredient" xml:space="preserve"><value>Ingredient</value></data>
+  <data name="Transfer.Js.ItemOption" xml:space="preserve"><value>[{type}] {name} - inventory {available} {unit}</value></data>
+  <data name="Transfer.Js.ResolutionExceedsPending" xml:space="preserve"><value>Accepted and rejected quantities exceed the pending quantity.</value></data>
+  <data name="Transfer.Js.RejectionDetailsRequired" xml:space="preserve"><value>Select a type and enter a reason for rejected items.</value></data>
+  <data name="Transfer.Js.ResolutionQuantityRequired" xml:space="preserve"><value>Enter an accepted or rejected quantity.</value></data>
+  <data name="Transfer.Js.FollowUpQuantityRequired" xml:space="preserve"><value>Enter a quantity to process.</value></data>
+  <data name="Transfer.Js.ResolutionLineExceeded" xml:space="preserve"><value>The processed quantity exceeds the line limit.</value></data>
+  <data name="Transfer.Js.ResolutionReasonRequired" xml:space="preserve"><value>A resolution reason is required.</value></data>
+  <data name="Transfer.Js.Recording" xml:space="preserve"><value>Recording...</value></data>
+  <data name="Transfer.Js.ResolutionFailed" xml:space="preserve"><value>The inventory transfer could not be processed.</value></data>
+  <data name="Transfer.Js.FollowUpCreated" xml:space="preserve"><value>A follow-up shipment was created.</value></data>
+  <data name="Transfer.Js.RecordedSuccessfully" xml:space="preserve"><value>Recorded successfully.</value></data>
+  <data name="Transfer.Detail.Breadcrumb" xml:space="preserve"><value>Inventory transfer details</value></data>
+  <data name="Transfer.Detail.Description" xml:space="preserve"><value>Inter-branch inventory transfer document.</value></data>
+  <data name="Transfer.Detail.BackToList" xml:space="preserve"><value>Transfer list</value></data>
+  <data name="Transfer.Detail.CreateNew" xml:space="preserve"><value>Create transfer</value></data>
+  <data name="Common.ReadOnly" xml:space="preserve"><value>Read only</value></data>
+  <data name="Transfer.Detail.Type" xml:space="preserve"><value>Document type</value></data>
+  <data name="Transfer.Type.TRANSFER" xml:space="preserve"><value>Inventory transfer</value></data>
+  <data name="Common.CreatedDate" xml:space="preserve"><value>Created date</value></data>
+  <data name="Common.ConfirmedBy" xml:space="preserve"><value>Confirmed by</value></data>
+  <data name="Common.ConfirmedDate" xml:space="preserve"><value>Confirmed date</value></data>
+  <data name="Common.CancelledBy" xml:space="preserve"><value>Cancelled by</value></data>
+  <data name="Common.CancelledDate" xml:space="preserve"><value>Cancelled date</value></data>
+  <data name="Common.TechnicalInformation" xml:space="preserve"><value>Technical information</value></data>
+  <data name="Transfer.Detail.Flow" xml:space="preserve"><value>Transfer flow</value></data>
+  <data name="Transfer.Detail.SourceAndDestination" xml:space="preserve"><value>Source and destination branches</value></data>
+  <data name="Transfer.Detail.NoteTitle" xml:space="preserve"><value>Transfer note</value></data>
+  <data name="Common.NoNote" xml:space="preserve"><value>No note.</value></data>
+  <data name="Transfer.Detail.Timeline" xml:space="preserve"><value>Processing timeline</value></data>
+  <data name="Transfer.Detail.ReceiptAndDiscrepancy" xml:space="preserve"><value>Receipts and discrepancies</value></data>
+  <data name="Transfer.Detail.NoTimeline" xml:space="preserve"><value>No receipt or discrepancy event has been recorded.</value></data>
+  <data name="Common.System" xml:space="preserve"><value>System</value></data>
+  <data name="Transfer.Type.STORE_TO_STORE" xml:space="preserve"><value>Inter-branch transfer</value></data>
+  <data name="Transfer.Detail.ItemList" xml:space="preserve"><value>Ingredient and prepared-item list</value></data>
+  <data name="Transfer.Detail.QuantityEvidenceHint" xml:space="preserve"><value>Quantities are sourced from dispatch, receipt, and discrepancy ledgers.</value></data>
+  <data name="Transfer.Detail.Requested" xml:space="preserve"><value>Requested</value></data>
+  <data name="Transfer.Detail.Dispatched" xml:space="preserve"><value>Dispatched</value></data>
+  <data name="Transfer.Detail.Accepted" xml:space="preserve"><value>Accepted</value></data>
+  <data name="Transfer.Detail.Rejected" xml:space="preserve"><value>Rejected</value></data>
+  <data name="Transfer.Detail.Returned" xml:space="preserve"><value>Returned</value></data>
+  <data name="Transfer.Detail.WrittenOff" xml:space="preserve"><value>Written off</value></data>
+  <data name="Transfer.Detail.ClosedShortage" xml:space="preserve"><value>Closed shortage</value></data>
+  <data name="Transfer.Detail.Pending" xml:space="preserve"><value>Pending</value></data>
+  <data name="Transfer.Detail.NoItems" xml:space="preserve"><value>This transfer has no items.</value></data>
+  <data name="Transfer.Detail.RestockRequestNumber" xml:space="preserve"><value>Restock request #{0}</value></data>
+  <data name="Transfer.Resolution.Title" xml:space="preserve"><value>Resolve discrepancies</value></data>
+  <data name="Transfer.Resolution.Heading" xml:space="preserve"><value>Continue receiving or close quantities in transit</value></data>
+  <data name="Transfer.Resolution.CostHint" xml:space="preserve"><value>Every action uses the cost from the original dispatch.</value></data>
+  <data name="Transfer.Resolution.SelectAction" xml:space="preserve"><value>Select an action</value></data>
+  <data name="Transfer.Resolution.Receive" xml:space="preserve"><value>Receive at destination</value></data>
+  <data name="Transfer.Resolution.RequestReturn" xml:space="preserve"><value>Request return to source</value></data>
+  <data name="Transfer.Resolution.ConfirmReturn" xml:space="preserve"><value>Confirm return received at source</value></data>
+  <data name="Transfer.Resolution.WriteOff" xml:space="preserve"><value>Record loss or damage</value></data>
+  <data name="Transfer.Resolution.CloseShortage" xml:space="preserve"><value>Close shortage</value></data>
+  <data name="Transfer.Resolution.FollowUp" xml:space="preserve"><value>Create follow-up transfer</value></data>
+  <data name="Transfer.Resolution.Warning" xml:space="preserve"><value>Closing a discrepancy only finishes this transfer. The destination may still require replenishment.</value></data>
+  <data name="Transfer.Resolution.PendingValue" xml:space="preserve"><value>Pending {0} {1}</value></data>
+  <data name="Transfer.Resolution.Quantity" xml:space="preserve"><value>Quantity</value></data>
+  <data name="Transfer.Resolution.Accepted" xml:space="preserve"><value>Accepted</value></data>
+  <data name="Transfer.Resolution.Rejected" xml:space="preserve"><value>Rejected/damaged</value></data>
+  <data name="Transfer.Resolution.DiscrepancyType" xml:space="preserve"><value>Discrepancy type</value></data>
+  <data name="Transfer.Resolution.SelectType" xml:space="preserve"><value>Select a type</value></data>
+  <data name="Transfer.Discrepancy.DAMAGED" xml:space="preserve"><value>Damaged</value></data>
+  <data name="Transfer.Discrepancy.SHORTAGE" xml:space="preserve"><value>Short delivery</value></data>
+  <data name="Transfer.Discrepancy.QUALITY_REJECTED" xml:space="preserve"><value>Quality rejected</value></data>
+  <data name="Transfer.Resolution.RejectionReason" xml:space="preserve"><value>Rejection reason</value></data>
+  <data name="Transfer.Resolution.ConditionPlaceholder" xml:space="preserve"><value>Describe the condition</value></data>
+  <data name="Transfer.Resolution.ActionReason" xml:space="preserve"><value>Action reason / note</value></data>
+  <data name="Transfer.Resolution.ActionReasonPlaceholder" xml:space="preserve"><value>Required for returns, loss/damage, and closed shortages</value></data>
+  <data name="Transfer.Resolution.ConfirmAction" xml:space="preserve"><value>Confirm action</value></data>
+  <data name="Common.InventorySupply" xml:space="preserve"><value>Inventory &amp; Supply</value></data>
+  <data name="Common.SelectedStore" xml:space="preserve"><value>selected store</value></data>
+  <data name="Common.ViewInventory" xml:space="preserve"><value>View inventory</value></data>
+  <data name="Common.RestockRequests" xml:space="preserve"><value>Restock requests</value></data>
+  <data name="Common.ViewRestockRequests" xml:space="preserve"><value>View restock requests</value></data>
+  <data name="Common.SelectBranch" xml:space="preserve"><value>Select branch</value></data>
+  <data name="Common.Branch" xml:space="preserve"><value>Branch</value></data>
+  <data name="Common.Apply" xml:space="preserve"><value>Apply</value></data>
+  <data name="Common.FilteredResults" xml:space="preserve"><value>Filtered results</value></data>
+  <data name="Common.All" xml:space="preserve"><value>All</value></data>
+  <data name="Common.Item" xml:space="preserve"><value>Item</value></data>
+  <data name="Common.OnHand" xml:space="preserve"><value>On hand</value></data>
+  <data name="Common.Reserved" xml:space="preserve"><value>Reserved</value></data>
+  <data name="Common.Available" xml:space="preserve"><value>Available</value></data>
+  <data name="Common.Source" xml:space="preserve"><value>Source</value></data>
+  <data name="Common.Updated" xml:space="preserve"><value>Updated</value></data>
+  <data name="Common.Details" xml:space="preserve"><value>Details</value></data>
+  <data name="StockAlert.Title" xml:space="preserve"><value>Stock alerts</value></data>
+  <data name="StockAlert.Subtitle" xml:space="preserve"><value>Track shortages at {0}. Inventory and workflow statuses are shown separately to support clear decisions.</value></data>
+  <data name="StockAlert.SummaryAria" xml:space="preserve"><value>Alert summary for this page</value></data>
+  <data name="StockAlert.OutOfStockPage" xml:space="preserve"><value>Out of stock on this page</value></data>
+  <data name="StockAlert.LowStockPage" xml:space="preserve"><value>Low stock on this page</value></data>
+  <data name="StockAlert.ManualReports" xml:space="preserve"><value>Staff shortage reports</value></data>
+  <data name="StockAlert.StatusFilterAria" xml:space="preserve"><value>Filter by workflow status</value></data>
+  <data name="StockAlert.EmptyTitle" xml:space="preserve"><value>No matching stock alerts</value></data>
+  <data name="StockAlert.EmptyCopy" xml:space="preserve"><value>There are no alerts in the current scope for this filter. View inventory or change the status to check again.</value></data>
+  <data name="StockAlert.ListAria" xml:space="preserve"><value>Stock alert list</value></data>
+  <data name="StockAlert.InventoryStatus" xml:space="preserve"><value>Inventory status</value></data>
+  <data name="StockAlert.ThresholdTarget" xml:space="preserve"><value>Threshold / target</value></data>
+  <data name="StockAlert.Workflow" xml:space="preserve"><value>Workflow</value></data>
+  <data name="StockAlert.ManualTarget" xml:space="preserve"><value>Manual target</value></data>
+  <data name="StockAlert.MinimumThreshold" xml:space="preserve"><value>Minimum threshold</value></data>
+  <data name="StockAlert.ReportedBy" xml:space="preserve"><value>Reported by {0}</value></data>
+  <data name="StockAlert.Pagination" xml:space="preserve"><value>Page {0} / {1} · {2} alerts total</value></data>
+  <data name="StockAlert.Status.OPEN" xml:space="preserve"><value>Awaiting manager</value></data>
+  <data name="StockAlert.Status.CONFIRMED" xml:space="preserve"><value>Confirmed</value></data>
+  <data name="StockAlert.Status.MANAGER_REJECTED" xml:space="preserve"><value>Reported incorrect</value></data>
+  <data name="StockAlert.Status.RESOLVED" xml:space="preserve"><value>Resolved</value></data>
+  <data name="StockAlert.Type.OUT_OF_STOCK" xml:space="preserve"><value>Out of stock</value></data>
+  <data name="StockAlert.Type.LOW_STOCK" xml:space="preserve"><value>Low stock</value></data>
+  <data name="StockAlert.Source.SALES_REPORT" xml:space="preserve"><value>Staff report</value></data>
+  <data name="StockAlert.Source.SYSTEM" xml:space="preserve"><value>System</value></data>
+  <data name="Common.Inventory" xml:space="preserve"><value>Inventory</value></data>
+  <data name="Common.Alerts" xml:space="preserve"><value>Alerts</value></data>
+  <data name="Common.SelectStore" xml:space="preserve"><value>Select store</value></data>
+  <data name="Common.SearchItems" xml:space="preserve"><value>Search items</value></data>
+  <data name="Common.Search" xml:space="preserve"><value>Search</value></data>
+  <data name="Common.ClearSearch" xml:space="preserve"><value>Clear search</value></data>
+  <data name="Common.Type" xml:space="preserve"><value>Type</value></data>
+  <data name="Common.AvailableInventory" xml:space="preserve"><value>Available inventory</value></data>
+  <data name="Common.Code" xml:space="preserve"><value>Code</value></data>
+  <data name="Common.NotApplicable" xml:space="preserve"><value>Not applicable</value></data>
+  <data name="Common.Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Threshold.Title" xml:space="preserve"><value>Inventory thresholds</value></data>
+  <data name="Threshold.SubtitleBefore" xml:space="preserve"><value>Set the alert threshold and target stock for each branch. Alerts use</value></data>
+  <data name="Threshold.Formula" xml:space="preserve"><value>Available inventory = On hand − Reserved</value></data>
+  <data name="Threshold.SubtitleAfter" xml:space="preserve"><value>and are created only when available inventory falls below the threshold.</value></data>
+  <data name="Threshold.ReadOnlyNotice" xml:space="preserve"><value>You are in read-only mode. Only managers with the appropriate scope can update thresholds.</value></data>
+  <data name="Threshold.SummaryAria" xml:space="preserve"><value>Threshold summary for this page</value></data>
+  <data name="Threshold.FilteredItems" xml:space="preserve"><value>Items matching filters</value></data>
+  <data name="Threshold.ConfiguredPage" xml:space="preserve"><value>Configured on this page</value></data>
+  <data name="Threshold.UnconfiguredPage" xml:space="preserve"><value>Not configured on this page</value></data>
+  <data name="Threshold.BelowThreshold" xml:space="preserve"><value>Below threshold</value></data>
+  <data name="Threshold.SearchPlaceholder" xml:space="preserve"><value>Search ingredients or prepared items...</value></data>
+  <data name="Threshold.SelectedStore" xml:space="preserve"><value>Selected store: #{0}</value></data>
+  <data name="Threshold.EmptyTitle" xml:space="preserve"><value>No items require configuration</value></data>
+  <data name="Threshold.EmptyCopy" xml:space="preserve"><value>Try another keyword or select a different store. Items appear only when your account has access to the corresponding inventory.</value></data>
+  <data name="Threshold.OpenStoreInventory" xml:space="preserve"><value>Open store inventory</value></data>
+  <data name="Threshold.LowStockThreshold" xml:space="preserve"><value>Low-stock alert threshold</value></data>
+  <data name="Threshold.TargetStock" xml:space="preserve"><value>Target stock</value></data>
+  <data name="Threshold.Status.Unconfigured" xml:space="preserve"><value>Not configured</value></data>
+  <data name="Threshold.Status.Out" xml:space="preserve"><value>None available</value></data>
+  <data name="Threshold.Status.Low" xml:space="preserve"><value>Below threshold</value></data>
+  <data name="Threshold.Status.Normal" xml:space="preserve"><value>Normal</value></data>
+  <data name="Threshold.LowAria" xml:space="preserve"><value>Low-stock alert threshold for {0}</value></data>
+  <data name="Threshold.TargetAria" xml:space="preserve"><value>Target stock for {0}</value></data>
+  <data name="Threshold.ThresholdPlaceholder" xml:space="preserve"><value>Threshold</value></data>
+  <data name="Threshold.TargetPlaceholder" xml:space="preserve"><value>Target</value></data>
+  <data name="Threshold.Pagination" xml:space="preserve"><value>Page {0} / {1} · {2} items total</value></data>
+  <data name="Common.Ingredients" xml:space="preserve"><value>Ingredients</value></data>
+  <data name="Common.PreparedItems" xml:space="preserve"><value>Prepared items</value></data>
+  <data name="Common.Ingredient" xml:space="preserve"><value>Ingredient</value></data>
+  <data name="Common.PreparedItem" xml:space="preserve"><value>Prepared item</value></data>
+  <data name="Common.Page" xml:space="preserve"><value>Page {0}</value></data>
+  <data name="StoreInventory.Title" xml:space="preserve"><value>Store inventory</value></data>
+  <data name="StoreInventory.Subtitle" xml:space="preserve"><value>The inventory list is filtered to the stores accessible to this employee.</value></data>
+  <data name="StoreInventory.SearchAria" xml:space="preserve"><value>Search store inventory</value></data>
+  <data name="StoreInventory.SearchPrepared" xml:space="preserve"><value>Search by prepared-item code or name...</value></data>
+  <data name="StoreInventory.SearchIngredient" xml:space="preserve"><value>Search by ingredient code or name...</value></data>
+  <data name="StoreInventory.TypeAria" xml:space="preserve"><value>Inventory type</value></data>
+  <data name="StoreInventory.PreparedCount" xml:space="preserve"><value>{0} prepared items in the selected scope</value></data>
+  <data name="StoreInventory.IngredientCount" xml:space="preserve"><value>{0} ingredients in the selected scope</value></data>
+  <data name="StoreInventory.PreparedCode" xml:space="preserve"><value>Prepared-item code</value></data>
+  <data name="StoreInventory.IngredientCode" xml:space="preserve"><value>Ingredient code</value></data>
+  <data name="StoreInventory.OnHandTitle" xml:space="preserve"><value>Total physical quantity in inventory</value></data>
+  <data name="StoreInventory.ReservedTitle" xml:space="preserve"><value>Quantity reserved for orders or documents</value></data>
+  <data name="StoreInventory.AvailableTitle" xml:space="preserve"><value>Quantity available for immediate use</value></data>
+  <data name="StoreInventory.ActualCost" xml:space="preserve"><value>Actual cost</value></data>
+  <data name="StoreInventory.LatestSource" xml:space="preserve"><value>Latest source</value></data>
+  <data name="StoreInventory.LatestPurchasePrice" xml:space="preserve"><value>Latest purchase price</value></data>
+  <data name="StoreInventory.LatestSupplier" xml:space="preserve"><value>Latest supplier</value></data>
+  <data name="StoreInventory.QuantityUnknown" xml:space="preserve"><value>Inventory quantity in the standard unit has not been confirmed.</value></data>
+  <data name="StoreInventory.CostLayer" xml:space="preserve"><value>Cost layer #{0}</value></data>
+  <data name="StoreInventory.NoFifoLayer" xml:space="preserve"><value>No FIFO cost layer</value></data>
+  <data name="StoreInventory.ProductionRun" xml:space="preserve"><value>Production run #{0}</value></data>
+  <data name="StoreInventory.InventoryCostLayer" xml:space="preserve"><value>Inventory cost layer #{0}</value></data>
+  <data name="StoreInventory.EmptyPreparedTitle" xml:space="preserve"><value>No prepared items</value></data>
+  <data name="StoreInventory.EmptyIngredientTitle" xml:space="preserve"><value>No ingredients found</value></data>
+  <data name="StoreInventory.EmptyPreparedCopy" xml:space="preserve"><value>Prepared items appear after a production order is completed and inventory is increased.</value></data>
+  <data name="StoreInventory.EmptyIngredientCopy" xml:space="preserve"><value>Check the keyword, inventory type, or selected branch.</value></data>
+  <data name="StoreInventory.PaginationAria" xml:space="preserve"><value>Store inventory pagination</value></data>
+  <data name="StoreInventory.SelectStoreAria" xml:space="preserve"><value>Select a store to view inventory</value></data>
+  <data name="StoreInventory.NoScopeTitle" xml:space="preserve"><value>No inventory access</value></data>
+  <data name="StoreInventory.NoScopeCopy" xml:space="preserve"><value>This account has not been granted access to inventory at any store.</value></data>
+  <data name="Common.Currency" xml:space="preserve"><value>VND</value></data>
+  <data name="InvDoc.Title" xml:space="preserve"><value>Inventory documents</value></data>
+  <data name="InvDoc.Eyebrow" xml:space="preserve"><value>Inventory &amp; supply / Documents</value></data>
+  <data name="InvDoc.Subtitle" xml:space="preserve"><value>Track exports, stocktakes, and waste in one workspace, with documents that need action first.</value></data>
+  <data name="InvDoc.CreateNew" xml:space="preserve"><value>New document</value></data>
+  <data name="InvDoc.ExportExcel" xml:space="preserve"><value>Export Excel</value></data>
+  <data name="InvDoc.ListAria" xml:space="preserve"><value>Inventory document list</value></data>
+  <data name="InvDoc.Card.Total" xml:space="preserve"><value>Total documents</value></data>
+  <data name="InvDoc.Card.TotalHint" xml:space="preserve"><value>All documents</value></data>
+  <data name="InvDoc.Card.Draft" xml:space="preserve"><value>Drafts</value></data>
+  <data name="InvDoc.Card.DraftHint" xml:space="preserve"><value>Need completion</value></data>
+  <data name="InvDoc.Card.Confirmed" xml:space="preserve"><value>Completed</value></data>
+  <data name="InvDoc.Card.ConfirmedHint" xml:space="preserve"><value>Stock updated</value></data>
+  <data name="InvDoc.Card.Cancelled" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="InvDoc.Card.CancelledHint" xml:space="preserve"><value>Stopped</value></data>
+  <data name="InvDoc.Card.Month" xml:space="preserve"><value>This month</value></data>
+  <data name="InvDoc.Card.MonthHint" xml:space="preserve"><value>New documents</value></data>
+  <data name="InvDoc.Tab.All" xml:space="preserve"><value>All</value></data>
+  <data name="InvDoc.Tab.Export" xml:space="preserve"><value>Export</value></data>
+  <data name="InvDoc.Tab.StockTake" xml:space="preserve"><value>Stocktake</value></data>
+  <data name="InvDoc.Tab.Waste" xml:space="preserve"><value>Waste</value></data>
+  <data name="InvDoc.Filter.Kicker" xml:space="preserve"><value>Quick filters</value></data>
+  <data name="InvDoc.Filter.Title" xml:space="preserve"><value>Find documents</value></data>
+  <data name="InvDoc.Filter.Hint" xml:space="preserve"><value>Narrow by operation, store, and document date.</value></data>
+  <data name="InvDoc.Filter.Pill" xml:space="preserve"><value>3 document types</value></data>
+  <data name="InvDoc.Filter.Search" xml:space="preserve"><value>Search</value></data>
+  <data name="InvDoc.Filter.SearchPlaceholder" xml:space="preserve"><value>Search code, store, partner, or creator...</value></data>
+  <data name="InvDoc.Filter.SearchAria" xml:space="preserve"><value>Search inventory documents</value></data>
+  <data name="InvDoc.Filter.Type" xml:space="preserve"><value>Document type</value></data>
+  <data name="InvDoc.Filter.AllTypes" xml:space="preserve"><value>All types</value></data>
+  <data name="InvDoc.Filter.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="InvDoc.Filter.AllStatuses" xml:space="preserve"><value>All statuses</value></data>
+  <data name="InvDoc.Filter.Purpose" xml:space="preserve"><value>Purpose</value></data>
+  <data name="InvDoc.Filter.AllPurposes" xml:space="preserve"><value>All purposes</value></data>
+  <data name="InvDoc.Filter.SelectTypeFirst" xml:space="preserve"><value>Select a type first</value></data>
+  <data name="InvDoc.Filter.Store" xml:space="preserve"><value>Store</value></data>
+  <data name="InvDoc.Filter.AllStores" xml:space="preserve"><value>All stores</value></data>
+  <data name="InvDoc.Filter.FromDate" xml:space="preserve"><value>From</value></data>
+  <data name="InvDoc.Filter.ToDate" xml:space="preserve"><value>To</value></data>
+  <data name="InvDoc.Filter.Reset" xml:space="preserve"><value>Reset</value></data>
+  <data name="InvDoc.Filter.Apply" xml:space="preserve"><value>Apply</value></data>
+  <data name="InvDoc.Filter.HistorySuffix" xml:space="preserve"><value>{0} (history)</value></data>
+  <data name="InvDoc.Table.Kicker" xml:space="preserve"><value>Results</value></data>
+  <data name="InvDoc.Table.Count" xml:space="preserve"><value>{0} documents</value></data>
+  <data name="InvDoc.Table.NewestFirst" xml:space="preserve"><value>Newest documents appear first.</value></data>
+  <data name="InvDoc.Table.ScrollHint" xml:space="preserve"><value>Scroll inside the table</value></data>
+  <data name="InvDoc.Table.ScrollAria" xml:space="preserve"><value>Horizontally scrollable document list</value></data>
+  <data name="InvDoc.Col.Code" xml:space="preserve"><value>Code</value></data>
+  <data name="InvDoc.Col.Type" xml:space="preserve"><value>Type</value></data>
+  <data name="InvDoc.Col.Purpose" xml:space="preserve"><value>Purpose</value></data>
+  <data name="InvDoc.Col.Store" xml:space="preserve"><value>Store</value></data>
+  <data name="InvDoc.Col.Partner" xml:space="preserve"><value>Partner</value></data>
+  <data name="InvDoc.Col.Date" xml:space="preserve"><value>Date</value></data>
+  <data name="InvDoc.Col.Value" xml:space="preserve"><value>Document value</value></data>
+  <data name="InvDoc.Col.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="InvDoc.Col.Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="InvDoc.Empty.Title" xml:space="preserve"><value>No documents yet</value></data>
+  <data name="InvDoc.Empty.Copy" xml:space="preserve"><value>Create the first document or change filters to see data.</value></data>
+  <data name="InvDoc.PendingNegative" xml:space="preserve"><value>Pending negative-stock approval</value></data>
+  <data name="InvDoc.ViewDetail" xml:space="preserve"><value>View details</value></data>
+  <data name="InvDoc.OpenToReview" xml:space="preserve"><value>Open to review</value></data>
+  <data name="InvDoc.OpenToReviewTitle" xml:space="preserve"><value>Open details to approve negative stock</value></data>
+  <data name="InvDoc.ConfirmDraft" xml:space="preserve"><value>Confirm draft</value></data>
+  <data name="InvDoc.ExportFile" xml:space="preserve"><value>Export file</value></data>
+  <data name="InvDoc.Showing" xml:space="preserve"><value>Showing {0} - {1} of {2} documents</value></data>
+  <data name="InvDoc.Export.Eyebrow" xml:space="preserve"><value>Inventory / Export document</value></data>
+  <data name="InvDoc.Export.Title" xml:space="preserve"><value>Choose export format</value></data>
+  <data name="InvDoc.Export.Lead" xml:space="preserve"><value>Download a clear document for storage, printing, or partners.</value></data>
+  <data name="InvDoc.Export.PdfHint" xml:space="preserve"><value>Best for printing, signing, and official storage</value></data>
+  <data name="InvDoc.Export.Recommended" xml:space="preserve"><value>Recommended</value></data>
+  <data name="InvDoc.Export.WordHint" xml:space="preserve"><value>Use when you need to edit the content</value></data>
+  <data name="InvDoc.Export.Editable" xml:space="preserve"><value>Editable</value></data>
+  <data name="InvDoc.Export.Note" xml:space="preserve"><value>The export contains document data only and does not change inventory.</value></data>
+  <data name="InvDoc.Detail.Eyebrow" xml:space="preserve"><value>Inventory / Document details</value></data>
+  <data name="InvDoc.Detail.TabGeneral" xml:space="preserve"><value>General</value></data>
+  <data name="InvDoc.Detail.TabDocument" xml:space="preserve"><value>Voucher</value></data>
+  <data name="InvDoc.Detail.NegativeTitle" xml:space="preserve"><value>Negative-stock approval #{0}</value></data>
+  <data name="InvDoc.Detail.Status" xml:space="preserve"><value>Status: {0}</value></data>
+  <data name="InvDoc.Detail.Reject" xml:space="preserve"><value>Reject</value></data>
+  <data name="InvDoc.Detail.ApproveNegative" xml:space="preserve"><value>Approve negative stock</value></data>
+  <data name="InvDoc.General.InfoKicker" xml:space="preserve"><value>Document info</value></data>
+  <data name="InvDoc.General.InfoTitle" xml:space="preserve"><value>General</value></data>
+  <data name="InvDoc.General.Code" xml:space="preserve"><value>Code</value></data>
+  <data name="InvDoc.General.Type" xml:space="preserve"><value>Type</value></data>
+  <data name="InvDoc.General.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="InvDoc.General.Purpose" xml:space="preserve"><value>Purpose</value></data>
+  <data name="InvDoc.General.Date" xml:space="preserve"><value>Document date</value></data>
+  <data name="InvDoc.General.RequestKey" xml:space="preserve"><value>Request key</value></data>
+  <data name="InvDoc.General.ScopeKicker" xml:space="preserve"><value>Scope</value></data>
+  <data name="InvDoc.General.ScopeTitle" xml:space="preserve"><value>Warehouse and staff</value></data>
+  <data name="InvDoc.General.Store" xml:space="preserve"><value>Store</value></data>
+  <data name="InvDoc.General.Staff" xml:space="preserve"><value>Created by</value></data>
+  <data name="InvDoc.General.Processing" xml:space="preserve"><value>Processing</value></data>
+  <data name="InvDoc.Yes" xml:space="preserve"><value>Yes</value></data>
+  <data name="InvDoc.No" xml:space="preserve"><value>No</value></data>
+  <data name="InvDoc.General.RelatedKicker" xml:space="preserve"><value>Reconciliation</value></data>
+  <data name="InvDoc.General.RelatedTitle" xml:space="preserve"><value>Related parties</value></data>
+  <data name="InvDoc.General.Supplier" xml:space="preserve"><value>Supplier</value></data>
+  <data name="InvDoc.General.Partner" xml:space="preserve"><value>Partner</value></data>
+  <data name="InvDoc.General.PartnerType" xml:space="preserve"><value>Party type</value></data>
+  <data name="InvDoc.General.Subject" xml:space="preserve"><value>Party</value></data>
+  <data name="InvDoc.General.LinesKicker" xml:space="preserve"><value>Document data</value></data>
+  <data name="InvDoc.General.LinesTitle" xml:space="preserve"><value>Ingredient lines</value></data>
+  <data name="InvDoc.General.IngredientName" xml:space="preserve"><value>Ingredient</value></data>
+  <data name="InvDoc.General.Unit" xml:space="preserve"><value>UOM</value></data>
+  <data name="InvDoc.Qty.Actual" xml:space="preserve"><value>Actual quantity</value></data>
+  <data name="InvDoc.Qty.Waste" xml:space="preserve"><value>Waste quantity</value></data>
+  <data name="InvDoc.Qty.Default" xml:space="preserve"><value>Quantity</value></data>
+  <data name="InvDoc.Qty.ActualShort" xml:space="preserve"><value>Actual qty</value></data>
+  <data name="InvDoc.Qty.WasteShort" xml:space="preserve"><value>Waste qty</value></data>
+  <data name="InvDoc.Qty.Short" xml:space="preserve"><value>Qty</value></data>
+  <data name="InvDoc.General.Conversion" xml:space="preserve"><value>Base qty</value></data>
+  <data name="InvDoc.General.UnitPrice" xml:space="preserve"><value>Unit price</value></data>
+  <data name="InvDoc.General.LineTotal" xml:space="preserve"><value>Amount</value></data>
+  <data name="InvDoc.Summary.Total" xml:space="preserve"><value>Subtotal</value></data>
+  <data name="InvDoc.Summary.Vat" xml:space="preserve"><value>VAT</value></data>
+  <data name="InvDoc.Summary.Final" xml:space="preserve"><value>Total</value></data>
+  <data name="InvDoc.Voucher.Import" xml:space="preserve"><value>GOODS RECEIPT</value></data>
+  <data name="InvDoc.Voucher.Export" xml:space="preserve"><value>GOODS ISSUE</value></data>
+  <data name="InvDoc.Voucher.StockTake" xml:space="preserve"><value>STOCKTAKE</value></data>
+  <data name="InvDoc.Voucher.Waste" xml:space="preserve"><value>WASTE DOCUMENT</value></data>
+  <data name="InvDoc.Voucher.ProdIn" xml:space="preserve"><value>PRODUCTION RECEIPT</value></data>
+  <data name="InvDoc.Voucher.ProdOut" xml:space="preserve"><value>PRODUCTION ISSUE</value></data>
+  <data name="InvDoc.Voucher.SalesDeduction" xml:space="preserve"><value>SALES DEDUCTION</value></data>
+  <data name="InvDoc.Voucher.Default" xml:space="preserve"><value>INVENTORY DOCUMENT</value></data>
+  <data name="InvDoc.Voucher.ReadOnly" xml:space="preserve"><value>Read only</value></data>
+  <data name="InvDoc.Voucher.Number" xml:space="preserve"><value>Number</value></data>
+  <data name="InvDoc.Voucher.Warehouse" xml:space="preserve"><value>Warehouse</value></data>
+  <data name="InvDoc.Voucher.StockMode" xml:space="preserve"><value>Stock handling</value></data>
+  <data name="InvDoc.Voucher.NegativeMode" xml:space="preserve"><value>Request over-available issue</value></data>
+  <data name="InvDoc.Voucher.NormalMode" xml:space="preserve"><value>Normal issue</value></data>
+  <data name="InvDoc.Voucher.ApprovalAria" xml:space="preserve"><value>Negative-stock approval history</value></data>
+  <data name="InvDoc.Voucher.ApprovalTitle" xml:space="preserve"><value>Negative-stock approval #{0}</value></data>
+  <data name="InvDoc.Voucher.Requester" xml:space="preserve"><value>Requester</value></data>
+  <data name="InvDoc.Voucher.Approver" xml:space="preserve"><value>Approver</value></data>
+  <data name="InvDoc.Voucher.Policy" xml:space="preserve"><value>Policy</value></data>
+  <data name="InvDoc.Voucher.RequestedAt" xml:space="preserve"><value>Requested at</value></data>
+  <data name="InvDoc.Voucher.ReviewedAt" xml:space="preserve"><value>Reviewed at</value></data>
+  <data name="InvDoc.Voucher.Reason" xml:space="preserve"><value>Reason:</value></data>
+  <data name="InvDoc.Voucher.ReviewNote" xml:space="preserve"><value>Review note:</value></data>
+  <data name="InvDoc.Voucher.Identity" xml:space="preserve"><value>Item</value></data>
+  <data name="InvDoc.Voucher.Before" xml:space="preserve"><value>Before</value></data>
+  <data name="InvDoc.Voucher.Issue" xml:space="preserve"><value>Issue</value></data>
+  <data name="InvDoc.Voucher.After" xml:space="preserve"><value>After</value></data>
+  <data name="InvDoc.Voucher.Limit" xml:space="preserve"><value>Limit</value></data>
+  <data name="InvDoc.Voucher.IngredientId" xml:space="preserve"><value>Ingredient #{0}</value></data>
+  <data name="InvDoc.Voucher.PreparedId" xml:space="preserve"><value>Prepared item #{0}</value></data>
+  <data name="InvDoc.Voucher.CostGapAria" xml:space="preserve"><value>Cost-gap status</value></data>
+  <data name="InvDoc.Voucher.CostGap" xml:space="preserve"><value>Cost gap</value></data>
+  <data name="InvDoc.Voucher.Code" xml:space="preserve"><value>Code</value></data>
+  <data name="InvDoc.Voucher.Source" xml:space="preserve"><value>Source</value></data>
+  <data name="InvDoc.Voucher.Original" xml:space="preserve"><value>Original</value></data>
+  <data name="InvDoc.Voucher.Settled" xml:space="preserve"><value>Settled</value></data>
+  <data name="InvDoc.Voucher.Remaining" xml:space="preserve"><value>Remaining</value></data>
+  <data name="InvDoc.Voucher.No" xml:space="preserve"><value>No.</value></data>
+  <data name="InvDoc.Voucher.ItemName" xml:space="preserve"><value>Item name</value></data>
+  <data name="InvDoc.Voucher.CostPrice" xml:space="preserve"><value>Cost price</value></data>
+  <data name="InvDoc.Create.Import" xml:space="preserve"><value>Create goods receipt</value></data>
+  <data name="InvDoc.Create.Export" xml:space="preserve"><value>Create goods issue</value></data>
+  <data name="InvDoc.Create.StockTake" xml:space="preserve"><value>Create stocktake</value></data>
+  <data name="InvDoc.Create.Waste" xml:space="preserve"><value>Create waste document</value></data>
+  <data name="InvDoc.Create.Default" xml:space="preserve"><value>Create inventory document</value></data>
+  <data name="InvDoc.Create.SubImport" xml:space="preserve"><value>Choose an inbound purpose so the system uses the right flow</value></data>
+  <data name="InvDoc.Create.SubExport" xml:space="preserve"><value>Issue ingredients for sales operations</value></data>
+  <data name="InvDoc.Create.SubStockTake" xml:space="preserve"><value>Record actual counted quantities</value></data>
+  <data name="InvDoc.Create.SubWaste" xml:space="preserve"><value>Record expired, damaged, or lost goods</value></data>
+  <data name="InvDoc.Create.SubDefault" xml:space="preserve"><value>Create an inventory document</value></data>
+  <data name="InvDoc.Create.NoticeExport" xml:space="preserve"><value>Issue quantity is checked against available stock. Over-available issues need a reason and approval.</value></data>
+  <data name="InvDoc.Create.NoticeStockTake" xml:space="preserve"><value>Finish the physical count before confirming. Record every variance for reconciliation.</value></data>
+  <data name="InvDoc.Create.NoticeWaste" xml:space="preserve"><value>Waste reduces stock after confirmation. Select items still on hand and do not exceed available quantity.</value></data>
+  <data name="InvDoc.Create.NoticeDefault" xml:space="preserve"><value>Check header and ingredient lines before confirming.</value></data>
+  <data name="InvDoc.Create.Breadcrumb" xml:space="preserve"><value>Inventory / New document</value></data>
+  <data name="InvDoc.Create.AutoCode" xml:space="preserve"><value>Generated on save</value></data>
+  <data name="InvDoc.Create.Draft" xml:space="preserve"><value>Draft</value></data>
+  <data name="InvDoc.Create.Close" xml:space="preserve"><value>Close</value></data>
+  <data name="InvDoc.Create.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="InvDoc.Create.SaveDraft" xml:space="preserve"><value>Save draft</value></data>
+  <data name="InvDoc.Create.Confirm" xml:space="preserve"><value>Create &amp; confirm</value></data>
+  <data name="InvDoc.Create.HintImport" xml:space="preserve"><value>Choose an inbound purpose so the system loads the right ingredient source.</value></data>
+  <data name="InvDoc.Create.HintStockTake" xml:space="preserve"><value>Select ingredients to count and enter actual quantities.</value></data>
+  <data name="InvDoc.Create.HintWaste" xml:space="preserve"><value>Select on-hand ingredients, enter waste quantity, and record the reason.</value></data>
+  <data name="InvDoc.Create.HintDefault" xml:space="preserve"><value>Add ingredients and enter the quantities to process.</value></data>
+  <data name="InvDoc.Create.RefStock" xml:space="preserve"><value>System stock</value></data>
+  <data name="InvDoc.Create.RefAvailable" xml:space="preserve"><value>Available</value></data>
+  <data name="InvDoc.Create.RefMoq" xml:space="preserve"><value>MOQ / remaining</value></data>
+  <data name="InvDoc.Create.RefDefault" xml:space="preserve"><value>Reference</value></data>
+  <data name="InvDoc.Create.Step2" xml:space="preserve"><value>Step 2 · Ingredient lines</value></data>
+  <data name="InvDoc.Create.LinesTitle" xml:space="preserve"><value>Ingredient list</value></data>
+  <data name="InvDoc.Create.AddIngredient" xml:space="preserve"><value>Add ingredient</value></data>
+  <data name="InvDoc.Create.AddIngredientAria" xml:space="preserve"><value>Add an ingredient to the document</value></data>
+  <data name="InvDoc.Create.UnitPriceIn" xml:space="preserve"><value>Purchase unit price</value></data>
+  <data name="InvDoc.Create.Variance" xml:space="preserve"><value>Variance</value></data>
+  <data name="InvDoc.Create.SelectIngredient" xml:space="preserve"><value>Select ingredient</value></data>
+  <data name="InvDoc.Create.BaseUnit" xml:space="preserve"><value>Base unit</value></data>
+  <data name="InvDoc.Create.NotSelected" xml:space="preserve"><value>Not selected</value></data>
+  <data name="InvDoc.Create.StockLabel" xml:space="preserve"><value>Stock: -</value></data>
+  <data name="InvDoc.Create.PriceSource" xml:space="preserve"><value>Price source: -</value></data>
+  <data name="InvDoc.Create.Conversion" xml:space="preserve"><value>Conversion: -</value></data>
+  <data name="InvDoc.Create.QtyPlaceholder" xml:space="preserve"><value>Enter quantity</value></data>
+  <data name="InvDoc.Create.RemoveRow" xml:space="preserve"><value>Remove line</value></data>
+  <data name="InvDoc.Create.SummaryAria" xml:space="preserve"><value>Document summary</value></data>
+  <data name="InvDoc.Create.Step3" xml:space="preserve"><value>Step 3 · Summary</value></data>
+  <data name="InvDoc.Create.SummaryHint" xml:space="preserve"><value>Updates from ingredient lines</value></data>
+  <data name="InvDoc.Create.Lines" xml:space="preserve"><value>Lines</value></data>
+  <data name="InvDoc.Create.BaseQty" xml:space="preserve"><value>Base conversion</value></data>
+  <data name="InvDoc.Info.PurposeImport" xml:space="preserve"><value>Inbound purpose</value></data>
+  <data name="InvDoc.Info.PurposeExport" xml:space="preserve"><value>Issue purpose</value></data>
+  <data name="InvDoc.Info.PurposeStockTake" xml:space="preserve"><value>Stocktake purpose</value></data>
+  <data name="InvDoc.Info.PurposeWaste" xml:space="preserve"><value>Waste reason</value></data>
+  <data name="InvDoc.Info.PurposeDefault" xml:space="preserve"><value>Operation purpose</value></data>
+  <data name="InvDoc.Info.Purchase" xml:space="preserve"><value>Receipt from supplier</value></data>
+  <data name="InvDoc.Info.PurchaseDesc" xml:space="preserve"><value>Increase stock from a purchase order</value></data>
+  <data name="InvDoc.Info.Sale" xml:space="preserve"><value>Sales issue</value></data>
+  <data name="InvDoc.Info.SaleDesc" xml:space="preserve"><value>Reduce stock for sales</value></data>
+  <data name="InvDoc.Info.StockTake" xml:space="preserve"><value>Stocktake</value></data>
+  <data name="InvDoc.Info.StockTakeDesc" xml:space="preserve"><value>Record actual counted quantity</value></data>
+  <data name="InvDoc.Info.Damaged" xml:space="preserve"><value>Damaged</value></data>
+  <data name="InvDoc.Info.DamagedDesc" xml:space="preserve"><value>Write off damage</value></data>
+  <data name="InvDoc.Info.Expired" xml:space="preserve"><value>Expired</value></data>
+  <data name="InvDoc.Info.ExpiredDesc" xml:space="preserve"><value>Write off expired goods</value></data>
+  <data name="InvDoc.Info.Broken" xml:space="preserve"><value>Broken</value></data>
+  <data name="InvDoc.Info.BrokenDesc" xml:space="preserve"><value>Write off breakage in storage or operations</value></data>
+  <data name="InvDoc.Info.Contaminated" xml:space="preserve"><value>Contaminated</value></data>
+  <data name="InvDoc.Info.ContaminatedDesc" xml:space="preserve"><value>Write off items that are no longer hygienic</value></data>
+  <data name="InvDoc.Info.Lost" xml:space="preserve"><value>Lost</value></data>
+  <data name="InvDoc.Info.LostDesc" xml:space="preserve"><value>Record a loss</value></data>
+  <data name="InvDoc.Info.None" xml:space="preserve"><value>Unspecified</value></data>
+  <data name="InvDoc.Info.NoneDesc" xml:space="preserve"><value>Choose a suitable purpose</value></data>
+  <data name="InvDoc.Info.Step1" xml:space="preserve"><value>Step 1 · General</value></data>
+  <data name="InvDoc.Info.Title" xml:space="preserve"><value>Document info</value></data>
+  <data name="InvDoc.Info.AutoBadge" xml:space="preserve"><value>Auto-generated code</value></data>
+  <data name="InvDoc.Info.SelectStore" xml:space="preserve"><value>Select store</value></data>
+  <data name="InvDoc.Info.SelectSupplier" xml:space="preserve"><value>Select supplier</value></data>
+  <data name="InvDoc.Info.SupplierHelp" xml:space="preserve"><value>Used only for receipts from a supplier.</value></data>
+  <data name="InvDoc.Info.PartnerPlaceholder" xml:space="preserve"><value>Enter a partner name if needed</value></data>
+  <data name="InvDoc.Info.PartnerHint" xml:space="preserve"><value>The system infers partner type from the operation purpose.</value></data>
+  <data name="InvDoc.Info.Note" xml:space="preserve"><value>Note</value></data>
+  <data name="InvDoc.Info.NotePlaceholder" xml:space="preserve"><value>Enter a note for this document</value></data>
+  <data name="InvDoc.Info.NoteHint" xml:space="preserve"><value>Adjustment documents require a reason.</value></data>
+  <data name="InvDoc.Info.NegTitle" xml:space="preserve"><value>How to handle insufficient stock</value></data>
+  <data name="InvDoc.Info.NegNormal" xml:space="preserve"><value>Issue within available stock</value></data>
+  <data name="InvDoc.Info.NegNormalDesc" xml:space="preserve"><value>Default. No line may take stock below zero.</value></data>
+  <data name="InvDoc.Info.NegRequest" xml:space="preserve"><value>Request over-available issue</value></data>
+  <data name="InvDoc.Info.NegRequestDesc" xml:space="preserve"><value>Only when issue quantity exceeds available stock; reason and approval required.</value></data>
+  <data name="InvDoc.Info.PolicyInvalid" xml:space="preserve"><value>Over-available issue configuration is invalid. Contact a system administrator.</value></data>
+  <data name="InvDoc.Info.PolicyOff" xml:space="preserve"><value>System settings currently disable over-available issues.</value></data>
+  <data name="InvDoc.Info.PolicyOn" xml:space="preserve"><value>Over-available issue policy is on</value></data>
+  <data name="InvDoc.Info.PolicyOnApproval" xml:space="preserve"><value> and approval is required</value></data>
+  <data name="InvDoc.Info.ProjectionHead" xml:space="preserve"><value>Projected status</value></data>
+  <data name="InvDoc.Info.ProjectionUnknown" xml:space="preserve"><value>Not yet determined</value></data>
+  <data name="InvDoc.Info.ProjectionMsg" xml:space="preserve"><value>Select a store, ingredients, and quantities so the system can determine the issue mode.</value></data>
+  <data name="InvDoc.Info.NegReason" xml:space="preserve"><value>Reason for over-available issue</value></data>
+  <data name="InvDoc.Info.NegReasonPlaceholder" xml:space="preserve"><value>Describe the actual transaction and why more than available stock is needed</value></data>
+  <data name="InvDoc.Info.NegReasonHelp" xml:space="preserve"><value>The reason is used for control and approval; issue status comes from available stock and issued quantity.</value></data>
+  <data name="Common.Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Common.Inactive" xml:space="preserve"><value>Inactive</value></data>
+  <data name="Common.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Common.Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Common.AllStatuses" xml:space="preserve"><value>All statuses</value></data>
+  <data name="Common.Reset" xml:space="preserve"><value>Reset</value></data>
+  <data name="Common.Filter" xml:space="preserve"><value>Filter</value></data>
+  <data name="Common.Back" xml:space="preserve"><value>Back</value></data>
+  <data name="Common.Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Common.ConfirmYes" xml:space="preserve"><value>Confirm</value></data>
+  <data name="Common.CancelLong" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Common.Success" xml:space="preserve"><value>Success</value></data>
+  <data name="Common.PreviousPage" xml:space="preserve"><value>Previous page</value></data>
+  <data name="Common.Previous" xml:space="preserve"><value>Previous</value></data>
+  <data name="Common.NextPage" xml:space="preserve"><value>Next page</value></data>
+  <data name="Common.Next" xml:space="preserve"><value>Next</value></data>
+  <data name="Common.NotSet" xml:space="preserve"><value>Not set</value></data>
+  <data name="Common.NotConfigured" xml:space="preserve"><value>Not configured</value></data>
+  <data name="Common.Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="Common.System" xml:space="preserve"><value>System</value></data>
+  <data name="Common.IngredientCode" xml:space="preserve"><value>Ingredient code</value></data>
+  <data name="Common.IngredientName" xml:space="preserve"><value>Ingredient name</value></data>
+  <data name="Common.InventoryAndSupply" xml:space="preserve"><value>Inventory &amp; Supply</value></data>
+  <data name="Common.Priority" xml:space="preserve"><value>Priority</value></data>
+  <data name="Common.Priority.Normal" xml:space="preserve"><value>Normal</value></data>
+  <data name="Common.Priority.High" xml:space="preserve"><value>High</value></data>
+  <data name="Common.Priority.Urgent" xml:space="preserve"><value>Urgent</value></data>
+  <data name="Ingredient.Eyebrow" xml:space="preserve"><value>Inventory &amp; Supply / Ingredients</value></data>
+  <data name="Ingredient.Title" xml:space="preserve"><value>Ingredient management</value></data>
+  <data name="Ingredient.Subtitle" xml:space="preserve"><value>Ingredient catalog, base units, and conversion-link management for the CafeChain system.</value></data>
+  <data name="Ingredient.AddButton" xml:space="preserve"><value>Add ingredient</value></data>
+  <data name="Ingredient.FilterAria" xml:space="preserve"><value>Ingredient filters</value></data>
+  <data name="Ingredient.DataScope" xml:space="preserve"><value>Data scope</value></data>
+  <data name="Ingredient.FilterHeading" xml:space="preserve"><value>Ingredient filters</value></data>
+  <data name="Ingredient.Scope" xml:space="preserve"><value>By access rights</value></data>
+  <data name="Ingredient.SearchLabel" xml:space="preserve"><value>Search ingredients</value></data>
+  <data name="Ingredient.SearchPlaceholder" xml:space="preserve"><value>Enter ingredient code or name...</value></data>
+  <data name="Ingredient.ResultCount" xml:space="preserve"><value>Showing &lt;strong&gt;{0}&lt;/strong&gt; ingredients</value></data>
+  <data name="Ingredient.ResultSearchSuffix" xml:space="preserve"><value> for "{0}"</value></data>
+  <data name="Ingredient.ListAria" xml:space="preserve"><value>Ingredient list</value></data>
+  <data name="Ingredient.ListKicker" xml:space="preserve"><value>Physical catalog</value></data>
+  <data name="Ingredient.ListHeading" xml:space="preserve"><value>Ingredients in the system</value></data>
+  <data name="Ingredient.TotalAria" xml:space="preserve"><value>Total {0} ingredients</value></data>
+  <data name="Ingredient.TotalLabel" xml:space="preserve"><value>Ingredients</value></data>
+  <data name="Ingredient.Col.Code" xml:space="preserve"><value>Code</value></data>
+  <data name="Ingredient.Col.Name" xml:space="preserve"><value>Ingredient name</value></data>
+  <data name="Ingredient.Col.Unit" xml:space="preserve"><value>Base unit</value></data>
+  <data name="Ingredient.RowStatus.Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Ingredient.RowStatus.Inactive" xml:space="preserve"><value>Inactive</value></data>
+  <data name="Ingredient.EditTitle" xml:space="preserve"><value>Edit ingredient {0}</value></data>
+  <data name="Ingredient.EditAria" xml:space="preserve"><value>Edit {0}</value></data>
+  <data name="Ingredient.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Ingredient.ToggleAria" xml:space="preserve"><value>{0} {1}</value></data>
+  <data name="Ingredient.Toggle.Active" xml:space="preserve"><value>Activate</value></data>
+  <data name="Ingredient.EmptyTitle" xml:space="preserve"><value>No ingredients yet</value></data>
+  <data name="Ingredient.EmptyCopy" xml:space="preserve"><value>Add the first ingredient to configure units, supply sources, and recipes.</value></data>
+  <data name="Ingredient.PaginationAria" xml:space="preserve"><value>Ingredient pagination</value></data>
+  <data name="Ingredient.PageInfo" xml:space="preserve"><value>Page &lt;strong&gt;{0}&lt;/strong&gt; / {1}</value></data>
+  <data name="Ingredient.ModalTitle" xml:space="preserve"><value>Ingredient</value></data>
+  <data name="Ingredient.ModalCloseAria" xml:space="preserve"><value>Close ingredient dialog</value></data>
+  <data name="Ingredient.CodePlaceholder" xml:space="preserve"><value>e.g. NL001</value></data>
+  <data name="Ingredient.NamePlaceholder" xml:space="preserve"><value>Enter ingredient name...</value></data>
+  <data name="Ingredient.UnitSelectPlaceholder" xml:space="preserve"><value>-- Select unit --</value></data>
+  <data name="Ingredient.UnitHelp" xml:space="preserve"><value>This is the base unit used for conversion calculations.</value></data>
+  <data name="Ingredient.UnitManageNote" xml:space="preserve"><value>Unit conversion is managed separately to avoid unintended changes when editing an ingredient.</value></data>
+  <data name="Ingredient.UnitManageLink" xml:space="preserve"><value>Open units and conversions</value></data>
+  <data name="Ingredient.SaveButton" xml:space="preserve"><value>Save ingredient</value></data>
+  <data name="Ingredient.Js.RequestFailed" xml:space="preserve"><value>The operation could not be completed. Please try again.</value></data>
+  <data name="Ingredient.Js.NetworkError" xml:space="preserve"><value>Cannot connect to the server. Check your network and try again.</value></data>
+  <data name="Ingredient.Js.InvalidResponse" xml:space="preserve"><value>The server returned invalid data.</value></data>
+  <data name="Ingredient.Js.LoadUnitsFailed" xml:space="preserve"><value>Cannot load the unit list.</value></data>
+  <data name="Ingredient.Js.InvalidUnitList" xml:space="preserve"><value>The server returned an invalid unit list.</value></data>
+  <data name="Ingredient.Js.SelectUnit" xml:space="preserve"><value>-- Select unit --</value></data>
+  <data name="Ingredient.Js.ModalCreateTitle" xml:space="preserve"><value>Add ingredient</value></data>
+  <data name="Ingredient.Js.LoadDetailFailed" xml:space="preserve"><value>Cannot load ingredient details.</value></data>
+  <data name="Ingredient.Js.MissingDetail" xml:space="preserve"><value>The server did not return ingredient details.</value></data>
+  <data name="Ingredient.Js.ModalEditTitle" xml:space="preserve"><value>Update ingredient</value></data>
+  <data name="Ingredient.Js.ValidationError" xml:space="preserve"><value>Enter the code, name, and base inventory unit.</value></data>
+  <data name="Ingredient.Js.UpdateFailed" xml:space="preserve"><value>Cannot update the ingredient.</value></data>
+  <data name="Ingredient.Js.CreateFailed" xml:space="preserve"><value>Cannot create the ingredient.</value></data>
+  <data name="Ingredient.Js.UpdateSuccess" xml:space="preserve"><value>Updated successfully</value></data>
+  <data name="Ingredient.Js.CreateSuccess" xml:space="preserve"><value>Added successfully</value></data>
+  <data name="Ingredient.Js.SaveFailed" xml:space="preserve"><value>Cannot save the ingredient.</value></data>
+  <data name="Ingredient.Js.Action.Disable" xml:space="preserve"><value>deactivate</value></data>
+  <data name="Ingredient.Js.Action.Enable" xml:space="preserve"><value>activate</value></data>
+  <data name="Ingredient.Js.ConfirmTitle" xml:space="preserve"><value>Confirm {0}</value></data>
+  <data name="Ingredient.Js.ConfirmText" xml:space="preserve"><value>Are you sure you want to {0} this ingredient?</value></data>
+  <data name="Ingredient.Js.ConfirmFallback" xml:space="preserve"><value>Confirm {0} this ingredient?</value></data>
+  <data name="Ingredient.Js.ToggleFailed" xml:space="preserve"><value>Cannot update the ingredient status.</value></data>
+  <data name="Ingredient.Js.ToastStatusUpdated" xml:space="preserve"><value>Status updated</value></data>
+  <data name="StockAlert.Details.Title" xml:space="preserve"><value>Stock alert details</value></data>
+  <data name="StockAlert.Details.Eyebrow" xml:space="preserve"><value>Alert #{0} · {1}</value></data>
+  <data name="StockAlert.Details.Subtitle" xml:space="preserve"><value>Alert recorded at {0}. Current figures are shown separately for safe reconciliation.</value></data>
+  <data name="StockAlert.Details.ButtonList" xml:space="preserve"><value>List</value></data>
+  <data name="StockAlert.Details.ButtonInventory" xml:space="preserve"><value>Inventory</value></data>
+  <data name="StockAlert.Details.ResolvedButOpen" xml:space="preserve"><value>The alert no longer meets the low-stock condition but remains open. Complete the manager decision to close it.</value></data>
+  <data name="StockAlert.Details.MetricsAria" xml:space="preserve"><value>Inventory metrics</value></data>
+  <data name="StockAlert.Details.PhysicalNow" xml:space="preserve"><value>Current physical stock</value></data>
+  <data name="StockAlert.Details.ReservedNow" xml:space="preserve"><value>Currently reserved</value></data>
+  <data name="StockAlert.Details.AvailableNow" xml:space="preserve"><value>Current available</value></data>
+  <data name="StockAlert.Details.Threshold" xml:space="preserve"><value>Low-stock alert threshold</value></data>
+  <data name="StockAlert.Details.SummaryTitle" xml:space="preserve"><value>Alert summary</value></data>
+  <data name="StockAlert.Details.AvailableAtAlert" xml:space="preserve"><value>Available at alert</value></data>
+  <data name="StockAlert.Details.ManualTarget" xml:space="preserve"><value>Manual target</value></data>
+  <data name="StockAlert.Details.ThresholdAtAlert" xml:space="preserve"><value>Threshold at alert</value></data>
+  <data name="StockAlert.Details.DetectionSource" xml:space="preserve"><value>Detection source</value></data>
+  <data name="StockAlert.Details.LastUpdated" xml:space="preserve"><value>Last updated</value></data>
+  <data name="StockAlert.Details.Reporter" xml:space="preserve"><value>Reported by</value></data>
+  <data name="StockAlert.Details.ItemType" xml:space="preserve"><value>Item type</value></data>
+  <data name="StockAlert.Details.NoteTitle" xml:space="preserve"><value>Report note</value></data>
+  <data name="StockAlert.Details.TimelineTitle" xml:space="preserve"><value>Handling timeline</value></data>
+  <data name="StockAlert.Details.Timeline.Detection" xml:space="preserve"><value>Alert detected</value></data>
+  <data name="StockAlert.Details.Timeline.AvailablePrefix" xml:space="preserve"><value>Available</value></data>
+  <data name="StockAlert.Details.Timeline.Snapshot" xml:space="preserve"><value>Physical {0} · Reserved {1} · Available {2}</value></data>
+  <data name="StockAlert.Details.Timeline.CreatedRequest" xml:space="preserve"><value>Created {0} #{1}</value></data>
+  <data name="StockAlert.Details.Timeline.StockRecovered" xml:space="preserve"><value>Stock recovered</value></data>
+  <data name="StockAlert.Details.MovementsTitle" xml:space="preserve"><value>Recent stock movements</value></data>
+  <data name="StockAlert.Details.MovementsEmpty" xml:space="preserve"><value>No stock movements to reconcile yet.</value></data>
+  <data name="StockAlert.Details.Movements.Time" xml:space="preserve"><value>Time</value></data>
+  <data name="StockAlert.Details.Movements.Type" xml:space="preserve"><value>Movement type</value></data>
+  <data name="StockAlert.Details.Movements.Change" xml:space="preserve"><value>Change</value></data>
+  <data name="StockAlert.Details.Movements.Before" xml:space="preserve"><value>Before</value></data>
+  <data name="StockAlert.Details.Movements.After" xml:space="preserve"><value>After</value></data>
+  <data name="StockAlert.Details.Movements.Reference" xml:space="preserve"><value>Document</value></data>
+  <data name="StockAlert.Details.Movements.Reference.Import" xml:space="preserve"><value>Receipt · line #{0}</value></data>
+  <data name="StockAlert.Details.Movements.Reference.Transfer" xml:space="preserve"><value>Transfer #{0}</value></data>
+  <data name="StockAlert.Details.Movements.Reference.Order" xml:space="preserve"><value>Order #{0}</value></data>
+  <data name="StockAlert.Details.Movements.Reference.Preparation" xml:space="preserve"><value>Preparation order #{0}</value></data>
+  <data name="StockAlert.Details.Movements.Reference.Document" xml:space="preserve"><value>Inventory document #{0}</value></data>
+  <data name="StockAlert.Details.Movements.Reference.Direct" xml:space="preserve"><value>Direct movement</value></data>
+  <data name="StockAlert.Details.ManagerTitle" xml:space="preserve"><value>Manager decision</value></data>
+  <data name="StockAlert.Details.ConfirmNoteLabel" xml:space="preserve"><value>Confirmation note</value></data>
+  <data name="StockAlert.Details.ConfirmNotePlaceholder" xml:space="preserve"><value>State the check result and the handling direction...</value></data>
+  <data name="StockAlert.Details.ConfirmButton" xml:space="preserve"><value>Confirm alert</value></data>
+  <data name="StockAlert.Details.FalseReportDisclosure" xml:space="preserve"><value>Mark as false report or close alert</value></data>
+  <data name="StockAlert.Details.FalseReasonLabel" xml:space="preserve"><value>False-report reason</value></data>
+  <data name="StockAlert.Details.FalseReasonPlaceholder" xml:space="preserve"><value>Explain why the figures or report are inaccurate...</value></data>
+  <data name="StockAlert.Details.FalseReportButton" xml:space="preserve"><value>Mark as false report</value></data>
+  <data name="StockAlert.Details.CloseReasonLabel" xml:space="preserve"><value>Manual close reason</value></data>
+  <data name="StockAlert.Details.CloseReasonPlaceholder" xml:space="preserve"><value>Reason to close the alert...</value></data>
+  <data name="StockAlert.Details.CloseButton" xml:space="preserve"><value>Close alert</value></data>
+  <data name="StockAlert.Details.OpenRestockTitle" xml:space="preserve"><value>Open replenishment demand</value></data>
+  <data name="StockAlert.Details.OpenRestock.Code" xml:space="preserve"><value>Request code</value></data>
+  <data name="StockAlert.Details.OpenRestock.Quantity" xml:space="preserve"><value>Quantity</value></data>
+  <data name="StockAlert.Details.OpenRestock.Link" xml:space="preserve"><value>Open replenishment demand</value></data>
+  <data name="StockAlert.Details.CreateReplenishment" xml:space="preserve"><value>Create replenishment demand</value></data>
+  <data name="StockAlert.Details.CreateRestockRequest" xml:space="preserve"><value>Create purchase request</value></data>
+  <data name="StockAlert.Details.Create.Available" xml:space="preserve"><value>Available stock</value></data>
+  <data name="StockAlert.Details.Create.ManualTarget" xml:space="preserve"><value>Target stock level</value></data>
+  <data name="StockAlert.Details.Create.OpenProductionSource" xml:space="preserve"><value>Open production source</value></data>
+  <data name="StockAlert.Details.Create.StillNeeded" xml:space="preserve"><value>Still needed</value></data>
+  <data name="StockAlert.Details.Create.CannotCompute" xml:space="preserve"><value>Cannot compute yet</value></data>
+  <data name="StockAlert.Details.Create.QuantityLabel" xml:space="preserve"><value>Requested quantity in purchasing unit</value></data>
+  <data name="StockAlert.Details.Create.ServerRecalcHelp" xml:space="preserve"><value>Quantity is recalculated on the server at confirmation; on-screen data is not the source of truth.</value></data>
+  <data name="StockAlert.Details.Create.VerifiedDemand" xml:space="preserve"><value>Verified demand: manual target − available = {0}</value></data>
+  <data name="StockAlert.Details.Create.ThresholdTopUp" xml:space="preserve"><value>Top up to minimum threshold: max(0, threshold − available) = {0}</value></data>
+  <data name="StockAlert.Details.Create.InsufficientPurchaseUnit" xml:space="preserve"><value>purchasing-unit data incomplete</value></data>
+  <data name="StockAlert.Details.Create.InsufficientData" xml:space="preserve"><value>data incomplete</value></data>
+  <data name="StockAlert.Details.Create.SnapshotNote" xml:space="preserve"><value>Inventory data at the time of recording: {0}</value></data>
+  <data name="StockAlert.Details.Create.PriorityLabel" xml:space="preserve"><value>Priority level</value></data>
+  <data name="StockAlert.Details.Create.NotesPlaceholder" xml:space="preserve"><value>Information the warehouse team should note...</value></data>
+  <data name="StockAlert.Details.Create.SubmitReplenishment" xml:space="preserve"><value>Confirm replenishment demand</value></data>
+  <data name="StockAlert.Details.Create.SubmitRestockRequest" xml:space="preserve"><value>Submit purchase request</value></data>
+  <data name="StockAlert.Details.CloseDisclosure" xml:space="preserve"><value>Close the alert without creating a request</value></data>
+  <data name="StockAlert.Details.CloseReason" xml:space="preserve"><value>Close reason</value></data>
+  <data name="StockAlert.Details.ConfirmClose" xml:space="preserve"><value>Confirm close</value></data>
+  <data name="StoreInventory.Transaction.FallbackStore" xml:space="preserve"><value>Store</value></data>
+  <data name="StoreInventory.Transaction.Title" xml:space="preserve"><value>Inventory transaction history</value></data>
+  <data name="StoreInventory.Transaction.Subtitle" xml:space="preserve"><value>Import, export, adjustment, and waste history at &lt;strong&gt;{0}&lt;/strong&gt;.</value></data>
+  <data name="StoreInventory.Transaction.ItemTypeLabel" xml:space="preserve"><value>Item type:</value></data>
+  <data name="StoreInventory.Transaction.FilterAria" xml:space="preserve"><value>Filter item type</value></data>
+  <data name="StoreInventory.Transaction.All" xml:space="preserve"><value>All</value></data>
+  <data name="StoreInventory.Transaction.RawIngredient" xml:space="preserve"><value>Raw ingredients</value></data>
+  <data name="StoreInventory.Transaction.SearchPlaceholder" xml:space="preserve"><value>Search item name...</value></data>
+  <data name="StoreInventory.Transaction.ResultMeta" xml:space="preserve"><value>Found &lt;strong&gt;{0}&lt;/strong&gt; inventory transactions.</value></data>
+  <data name="StoreInventory.Transaction.Col.Store" xml:space="preserve"><value>Warehouse</value></data>
+  <data name="StoreInventory.Transaction.Col.Item" xml:space="preserve"><value>Item</value></data>
+  <data name="StoreInventory.Transaction.Col.Type" xml:space="preserve"><value>Type</value></data>
+  <data name="StoreInventory.Transaction.Col.Source" xml:space="preserve"><value>Source</value></data>
+  <data name="StoreInventory.Transaction.Col.Quantity" xml:space="preserve"><value>Quantity</value></data>
+  <data name="StoreInventory.Transaction.Col.UnitPrice" xml:space="preserve"><value>Unit price</value></data>
+  <data name="StoreInventory.Transaction.Col.Total" xml:space="preserve"><value>Total</value></data>
+  <data name="StoreInventory.Transaction.Col.Before" xml:space="preserve"><value>Before</value></data>
+  <data name="StoreInventory.Transaction.Col.After" xml:space="preserve"><value>After</value></data>
+  <data name="StoreInventory.Transaction.Col.Date" xml:space="preserve"><value>Transaction date</value></data>
+  <data name="StoreInventory.Transaction.Col.DateShort" xml:space="preserve"><value>Date</value></data>
+  <data name="StoreInventory.Transaction.UnitUnconfirmed" xml:space="preserve"><value>Stock unit not confirmed</value></data>
+  <data name="StoreInventory.Transaction.EmptyTitle" xml:space="preserve"><value>No inventory transactions yet</value></data>
+  <data name="StoreInventory.Transaction.EmptyCopy" xml:space="preserve"><value>No inventory movement history found at this store.</value></data>
+  <data name="StoreInventory.Transaction.EmptyCopyPartial" xml:space="preserve"><value>No imports, exports, or adjustments within the selected scope yet.</value></data>
+  <data name="StoreInventory.Transaction.PaginationAria" xml:space="preserve"><value>Transaction history pagination</value></data>
+  <data name="StoreInventory.Transaction.Js.EmptyFilter" xml:space="preserve"><value>No transactions match the filters.</value></data>
+  <data name="StoreInventory.Transaction.Js.LoadingMore" xml:space="preserve"><value>Loading more pages...</value></data>
+  <data name="StoreInventory.Transaction.Js.ResultMeta" xml:space="preserve"><value>Showing &lt;strong&gt;{0}&lt;/strong&gt; of &lt;strong&gt;{1}&lt;/strong&gt; matching transactions.</value></data>
+  <data name="StoreInventory.Transaction.ModalTitle" xml:space="preserve"><value>Inventory transaction history</value></data>
+  <data name="StoreInventory.Transaction.ModalLoadingTitle" xml:space="preserve"><value>Loading inventory history</value></data>
+  <data name="StoreInventory.Transaction.ModalLoadingCopy" xml:space="preserve"><value>The system is fetching transactions for the selected branch.</value></data>
+  <data name="UnitConversion.Title" xml:space="preserve"><value>Units and conversions</value></data>
+  <data name="UnitConversion.Eyebrow" xml:space="preserve"><value>Inventory &amp; Supply / Conversions</value></data>
+  <data name="UnitConversion.Subtitle" xml:space="preserve"><value>Standard physical conversions are a fixed reference. Measuring conversions and supplier packages serve quantification and cost of goods.</value></data>
+  <data name="UnitConversion.AddButton" xml:space="preserve"><value>Add measuring conversion</value></data>
+  <data name="UnitConversion.TabAria" xml:space="preserve"><value>Unit and conversion data groups</value></data>
+  <data name="UnitConversion.Tab.Physical" xml:space="preserve"><value>Standard physical conversions</value></data>
+  <data name="UnitConversion.Tab.Measuring" xml:space="preserve"><value>Measuring conversions by ingredient</value></data>
+  <data name="UnitConversion.Tab.Package" xml:space="preserve"><value>Supplier packages</value></data>
+  <data name="UnitConversion.Physical.Kicker" xml:space="preserve"><value>Reference system</value></data>
+  <data name="UnitConversion.Physical.Heading" xml:space="preserve"><value>Standard physical conversions (read-only)</value></data>
+  <data name="UnitConversion.Physical.Status" xml:space="preserve"><value>System standard</value></data>
+  <data name="UnitConversion.Physical.Note" xml:space="preserve"><value>Source: the system's standard physical conversions. Data is read-only and cannot be added, edited, or deleted in the admin page.</value></data>
+  <data name="UnitConversion.Physical.TableAria" xml:space="preserve"><value>Standard physical conversions</value></data>
+  <data name="UnitConversion.Physical.Col.Conversion" xml:space="preserve"><value>Conversion</value></data>
+  <data name="UnitConversion.Physical.Col.Direction" xml:space="preserve"><value>Direction</value></data>
+  <data name="UnitConversion.Physical.Col.Source" xml:space="preserve"><value>Source</value></data>
+  <data name="UnitConversion.Physical.NoEdit" xml:space="preserve"><value>No edit</value></data>
+  <data name="UnitConversion.Physical.Reference" xml:space="preserve"><value>Standard physical reference:</value></data>
+  <data name="UnitConversion.Physical.Fixed" xml:space="preserve"><value>System · fixed</value></data>
+  <data name="UnitConversion.FilterAria" xml:space="preserve"><value>Measuring conversion filters</value></data>
+  <data name="UnitConversion.DataScope" xml:space="preserve"><value>Data scope</value></data>
+  <data name="UnitConversion.FilterHeading" xml:space="preserve"><value>Measuring conversion filters</value></data>
+  <data name="UnitConversion.Scope" xml:space="preserve"><value>By ingredient &amp; package</value></data>
+  <data name="UnitConversion.SearchLabel" xml:space="preserve"><value>Find ingredient</value></data>
+  <data name="UnitConversion.SearchPlaceholder" xml:space="preserve"><value>Enter ingredient code or name...</value></data>
+  <data name="UnitConversion.StatusAll" xml:space="preserve"><value>All statuses</value></data>
+  <data name="UnitConversion.StatusValid" xml:space="preserve"><value>Valid</value></data>
+  <data name="UnitConversion.StatusConflict" xml:space="preserve"><value>Package specification conflict</value></data>
+  <data name="UnitConversion.StatusReview" xml:space="preserve"><value>Needs review</value></data>
+  <data name="UnitConversion.ListAria" xml:space="preserve"><value>Measuring conversion list</value></data>
+  <data name="UnitConversion.ListKicker" xml:space="preserve"><value>Conversion catalog</value></data>
+  <data name="UnitConversion.ListHeading" xml:space="preserve"><value>Measuring conversions by ingredient</value></data>
+  <data name="UnitConversion.TotalAria" xml:space="preserve"><value>Total {0} groups</value></data>
+  <data name="UnitConversion.TotalConflict" xml:space="preserve"><value>Groups · {0} need attention</value></data>
+  <data name="UnitConversion.EmptyTitle" xml:space="preserve"><value>No measuring conversions yet</value></data>
+  <data name="UnitConversion.EmptyCopy" xml:space="preserve"><value>Standard physical conversions still apply automatically across the system.</value></data>
+  <data name="UnitConversion.Group.BaseUnit" xml:space="preserve"><value>Base unit: &lt;strong&gt;{0}&lt;/strong&gt; ({1})</value></data>
+  <data name="UnitConversion.Group.Label" xml:space="preserve"><value>Measuring conversions</value></data>
+  <data name="UnitConversion.Group.NoConversion" xml:space="preserve"><value>This ingredient has no dedicated conversion yet. Standard physical conversions still apply normally.</value></data>
+  <data name="UnitConversion.ReverseLine" xml:space="preserve"><value>Reverse direction (implied): 1 {0} ≈ {1} {2}</value></data>
+  <data name="UnitConversion.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="UnitConversion.NoEditFactor" xml:space="preserve"><value>Factor not editable</value></data>
+  <data name="UnitConversion.Package.SectionLabel" xml:space="preserve"><value>Supplier package (standard source for cost of goods)</value></data>
+  <data name="UnitConversion.Package.Primary" xml:space="preserve"><value>Primary</value></data>
+  <data name="UnitConversion.Package.PricePerPack" xml:space="preserve"><value>Price per pack:</value></data>
+  <data name="UnitConversion.Package.BaseCostLabel" xml:space="preserve"><value>Cost per base unit:</value></data>
+  <data name="UnitConversion.Package.DataComplete" xml:space="preserve"><value>Data complete</value></data>
+  <data name="UnitConversion.Package.DataMissing" xml:space="preserve"><value>Data missing</value></data>
+  <data name="UnitConversion.Package.ConflictAlert" xml:space="preserve"><value>&lt;strong&gt;Data is conflicting&lt;/strong&gt; between the measuring conversion and the supplier package.</value></data>
+  <data name="UnitConversion.Package.ViewSupplier" xml:space="preserve"><value>View supplier</value></data>
+  <data name="UnitConversion.PackageTab.Aria" xml:space="preserve"><value>Supplier packages</value></data>
+  <data name="UnitConversion.PackageTab.Kicker" xml:space="preserve"><value>Standard cost source</value></data>
+  <data name="UnitConversion.PackageTab.Heading" xml:space="preserve"><value>Supplier packages</value></data>
+  <data name="UnitConversion.PackageTab.Note" xml:space="preserve"><value>Data belongs to &lt;strong&gt;IngredientSupplier&lt;/strong&gt; (PackageQuantity, UnitId, CurrentPrice). Offer CRUD is in the Supplier screen.</value></data>
+  <data name="UnitConversion.PackageTab.EmptyTitle" xml:space="preserve"><value>No primary offer</value></data>
+  <data name="UnitConversion.PackageTab.EmptyCopy" xml:space="preserve"><value>Try finding an ingredient or open the Supplier screen to update the package.</value></data>
+  <data name="UnitConversion.PackageTab.TableAria" xml:space="preserve"><value>Package specifications</value></data>
+  <data name="UnitConversion.PackageTab.Col.Ingredient" xml:space="preserve"><value>Ingredient</value></data>
+  <data name="UnitConversion.PackageTab.Col.Supplier" xml:space="preserve"><value>Supplier</value></data>
+  <data name="UnitConversion.PackageTab.Col.NetQty" xml:space="preserve"><value>Net quantity / pack</value></data>
+  <data name="UnitConversion.PackageTab.Col.PackagePrice" xml:space="preserve"><value>Price per pack</value></data>
+  <data name="UnitConversion.PackageTab.Col.BaseCost" xml:space="preserve"><value>Cost / base</value></data>
+  <data name="UnitConversion.PackageTab.Incomplete" xml:space="preserve"><value>Missing</value></data>
+  <data name="UnitConversion.PackageTab.ViewSupplier" xml:space="preserve"><value>View supplier</value></data>
+  <data name="UnitConversion.Js.ActionFallback" xml:space="preserve"><value>change status</value></data>
+  <data name="UnitConversion.Js.ConfirmTitle" xml:space="preserve"><value>Confirm {0}</value></data>
+  <data name="UnitConversion.Js.ConfirmText" xml:space="preserve"><value>Are you sure you want to {0} this conversion?</value></data>
+  <data name="UnitConversion.Js.ConfirmFallback" xml:space="preserve"><value>Confirm {0} this conversion?</value></data>
+  <data name="UnitConversion.Js.ToastStatusUpdated" xml:space="preserve"><value>Status updated successfully</value></data>
+  <data name="UnitConversion.CreateTitle" xml:space="preserve"><value>Create measuring conversion by ingredient</value></data>
+  <data name="UnitConversion.Create.Kicker" xml:space="preserve"><value>Create measuring conversion by ingredient</value></data>
+  <data name="UnitConversion.Create.Heading" xml:space="preserve"><value>Create measuring conversion by ingredient</value></data>
+  <data name="UnitConversion.Create.Description" xml:space="preserve"><value>Create only when the operator has confirmed the measuring specification. Do not infer a factor from the pack name alone.</value></data>
+  <data name="UnitConversion.Create.PhysicalStrip" xml:space="preserve"><value>Standard physical conversions (no record created):</value></data>
+  <data name="UnitConversion.Create.IngredientLabel" xml:space="preserve"><value>Ingredient</value></data>
+  <data name="UnitConversion.Create.IngredientPlaceholder" xml:space="preserve"><value>-- Select ingredient (code + name) --</value></data>
+  <data name="UnitConversion.Create.IngredientHelp" xml:space="preserve"><value>Search by code or name. Each record belongs to one ingredient.</value></data>
+  <data name="UnitConversion.Create.FromQtyLabel" xml:space="preserve"><value>Input quantity</value></data>
+  <data name="UnitConversion.Create.FromUnitLabel" xml:space="preserve"><value>Input unit</value></data>
+  <data name="UnitConversion.Create.ToQtyLabel" xml:space="preserve"><value>Output quantity</value></data>
+  <data name="UnitConversion.Create.ToUnitLabel" xml:space="preserve"><value>Output unit</value></data>
+  <data name="UnitConversion.Create.UnitPlaceholder" xml:space="preserve"><value>-- Unit --</value></data>
+  <data name="UnitConversion.Create.FromUnitTitle" xml:space="preserve"><value>Select input unit</value></data>
+  <data name="UnitConversion.Create.ToUnitTitle" xml:space="preserve"><value>Select output unit</value></data>
+  <data name="UnitConversion.Create.PackagingSuffix" xml:space="preserve"><value> · count/packaging</value></data>
+  <data name="UnitConversion.Create.PkgAckLabel" xml:space="preserve"><value>I confirm the conflict with the supplier package and still save the measuring conversion (the package is unchanged; cost of goods still uses the supplier package).</value></data>
+  <data name="UnitConversion.Create.EvalInitial" xml:space="preserve"><value>Checking factors and data conflicts…</value></data>
+  <data name="UnitConversion.Create.Submit" xml:space="preserve"><value>Save measuring conversion</value></data>
+  <data name="UnitConversion.Edit.Title" xml:space="preserve"><value>Edit measuring conversion</value></data>
+  <data name="UnitConversion.Edit.Heading" xml:space="preserve"><value>Edit measuring conversion #{0}</value></data>
+  <data name="UnitConversion.Edit.Description" xml:space="preserve"><value>The system re-checks the factor before saving and does not change the package structure.</value></data>
+  <data name="UnitConversion.Edit.PhysicalStatus" xml:space="preserve"><value>Standard physical · read-only</value></data>
+  <data name="UnitConversion.Edit.CrossDimensionAlert" xml:space="preserve"><value>This item is a mass ↔ volume conversion. Do not edit the factor — deletion only.</value></data>
+  <data name="UnitConversion.Edit.IngredientLabel" xml:space="preserve"><value>Ingredient</value></data>
+  <data name="UnitConversion.Edit.FromQtyLabel" xml:space="preserve"><value>Input qty</value></data>
+  <data name="UnitConversion.Edit.FromUnitLabel" xml:space="preserve"><value>Input unit</value></data>
+  <data name="UnitConversion.Edit.ToQtyLabel" xml:space="preserve"><value>Output qty</value></data>
+  <data name="UnitConversion.Edit.ToUnitLabel" xml:space="preserve"><value>Output unit</value></data>
+  <data name="UnitConversion.Edit.FromUnitTitle" xml:space="preserve"><value>Select input unit</value></data>
+  <data name="UnitConversion.Edit.ToUnitTitle" xml:space="preserve"><value>Select output unit</value></data>
+  <data name="UnitConversion.Edit.PackagingSuffix" xml:space="preserve"><value> · count/packaging</value></data>
+  <data name="UnitConversion.Edit.PkgAckLabel" xml:space="preserve"><value>Confirm the supplier package conflict and still save (the package is unchanged).</value></data>
+  <data name="UnitConversion.Edit.EvalInitial" xml:space="preserve"><value>Evaluating…</value></data>
+  <data name="UnitConversion.Form.Js.InsufficientData" xml:space="preserve"><value>Not enough data to evaluate.</value></data>
+  <data name="UnitConversion.Form.Js.FactorLabel" xml:space="preserve"><value>Factor:</value></data>
+  <data name="UnitConversion.Form.Js.FactorFormula" xml:space="preserve"><value>1 {0} = {1}</value></data>
+  <data name="UnitConversion.Form.Js.ReverseNote" xml:space="preserve"><value>Reverse direction (implied, no row saved): 1 {0} ≈ {1} {2}</value></data>
+  <data name="UnitConversion.Form.Js.Direction" xml:space="preserve"><value>Direction: {0} → {1}</value></data>
+  <data name="UnitConversion.Form.Js.PhysicalConflict" xml:space="preserve"><value>PHYSICAL_CONVERSION_CONFLICT — use the standard physical conversion.</value></data>
+  <data name="UnitConversion.Form.Js.PhysicalNote" xml:space="preserve"><value>Standard physical conversion — no row saved.</value></data>
+  <data name="UnitConversion.Form.Js.CrossDimension" xml:space="preserve"><value>CROSS_DIMENSION — mass↔volume is not supported.</value></data>
+  <data name="UnitConversion.Form.Js.PackageConflict" xml:space="preserve"><value>Conflicts with the supplier package</value></data>
+  <data name="UnitConversion.Form.Js.SupplierSpec" xml:space="preserve"><value>Supplier package: {0} {1}/pack</value></data>
+  <data name="UnitConversion.Form.Js.ImpliedMeasuring" xml:space="preserve"><value>Implied measuring conversion:</value></data>
+  <data name="UnitConversion.Form.Js.BaseCostNote" xml:space="preserve"><value>Cost of goods uses the supplier package — no winner is auto-selected.</value></data>
+  <data name="UnitConversion.Form.Js.Valid" xml:space="preserve"><value>Valid</value></data>
+  <data name="UnitConversion.Form.Js.NeedPackageAck" xml:space="preserve"><value>(package acknowledgement required)</value></data>
+  <data name="UnitConversion.Form.Js.Loading" xml:space="preserve"><value>Evaluating on the server…</value></data>
+  <data name="UnitConversion.Form.Js.Error" xml:space="preserve"><value>Evaluate error (antiforgery/connection).</value></data>
+  <data name="Common.Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Common.Dash" xml:space="preserve"><value>—</value></data>
+  <data name="Common.StaffNumber" xml:space="preserve"><value>Staff #{0}</value></data>
+  <data name="Ingredient.Toggle.Inactive" xml:space="preserve"><value>Deactivate</value></data>
+  <data name="StoreInventory.Transaction.PreparedItem" xml:space="preserve"><value>Semi-finished (BTP)</value></data>
+  <data name="StockAlert.Details.DemandType" xml:space="preserve"><value>replenishment demand</value></data>
+  <data name="StockAlert.Details.RestockType" xml:space="preserve"><value>restock request</value></data>
+</root>

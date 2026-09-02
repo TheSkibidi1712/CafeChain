@@ -1,6 +1,8 @@
 // =====================================================
 // COMMON HELPERS
 // =====================================================
+const categoryCatalog = window.CafeChainUiCatalog.read("categoryUiCatalog");
+const categoryText = (key, values) => window.CafeChainUiCatalog.text(categoryCatalog, key, values);
 
 function getAntiForgeryToken() {
 
@@ -29,9 +31,9 @@ function unlockButton(btn, html) {
 }
 
 const createCategoryButtonHtml =
-    '<i class="fas fa-save me-2"></i>Lưu danh mục';
+    `<i class="fas fa-save me-2"></i>${categoryText("Category.Form.Save")}`;
 const editCategoryButtonHtml =
-    '<i class="fas fa-save me-2"></i>Cập nhật';
+    `<i class="fas fa-save me-2"></i>${categoryText("Category.Form.Update")}`;
 
 function restoreCategorySubmitButton(btn, html) {
     if (!btn) return;
@@ -47,7 +49,7 @@ function setCategorySubmitState(form, btn, isSubmitting, idleHtml) {
         form.dataset.submitting = "true";
         btn.disabled = true;
         btn.setAttribute("aria-busy", "true");
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Đang lưu...';
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i>${categoryText("Category.Js.Saving")}`;
         return;
     }
 
@@ -65,18 +67,18 @@ function resolveCategoryError(result, response, action) {
         return window.AdminFeedback?.resolveMessage?.(result, {
             status: response?.status,
             action,
-            entityName: "danh mục"
-        }) || result?.message || "Không thể lưu danh mục.";
+            entityName: categoryText("Category.Js.Entity")
+        }) || result?.message || categoryText("Category.Js.SaveFailed");
     } catch {
-        return result?.message || "Không thể lưu danh mục.";
+        return result?.message || categoryText("Category.Js.SaveFailed");
     }
 }
 
 function resolveCategoryNetworkError() {
     try {
-        return window.AdminFeedback?.networkMessage?.() || "Không thể kết nối đến máy chủ.";
+        return window.AdminFeedback?.networkMessage?.() || categoryText("Category.Js.NetworkError");
     } catch {
-        return "Không thể kết nối đến máy chủ.";
+        return categoryText("Category.Js.NetworkError");
     }
 }
 
@@ -115,7 +117,7 @@ function resetCategorySuggestions() {
 
     const message = document.getElementById("categoryAiSuggestionMessage");
     if (message) {
-        message.textContent = "Chọn một gợi ý để điền vào form:";
+        message.textContent = categoryText("Category.Js.AiChoose");
     }
 }
 
@@ -153,11 +155,11 @@ async function showCategoryAlert(message, icon = "success") {
 
         try {
             await window.Swal.fire({
-                title: icon === "success" ? "Thành công" : "Không thể thực hiện",
+                title: icon === "success" ? categoryText("Category.Js.Success") : categoryText("Category.Js.ActionFailed"),
                 text: message,
                 icon,
                 confirmButtonColor: "#70482f",
-                confirmButtonText: "Đóng",
+                confirmButtonText: categoryText("Category.Js.Close"),
                 heightAuto: false,
                 returnFocus: false,
                 allowOutsideClick: false
@@ -205,41 +207,41 @@ function buildCategoryFormData(form) {
 
 const categoryIconCatalog = [
     {
-        name: "Đồ uống",
+        name: categoryText("Category.Js.Group.Drinks"),
         items: [
-            ["☕", "Cà phê"], ["🧋", "Trà sữa"], ["🍵", "Trà"],
-            ["🥤", "Nước uống"], ["🥛", "Sữa"], ["🧃", "Nước ép"],
-            ["🍹", "Nước trái cây"], ["🍸", "Mocktail"], ["🍺", "Đồ uống lạnh"]
+            ["☕", categoryText("Category.Js.Icon.Coffee")], ["🧋", categoryText("Category.Js.Icon.MilkTea")], ["🍵", categoryText("Category.Js.Icon.Tea")],
+            ["🥤", categoryText("Category.Js.Icon.Drink")], ["🥛", categoryText("Category.Js.Icon.Milk")], ["🧃", categoryText("Category.Js.Icon.Juice")],
+            ["🍹", categoryText("Category.Js.Icon.FruitDrink")], ["🍸", categoryText("Category.Js.Icon.Mocktail")], ["🍺", categoryText("Category.Js.Icon.ColdDrink")]
         ]
     },
     {
-        name: "Trái cây",
+        name: categoryText("Category.Js.Group.Fruit"),
         items: [
-            ["🍓", "Dâu"], ["🍊", "Cam"], ["🍋", "Chanh"], ["🍎", "Táo"],
-            ["🍉", "Dưa hấu"], ["🥭", "Xoài"], ["🍑", "Đào"], ["🍒", "Anh đào"],
-            ["🍍", "Dứa"], ["🥑", "Bơ"], ["🥥", "Dừa"]
+            ["🍓", categoryText("Category.Js.Icon.Strawberry")], ["🍊", categoryText("Category.Js.Icon.Orange")], ["🍋", categoryText("Category.Js.Icon.Lemon")], ["🍎", categoryText("Category.Js.Icon.Apple")],
+            ["🍉", categoryText("Category.Js.Icon.Watermelon")], ["🥭", categoryText("Category.Js.Icon.Mango")], ["🍑", categoryText("Category.Js.Icon.Peach")], ["🍒", categoryText("Category.Js.Icon.Cherry")],
+            ["🍍", categoryText("Category.Js.Icon.Pineapple")], ["🥑", categoryText("Category.Js.Icon.Avocado")], ["🥥", categoryText("Category.Js.Icon.Coconut")]
         ]
     },
     {
-        name: "Đồ ăn",
+        name: categoryText("Category.Js.Group.Food"),
         items: [
-            ["🥐", "Bánh sừng bò"], ["🥪", "Bánh mì kẹp"], ["🍞", "Bánh mì"],
-            ["🥨", "Bánh xoắn"], ["🍫", "Sô-cô-la"], ["🥜", "Hạt"]
+            ["🥐", categoryText("Category.Js.Icon.Croissant")], ["🥪", categoryText("Category.Js.Icon.Sandwich")], ["🍞", categoryText("Category.Js.Icon.Bread")],
+            ["🥨", categoryText("Category.Js.Icon.Pretzel")], ["🍫", categoryText("Category.Js.Icon.Chocolate")], ["🥜", categoryText("Category.Js.Icon.Nuts")]
         ]
     },
     {
-        name: "Bánh và kem",
+        name: categoryText("Category.Js.Group.Dessert"),
         items: [
-            ["🍨", "Kem ly"], ["🍦", "Kem"], ["🍰", "Bánh ngọt"],
-            ["🧁", "Bánh cupcake"], ["🍪", "Bánh quy"], ["🍩", "Bánh vòng"]
+            ["🍨", categoryText("Category.Js.Icon.IceCreamBowl")], ["🍦", categoryText("Category.Js.Icon.IceCream")], ["🍰", categoryText("Category.Js.Icon.Cake")],
+            ["🧁", categoryText("Category.Js.Icon.Cupcake")], ["🍪", categoryText("Category.Js.Icon.Cookie")], ["🍩", categoryText("Category.Js.Icon.Donut")]
         ]
     },
     {
-        name: "Phổ biến",
+        name: categoryText("Category.Js.Group.Popular"),
         items: [
-            ["⭐", "Nổi bật"], ["🔥", "Bán chạy"], ["🌿", "Thảo mộc"],
-            ["❤️", "Yêu thích"], ["✨", "Theo mùa"], ["💚", "Tốt cho sức khỏe"],
-            ["🧊", "Đá xay"], ["♨️", "Đồ uống nóng"]
+            ["⭐", categoryText("Category.Js.Icon.Featured")], ["🔥", categoryText("Category.Js.Icon.Bestseller")], ["🌿", categoryText("Category.Js.Icon.Herbal")],
+            ["❤️", categoryText("Category.Js.Icon.Favorite")], ["✨", categoryText("Category.Js.Icon.Seasonal")], ["💚", categoryText("Category.Js.Icon.Healthy")],
+            ["🧊", categoryText("Category.Js.Icon.Blended")], ["♨️", categoryText("Category.Js.Icon.HotDrink")]
         ]
     }
 ];
@@ -256,23 +258,23 @@ function validateCategoryIcon(icon, showMessage = true) {
     let message = "";
 
     if (!value) return true;
-    if (value.length > 10) message = "Icon tối đa 10 ký tự.";
-    else if (/[<>&]/u.test(value)) message = "Icon không được chứa HTML.";
+    if (value.length > 10) message = categoryText("Category.Js.IconLength");
+    else if (/[<>&]/u.test(value)) message = categoryText("Category.Js.IconHtml");
     else {
         const segments = typeof Intl.Segmenter === "function"
             ? Array.from(new Intl.Segmenter("vi", { granularity: "grapheme" }).segment(value), item => item.segment)
             : Array.from(value);
-        if (segments.length !== 1) message = "Chỉ được chọn một biểu tượng Unicode.";
+        if (segments.length !== 1) message = categoryText("Category.Js.IconSingle");
         else {
             let containsSymbol = false;
             for (const character of value) {
                 if (/\p{S}/u.test(character)) containsSymbol = true;
                 else if (!/[\p{M}\u200D]/u.test(character)) {
-                    message = "Icon phải là một biểu tượng Unicode, không phải chữ hoặc số.";
+                    message = categoryText("Category.Js.IconNotText");
                     break;
                 }
             }
-            if (!message && !containsSymbol) message = "Icon phải là một biểu tượng Unicode hợp lệ.";
+            if (!message && !containsSymbol) message = categoryText("Category.Js.IconInvalid");
         }
     }
 
@@ -341,7 +343,7 @@ function initializeCategoryIconPicker(root) {
         if (!groups.children.length) {
             const empty = document.createElement("div");
             empty.className = "category-icon-no-result";
-            empty.textContent = "Không tìm thấy biểu tượng phù hợp.";
+            empty.textContent = categoryText("Category.Js.IconEmpty");
             groups.appendChild(empty);
         }
     };
@@ -393,7 +395,7 @@ function validateCategoryName(name) {
     if (!name || !name.trim()) {
 
         toast(
-            "Tên danh mục không được để trống.",
+            categoryText("Category.Js.NameRequired"),
             "warning"
         );
 
@@ -405,7 +407,7 @@ function validateCategoryName(name) {
     if (value.length < 2) {
 
         toast(
-            "Tên danh mục phải từ 2 ký tự trở lên.",
+            categoryText("Category.Js.NameMin"),
             "warning"
         );
 
@@ -415,7 +417,7 @@ function validateCategoryName(name) {
     if (value.length > 100) {
 
         toast(
-            "Tên danh mục tối đa 100 ký tự.",
+            categoryText("Category.Js.NameMax"),
             "warning"
         );
 
@@ -430,7 +432,7 @@ function validateCategoryCode(code) {
     if (!code || !code.trim()) {
 
         toast(
-            "Mã danh mục không được để trống.",
+            categoryText("Category.Js.CodeRequired"),
             "warning"
         );
 
@@ -442,7 +444,7 @@ function validateCategoryCode(code) {
     if (value.length < 2) {
 
         toast(
-            "Mã danh mục phải từ 2 ký tự trở lên.",
+            categoryText("Category.Js.CodeMin"),
             "warning"
         );
 
@@ -452,7 +454,7 @@ function validateCategoryCode(code) {
     if (value.length > 30) {
 
         toast(
-            "Mã danh mục tối đa 30 ký tự.",
+            categoryText("Category.Js.CodeMax"),
             "warning"
         );
 
@@ -524,7 +526,7 @@ async function createCategory(form) {
     await hideCategoryModal("createCategoryModal");
     resetCategorySuggestions();
     resetCategoryForm(form, "btnCreateCategory", createCategoryButtonHtml);
-    await showCategoryAlert(result?.message || "Đã tạo danh mục.", "success");
+    await showCategoryAlert(result?.message || categoryText("Category.Js.CreateSuccess"), "success");
     location.reload();
 }
 
@@ -542,7 +544,7 @@ async function suggestCategories() {
     const controller = new AbortController();
     categorySuggestionController = controller;
     categorySuggestionInFlight = true;
-    lockButton(button, "Đang gợi ý...");
+    lockButton(button, categoryText("Category.Js.AiLoading"));
     try {
         const payload = {
             currentName: form.querySelector('[name="Name"]')?.value.trim() || null,
@@ -559,13 +561,13 @@ async function suggestCategories() {
             signal: controller.signal
         });
         const result = await response.json().catch(() => ({}));
-        if (!response.ok || !result.success) throw new Error(result.message || "Không thể tạo gợi ý.");
+        if (!response.ok || !result.success) throw new Error(result.message || categoryText("Category.Js.AiFailed"));
 
         const suggestionMessage = document.getElementById("categoryAiSuggestionMessage");
         if (suggestionMessage) {
             suggestionMessage.textContent = (result.data.warnings || []).length
-                ? `Chọn một gợi ý để điền vào form. ${result.data.warnings.join(" ")}`
-                : "Chọn một gợi ý để điền vào form:";
+                ? categoryText("Category.Js.AiChooseWarnings", { warnings: result.data.warnings.join(" ") })
+                : categoryText("Category.Js.AiChoose");
         }
 
         list.innerHTML = (result.data.options || []).map((option, index) => `
@@ -586,14 +588,14 @@ async function suggestCategories() {
                 if (active) active.checked = true;
                 panel.classList.add("d-none");
                 list.innerHTML = "";
-                toast("Đã điền gợi ý. Vui lòng kiểm tra trước khi lưu.", "success");
+                toast(categoryText("Category.Js.AiApplied"), "success");
             });
         });
         panel.classList.remove("d-none");
     }
     catch (error) {
         if (error.name !== "AbortError") {
-            toast(error.message || "Không thể tạo gợi ý danh mục.", "error");
+            toast(error.message || categoryText("Category.Js.AiCategoryFailed"), "error");
         }
     }
     finally {
@@ -670,7 +672,7 @@ async function editCategory(form) {
 
     await hideCategoryModal("editCategoryModal");
     resetCategoryForm(form, "btnEditCategory", editCategoryButtonHtml);
-    await showCategoryAlert(result?.message || "Đã cập nhật danh mục.", "success");
+    await showCategoryAlert(result?.message || categoryText("Category.Js.UpdateSuccess"), "success");
     location.reload();
 }
 
@@ -693,7 +695,7 @@ async function openEditModal(categoryId) {
         if (!response.ok || !result.success) {
 
             toast(
-                result.message || "Không tìm thấy danh mục",
+                result.message || categoryText("Category.Js.NotFound"),
                 "error"
             );
 
@@ -728,7 +730,7 @@ async function openEditModal(categoryId) {
     catch {
 
         toast(
-            "Có lỗi xảy ra",
+            categoryText("Category.Js.GenericError"),
             "error"
         );
     }
@@ -742,17 +744,17 @@ async function toggleCategory(id) {
 
     if (window.Swal) {
         const result = await window.Swal.fire({
-            title: 'Xác nhận',
-            text: 'Bạn có chắc muốn thay đổi trạng thái danh mục này?',
+            title: categoryText("Category.Js.Confirm"),
+            text: categoryText("Category.Js.StatusConfirm"),
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#70482f',
             cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Đồng ý',
-            cancelButtonText: 'Hủy'
+            confirmButtonText: categoryText("Category.Js.Confirm"),
+            cancelButtonText: categoryText("Common.Cancel")
         });
         if (!result.isConfirmed) return;
-    } else if (!confirm("Bạn có chắc muốn thay đổi trạng thái danh mục này?")) {
+    } else if (!confirm(categoryText("Category.Js.StatusConfirm"))) {
         return;
     }
 
@@ -779,7 +781,7 @@ async function toggleCategory(id) {
                 window.AdminFeedback.resolveMessage(result, {
                     status: response.status,
                     action: "update",
-                    entityName: "trạng thái danh mục"
+                    entityName: categoryText("Category.Js.StatusEntity")
                 }),
                 "error"
             );
@@ -788,7 +790,7 @@ async function toggleCategory(id) {
         }
 
         try {
-            sessionStorage.setItem('toast_message', 'Thay đổi trạng thái thành công.');
+            sessionStorage.setItem('toast_message', categoryText("Category.Js.StatusSuccess"));
             sessionStorage.setItem('toast_type', 'success');
         } catch (e) {
             // Fallback

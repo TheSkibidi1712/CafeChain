@@ -3,6 +3,8 @@
 @using CafeChain.Application.Constants
 @using CafeChain.Application.Interfaces.Admin.Permissions
 @inject IAdminPermissionService PermissionService
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<CafeChain.ProductResource> ProductText
 
 @{
     var drinks = Model?.ToList() ?? new List<CafeChain.Application.DTOs.Admin.Drinks.AdminDrinkDTO>();
@@ -22,7 +24,7 @@
     {
         <tr>
             <td colspan="8" class="drink-empty-state">
-                Không tìm thấy đồ uống phù hợp.
+                @ProductText["Drink.EmptyTitle"]
             </td>
         </tr>
     }
@@ -31,7 +33,7 @@
     {
         <tr>
             <td class="drink-check-cell">
-                <input type="checkbox" aria-label="Chọn @item.Name" />
+                <input type="checkbox" aria-label="@ProductText["Drink.SelectOne", item.Name]" />
             </td>
 
             <td>
@@ -67,14 +69,14 @@
                 {
                     <span class="drink-status-badge active">
                         <span></span>
-                        Đang bán
+                        @ProductText["Drink.Selling"]
                     </span>
                 }
                 else
                 {
                     <span class="drink-status-badge inactive">
                         <span></span>
-                        Ngừng bán
+                        @ProductText["Drink.Paused"]
                     </span>
                 }
             </td>
@@ -87,7 +89,7 @@
                             class="btn drink-action-btn is-secondary btn-manage-images"
                             data-id="@item.DrinkId"
                             data-name="@item.Name"
-                            title="Quản lý ảnh">
+                            title="@ProductText["Drink.ManageImages"]">
                         <i class="fas fa-images"></i>
                     </button>
                     }
@@ -97,7 +99,7 @@
                     <a asp-action="Edit"
                        asp-route-id="@item.DrinkId"
                        class="btn drink-action-btn is-edit"
-                       title="Sửa đồ uống">
+                       title="@ProductText["Drink.Edit"]">
                         <i class="fas fa-pen"></i>
                     </a>
                     }
@@ -105,7 +107,7 @@
                     @if (canToggle)
                     {
                         <button type="button" class="btn drink-action-btn js-toggle-drink @(item.Active ? "is-lock" : "is-unlock")"
-                                data-id="@item.DrinkId" title="Đổi trạng thái">
+                                data-id="@item.DrinkId" title="@(item.Active ? ProductText["Common.Lock"] : ProductText["Common.Unlock"])">
                             <i class="fas @(item.Active ? "fa-lock text-danger" : "fa-unlock text-success")"></i>
                         </button>
                     }

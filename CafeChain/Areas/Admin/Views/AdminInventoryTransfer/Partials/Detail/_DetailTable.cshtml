@@ -1,14 +1,15 @@
 @model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferDetailVM
+@inject Microsoft.Extensions.Localization.IStringLocalizer<CafeChain.InventoryResource> InventoryText
 
 <section class="transfer-card">
     <div class="transfer-toolbar">
         <div>
             <span class="section-kicker">
                 <i class="fas fa-boxes-stacked"></i>
-                Chi tiết hàng chuyển
+                @InventoryText["Transfer.Create.LinesTitle"]
             </span>
-            <h2>Danh sách nguyên liệu và bán thành phẩm</h2>
-            <p>Số lượng theo nguồn chứng từ dispatch, receipt và ledger chênh lệch.</p>
+            <h2>@InventoryText["Transfer.Detail.ItemList"]</h2>
+            <p>@InventoryText["Transfer.Detail.QuantityEvidenceHint"]</p>
         </div>
     </div>
 
@@ -17,17 +18,17 @@
             <thead>
                 <tr>
                     <th class="col-index">#</th>
-                    <th>Hàng hóa</th>
-                    <th>ĐVT</th>
-                    <th class="text-end">Yêu cầu</th>
-                    <th class="text-end">Đã xuất</th>
-                    <th class="text-end">Đích nhận</th>
-                    <th class="text-end">Từ chối</th>
-                    <th class="text-end">Hoàn nguồn</th>
-                    <th class="text-end">Mất/hỏng</th>
-                    <th class="text-end">Đóng thiếu</th>
-                    <th class="text-end">Còn xử lý</th>
-                    <th>Trạng thái</th>
+                    <th>@InventoryText["Common.Item"]</th>
+                    <th>@InventoryText["Common.Unit"]</th>
+                    <th class="text-end">@InventoryText["Transfer.Detail.Requested"]</th>
+                    <th class="text-end">@InventoryText["Transfer.Detail.Dispatched"]</th>
+                    <th class="text-end">@InventoryText["Transfer.Detail.Accepted"]</th>
+                    <th class="text-end">@InventoryText["Transfer.Detail.Rejected"]</th>
+                    <th class="text-end">@InventoryText["Transfer.Detail.Returned"]</th>
+                    <th class="text-end">@InventoryText["Transfer.Detail.WrittenOff"]</th>
+                    <th class="text-end">@InventoryText["Transfer.Detail.ClosedShortage"]</th>
+                    <th class="text-end">@InventoryText["Transfer.Detail.Pending"]</th>
+                    <th>@InventoryText["Common.Status"]</th>
                 </tr>
             </thead>
 
@@ -35,7 +36,7 @@
                 @if (!Model.Details.Any())
                 {
                     <tr class="transfer-empty-row">
-                        <td colspan="12">Phiếu chưa có hàng hóa.</td>
+                        <td colspan="12">@InventoryText["Transfer.Detail.NoItems"]</td>
                     </tr>
                 }
                 else
@@ -53,7 +54,7 @@
 
                                 @if (item.RestockRequestId.HasValue)
                                 {
-                                    <span class="transfer-detail-note">Yêu cầu nhập hàng #@item.RestockRequestId</span>
+                                    <span class="transfer-detail-note">@InventoryText["Transfer.Detail.RestockRequestNumber", item.RestockRequestId]</span>
                                 }
 
                                 @if (!string.IsNullOrWhiteSpace(item.Note))

@@ -1,20 +1,23 @@
 @model CafeChain.ViewModels.Admin.Recipes.AdminRecipeListPageVM
 @using CafeChain.ViewModels.Admin.Shared
+@using Microsoft.Extensions.Localization
+@using System.Text.Json
+@inject IStringLocalizer<CafeChain.ProductResource> ProductText
 @{
-    ViewData["Title"] = "Công thức BOM";
+    ViewData["Title"] = ProductText["Recipe.Index.PageTitle"];
     var type = Model.TypeFilter ?? "POS";
     var items = Model.Items;
     var typeLabel = type switch
     {
         "TOPPING" => "Topping",
-        "SUBRECIPE" => "Bán thành phẩm",
-        _ => "Món bán"
+        "SUBRECIPE" => ProductText["Recipe.Type.Subrecipe"].Value,
+        _ => ProductText["Recipe.Type.PosShort"].Value
     };
     var heroActions = new List<AdminPageHeroActionVM>
     {
         new()
         {
-            Label = "Kiểm tra dữ liệu",
+            Label = ProductText["Recipe.Index.DataHealth"],
             Url = Url.Action("DataHealth") ?? "#",
             IconClass = "fas fa-clipboard-check"
         }
@@ -23,7 +26,7 @@
     {
         heroActions.Add(new AdminPageHeroActionVM
         {
-            Label = "Tạo công thức",
+            Label = ProductText["Recipe.Create.Title"],
             Url = Url.Action("Create") ?? "#",
             IconClass = "fas fa-plus",
             IsPrimary = true
@@ -31,13 +34,16 @@
     }
     var hero = new AdminPageHeroVM
     {
-        Eyebrow = "Sản xuất / BOM",
-        Title = "Công thức và định mức nguyên liệu",
-        Description = "Quản lý định mức đầu vào, sản lượng dự kiến và các phiên bản công thức cho món bán, topping và bán thành phẩm.",
+        Eyebrow = ProductText["Recipe.Eyebrow"],
+        Title = ProductText["Recipe.Index.Title"],
+        Description = ProductText["Recipe.Index.Description"],
         IconClass = "fas fa-receipt",
-        Breadcrumbs = [new() { Label = "Sản xuất / BOM" }, new() { Label = "Công thức" }],
+        Breadcrumbs = [new() { Label = ProductText["Recipe.Eyebrow"] }, new() { Label = ProductText["Recipe.List"] }],
         Actions = heroActions
     };
+    var deleteTextJson = JsonSerializer.Serialize(ProductText.GetAllStrings()
+        .Where(message => message.Name.StartsWith("Recipe.Delete.", StringComparison.Ordinal) || message.Name == "Common.Cancel")
+        .ToDictionary(message => message.Name, message => message.Value));
 }
 
 <link rel="stylesheet" href="~/css/recipe-builder.css" asp-append-version="true" />
@@ -48,11 +54,11 @@
     <div class="container-fluid px-0">
         <partial name="_PageHero" model="hero" />
 
-        <nav class="rb-recipe-tabs production-tabs" aria-label="Loại công thức">
+        <nav class="rb-recipe-tabs production-tabs" aria-label="@ProductText["Recipe.Type"]">
             <a class="rb-recipe-tab @(type == "POS" ? "active" : "")"
                aria-current="@(type == "POS" ? "page" : null)"
                href="@Url.Action("Index", new { type = "POS", search = Model.Search, status = Model.StatusFilter, page = 1 })">
-                Món bán
+                @ProductText["Recipe.Type.PosShort"]
             </a>
             <a class="rb-recipe-tab @(type == "TOPPING" ? "active" : "")"
                aria-current="@(type == "TOPPING" ? "page" : null)"
@@ -62,32 +68,32 @@
             <a class="rb-recipe-tab @(type == "SUBRECIPE" ? "active" : "")"
                aria-current="@(type == "SUBRECIPE" ? "page" : null)"
                href="@Url.Action("Index", new { type = "SUBRECIPE", search = Model.Search, status = Model.StatusFilter, page = 1 })">
-                Bán thành phẩm
+                @ProductText["Recipe.Type.Subrecipe"]
             </a>
         </nav>
 
         <form method="get" class="rb-list-filters production-filter-card" role="search">
             <input type="hidden" name="type" value="@type" />
-            <label class="visually-hidden" for="recipeSearch">Tìm công thức</label>
+            <label class="visually-hidden" for="recipeSearch">@ProductText["Recipe.Search"]</label>
             <input id="recipeSearch"
                    class="form-control"
                    type="search"
                    name="search"
                    value="@Model.Search"
-                   placeholder="Tìm tên, mã công thức hoặc mã BTP..." />
-            <label class="visually-hidden" for="recipeStatus">Trạng thái</label>
+                   placeholder="@ProductText["Recipe.SearchPlaceholder"]" />
+            <label class="visually-hidden" for="recipeStatus">@ProductText["Recipe.Filter.Status"]</label>
             <select id="recipeStatus" class="form-select" name="status">
-                <option value="ALL" selected="@(Model.StatusFilter == "ALL" ? "selected" : null)">Tất cả trạng thái</option>
-                <option value="ACTIVE" selected="@(Model.StatusFilter == "ACTIVE" ? "selected" : null)">Đang hoạt động</option>
-                <option value="INACTIVE" selected="@(Model.StatusFilter == "INACTIVE" ? "selected" : null)">Không hoạt động</option>
+                <option value="ALL" selected="@(Model.StatusFilter == "ALL" ? "selected" : null)">@ProductText["Recipe.Filter.AllStatus"]</option>
+                <option value="ACTIVE" selected="@(Model.StatusFilter == "ACTIVE" ? "selected" : null)">@ProductText["Recipe.Status.Active"]</option>
+                <option value="INACTIVE" selected="@(Model.StatusFilter == "INACTIVE" ? "selected" : null)">@ProductText["Recipe.Status.Inactive"]</option>
             </select>
             <button class="btn btn-rb-save" type="submit">
-                <i class="fas fa-search me-2" aria-hidden="true"></i>Lọc
+                <i class="fas fa-search me-2" aria-hidden="true"></i>@ProductText["Recipe.Filter.Apply"]
             </button>
             <a class="btn btn-rb-ghost production-filter-reset"
                href="@Url.Action("Index", new { type })"
-               aria-label="Đặt lại bộ lọc"
-               title="Đặt lại bộ lọc">
+               aria-label="@ProductText["Recipe.Filter.Reset"]"
+               title="@ProductText["Recipe.Filter.Reset"]">
                 <i class="fas fa-rotate-left" aria-hidden="true"></i>
             </a>
         </form>
@@ -95,15 +101,15 @@
         <section class="production-list-section" aria-labelledby="recipe-list-title">
             <header class="production-section-header">
                 <div>
-                    <h2 id="recipe-list-title">Danh sách công thức @typeLabel.ToLowerInvariant()</h2>
-                    <p>Phiên bản đang áp dụng, tình trạng dữ liệu và giá vốn ước tính.</p>
+                    <h2 id="recipe-list-title">@ProductText["Recipe.Index.ListTitle", typeLabel]</h2>
+                    <p>@ProductText["Recipe.Index.ListHint"]</p>
                 </div>
-                <span class="production-section-header__count"><strong>@Model.TotalCount</strong> công thức</span>
+                <span class="production-section-header__count">@ProductText["Recipe.Index.Count", Model.TotalCount]</span>
             </header>
 
         <div class="rb-card production-table-panel">
             <div class="table-responsive">
-                <table class="table rb-table rb-recipe-table production-data-table @(type == "SUBRECIPE" ? "is-subrecipe" : "is-standard") mb-0" aria-label="Danh sách công thức @typeLabel">
+                <table class="table rb-table rb-recipe-table production-data-table @(type == "SUBRECIPE" ? "is-subrecipe" : "is-standard") mb-0" aria-label="@ProductText["Recipe.Index.ListTitle", typeLabel]">
                     @if (type == "SUBRECIPE")
                     {
                         <colgroup>
@@ -145,38 +151,38 @@
                         @if (type == "SUBRECIPE")
                         {
                             <tr>
-                                <th>BTP</th>
-                                <th>Phiên bản</th>
-                                <th title="Sản lượng mỗi mẻ">Sản lượng/mẻ</th>
-                                <th>Sản lượng quy đổi</th>
-                                <th>Giá vốn/mẻ</th>
-                                <th>Giá vốn/đơn vị</th>
-                                <th>Trạng thái</th>
-                                <th class="rb-actions-heading">Thao tác</th>
+                                <th>@ProductText["Recipe.Column.Prepared"]</th>
+                                <th>@ProductText["Recipe.Column.Version"]</th>
+                                <th title="@ProductText["Recipe.Column.YieldBatchTitle"]">@ProductText["Recipe.Column.YieldBatch"]</th>
+                                <th>@ProductText["Recipe.Column.NormalizedYield"]</th>
+                                <th>@ProductText["Recipe.Column.CostBatch"]</th>
+                                <th>@ProductText["Recipe.Column.UnitCost"]</th>
+                                <th>@ProductText["Recipe.Column.Status"]</th>
+                                <th class="rb-actions-heading">@ProductText["Recipe.Column.Actions"]</th>
                             </tr>
                         }
                         else if (type == "TOPPING")
                         {
                             <tr>
                                 <th>Topping</th>
-                                <th>Nguồn tiêu hao</th>
-                                <th>Định mức/phần</th>
-                                <th>Cấu hình</th>
-                                <th>Giá vốn/phần</th>
-                                <th>Trạng thái</th>
-                                <th class="rb-actions-heading">Thao tác</th>
+                                <th>@ProductText["Recipe.Column.Source"]</th>
+                                <th>@ProductText["Recipe.Column.Portion"]</th>
+                                <th>@ProductText["Recipe.Column.Configuration"]</th>
+                                <th>@ProductText["Recipe.Column.CostPortion"]</th>
+                                <th>@ProductText["Recipe.Column.Status"]</th>
+                                <th class="rb-actions-heading">@ProductText["Recipe.Column.Actions"]</th>
                             </tr>
                         }
                         else
                         {
                             <tr>
-                                <th>Định danh</th>
-                                <th>Phiên bản</th>
-                                <th>Định mức/phần</th>
-                                <th>Cấu hình</th>
-                                <th>Giá vốn/phần</th>
-                                <th>Trạng thái</th>
-                                <th class="rb-actions-heading">Thao tác</th>
+                                <th>@ProductText["Recipe.Column.Identity"]</th>
+                                <th>@ProductText["Recipe.Column.Version"]</th>
+                                <th>@ProductText["Recipe.Column.Portion"]</th>
+                                <th>@ProductText["Recipe.Column.Configuration"]</th>
+                                <th>@ProductText["Recipe.Column.CostPortion"]</th>
+                                <th>@ProductText["Recipe.Column.Status"]</th>
+                                <th class="rb-actions-heading">@ProductText["Recipe.Column.Actions"]</th>
                             </tr>
                         }
                     </thead>
@@ -186,11 +192,11 @@
                         <tr>
                             <td colspan="8" class="text-center py-5">
                                 <div class="rb-empty-state">
-                                    <h2 class="h6">Chưa có công thức @typeLabel.ToLowerInvariant()</h2>
-                                    <p class="text-muted mb-3">Thử đổi từ khóa hoặc trạng thái lọc.</p>
+                                    <h2 class="h6">@ProductText["Recipe.Empty.Title", typeLabel]</h2>
+                                    <p class="text-muted mb-3">@ProductText["Recipe.Empty.Hint"]</p>
                                     @if (Model.CanWrite)
                                     {
-                                        <a asp-action="Create" class="btn btn-rb-save">Thêm công thức</a>
+                                        <a asp-action="Create" class="btn btn-rb-save">@ProductText["Recipe.Add"]</a>
                                     }
                                 </div>
                             </td>
@@ -200,10 +206,15 @@
                     {
                         foreach (var recipe in items)
                         {
-                            var activeDesc = AdminStatusDisplay.RecipeActive(recipe.Active);
+                            var activeDesc = AdminStatusDescriptor.Of(
+                                recipe.Active ? "active" : "inactive",
+                                ProductText[recipe.Active ? "Recipe.Status.Active" : "Recipe.Status.Inactive"],
+                                recipe.Active ? "rb-status-active" : "rb-status-inactive");
                             var configClass = recipe.ConfigurationHealth.IsComplete ? "rb-status-complete" : "rb-status-incomplete";
                             var costClass = recipe.CostingHealth.IsComplete ? "rb-status-complete" : "rb-status-error";
-                            var costReasons = string.Join(" | ", recipe.CostingHealth.Reasons.Select(x => x.Message));
+                            var configLabel = ProductText[$"Recipe.Health.{recipe.ConfigurationHealth.Code}"];
+                            var costLabel = ProductText[$"Recipe.Health.{recipe.CostingHealth.Code}"];
+                            var costReasons = string.Join(" | ", recipe.CostingHealth.Reasons.Select(x => ProductText[$"Recipe.Health.{x.GroupCode}"]));
                             <tr data-recipe-type="@recipe.RecipeType" data-recipe-id="@recipe.RecipeId">
                                 <td>
                                     <div class="fw-semibold text-break">@recipe.IdentityDisplay</div>
@@ -213,32 +224,32 @@
                                 {
                                     <td>
                                         <strong>@recipe.RecipeCode</strong>
-                                        <div class="small text-muted">Phiên bản cho bán thành phẩm</div>
+                                        <div class="small text-muted">@ProductText["Recipe.PreparedVersion"]</div>
                                     </td>
                                     <td class="font-monospace">@recipe.OutputPerBatchDisplay</td>
                                     <td class="font-monospace">@recipe.NormalizedOutputDisplay</td>
                                     <td>
                                         @if (recipe.EstimatedCost.HasValue)
                                         {
-                                            <span class="font-monospace">@recipe.EstimatedCost.Value.ToString("N0") đ/mẻ</span>
+                                            <span class="font-monospace">@recipe.EstimatedCost.Value.ToString("N0") ₫/@ProductText["Recipe.Unit.Batch"]</span>
                                         }
                                         else
                                         {
-                                            <span class="rb-status-badge @costClass" title="@costReasons">@recipe.CostingHealth.Label</span>
+                                            <span class="rb-status-badge @costClass" title="@costReasons">@costLabel</span>
                                         }
                                     </td>
                                     <td>
                                         @if (recipe.EstimatedUnitCost.HasValue)
                                         {
-                                            <span class="font-monospace">@recipe.EstimatedUnitCost.Value.ToString("N2") đ/@recipe.BaseUnitCode</span>
+                                            <span class="font-monospace">@recipe.EstimatedUnitCost.Value.ToString("N2") ₫/@recipe.BaseUnitCode</span>
                                         }
                                         else
                                         {
-                                            <span class="text-muted">Chưa tính được</span>
+                                            <span class="text-muted">@ProductText["Recipe.NotCalculated"]</span>
                                         }
                                     </td>
                                     <td>
-                                        <span class="rb-status-badge @configClass">@recipe.ConfigurationHealth.Label</span>
+                                        <span class="rb-status-badge @configClass">@configLabel</span>
                                         <div class="mt-1"><partial name="_StatusBadge" model="activeDesc" /></div>
                                     </td>
                                 }
@@ -258,10 +269,10 @@
                                                 {
                                                     <div class="rb-source-line">
                                                         <span class="font-monospace">@component.IdentityDisplay</span>
-                                                        <span>@component.QuantityDisplay/phần</span>
+                                                        <span>@component.QuantityDisplay@ProductText["Recipe.PerPortion"]</span>
                                                         @if (component.ChildRecipeId.HasValue)
                                                         {
-                                                            <span>· dùng phiên bản công thức đã chọn</span>
+                                                            <span>· @ProductText["Recipe.SelectedVersion"]</span>
                                                         }
                                                     </div>
                                                 }
@@ -272,19 +283,19 @@
                                     {
                                         <td>
                                             <strong>@recipe.RecipeCode</strong>
-                                            <div class="small text-muted">Phiên bản đang áp dụng</div>
+                                            <div class="small text-muted">@ProductText["Recipe.CurrentVersion"]</div>
                                         </td>
                                     }
                                     <td>@recipe.PortionDefinitionDisplay</td>
-                                    <td><span class="rb-status-badge @configClass">@recipe.ConfigurationHealth.Label</span></td>
+                                    <td><span class="rb-status-badge @configClass">@configLabel</span></td>
                                     <td>
                                         @if (recipe.EstimatedCost.HasValue)
                                         {
-                                            <span class="font-monospace">@recipe.EstimatedCost.Value.ToString("N0") đ/phần</span>
+                                            <span class="font-monospace">@recipe.EstimatedCost.Value.ToString("N0") ₫/@ProductText["Recipe.Unit.Serving"]</span>
                                         }
                                         else
                                         {
-                                            <span class="rb-status-badge @costClass" title="@costReasons">@recipe.CostingHealth.Label</span>
+                                            <span class="rb-status-badge @costClass" title="@costReasons">@costLabel</span>
                                         }
                                     </td>
                                     <td><partial name="_StatusBadge" model="activeDesc" /></td>
@@ -294,30 +305,30 @@
                                         <a class="btn btn-sm btn-outline-secondary rb-table-action"
                                            asp-action="Visualize"
                                            asp-route-recipeId="@recipe.RecipeId"
-                                           title="Xem cấu trúc BOM"
-                                           aria-label="Xem cấu trúc BOM của @recipe.Name"
-                                           asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)"><i class="fas fa-diagram-project" aria-hidden="true"></i><span>Xem cấu trúc</span></a>
+                                           title="@ProductText["Recipe.ViewStructureTitle"]"
+                                           aria-label="@ProductText["Recipe.ViewStructureAria", recipe.Name]"
+                                           asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)"><i class="fas fa-diagram-project" aria-hidden="true"></i><span>@ProductText["Recipe.ViewStructure"]</span></a>
                                         @if (Model.CanWrite)
                                         {
                                             <div class="dropdown production-row-menu">
                                                 <button class="btn btn-sm production-row-menu__trigger" type="button"
                                                         data-bs-toggle="dropdown" aria-expanded="false"
-                                                        title="Mở danh sách thao tác"
-                                                        aria-label="Mở danh sách thao tác cho @recipe.Name">
+                                                        title="@ProductText["Recipe.Actions.Open"]"
+                                                        aria-label="@ProductText["Recipe.Actions.OpenAria", recipe.Name]">
                                                     <i class="fas fa-ellipsis-vertical" aria-hidden="true"></i>
                                                 </button>
                                                 <ul class="dropdown-menu dropdown-menu-end">
                                                     <li>
                                                         <a class="dropdown-item" asp-action="Edit" asp-route-id="@recipe.RecipeId">
                                                             <i class="fas fa-pen" aria-hidden="true"></i>
-                                                            @(type == "SUBRECIPE" ? "Tạo phiên bản" : "Sửa công thức")
+                                                            @(type == "SUBRECIPE" ? ProductText["Recipe.Actions.CreateVersion"] : ProductText["Recipe.Actions.Edit"])
                                                         </a>
                                                     </li>
                                                     <li><hr class="dropdown-divider" /></li>
                                                     <li>
                                                         <button type="button" class="dropdown-item text-danger btn-delete-recipe"
                                                                 data-id="@recipe.RecipeId" data-name="@recipe.Name">
-                                                            <i class="fas fa-trash-can" aria-hidden="true"></i>Xóa công thức
+                                                            <i class="fas fa-trash-can" aria-hidden="true"></i>@ProductText["Recipe.Actions.Delete"]
                                                         </button>
                                                     </li>
                                                 </ul>
@@ -333,12 +344,12 @@
             </div>
         @if (Model.TotalPages > 1)
         {
-            <nav class="production-pagination" aria-label="Phân trang công thức">
-                <span class="production-pagination__summary">Trang @Model.Page trên @Model.TotalPages</span>
+            <nav class="production-pagination" aria-label="@ProductText["Recipe.Pagination.Aria"]">
+                <span class="production-pagination__summary">@ProductText["Recipe.Pagination.Summary", Model.Page, Model.TotalPages]</span>
                 <div class="production-pagination__links">
                     @if (Model.Page > 1)
                     {
-                        <a class="production-page-link is-nav" aria-label="Trang trước"
+                        <a class="production-page-link is-nav" aria-label="@ProductText["Recipe.Pagination.Previous"]"
                            href="@Url.Action("Index", new { type, search = Model.Search, status = Model.StatusFilter, page = Model.Page - 1 })"><i class="fas fa-chevron-left" aria-hidden="true"></i></a>
                     }
                     @for (var number = 1; number <= Model.TotalPages; number++)
@@ -351,7 +362,7 @@
                     }
                     @if (Model.Page < Model.TotalPages)
                     {
-                        <a class="production-page-link is-nav" aria-label="Trang sau"
+                        <a class="production-page-link is-nav" aria-label="@ProductText["Recipe.Pagination.Next"]"
                            href="@Url.Action("Index", new { type, search = Model.Search, status = Model.StatusFilter, page = Model.Page + 1 })"><i class="fas fa-chevron-right" aria-hidden="true"></i></a>
                     }
                 </div>
@@ -367,6 +378,12 @@
     {
     <script>
     (function () {
+        const catalog = @Html.Raw(deleteTextJson);
+        const text = (key, values = {}) => {
+            let value = catalog[key] || key;
+            Object.entries(values).forEach(([name, replacement]) => { value = value.replaceAll(`{${name}}`, String(replacement)); });
+            return value;
+        };
         const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
         document.querySelectorAll('.btn-delete-recipe').forEach(function (button) {
             button.addEventListener('click', async function () {
@@ -374,11 +391,11 @@
                 const name = this.dataset.name || '';
                 const answer = await Swal.fire({
                     icon: 'warning',
-                    title: 'Xóa công thức?',
-                    text: '"' + name + '" (#' + id + ') sẽ bị xóa và không thể khôi phục.',
+                    title: text('Recipe.Delete.Title'),
+                    text: text('Recipe.Delete.Message', { name, id }),
                     showCancelButton: true,
-                    confirmButtonText: 'Xác nhận xóa',
-                    cancelButtonText: 'Hủy',
+                    confirmButtonText: text('Recipe.Delete.Confirm'),
+                    cancelButtonText: text('Common.Cancel'),
                     reverseButtons: true,
                     customClass: { popup: 'rb-confirm-popup', confirmButton: 'rb-confirm-primary', cancelButton: 'rb-confirm-cancel' },
                     buttonsStyling: false
@@ -395,9 +412,9 @@
                 .then(response => response.json())
                 .then(result => {
                     if (result.success) location.reload();
-                    else Swal.fire({ icon: 'error', title: 'Không thể xóa', text: result.message || 'Không thể xóa công thức.', confirmButtonColor: '#6f4e37' });
+                    else Swal.fire({ icon: 'error', title: text('Recipe.Delete.ErrorTitle'), text: result.message || text('Recipe.Delete.Error'), confirmButtonColor: '#6f4e37' });
                 })
-                .catch(() => Swal.fire({ icon: 'error', title: 'Mất kết nối', text: 'Không thể kết nối máy chủ.', confirmButtonColor: '#6f4e37' }));
+                .catch(() => Swal.fire({ icon: 'error', title: text('Recipe.Delete.ConnectionTitle'), text: text('Recipe.Delete.Connection'), confirmButtonColor: '#6f4e37' }));
             });
         });
     })();

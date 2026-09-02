@@ -6,6 +6,7 @@ using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Extensions.Localization;
 
 namespace CafeChain.Areas.Admin.Controllers;
 
@@ -18,6 +19,7 @@ public sealed class AdminReorderSuggestionsController : AdminBaseController
     private readonly IReorderSuggestionConfirmationService _confirmation;
     private readonly IAdminActorContextAccessor _actorAccessor;
     private readonly IAdminStoreScopeResolver _storeScopeResolver;
+    private readonly IStringLocalizer<ProcurementResource> _localizer;
 
     public AdminReorderSuggestionsController(
         IReorderSuggestionService suggestions,
@@ -25,7 +27,8 @@ public sealed class AdminReorderSuggestionsController : AdminBaseController
         IReorderSuggestionAuthorizationService authorization,
         IReorderSuggestionConfirmationService confirmation,
         IAdminActorContextAccessor actorAccessor,
-        IAdminStoreScopeResolver storeScopeResolver)
+        IAdminStoreScopeResolver storeScopeResolver,
+        IStringLocalizer<ProcurementResource> localizer)
     {
         _suggestions = suggestions;
         _tokens = tokens;
@@ -33,6 +36,7 @@ public sealed class AdminReorderSuggestionsController : AdminBaseController
         _confirmation = confirmation;
         _actorAccessor = actorAccessor;
         _storeScopeResolver = storeScopeResolver;
+        _localizer = localizer;
     }
 
     [HttpGet]
@@ -193,13 +197,21 @@ public sealed class AdminReorderSuggestionsController : AdminBaseController
                 message = result.Message ?? "Không tạo được giải thích."
             });
 
+        var status = string.IsNullOrWhiteSpace(item.SuggestionStatus)
+            ? ReorderRecommendationLevels.DataIncomplete
+            : item.SuggestionStatus;
+        var available = $"{item.AvailableStock:N3} {item.BaseUnitCode}";
+        var incoming = $"{item.IncomingQuantity:N3} {item.BaseUnitCode}";
+        var remaining = $"{item.RemainingDemand.GetValueOrDefault():N3} {item.BaseUnitCode}";
+        var suggested = $"{item.FinalSuggestedQuantity.GetValueOrDefault():N3} {item.BaseUnitCode}";
+
         return Json(new
         {
             success = true,
-            summary = result.Data.Summary,
-            explanation = result.Data.Explanation,
-            risk = result.Data.Risk,
-            recommendedActionText = result.Data.RecommendedActionText,
+            summary = _localizer["Reorder.Explanation.Summary", item.IngredientName, status, available, incoming].Value,
+            explanation = _localizer[$"Reorder.Explanation.{status}.Explanation", available, incoming, remaining].Value,
+            risk = _localizer[$"Reorder.Explanation.{status}.Risk"].Value,
+            recommendedActionText = _localizer[$"Reorder.Explanation.{status}.Action", suggested].Value,
             usedOllama = result.Data.UsedOllama,
             usedFallback = result.Data.UsedFallback
         });

@@ -1,8 +1,10 @@
 @model IReadOnlyList<CafeChain.Application.DTOs.Admin.Procurement.PurchaseOrderListItemDto>
 @using CafeChain.Application.DTOs.Admin.StoreScope
 @using CafeChain.ViewModels.Admin.Shared
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<ProcurementResource> L
 @{
-    ViewData["Title"] = "Đơn đặt hàng";
+    ViewData["Title"] = L["PurchaseOrder.Title"];
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var stores = ViewBag.StoreOptions as IReadOnlyList<AdminStoreOptionDto> ?? Array.Empty<AdminStoreOptionDto>();
     var selectedStoreId = ViewBag.SelectedStoreId as int? ?? 0;
@@ -14,13 +16,13 @@
 <main class="ops-shell purchase-order-page purchase-order-index-page cc-warehouse-page">
     <header class="ops-header cc-warehouse-header">
         <div>
-            <div class="ops-eyebrow">Mua hàng từ nhà cung cấp</div>
-            <h1 class="ops-title"><i class="fa-solid fa-cart-shopping me-2 text-warning" aria-hidden="true"></i>Đơn đặt hàng</h1>
-            <p class="ops-subtitle">Theo dõi số lượng đã đặt, tiến độ nhận và giá trị chứng từ. Tồn kho chỉ thay đổi khi phiếu nhận hàng được xác nhận.</p>
+            <div class="ops-eyebrow">@L["PurchaseOrder.Eyebrow"]</div>
+            <h1 class="ops-title"><i class="fa-solid fa-cart-shopping me-2 text-warning" aria-hidden="true"></i>@L["PurchaseOrder.Title"]</h1>
+            <p class="ops-subtitle">@L["PurchaseOrder.Subtitle"]</p>
         </div>
         @if (canCreate)
         {
-            <a class="ops-btn ops-btn-primary" asp-action="Create"><i class="fa-solid fa-plus" aria-hidden="true"></i> Tạo đơn đặt hàng</a>
+            <a class="ops-btn ops-btn-primary" asp-action="Create"><i class="fa-solid fa-plus" aria-hidden="true"></i> @L["PurchaseOrder.Create"]</a>
         }
     </header>
 
@@ -31,11 +33,11 @@
     <section class="po-panel">
         @if (stores.Count > 1)
         {
-            <form method="get" class="po-filter-toolbar cc-warehouse-filter" aria-label="Lọc đơn đặt hàng theo chi nhánh">
+            <form method="get" class="po-filter-toolbar cc-warehouse-filter" aria-label="@L["PurchaseOrder.FilterAria"]">
                 <input type="hidden" name="status" value="@statusFilter" />
                 <div class="po-filter-grid">
                     <div class="po-field">
-                        <label class="ops-form-label mb-0" for="purchaseOrderStoreId">Chi nhánh</label>
+                        <label class="ops-form-label mb-0" for="purchaseOrderStoreId">@L["Common.Branch"]</label>
                         <select id="purchaseOrderStoreId" name="storeId" class="po-select" onchange="this.form.submit()">
                             @foreach (var store in stores)
                             {
@@ -44,7 +46,7 @@
                         </select>
                     </div>
                 </div>
-                <noscript><button type="submit" class="ops-btn">Áp dụng</button></noscript>
+                <noscript><button type="submit" class="ops-btn">@L["Common.Apply"]</button></noscript>
             </form>
         }
 
@@ -53,13 +55,13 @@
             <div class="po-empty-wrap">
                 <section class="ops-empty cc-warehouse-empty" aria-labelledby="purchaseOrderEmptyTitle" role="status">
                     <span class="ops-empty-icon"><i class="fa-solid fa-file-circle-plus" aria-hidden="true"></i></span>
-                    <h2 id="purchaseOrderEmptyTitle" class="ops-empty-title">Chưa có đơn đặt hàng</h2>
-                    <p class="ops-empty-copy">Tạo đơn từ nhu cầu mua đã được xét nguồn cung, hoặc lập đơn mua chủ động khi bạn có đủ quyền và thông tin nhà cung cấp.</p>
+                    <h2 id="purchaseOrderEmptyTitle" class="ops-empty-title">@L["PurchaseOrder.EmptyTitle"]</h2>
+                    <p class="ops-empty-copy">@L["PurchaseOrder.EmptyCopy"]</p>
                     <div class="ops-empty-actions">
-                        <a class="ops-btn" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-storeId="@selectedStoreId">Xem yêu cầu bổ sung</a>
+                        <a class="ops-btn" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-storeId="@selectedStoreId">@L["PurchaseOrder.ViewRequests"]</a>
                         @if (canCreate)
                         {
-                            <a class="ops-btn ops-btn-primary" asp-action="Create">Tạo đơn đặt hàng</a>
+                            <a class="ops-btn ops-btn-primary" asp-action="Create">@L["PurchaseOrder.Create"]</a>
                         }
                     </div>
                 </section>
@@ -67,10 +69,10 @@
         }
         else
         {
-            <section class="po-table-wrap cc-warehouse-table-shell" aria-label="Danh sách đơn đặt hàng">
+            <section class="po-table-wrap cc-warehouse-table-shell" aria-label="@L["PurchaseOrder.ListAria"]">
                 <div class="ops-table-scroll">
                     <table class="ops-table ops-po-table">
-                        <thead><tr><th class="text-center">Mã đơn</th><th class="text-center">Chi nhánh</th><th class="text-center">Nhà cung cấp</th><th class="text-center">Ngày đặt</th><th class="text-center">Trạng thái</th><th class="number text-center">Giá trị</th><th class="text-center">Thao tác</th></tr></thead>
+                        <thead><tr><th class="text-center">@L["PurchaseOrder.Code"]</th><th class="text-center">@L["Common.Branch"]</th><th class="text-center">@L["Common.Supplier"]</th><th class="text-center">@L["PurchaseOrder.OrderDate"]</th><th class="text-center">@L["Common.Status"]</th><th class="number text-center">@L["Common.Value"]</th><th class="text-center">@L["Common.Actions"]</th></tr></thead>
                         <tbody>
                         @foreach (var item in Model)
                         {
@@ -80,9 +82,9 @@
                                 <td class="text-center">@item.StoreName</td>
                                 <td class="text-center">@item.SupplierName</td>
                                 <td class="text-center">@AdminStatusDisplay.Date(item.OrderDate.ToLocalTime())</td>
-                                <td class="text-center"><span class="ops-badge @orderStatus.CssClass">@orderStatus.Label</span></td>
+                                <td class="text-center"><span class="ops-badge @orderStatus.CssClass">@L[$"Status.{item.Status}"]</span></td>
                                 <td class="number text-center">@AdminStatusDisplay.Currency(item.TotalAmount)</td>
-                                <td class="text-center"><a class="ops-btn" asp-action="Details" asp-route-id="@item.PurchaseOrderId">Chi tiết <i class="fa-solid fa-chevron-right" aria-hidden="true"></i></a></td>
+                                <td class="text-center"><a class="ops-btn" asp-action="Details" asp-route-id="@item.PurchaseOrderId">@L["Common.Details"] <i class="fa-solid fa-chevron-right" aria-hidden="true"></i></a></td>
                             </tr>
                         }
                         </tbody>

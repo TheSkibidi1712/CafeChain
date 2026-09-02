@@ -1,4 +1,7 @@
 $(document).ready(function () {
+    const catalog = window.CafeChainUiCatalog.read('drinkUiCatalog');
+    const t = (key, values) => window.CafeChainUiCatalog.text(catalog, key, values);
+    const iconLabel = (icon, key) => `<i class="${icon}"></i> ${t(key)}`;
     const MAX_FILE_SIZE = 5 * 1024 * 1024;
     const ALLOWED_EXT = ['.jpg', '.jpeg', '.png'];
     const CROP_SIZE = 1000;
@@ -24,32 +27,32 @@ $(document).ready(function () {
         if (!id) return;
         if (window.Swal) {
             const result = await window.Swal.fire({
-                title: 'Xác nhận',
-                text: 'Bạn có chắc muốn đổi trạng thái đồ uống?',
+                title: t('Drink.Js.ConfirmTitle'),
+                text: t('Drink.Js.ToggleConfirm'),
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#70482f',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Đồng ý',
-                cancelButtonText: 'Hủy'
+                confirmButtonText: t('Drink.Js.Confirm'),
+                cancelButtonText: t('Common.Cancel')
             });
             if (!result.isConfirmed) return;
-        } else if (!window.confirm('Bạn có chắc muốn đổi trạng thái đồ uống?')) return;
+        } else if (!window.confirm(t('Drink.Js.ToggleConfirm'))) return;
         $.ajax({
             url: '/Admin/AdminDrink/ToggleStatus',
             type: 'POST',
             data: { id },
             success: function (result) {
-                if (!result.success) return notify(result.message || 'Không thể cập nhật trạng thái.', 'error');
+                if (!result.success) return notify(result.message || t('Drink.Js.ToggleFailed'), 'error');
                 try {
-                    sessionStorage.setItem('toast_message', 'Thay đổi trạng thái thành công.');
+                    sessionStorage.setItem('toast_message', t('Drink.Js.ToggleSuccess'));
                     sessionStorage.setItem('toast_type', 'success');
                 } catch (e) {
                     // Fallback
                 }
                 window.location.reload();
             },
-            error: function (xhr) { notify(xhr.responseJSON?.message || 'Không thể cập nhật trạng thái.', 'error'); }
+            error: function (xhr) { notify(xhr.responseJSON?.message || t('Drink.Js.ToggleFailed'), 'error'); }
         });
     });
 
@@ -72,12 +75,12 @@ $(document).ready(function () {
             .toLowerCase();
 
         if (!ALLOWED_EXT.includes(ext)) {
-            notify('Chỉ chấp nhận JPG, JPEG, PNG', 'error');
+            notify(t('Drink.Js.FileType'), 'error');
             return false;
         }
 
         if (file.size > MAX_FILE_SIZE) {
-            notify('Ảnh vượt quá 5MB', 'error');
+            notify(t('Drink.Js.FileSize'), 'error');
             return false;
         }
 
@@ -147,7 +150,7 @@ $(document).ready(function () {
             return;
         }
 
-        const submitDoneHtml = '<i class="fas fa-save me-1"></i> Tạo Nước Uống';
+        const submitDoneHtml = iconLabel('fas fa-save me-1', 'Drink.Js.Create');
         const $validationSummary = $('#drinkCreateValidationSummary');
         let validationFeedbackPending = false;
 
@@ -179,7 +182,7 @@ $(document).ready(function () {
 
             if (!validationFeedbackPending) {
                 validationFeedbackPending = true;
-                notify('Vui lòng kiểm tra và nhập đầy đủ các trường bắt buộc.', 'warning');
+                notify(t('Drink.Js.Validation'), 'warning');
                 window.setTimeout(() => { validationFeedbackPending = false; }, 250);
             }
         }
@@ -276,7 +279,7 @@ $(document).ready(function () {
             isCreateSubmitting = true;
 
             submitAjaxForm($form, {
-                loadingHtml: '<i class="fas fa-spinner fa-spin me-1"></i> Đang tạo...',
+                loadingHtml: iconLabel('fas fa-spinner fa-spin me-1', 'Drink.Js.Creating'),
                 doneHtml: submitDoneHtml,
                 onComplete: function () {
                     isCreateSubmitting = false;
@@ -296,7 +299,7 @@ $(document).ready(function () {
                 selectedCreateFiles.push(croppedFile);
             }
             catch {
-                notify('Không thể xử lý ảnh', 'error');
+                notify(t('Drink.Js.ImageProcessFailed'), 'error');
             }
         }
 
@@ -345,11 +348,11 @@ $(document).ready(function () {
                             <img
                                 src="${previewUrl}"
                                 class="w-100 drink-create-img"
-                                alt="Ảnh nước uống ${index + 1}">
+                                alt="${escapeHtml(t('Drink.Js.ImageAlt', { number: index + 1 }))}">
                         </div>
 
                         <div class="drink-create-card-footer">
-                            <label class="drink-default-radio-label ${isDefault ? 'is-active' : ''}" title="Đặt làm ảnh mặc định">
+                            <label class="drink-default-radio-label ${isDefault ? 'is-active' : ''}" title="${escapeHtml(t('Drink.Js.SetDefaultTitle'))}">
                                 <input
                                     type="radio"
                                     name="createDefaultImage"
@@ -358,7 +361,7 @@ $(document).ready(function () {
                                     ${checked}>
                                 <span class="drink-default-radio-custom">
                                     <i class="${isDefault ? 'fas fa-star' : 'far fa-star'}"></i>
-                                    <span>Mặc định</span>
+                                    <span>${escapeHtml(t('Drink.Js.Default'))}</span>
                                 </span>
                             </label>
 
@@ -366,7 +369,7 @@ $(document).ready(function () {
                                 type="button"
                                 class="btn btn-sm btn-outline-danger btn-remove-img"
                                 data-index="${index}"
-                                title="Xóa ảnh">
+                                title="${escapeHtml(t('Drink.Js.DeleteImageTitle'))}">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
@@ -412,8 +415,8 @@ $(document).ready(function () {
             isEditSubmitting = true;
 
             submitAjaxForm($form, {
-                loadingHtml: '<i class="fas fa-spinner fa-spin me-1"></i> Đang cập nhật...',
-                doneHtml: '<i class="fas fa-save me-1"></i> Cập nhật Nước Uống',
+                loadingHtml: iconLabel('fas fa-spinner fa-spin me-1', 'Drink.Js.Updating'),
+                doneHtml: iconLabel('fas fa-save me-1', 'Drink.Js.Update'),
                 onComplete: function () {
                     isEditSubmitting = false;
                 }
@@ -450,7 +453,7 @@ $(document).ready(function () {
                     .html(options.doneHtml);
 
                 options.onComplete();
-                notify(res.message || 'Dữ liệu không hợp lệ', 'error');
+                notify(res.message || t('Drink.Js.InvalidData'), 'error');
             },
             error: function (xhr) {
                 $submitBtn
@@ -460,12 +463,12 @@ $(document).ready(function () {
                 options.onComplete();
                 const feedback = window.AdminFeedback;
                 const message = xhr.status === 0
-                    ? (feedback?.networkMessage?.() || 'Không thể kết nối máy chủ. Vui lòng kiểm tra mạng và thử lại.')
+                    ? (feedback?.networkMessage?.() || t('Drink.Js.NetworkError'))
                     : (feedback?.resolveMessage?.(xhr.responseJSON, {
                         status: xhr.status,
                         action: $form.attr('id') === 'drinkCreateForm' ? 'create' : 'update',
-                        entityName: 'nước uống'
-                    }) || xhr.responseJSON?.message || 'Không thể lưu nước uống. Vui lòng thử lại.');
+                        entityName: t('Drink.Js.EntityName')
+                    }) || xhr.responseJSON?.message || t('Drink.Js.SaveFailed'));
                 notify(message, 'error');
             }
         });
@@ -485,14 +488,14 @@ $(document).ready(function () {
         function updateStatusLabel() {
             if ($switch.is(':checked')) {
                 $label
-                    .text('Trạng thái: Đang bán')
+                    .text(t('Drink.Js.StatusActive'))
                     .removeClass('text-danger')
                     .addClass('text-success');
                 return;
             }
 
             $label
-                .text('Trạng thái: Ngừng bán')
+                .text(t('Drink.Js.StatusInactive'))
                 .removeClass('text-success')
                 .addClass('text-danger');
         }
@@ -504,18 +507,18 @@ $(document).ready(function () {
             const file = this.files && this.files[0];
 
             if (!file) {
-                $('#uploadFileName').text('Chưa chọn file nào');
+                $('#uploadFileName').text(t('Drink.Js.NoFile'));
                 return;
             }
 
             if (!drinkId) {
-                notify('Không tìm thấy nước uống cần thêm ảnh', 'error');
+                notify(t('Drink.Js.DrinkNotFound'), 'error');
                 return;
             }
 
             if (!validateFile(file)) {
                 $('#uploadImageInput').val('');
-                $('#uploadFileName').text('Chưa chọn file nào');
+                $('#uploadFileName').text(t('Drink.Js.NoFile'));
                 return;
             }
 
@@ -525,7 +528,7 @@ $(document).ready(function () {
 
             try {
                 $label.addClass('disabled').css('pointer-events', 'none')
-                    .html('<i class="fas fa-spinner fa-spin me-1"></i> Đang tải...');
+                    .html(iconLabel('fas fa-spinner fa-spin me-1', 'Drink.Js.Uploading'));
 
                 const croppedFile = await cropImageToSquare(file);
                 const formData = new FormData();
@@ -544,25 +547,25 @@ $(document).ready(function () {
                         $label.removeClass('disabled').css('pointer-events', '').html(originalLabelHtml);
 
                         if (res.success) {
-                            notify(res.message || 'Thêm ảnh thành công', 'success');
+                            notify(res.message || t('Drink.Js.ImageAddSuccess'), 'success');
                             resetUploadControls();
                             loadImages(drinkId);
                             reloadDrinkTable();
                             return;
                         }
 
-                        notify(res.message || 'Thêm ảnh thất bại', 'error');
+                        notify(res.message || t('Drink.Js.ImageAddFailed'), 'error');
                         resetUploadControls();
                     },
                     error: function () {
                         $label.removeClass('disabled').css('pointer-events', '').html(originalLabelHtml);
-                        notify('Có lỗi xảy ra khi tải ảnh', 'error');
+                        notify(t('Drink.Js.ImageUploadError'), 'error');
                         resetUploadControls();
                     }
                 });
             } catch {
                 $label.removeClass('disabled').css('pointer-events', '').html(originalLabelHtml);
-                notify('Không thể xử lý ảnh', 'error');
+                notify(t('Drink.Js.ImageProcessFailed'), 'error');
                 resetUploadControls();
             }
         });
@@ -610,13 +613,13 @@ $(document).ready(function () {
                 },
                 function (res) {
                     if (res.success) {
-                        notify(res.message || 'Đã cập nhật ảnh mặc định', 'success');
+                        notify(res.message || t('Drink.Js.DefaultSuccess'), 'success');
                         loadImages(drinkId);
                         reloadDrinkTable();
                         return;
                     }
 
-                    notify(res.message || 'Cập nhật ảnh mặc định thất bại', 'error');
+                    notify(res.message || t('Drink.Js.DefaultFailed'), 'error');
                 });
         });
 
@@ -624,7 +627,7 @@ $(document).ready(function () {
             const drinkId = $('#currentDrinkId').val();
             const drinkImageId = $(this).data('imgid');
 
-            if (!confirm('Bạn có chắc muốn xóa ảnh này?')) {
+            if (!confirm(t('Drink.Js.DeleteConfirm'))) {
                 return;
             }
 
@@ -635,16 +638,16 @@ $(document).ready(function () {
                 },
                 function (res) {
                     if (res.success) {
-                        notify(res.message || 'Đã xóa ảnh thành công', 'success');
+                        notify(res.message || t('Drink.Js.DeleteSuccess'), 'success');
                         loadImages(drinkId);
                         reloadDrinkTable();
                         return;
                     }
 
-                    notify(res.message || 'Xóa ảnh thất bại', 'error');
+                    notify(res.message || t('Drink.Js.DeleteFailed'), 'error');
                 })
                 .fail(function () {
-                    notify('Có lỗi hệ thống khi xóa ảnh', 'error');
+                    notify(t('Drink.Js.DeleteSystemError'), 'error');
                 });
         });
 
@@ -655,7 +658,7 @@ $(document).ready(function () {
             $('#editDrinkImageId').val(drinkImageId);
             $('#editCurrentPreview').attr('src', imgUrl);
             $('#editImageFileInput').val('');
-            $('#editImageFileName').text('Chưa chọn file nào');
+            $('#editImageFileName').text(t('Drink.Js.NoFile'));
             $('#editNewPreview').attr('src', '');
             $('#editNewPreviewWrapper').hide();
             $('#editNewPreviewPlaceholder').show();
@@ -674,7 +677,7 @@ $(document).ready(function () {
                 $('#editNewPreviewPlaceholder').hide();
                 $('#editNewPreviewWrapper').show();
             } else {
-                $('#editImageFileName').text('Chưa chọn file nào');
+                $('#editImageFileName').text(t('Drink.Js.NoFile'));
                 $('#editNewPreviewWrapper').hide();
                 $('#editNewPreviewPlaceholder').show();
             }
@@ -687,12 +690,12 @@ $(document).ready(function () {
             const file = input?.files[0];
 
             if (!drinkImageId) {
-                notify('Không tìm thấy ảnh cần chỉnh sửa', 'error');
+                notify(t('Drink.Js.ImageNotFound'), 'error');
                 return;
             }
 
             if (!file) {
-                notify('Vui lòng chọn ảnh mới để thay thế', 'warning');
+                notify(t('Drink.Js.ChooseReplacement'), 'warning');
                 return;
             }
 
@@ -708,7 +711,7 @@ $(document).ready(function () {
                 formData.append('drinkImageId', drinkImageId);
                 formData.append('newImageFile', croppedFile);
 
-                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang lưu...');
+                $btn.prop('disabled', true).html(iconLabel('fas fa-spinner fa-spin me-1', 'Drink.Js.Saving'));
 
                 $.ajax({
                     url: '/Admin/AdminDrink/UpdateImage',
@@ -717,10 +720,10 @@ $(document).ready(function () {
                     processData: false,
                     contentType: false,
                     success: function (res) {
-                        $btn.prop('disabled', false).html('<i class="fas fa-save me-1"></i> Lưu thay đổi');
+                        $btn.prop('disabled', false).html(iconLabel('fas fa-save me-1', 'Drink.Js.SaveChanges'));
 
                         if (res.success) {
-                            notify(res.message || 'Cập nhật ảnh thành công', 'success');
+                            notify(res.message || t('Drink.Js.ImageUpdateSuccess'), 'success');
                             hideModal('editImageModal');
                             const currentDrinkId = $('#currentDrinkId').val();
                             if (currentDrinkId) {
@@ -730,16 +733,16 @@ $(document).ready(function () {
                             return;
                         }
 
-                        notify(res.message || 'Cập nhật ảnh thất bại', 'error');
+                        notify(res.message || t('Drink.Js.ImageUpdateFailed'), 'error');
                     },
                     error: function (xhr) {
-                        $btn.prop('disabled', false).html('<i class="fas fa-save me-1"></i> Lưu thay đổi');
-                        notify(xhr.responseJSON?.message || 'Có lỗi xảy ra khi cập nhật ảnh', 'error');
+                        $btn.prop('disabled', false).html(iconLabel('fas fa-save me-1', 'Drink.Js.SaveChanges'));
+                        notify(xhr.responseJSON?.message || t('Drink.Js.ImageUpdateError'), 'error');
                     }
                 });
             } catch {
-                $btn.prop('disabled', false).html('<i class="fas fa-save me-1"></i> Lưu thay đổi');
-                notify('Không thể xử lý ảnh', 'error');
+                $btn.prop('disabled', false).html(iconLabel('fas fa-save me-1', 'Drink.Js.SaveChanges'));
+                notify(t('Drink.Js.ImageProcessFailed'), 'error');
             }
         });
     }
@@ -752,7 +755,7 @@ $(document).ready(function () {
         }
 
         $container.html(
-            '<div class="col-12 text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Đang tải ảnh...</div>'
+            `<div class="col-12 text-center text-muted"><i class="fas fa-spinner fa-spin"></i> ${escapeHtml(t('Drink.Js.ImageLoading'))}</div>`
         );
 
         $.get(
@@ -765,10 +768,10 @@ $(document).ready(function () {
                 }
 
                 $container.html(
-                    '<div class="col-12 text-danger text-center">Lỗi tải danh sách ảnh.</div>'
+                    `<div class="col-12 text-danger text-center">${escapeHtml(t('Drink.Js.ImageListError'))}</div>`
                 );
 
-                notify('Lỗi tải ảnh', 'error');
+                notify(t('Drink.Js.ImageLoadError'), 'error');
             });
     }
 
@@ -779,7 +782,7 @@ $(document).ready(function () {
 
         if (!images || images.length === 0) {
             $container.html(
-                '<div class="col-12 text-center text-muted py-4"><i class="fas fa-images fa-2x mb-2 d-block opacity-50"></i>Chưa có ảnh nào.</div>'
+                `<div class="col-12 text-center text-muted py-4"><i class="fas fa-images fa-2x mb-2 d-block opacity-50"></i>${escapeHtml(t('Drink.Js.ImageEmpty'))}</div>`
             );
             return;
         }
@@ -789,8 +792,8 @@ $(document).ready(function () {
 
         images.forEach(function (img) {
             const defaultBadge = img.isDefault
-                ? '<span class="drink-card-badge-default"><i class="fas fa-check-circle me-1"></i>Mặc định</span>'
-                : '<button type="button" class="drink-card-badge-set-default btn-set-default" data-imgid="' + img.drinkImageId + '" title="Bấm để đặt làm ảnh mặc định"><i class="far fa-star me-1"></i>Đặt mặc định</button>';
+                ? `<span class="drink-card-badge-default"><i class="fas fa-check-circle me-1"></i>${escapeHtml(t('Drink.Js.Default'))}</span>`
+                : '<button type="button" class="drink-card-badge-set-default btn-set-default" data-imgid="' + img.drinkImageId + '" title="' + escapeHtml(t('Drink.Js.SetDefaultHint')) + '"><i class="far fa-star me-1"></i>' + escapeHtml(t('Drink.Js.SetDefault')) + '</button>';
 
             const editButton = `
                 <button
@@ -798,9 +801,9 @@ $(document).ready(function () {
                     class="btn btn-sm drink-card-btn drink-card-btn-edit flex-grow-1 btn-edit-img"
                     data-imgid="${img.drinkImageId}"
                     data-imgurl="${escapeHtml(img.imageUrl)}"
-                    title="Chỉnh sửa ảnh">
+                    title="${escapeHtml(t('Drink.Js.EditImage'))}">
                     <i class="fas fa-pen me-1"></i>
-                    <span>Sửa</span>
+                    <span>${escapeHtml(t('Drink.Js.Edit'))}</span>
                 </button>`;
 
             const deleteButton = `
@@ -808,9 +811,9 @@ $(document).ready(function () {
                     type="button"
                     class="btn btn-sm drink-card-btn drink-card-btn-delete flex-grow-1 btn-delete-img"
                     data-imgid="${img.drinkImageId}"
-                    title="Xóa ảnh">
+                    title="${escapeHtml(t('Drink.Js.DeleteImageTitle'))}">
                     <i class="fas fa-trash me-1"></i>
-                    <span>Xóa</span>
+                    <span>${escapeHtml(t('Drink.Js.Delete'))}</span>
                 </button>`;
 
             $container.append(`
@@ -820,7 +823,7 @@ $(document).ready(function () {
                             ${defaultBadge}
                             <img
                                 src="${escapeHtml(img.imageUrl)}"
-                                alt="Ảnh nước uống"
+                                alt="${escapeHtml(t('Drink.Image'))}"
                                 class="drink-gallery-img">
                         </div>
 
@@ -849,7 +852,7 @@ $(document).ready(function () {
 
     function resetUploadControls() {
         $('#uploadImageInput').val('');
-        $('#uploadFileName').text('Chưa chọn file nào');
+        $('#uploadFileName').text(t('Drink.Js.NoFile'));
         $('#uploadDefaultSwitch').prop('checked', false).trigger('change');
     }
 
@@ -922,11 +925,11 @@ $(document).ready(function () {
         document.getElementById('drinkAiSizes').innerHTML = '';
         document.getElementById('drinkAiToppings').innerHTML = '';
     };
-    const chips = items => (items || []).map(x => `<span class="ai-chip">${String(x.code || x.name).replace(/[<>&]/g, '')}</span>`).join('') || '<span class="text-muted">Không có</span>';
+    const chips = items => (items || []).map(x => `<span class="ai-chip">${String(x.code || x.name).replace(/[<>&]/g, '')}</span>`).join('') || `<span class="text-muted">${t('Drink.Js.NoItems')}</span>`;
 
     button.addEventListener('click', async () => {
         if (!name.value.trim() || !category.value || !productType.value) {
-            notifyAi('Vui lòng nhập tên, danh mục và loại sản phẩm.', 'error');
+            notifyAi(t('Drink.Js.AiRequired'), 'error');
             return;
         }
         controller?.abort();
@@ -934,7 +937,7 @@ $(document).ready(function () {
         const timeout = setTimeout(() => controller.abort(), 125000);
         const original = button.innerHTML;
         button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Đang gợi ý...';
+        button.innerHTML = iconLabel('fas fa-spinner fa-spin me-1', 'Drink.Js.AiLoading');
         clear();
         try {
             const response = await fetch('/Admin/AdminDrink/AiSuggestion', {
@@ -947,7 +950,7 @@ $(document).ready(function () {
                 signal: controller.signal
             });
             const result = await response.json();
-            if (!response.ok || !result.success) throw new Error(result.message || 'Không thể tạo gợi ý.');
+            if (!response.ok || !result.success) throw new Error(result.message || t('Drink.Js.AiFailed'));
             suggestion = result.data;
             document.getElementById('drinkAiCode').textContent = suggestion.drinkCode;
             document.getElementById('drinkAiDescription').textContent = suggestion.description;
@@ -967,11 +970,11 @@ $(document).ready(function () {
 
     document.getElementById('btnApplyDrinkAi').addEventListener('click', async () => {
         if (!suggestion) return;
-        if ((code.value.trim() || description.value.trim()) && !window.confirm('Ghi đè mã/mô tả hiện tại bằng gợi ý AI?')) return;
+        if ((code.value.trim() || description.value.trim()) && !window.confirm(t('Drink.Js.AiOverwrite'))) return;
         code.value = suggestion.drinkCode;
         description.value = suggestion.description;
         clear();
-        notifyAi('Đã điền gợi ý. Dữ liệu chưa được lưu.');
+        notifyAi(t('Drink.Js.AiApplied'));
     });
     document.getElementById('btnDismissDrinkAi').addEventListener('click', clear);
     [name, category, productType].forEach(x => x.addEventListener('change', clear));
@@ -1024,7 +1027,7 @@ $(document).ready(function () {
             renderSuggestion: (card, option) => {
                 const value = option.fields || {};
                 const title = document.createElement('strong');
-                title.textContent = option.title || value.name || 'Gợi ý đồ uống';
+                title.textContent = option.title || value.name || t('Drink.Js.AiTitle');
                 const meta = document.createElement('div');
                 meta.className = 'small text-muted mt-1';
                 meta.textContent = `${value.drinkCode || ''} · ${value.categoryName || ''} · ${value.productTypeName || ''}`;
@@ -1042,7 +1045,7 @@ $(document).ready(function () {
                 const hasCategory = Array.from(fields.category.options).some(x => x.value === String(value.categoryId));
                 const hasProductType = Array.from(fields.productType.options).some(x => x.value === String(value.productTypeId));
                 if (!hasCategory || !hasProductType) {
-                    (typeof toast === 'function' ? toast : alert)('Category hoặc ProductType gợi ý không còn hợp lệ.', 'error');
+                    (typeof toast === 'function' ? toast : alert)(t('Drink.Js.AiInvalidReference'), 'error');
                     return false;
                 }
                 fields.name.value = value.name || '';
@@ -1053,7 +1056,7 @@ $(document).ready(function () {
                 const applied = await new Promise(resolve => document.dispatchEvent(
                     new CustomEvent('drink-ai-image-ready', { detail: { file, complete: resolve } })));
                 if (!applied) {
-                    (typeof toast === 'function' ? toast : alert)('Không thể đưa ảnh AI vào trình xử lý ảnh.', 'error');
+                    (typeof toast === 'function' ? toast : alert)(t('Drink.Js.AiImageFailed'), 'error');
                     return false;
                 }
                 return true;

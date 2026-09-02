@@ -1,6 +1,9 @@
 @using CafeChain.Application.DTOs.Admin.StoreScope
+@using Microsoft.Extensions.Localization
+@using System.Text.Json
+@inject IStringLocalizer<OrderResource> L
 @{
-    ViewData["Title"] = "Lịch sử bán hàng";
+    ViewData["Title"] = L["Order.History.Title"].Value;
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var stores = ViewBag.StoreOptions as IReadOnlyList<AdminStoreOptionDto>
         ?? Array.Empty<AdminStoreOptionDto>();
@@ -17,26 +20,26 @@
     <!-- Header Banner -->
     <header class="sales-history-header ops-header cc-warehouse-header">
         <div>
-            <div class="sales-eyebrow ops-eyebrow">Đơn hàng / Lịch sử bán hàng</div>
-            <h1 class="sales-history-title ops-title"><i class="fa-solid fa-clock-rotate-left me-2 text-warning" aria-hidden="true"></i> Lịch sử bán hàng</h1>
-            <p class="sales-history-subtitle ops-subtitle">Chỉ hiển thị giao dịch POS tại quầy đã thanh toán hoặc đã hoàn tiền.</p>
+            <div class="sales-eyebrow ops-eyebrow">@L["Order.History.Eyebrow"]</div>
+            <h1 class="sales-history-title ops-title"><i class="fa-solid fa-clock-rotate-left me-2 text-warning" aria-hidden="true"></i> @L["Order.History.Title"]</h1>
+            <p class="sales-history-subtitle ops-subtitle">@L["Order.History.Subtitle"]</p>
         </div>
         <div class="sales-history-actions ops-actions">
             <button class="btn btn-export-csv" id="btnExportCsv">
-                <i class="fas fa-file-csv" aria-hidden="true"></i> Xuất CSV
+                <i class="fas fa-file-csv" aria-hidden="true"></i> @L["Order.History.ExportCsv"]
             </button>
         </div>
     </header>
 
     <!-- KPI Cards Grid -->
-    <section class="history-kpis-grid" aria-label="Tổng quan giao dịch">
+    <section class="history-kpis-grid" aria-label="@L["Order.History.KpiAria"]">
         <div class="history-kpi-card">
             <div class="history-kpi-icon">
                 <i class="fas fa-shopping-bag" aria-hidden="true"></i>
             </div>
             <div class="history-kpi-content">
                 <strong class="history-kpi-value" id="paidOrders">-</strong>
-                <span class="history-kpi-label">Đơn đã thanh toán</span>
+                <span class="history-kpi-label">@L["Order.History.Kpi.PaidOrders"]</span>
             </div>
         </div>
 
@@ -46,7 +49,7 @@
             </div>
             <div class="history-kpi-content">
                 <strong class="history-kpi-value" id="paidRevenue">-</strong>
-                <span class="history-kpi-label">Doanh thu</span>
+                <span class="history-kpi-label">@L["Order.History.Kpi.Revenue"]</span>
             </div>
         </div>
 
@@ -56,7 +59,7 @@
             </div>
             <div class="history-kpi-content">
                 <strong class="history-kpi-value" id="refundedOrders">-</strong>
-                <span class="history-kpi-label">Đã hoàn tiền</span>
+                <span class="history-kpi-label">@L["Order.History.Kpi.Refunded"]</span>
             </div>
         </div>
 
@@ -66,7 +69,7 @@
             </div>
             <div class="history-kpi-content">
                 <strong class="history-kpi-value" id="refundedAmount">-</strong>
-                <span class="history-kpi-label">Giá trị hoàn tiền</span>
+                <span class="history-kpi-label">@L["Order.History.Kpi.RefundValue"]</span>
             </div>
         </div>
     </section>
@@ -76,11 +79,11 @@
         <div class="history-filter-toolbar">
             <div class="history-filter-grid">
             <div class="history-field">
-                <label for="filterStore">Cửa hàng</label>
+                <label for="filterStore">@L["Order.History.Filter.Store"]</label>
                 <select class="form-select" id="filterStore">
                     @if (stores.Count > 1)
                     {
-                        <option value="">Tất cả cửa hàng trong phạm vi</option>
+                        <option value="">@L["Order.History.Filter.AllStores"]</option>
                     }
                     @foreach (var store in stores)
                     {
@@ -93,41 +96,41 @@
             </div>
 
             <div class="history-field">
-                <label for="filterSearch">Tìm kiếm</label>
-                <input class="form-control" id="filterSearch" placeholder="Tìm mã đơn hàng..." autocomplete="off" />
+                <label for="filterSearch">@L["Order.History.Filter.Search"]</label>
+                <input class="form-control" id="filterSearch" placeholder="@L["Order.History.Filter.SearchPlaceholder"]" autocomplete="off" />
             </div>
 
             <div class="history-field">
-                <label for="filterDateFrom">Từ ngày</label>
+                <label for="filterDateFrom">@L["Order.History.Filter.FromDate"]</label>
                 <input type="date" class="form-control" id="filterDateFrom" />
             </div>
 
             <div class="history-field">
-                <label for="filterDateTo">Đến ngày</label>
+                <label for="filterDateTo">@L["Order.History.Filter.ToDate"]</label>
                 <input type="date" class="form-control" id="filterDateTo" />
             </div>
 
             <div class="history-field">
-                <label for="filterStatus">Tài chính</label>
+                <label for="filterStatus">@L["Order.History.Filter.Finance"]</label>
                 <select class="form-select" id="filterStatus">
-                    <option value="">Tất cả trạng thái</option>
-                    <option value="2">Đã thanh toán</option>
-                    <option value="3">Đã hoàn tiền</option>
+                    <option value="">@L["Order.History.Filter.AllStatuses"]</option>
+                    <option value="2">@L["Order.History.Filter.Paid"]</option>
+                    <option value="3">@L["Order.History.Filter.Refunded"]</option>
                 </select>
             </div>
 
             <div class="history-field">
-                <label for="filterPayment">Thanh toán</label>
+                <label for="filterPayment">@L["Order.History.Filter.Payment"]</label>
                 <select class="form-select" id="filterPayment">
-                    <option value="">Tất cả hình thức</option>
-                    <option value="1">Tiền mặt</option>
-                    <option value="2">VietQR</option>
-                    <option value="3">Ví điện tử — dữ liệu cũ</option>
+                    <option value="">@L["Order.History.Filter.AllPayments"]</option>
+                    <option value="1">@L["Order.History.Filter.Cash"]</option>
+                    <option value="2">@L["Order.History.Filter.VietQR"]</option>
+                    <option value="3">@L["Order.History.Filter.WalletLegacy"]</option>
                 </select>
             </div>
 
-            <button class="btn btn-reset-filter" id="btnReset" title="Xóa bộ lọc">
-                <i class="fas fa-rotate-left" aria-hidden="true"></i> Đặt lại
+            <button class="btn btn-reset-filter" id="btnReset" title="@L["Order.History.Filter.ResetTitle"]">
+                <i class="fas fa-rotate-left" aria-hidden="true"></i> @L["Order.History.Filter.Reset"]
             </button>
         </div>
         </div>
@@ -136,26 +139,26 @@
             <table class="table history-table">
                 <thead>
                     <tr>
-                        <th class="text-center">Mã đơn</th>
-                        <th class="text-center">Thời gian thanh toán</th>
-                        <th>Cửa hàng</th>
-                        <th>Thu ngân</th>
-                        <th class="text-center">Loại đơn</th>
-                        <th class="text-end">Tổng tiền</th>
-                        <th class="text-center">Thanh toán</th>
-                        <th class="text-center">Tài chính</th>
-                        <th class="text-center">Đồng bộ</th>
-                        <th class="text-center">Hóa đơn</th>
-                        <th class="text-center">Tem</th>
-                        <th class="text-center">Kho</th>
-                        <th class="text-center">Thao tác</th>
+                        <th class="text-center">@L["Order.History.Col.Code"]</th>
+                        <th class="text-center">@L["Order.History.Col.PaidAt"]</th>
+                        <th>@L["Order.History.Col.Store"]</th>
+                        <th>@L["Order.History.Col.Cashier"]</th>
+                        <th class="text-center">@L["Order.History.Col.OrderType"]</th>
+                        <th class="text-end">@L["Order.History.Col.Total"]</th>
+                        <th class="text-center">@L["Order.History.Col.Payment"]</th>
+                        <th class="text-center">@L["Order.History.Col.Finance"]</th>
+                        <th class="text-center">@L["Order.History.Col.Sync"]</th>
+                        <th class="text-center">@L["Order.History.Col.Receipt"]</th>
+                        <th class="text-center">@L["Order.History.Col.Label"]</th>
+                        <th class="text-center">@L["Order.History.Col.Inventory"]</th>
+                        <th class="text-center">@L["Order.History.Col.Actions"]</th>
                     </tr>
                 </thead>
                 <tbody id="historyBody"></tbody>
             </table>
         </div>
         <div class="history-pagination-bar">
-            <span id="paginationInfo">Đang tải...</span>
+            <span id="paginationInfo">@L["Order.History.Loading"]</span>
             <div class="history-pagination__buttons" id="paginationButtons"></div>
         </div>
     </section>
@@ -165,17 +168,20 @@
 <aside class="offcanvas offcanvas-end history-drawer" tabindex="-1" id="orderDetailDrawer">
     <div class="offcanvas-header">
         <div>
-            <div class="text-muted small">CHI TIẾT GIAO DỊCH</div>
-            <h5 class="offcanvas-title fw-bold" id="drawerTitle">Đơn hàng</h5>
+            <div class="text-muted small">@L["Order.History.Drawer.Kicker"]</div>
+            <h5 class="offcanvas-title fw-bold" id="drawerTitle">@L["Order.History.Drawer.Title"]</h5>
         </div>
-        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Đóng"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="@L["Order.History.Drawer.Close"]"></button>
     </div>
     <div class="offcanvas-body p-0" id="drawerBody"></div>
 </aside>
 
 @section Scripts {
+<script type="application/json" id="order-history-ui-catalog">@Html.Raw(JsonSerializer.Serialize(L.GetAllStrings().Where(x => x.Name.StartsWith("Order.History.Js.")).ToDictionary(x => x.Name, x => x.Value)))</script>
 <script>
 (() => {
+    const catalog = CafeChainUiCatalog.read('order-history-ui-catalog');
+    const t = (key, values) => CafeChainUiCatalog.text(catalog, key, values);
     const state = { page: 1, pageSize: 20, totalPages: 0, loading: false };
     const body = document.getElementById('historyBody');
     const drawerElement = document.getElementById('orderDetailDrawer');
@@ -183,7 +189,7 @@
     const money = value => `${new Intl.NumberFormat('vi-VN').format(Number(value || 0))}đ`;
     const dateTime = value => value
         ? new Date(value).toLocaleString('vi-VN', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit', year:'numeric' })
-        : 'Chưa xác định';
+        : t('Order.History.Js.Unknown');
     const escapeHtml = value => String(value ?? '')
         .replaceAll('&', '&amp;')
         .replaceAll('<', '&lt;')
@@ -191,7 +197,7 @@
         .replaceAll('"', '&quot;')
         .replaceAll("'", '&#039;');
     const pill = (value, tone = 'neutral') =>
-        `<span class="history-pill history-pill--${tone}">${escapeHtml(value || 'Chưa xác định')}</span>`;
+        `<span class="history-pill history-pill--${tone}">${escapeHtml(value || t('Order.History.Js.Unknown'))}</span>`;
 
     function currentFilter() {
         const storeValue = document.getElementById('filterStore').value;
@@ -226,7 +232,7 @@
     async function loadHistory() {
         if (state.loading) return;
         state.loading = true;
-        body.innerHTML = '<tr><td colspan="13" class="history-empty"><span class="spinner-border spinner-border-sm me-2"></span>Đang tải lịch sử...</td></tr>';
+        body.innerHTML = `<tr><td colspan="13" class="history-empty"><span class="spinner-border spinner-border-sm me-2"></span>${escapeHtml(t('Order.History.Js.Loading'))}</td></tr>`;
         try {
             const response = await fetch(`/api/AdminOrder/GetOrderHistoryData?${queryString()}`, {
                 headers: { Accept: 'application/json' }
@@ -241,11 +247,11 @@
         } catch (error) {
             console.error('[SalesHistory] Load failed', error);
             body.innerHTML = `<tr><td colspan="13" class="history-error">
-                <div class="fw-bold">Không thể tải lịch sử bán hàng.</div>
-                <button class="btn btn-sm btn-outline-danger mt-2" id="retryHistory">Thử lại</button>
+                <div class="fw-bold">${escapeHtml(t('Order.History.Js.LoadFailed'))}</div>
+                <button class="btn btn-sm btn-outline-danger mt-2" id="retryHistory">${escapeHtml(t('Order.History.Js.Retry'))}</button>
             </td></tr>`;
             document.getElementById('retryHistory')?.addEventListener('click', loadHistory);
-            document.getElementById('paginationInfo').textContent = 'Không tải được dữ liệu';
+            document.getElementById('paginationInfo').textContent = t('Order.History.Js.LoadFailedShort');
             document.getElementById('paginationButtons').innerHTML = '';
         } finally {
             state.loading = false;
@@ -263,14 +269,14 @@
         if (!rows.length) {
             body.innerHTML = `<tr><td colspan="13" class="history-empty">
                 <i class="fas fa-receipt history-empty-icon" aria-hidden="true"></i>
-                <div>Không có giao dịch POS phù hợp với bộ lọc.</div>
+                <div>${escapeHtml(t('Order.History.Js.Empty'))}</div>
             </td></tr>`;
             return;
         }
         body.innerHTML = rows.map(row => `
             <tr>
                 <td class="text-center"><span class="history-code">#CC${String(row.orderId).padStart(5, '0')}</span></td>
-                <td class="text-center">${escapeHtml(row.createdAtDisplay || 'Chưa xác định')}</td>
+                <td class="text-center">${escapeHtml(row.createdAtDisplay || t('Order.History.Js.Unknown'))}</td>
                 <td>${escapeHtml(row.storeName)}</td>
                 <td>${escapeHtml(row.staffName)}</td>
                 <td class="text-center">${escapeHtml(row.orderTypeName)}</td>
@@ -285,7 +291,7 @@
                     <button class="btn btn-sm btn-outline-secondary js-detail"
                             data-order-id="${row.orderId}"
                             data-store-id="${row.storeId}"
-                            title="Xem chi tiết">
+                            title="${escapeHtml(t('Order.History.Js.ViewDetail'))}">
                         <i class="fas fa-eye"></i>
                     </button>
                 </td>
@@ -297,21 +303,22 @@
         const start = total === 0 ? 0 : ((data.page - 1) * data.pageSize) + 1;
         const end = Math.min(total, data.page * data.pageSize);
         document.getElementById('paginationInfo').textContent =
-            total === 0 ? '0 giao dịch' : `${start}-${end} trong ${total} giao dịch`;
+            total === 0 ? t('Order.History.Js.ZeroTransactions') : t('Order.History.Js.PageRange', { start, end, total });
 
         const pages = [];
         const from = Math.max(1, data.page - 2);
         const to = Math.min(data.totalPages, data.page + 2);
-        pages.push(`<button class="history-page-btn" data-page="${data.page - 1}" ${data.page <= 1 ? 'disabled' : ''} aria-label="Trang trước">‹</button>`);
+        pages.push(`<button class="history-page-btn" data-page="${data.page - 1}" ${data.page <= 1 ? 'disabled' : ''} aria-label="${escapeHtml(t('Order.History.Js.PrevPage'))}">‹</button>`);
         for (let page = from; page <= to; page++) {
             pages.push(`<button class="history-page-btn ${page === data.page ? 'is-active' : ''}" data-page="${page}">${page}</button>`);
         }
-        pages.push(`<button class="history-page-btn" data-page="${data.page + 1}" ${data.page >= data.totalPages ? 'disabled' : ''} aria-label="Trang sau">›</button>`);
+        pages.push(`<button class="history-page-btn" data-page="${data.page + 1}" ${data.page >= data.totalPages ? 'disabled' : ''} aria-label="${escapeHtml(t('Order.History.Js.NextPage'))}">›</button>`);
         document.getElementById('paginationButtons').innerHTML = pages.join('');
     }
 
     async function openDetail(orderId, storeId) {
-        document.getElementById('drawerTitle').textContent = `Đơn #CC${String(orderId).padStart(5, '0')}`;
+        const code = `#CC${String(orderId).padStart(5, '0')}`;
+        document.getElementById('drawerTitle').textContent = t('Order.History.Js.OrderTitle', { code });
         document.getElementById('drawerBody').innerHTML =
             '<div class="p-5 text-center"><span class="spinner-border"></span></div>';
         drawer.show();
@@ -324,7 +331,7 @@
         } catch (error) {
             console.error('[SalesHistory] Detail failed', error);
             document.getElementById('drawerBody').innerHTML =
-                '<div class="p-4 text-danger">Không thể tải chi tiết giao dịch. Vui lòng thử lại.</div>';
+                `<div class="p-4 text-danger">${escapeHtml(t('Order.History.Js.DetailFailed'))}</div>`;
         }
     }
 
@@ -333,9 +340,9 @@
             <div class="drawer-line">
                 <div>
                     <div class="drawer-line__title">${escapeHtml(payment.paymentMethodName)}</div>
-                    <div class="drawer-line__meta">${escapeHtml(payment.paidAtDisplay || 'Chưa xác định')}</div>
-                    ${payment.transactionCode ? `<div class="drawer-line__meta">Mã giao dịch: ${escapeHtml(payment.transactionCode)}</div>` : ''}
-                    ${payment.receivedAmount != null ? `<div class="drawer-line__meta">Khách đưa: ${money(payment.receivedAmount)} · Tiền thừa: ${money(payment.changeAmount)}</div>` : ''}
+                    <div class="drawer-line__meta">${escapeHtml(payment.paidAtDisplay || t('Order.History.Js.Unknown'))}</div>
+                    ${payment.transactionCode ? `<div class="drawer-line__meta">${escapeHtml(t('Order.History.Js.TxnCode', { code: payment.transactionCode }))}</div>` : ''}
+                    ${payment.receivedAmount != null ? `<div class="drawer-line__meta">${escapeHtml(t('Order.History.Js.Received', { received: money(payment.receivedAmount), change: money(payment.changeAmount) }))}</div>` : ''}
                 </div>
                 <div class="drawer-line__amount">${money(payment.amount)}</div>
             </div>`).join('');
@@ -343,73 +350,73 @@
             <div class="drawer-line">
                 <div>
                     <div class="drawer-line__title">${item.quantity}× ${escapeHtml(item.drinkName)} ${item.sizeName ? `(${escapeHtml(item.sizeName)})` : ''}</div>
-                    ${(item.toppings || []).map(t => `<div class="drawer-line__meta">+ ${escapeHtml(t.name)} (${money(t.price)})</div>`).join('')}
-                    ${item.note ? `<div class="drawer-line__meta">Ghi chú: ${escapeHtml(item.note)}</div>` : ''}
+                    ${(item.toppings || []).map(topping => `<div class="drawer-line__meta">+ ${escapeHtml(topping.name)} (${money(topping.price)})</div>`).join('')}
+                    ${item.note ? `<div class="drawer-line__meta">${escapeHtml(t('Order.History.Js.Note', { note: item.note }))}</div>` : ''}
                 </div>
                 <div class="drawer-line__amount">${money(item.price * item.quantity)}</div>
             </div>`).join('');
         const refund = detail.refund ? `
             <section class="drawer-section">
-                <h3 class="drawer-section__title">Hoàn tiền</h3>
+                <h3 class="drawer-section__title">${escapeHtml(t('Order.History.Js.Refund'))}</h3>
                 <div class="drawer-grid">
-                    ${field('Mã hoàn tiền', `#${detail.refund.orderRefundId}`)}
-                    ${field('Trạng thái', refundStatus(detail.refund.status))}
-                    ${field('Số tiền', money(detail.refund.amount))}
-                    ${field('Hoàn tất lúc', dateTime(detail.refund.completedAtUtc))}
+                    ${field(t('Order.History.Js.RefundId'), `#${detail.refund.orderRefundId}`)}
+                    ${field(t('Order.History.Js.Status'), refundStatus(detail.refund.status))}
+                    ${field(t('Order.History.Js.Amount'), money(detail.refund.amount))}
+                    ${field(t('Order.History.Js.CompletedAt'), dateTime(detail.refund.completedAtUtc))}
                 </div>
-                <div class="mt-3">${field('Lý do', detail.refund.reason)}</div>
+                <div class="mt-3">${field(t('Order.History.Js.Reason'), detail.refund.reason)}</div>
             </section>` : '';
 
         document.getElementById('drawerBody').innerHTML = `
             <section class="drawer-section">
-                <h3 class="drawer-section__title">Thông tin giao dịch</h3>
+                <h3 class="drawer-section__title">${escapeHtml(t('Order.History.Js.TxnInfo'))}</h3>
                 <div class="drawer-grid">
-                    ${field('Cửa hàng', detail.storeName)}
-                    ${field('Thu ngân', detail.staffName)}
-                    ${field('WorkShift', detail.workShiftId ? `#${detail.workShiftId}` : 'Chưa xác định')}
-                    ${field('Loại đơn', detail.orderTypeName || 'Chưa xác định')}
-                    ${field('Thanh toán lúc', detail.createdAtDisplay || 'Chưa xác định')}
-                    ${field('ClientOrderId', detail.clientOrderId || 'Không có')}
+                    ${field(t('Order.History.Js.Store'), detail.storeName)}
+                    ${field(t('Order.History.Js.Cashier'), detail.staffName)}
+                    ${field(t('Order.History.Js.WorkShift'), detail.workShiftId ? `#${detail.workShiftId}` : t('Order.History.Js.Unknown'))}
+                    ${field(t('Order.History.Js.OrderType'), detail.orderTypeName || t('Order.History.Js.Unknown'))}
+                    ${field(t('Order.History.Js.PaidAt'), detail.createdAtDisplay || t('Order.History.Js.Unknown'))}
+                    ${field(t('Order.History.Js.ClientOrderId'), detail.clientOrderId || t('Order.History.Js.None'))}
                 </div>
             </section>
             <section class="drawer-section">
-                <h3 class="drawer-section__title">Trạng thái</h3>
+                <h3 class="drawer-section__title">${escapeHtml(t('Order.History.Js.State'))}</h3>
                 <div class="drawer-grid">
-                    ${field('Tài chính', detail.orderStatusName)}
-                    ${field('Đồng bộ', detail.syncState)}
-                    ${field('Hóa đơn', detail.receiptState)}
-                    ${field('Tem', detail.drinkLabelState)}
-                    ${field('Ghi nhận kho', detail.inventoryPostingState)}
+                    ${field(t('Order.History.Js.Finance'), detail.orderStatusName)}
+                    ${field(t('Order.History.Js.Sync'), detail.syncState)}
+                    ${field(t('Order.History.Js.Receipt'), detail.receiptState)}
+                    ${field(t('Order.History.Js.Label'), detail.drinkLabelState)}
+                    ${field(t('Order.History.Js.Inventory'), detail.inventoryPostingState)}
                 </div>
             </section>
             <section class="drawer-section">
-                <h3 class="drawer-section__title">Thanh toán</h3>
-                ${payments || '<div class="text-muted">Chưa có dữ liệu thanh toán.</div>'}
+                <h3 class="drawer-section__title">${escapeHtml(t('Order.History.Js.Payment'))}</h3>
+                ${payments || `<div class="text-muted">${escapeHtml(t('Order.History.Js.NoPayment'))}</div>`}
             </section>
             <section class="drawer-section">
-                <h3 class="drawer-section__title">Món đã bán</h3>
-                ${items || '<div class="text-muted">Không có dữ liệu món.</div>'}
+                <h3 class="drawer-section__title">${escapeHtml(t('Order.History.Js.SoldItems'))}</h3>
+                ${items || `<div class="text-muted">${escapeHtml(t('Order.History.Js.NoItems'))}</div>`}
             </section>
             ${refund}
             <section class="drawer-section">
-                <div class="drawer-line"><span>Tạm tính</span><strong>${money(detail.subTotal)}</strong></div>
-                ${detail.discountTotal > 0 ? `<div class="drawer-line"><span>Giảm giá</span><strong>-${money(detail.discountTotal)}</strong></div>` : ''}
-                <div class="drawer-line"><span>Thuế</span><strong>VAT đã gồm trong giá</strong></div>
-                <div class="drawer-total"><span>Tổng cộng</span><span>${money(detail.total)}</span></div>
+                <div class="drawer-line"><span>${escapeHtml(t('Order.History.Js.Subtotal'))}</span><strong>${money(detail.subTotal)}</strong></div>
+                ${detail.discountTotal > 0 ? `<div class="drawer-line"><span>${escapeHtml(t('Order.History.Js.Discount'))}</span><strong>-${money(detail.discountTotal)}</strong></div>` : ''}
+                <div class="drawer-line"><span>${escapeHtml(t('Order.History.Js.Tax'))}</span><strong>${escapeHtml(t('Order.History.Js.VatIncluded'))}</strong></div>
+                <div class="drawer-total"><span>${escapeHtml(t('Order.History.Js.GrandTotal'))}</span><span>${money(detail.total)}</span></div>
             </section>`;
     }
 
     const field = (label, value) => `
         <div class="drawer-field">
             <div class="drawer-field__label">${escapeHtml(label)}</div>
-            <div class="drawer-field__value">${escapeHtml(value ?? 'Chưa xác định')}</div>
+            <div class="drawer-field__value">${escapeHtml(value ?? t('Order.History.Js.Unknown'))}</div>
         </div>`;
     const refundStatus = status => ({
-        Requested: 'Đã yêu cầu',
-        Processing: 'Đang xử lý',
-        Completed: 'Đã hoàn tất',
-        Failed: 'Thất bại'
-    })[status] || 'Chưa xác định';
+        Requested: t('Order.History.Js.RefundRequested'),
+        Processing: t('Order.History.Js.RefundProcessing'),
+        Completed: t('Order.History.Js.RefundCompleted'),
+        Failed: t('Order.History.Js.RefundFailed')
+    })[status] || t('Order.History.Js.Unknown');
 
     let searchTimer;
     document.getElementById('filterSearch').addEventListener('input', () => {

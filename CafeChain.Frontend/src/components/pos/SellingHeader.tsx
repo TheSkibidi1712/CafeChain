@@ -3,6 +3,8 @@ import NetworkStatusIndicator from '../NetworkStatusIndicator'
 import PrinterStatusBadge from '../PrinterStatusBadge'
 import type { PosSession } from '../../services/posSession'
 import type { PosLayoutPreference, PosResolvedLayout } from '../../hooks/usePosLayoutMode'
+import PreferenceControls from '../PreferenceControls'
+import { usePreferences } from '../../contexts/PreferencesContext'
 
 type OrderType = 'dine-in' | 'take-away'
 
@@ -43,6 +45,7 @@ export default function SellingHeader({
   onOpenCustomerDisplay,
   onLayoutPreferenceChange,
 }: SellingHeaderProps) {
+  const { t } = usePreferences()
   const cashierInitials = currentOperatorName
     .split(' ')
     .filter(Boolean)
@@ -52,16 +55,16 @@ export default function SellingHeader({
     .toUpperCase() || 'POS'
 
   return (
-    <header className="pos-selling-header" aria-label="Thanh công cụ bán hàng">
-      <div className="pos-selling-brand" aria-label={`CafeChain POS, chi nhánh ${session.storeId ?? 'chưa xác định'}`}>
+    <header className="pos-selling-header" aria-label={t('sales.toolbar')}>
+      <div className="pos-selling-brand" aria-label={`CafeChain POS, ${t('common.branch', { id: session.storeId ?? t('common.notAvailable') })}`}>
         <span className="pos-selling-brand-mark" aria-hidden="true">CC</span>
         <span className="pos-selling-brand-copy">
           <strong>CafeChain POS</strong>
-          <small>Chi nhánh #{session.storeId ?? '-'}</small>
+          <small>{t('common.branch', { id: session.storeId ?? '-' })}</small>
         </span>
       </div>
 
-      <div className="pos-order-type-control" role="group" aria-label="Loại đơn tại quầy">
+      <div className="pos-order-type-control" role="group" aria-label={t('sales.orderType')}>
         <button
           type="button"
           onClick={() => onOrderTypeChange('dine-in')}
@@ -69,7 +72,7 @@ export default function SellingHeader({
           aria-pressed={orderType === 'dine-in'}
           className="pos-order-type-button"
         >
-          Dùng tại quán
+          {t('sales.dineIn')}
         </button>
         <button
           type="button"
@@ -78,22 +81,22 @@ export default function SellingHeader({
           aria-pressed={orderType === 'take-away'}
           className="pos-order-type-button"
         >
-          Mang đi
+          {t('sales.takeAway')}
         </button>
       </div>
 
       <label className="pos-selling-search" htmlFor="pos-product-search">
-        <span className="sr-only">Tìm món</span>
+        <span className="sr-only">{t('sales.search')}</span>
         <span className="pos-selling-search-icon" aria-hidden="true">⌕</span>
         <input
           id="pos-product-search"
           type="search"
           value={searchQuery}
           onChange={(event) => onSearchChange(event.target.value)}
-          placeholder="Tìm món theo tên..."
+          placeholder={t('sales.searchPlaceholder')}
           autoComplete="off"
         />
-        <span className="pos-selling-result-count" aria-label={`${resultCount} món phù hợp`}>
+        <span className="pos-selling-result-count" aria-label={t('sales.resultCount', { count: resultCount })}>
           {resultCount}
         </span>
         {searchQuery && (
@@ -101,14 +104,14 @@ export default function SellingHeader({
             type="button"
             onClick={() => onSearchChange('')}
             className="pos-selling-search-clear"
-            aria-label="Xóa nội dung tìm kiếm"
+            aria-label={t('sales.clearSearch')}
           >
-            Xóa
+            {t('common.delete')}
           </button>
         )}
       </label>
 
-      <div className="pos-selling-status" aria-label="Kết nối và máy in">
+      <div className="pos-selling-status" aria-label={t('sales.connectionAndPrinter')}>
         <NetworkStatusIndicator />
         <PrinterStatusBadge storeId={session.storeId ?? 1} />
       </div>
@@ -121,46 +124,49 @@ export default function SellingHeader({
         <span aria-hidden="true">{cashierInitials}</span>
         <span className="pos-selling-cashier-copy">
           <strong>{currentOperatorName}</strong>
-          <small>Người đang thao tác</small>
+          <small>{t('sales.currentOperator')}</small>
         </span>
       </div>
 
       <details className="pos-selling-more">
-        <summary className="pos-selling-more-trigger">Tác vụ</summary>
-        <nav className="pos-selling-more-menu" aria-label="Tác vụ POS">
+        <summary className="pos-selling-more-trigger">{t('sales.actions')}</summary>
+        <nav className="pos-selling-more-menu" aria-label={t('sales.actions')}>
           {resolvedLayout === 'tablet' && (
             <div className="pos-tablet-menu-context">
               <span className="pos-selling-brand-mark" aria-hidden="true">{cashierInitials}</span>
               <span>
                 <strong>{currentOperatorName}</strong>
-                <small>Đang thao tác · Chi nhánh #{session.storeId ?? '-'}</small>
+                <small>{t('sales.currentOperator')} · {t('common.branch', { id: session.storeId ?? '-' })}</small>
               </span>
             </div>
           )}
-          <Link to="/history">Lịch sử đơn</Link>
-          <Link to="/inventory">Kho chi nhánh</Link>
-          <Link to="/notifications">Thông báo</Link>
+          <Link to="/history">{t('nav.history')}</Link>
+          <Link to="/inventory">{t('nav.inventory')}</Link>
+          <Link to="/notifications">{t('nav.notifications')}</Link>
           <button
             type="button"
             onClick={onOpenCustomerDisplay}
             disabled={!hasOpenShift}
-            title={hasOpenShift ? 'Mở hoặc chuyển tới màn hình khách' : 'Hãy mở ca trước'}
+            title={hasOpenShift ? t('sales.openCustomerDisplay') : t('sales.openShiftFirst')}
           >
-            Màn hình khách
+            {t('sales.customerDisplay')}
           </button>
           <Link to="/shift">
-            {hasOpenShift && shiftId ? `Két tiền · Ca #${shiftId}` : 'Mở ca và két tiền'}
+            {hasOpenShift && shiftId ? t('sales.shiftDrawer', { id: shiftId }) : t('sales.openShiftAndDrawer')}
           </Link>
-          <div className="pos-layout-selector" role="group" aria-label="Chọn giao diện POS">
+          <div className="border-t border-border px-2 py-2">
+            <PreferenceControls />
+          </div>
+          <div className="pos-layout-selector" role="group" aria-label={t('sales.layout')}>
             <div className="pos-layout-selector-heading">
-              <strong>Giao diện</strong>
-              <span>{resolvedLayout === 'desktop' ? 'Máy tính' : 'Máy tính bảng'}</span>
+              <strong>{t('sales.layout')}</strong>
+              <span>{resolvedLayout === 'desktop' ? t('sales.layout.desktop') : t('sales.layout.tablet')}</span>
             </div>
             <div className="pos-layout-options">
               {([
-                ['auto', 'Tự động'],
-                ['desktop', 'Máy tính'],
-                ['tablet', 'Máy tính bảng'],
+                ['auto', t('sales.layout.auto')],
+                ['desktop', t('sales.layout.desktop')],
+                ['tablet', t('sales.layout.tablet')],
               ] as const).map(([value, label]) => (
                 <button
                   key={value}
@@ -174,7 +180,7 @@ export default function SellingHeader({
               ))}
             </div>
             {isLayoutSwitchLocked && (
-              <p>Hoàn tất hoặc hủy giao dịch hiện tại trước khi đổi giao diện.</p>
+              <p>{t('sales.layoutLocked')}</p>
             )}
           </div>
         </nav>

@@ -1,0 +1,662 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Shift.Index.Title" xml:space="preserve"><value>Work schedule &amp; shift management</value></data>
+  <data name="Shift.Index.Eyebrow" xml:space="preserve"><value>Workforce &amp; Operations / Schedule &amp; shifts</value></data>
+  <data name="Shift.Index.Subtitle" xml:space="preserve"><value>Coordinate shifts and plan the weekly schedule from {0} to {1}.</value></data>
+  <data name="Shift.Index.StoreSelectorAria" xml:space="preserve"><value>Select store</value></data>
+  <data name="Shift.Index.WeekNavAria" xml:space="preserve"><value>Week navigation</value></data>
+  <data name="Shift.Index.PrevWeek" xml:space="preserve"><value>Previous week</value></data>
+  <data name="Shift.Index.CurrentWeek" xml:space="preserve"><value>Current week</value></data>
+  <data name="Shift.Index.NextWeek" xml:space="preserve"><value>Next week</value></data>
+  <data name="Shift.Index.SummaryAria" xml:space="preserve"><value>Weekly schedule overview</value></data>
+  <data name="Shift.Index.Staff" xml:space="preserve"><value>Staff</value></data>
+  <data name="Shift.Index.ScheduledCount" xml:space="preserve"><value>Active schedules</value></data>
+  <data name="Shift.Index.CancelledCount" xml:space="preserve"><value>Cancelled schedules</value></data>
+  <data name="Shift.Index.TemplateCount" xml:space="preserve"><value>Templates in use</value></data>
+  <data name="Shift.Index.TemplateLibrary" xml:space="preserve"><value>Shift template library</value></data>
+  <data name="Shift.Index.TemplateLibraryHint" xml:space="preserve"><value>Drag a template onto a schedule cell or click “Assign shift”</value></data>
+  <data name="Shift.Index.CreateTemplate" xml:space="preserve"><value>Create template</value></data>
+  <data name="Shift.Index.ActiveTemplatesAria" xml:space="preserve"><value>Active shift templates</value></data>
+  <data name="Shift.Index.TemplateAria" xml:space="preserve"><value>Template {0}, {1} to {2}</value></data>
+  <data name="Shift.Index.PlusOneDay" xml:space="preserve"><value>(+1 day)</value></data>
+  <data name="Shift.Index.PlusOneDayBadge" xml:space="preserve"><value>+1 day</value></data>
+  <data name="Shift.Index.NoActiveTemplates" xml:space="preserve"><value>No active templates available for scheduling.</value></data>
+  <data name="Shift.Index.Col.Name" xml:space="preserve"><value>Shift name</value></data>
+  <data name="Shift.Index.Col.Time" xml:space="preserve"><value>Time</value></data>
+  <data name="Shift.Index.Col.Notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="Shift.Index.Col.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Shift.Index.Col.Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Shift.Index.Using" xml:space="preserve"><value>In use</value></data>
+  <data name="Shift.Index.Stopped" xml:space="preserve"><value>Stopped</value></data>
+  <data name="Shift.Index.EditTemplateTitle" xml:space="preserve"><value>Edit template details</value></data>
+  <data name="Shift.Index.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Shift.Index.StopTemplateTitle" xml:space="preserve"><value>Stop using this template</value></data>
+  <data name="Shift.Index.ActivateTemplateTitle" xml:space="preserve"><value>Reactivate this template</value></data>
+  <data name="Shift.Index.Stop" xml:space="preserve"><value>Stop</value></data>
+  <data name="Shift.Index.Activate" xml:space="preserve"><value>Activate</value></data>
+  <data name="Shift.Index.NoTemplates" xml:space="preserve"><value>No templates yet.</value></data>
+  <data name="Shift.Index.RosterEyebrow" xml:space="preserve"><value>WEEKLY SCHEDULE</value></data>
+  <data name="Shift.Index.RosterTitle" xml:space="preserve"><value>Staff work schedule</value></data>
+  <data name="Shift.Index.LegendAria" xml:space="preserve"><value>Status legend</value></data>
+  <data name="Shift.Index.LegendScheduled" xml:space="preserve"><value>Active</value></data>
+  <data name="Shift.Index.LegendCancelled" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="Shift.Index.SearchStaff" xml:space="preserve"><value>Search staff</value></data>
+  <data name="Shift.Index.SearchStaffPlaceholder" xml:space="preserve"><value>Search by name or role...</value></data>
+  <data name="Shift.Index.ScheduleStatus" xml:space="preserve"><value>Schedule status</value></data>
+  <data name="Shift.Index.AllStatuses" xml:space="preserve"><value>All statuses</value></data>
+  <data name="Shift.Index.HasSchedule" xml:space="preserve"><value>Scheduled</value></data>
+  <data name="Shift.Index.NoSchedule" xml:space="preserve"><value>Not scheduled</value></data>
+  <data name="Shift.Index.HasCancelledSchedule" xml:space="preserve"><value>Has cancelled schedule</value></data>
+  <data name="Shift.Index.Reset" xml:space="preserve"><value>Reset</value></data>
+  <data name="Shift.Index.Showing" xml:space="preserve"><value>Showing {0}/{1} staff</value></data>
+  <data name="Shift.Index.ScrollHint" xml:space="preserve"><value>Scroll horizontally to see all 7 days</value></data>
+  <data name="Shift.Index.Col.Staff" xml:space="preserve"><value>Staff</value></data>
+  <data name="Shift.Index.StaffAvatar" xml:space="preserve"><value>Photo of {0}</value></data>
+  <data name="Shift.Index.ShiftsInWeek" xml:space="preserve"><value>{0} shifts this week</value></data>
+  <data name="Shift.Index.DropTemplateHere" xml:space="preserve"><value>Drop template here</value></data>
+  <data name="Shift.Index.EditScheduleTitle" xml:space="preserve"><value>Edit schedule of {0}</value></data>
+  <data name="Shift.Index.EditScheduleAria" xml:space="preserve"><value>Edit {0} schedule of {1}</value></data>
+  <data name="Shift.Index.CancelScheduleTitle" xml:space="preserve"><value>Cancel schedule of {0}</value></data>
+  <data name="Shift.Index.CancelScheduleAria" xml:space="preserve"><value>Cancel {0} schedule of {1}</value></data>
+  <data name="Shift.Index.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Shift.Index.Assign" xml:space="preserve"><value>Assign shift</value></data>
+  <data name="Shift.Index.NoStaffInStore" xml:space="preserve"><value>No staff in this store.</value></data>
+  <data name="Shift.Index.FilterEmptyTitle" xml:space="preserve"><value>No matching staff found</value></data>
+  <data name="Shift.Index.FilterEmptyText" xml:space="preserve"><value>Try a different keyword or reset the filters.</value></data>
+  <data name="Shift.ScheduleModal.Kicker" xml:space="preserve"><value>STAFF SCHEDULE</value></data>
+  <data name="Shift.ScheduleModal.AssignTitle" xml:space="preserve"><value>Assign work schedule</value></data>
+  <data name="Shift.ScheduleModal.EditTitle" xml:space="preserve"><value>Edit work schedule</value></data>
+  <data name="Shift.ScheduleModal.CloseAria" xml:space="preserve"><value>Close</value></data>
+  <data name="Shift.ScheduleModal.ShiftTemplate" xml:space="preserve"><value>Shift template</value></data>
+  <data name="Shift.ScheduleModal.SelectTemplate" xml:space="preserve"><value>-- Select template --</value></data>
+  <data name="Shift.ScheduleModal.UseCustomTime" xml:space="preserve"><value>Use custom hours for this schedule</value></data>
+  <data name="Shift.ScheduleModal.Start" xml:space="preserve"><value>Start</value></data>
+  <data name="Shift.ScheduleModal.End" xml:space="preserve"><value>End</value></data>
+  <data name="Shift.ScheduleModal.CustomTimeHint" xml:space="preserve"><value>If custom hours are not used, the schedule will follow the template hours.</value></data>
+  <data name="Shift.ScheduleModal.Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Shift.ScheduleModal.Save" xml:space="preserve"><value>Save schedule</value></data>
+  <data name="Shift.TemplateModal.Kicker" xml:space="preserve"><value>SHIFT LIBRARY</value></data>
+  <data name="Shift.TemplateModal.Title" xml:space="preserve"><value>Shift template</value></data>
+  <data name="Shift.TemplateModal.CreateTitle" xml:space="preserve"><value>Create shift template</value></data>
+  <data name="Shift.TemplateModal.EditTitle" xml:space="preserve"><value>Edit shift template</value></data>
+  <data name="Shift.TemplateModal.CloseAria" xml:space="preserve"><value>Close</value></data>
+  <data name="Shift.TemplateModal.Name" xml:space="preserve"><value>Template name</value></data>
+  <data name="Shift.TemplateModal.Start" xml:space="preserve"><value>Start</value></data>
+  <data name="Shift.TemplateModal.End" xml:space="preserve"><value>End</value></data>
+  <data name="Shift.TemplateModal.Notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="Shift.TemplateModal.Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Shift.TemplateModal.Save" xml:space="preserve"><value>Save template</value></data>
+  <data name="Shift.Js.Showing" xml:space="preserve"><value>Showing {visible}/{total} staff</value></data>
+  <data name="Shift.Js.Success" xml:space="preserve"><value>Success</value></data>
+  <data name="Shift.Js.DataChanged" xml:space="preserve"><value>Data has changed</value></data>
+  <data name="Shift.Js.Failed" xml:space="preserve"><value>Unsuccessful</value></data>
+  <data name="Shift.Js.InvalidResponse" xml:space="preserve"><value>The server returned invalid data.</value></data>
+  <data name="Shift.Js.ActionFailed" xml:space="preserve"><value>The operation could not be performed.</value></data>
+  <data name="Shift.Js.ReloadNote" xml:space="preserve"><value>The page will be reloaded to fetch the latest data.</value></data>
+  <data name="Shift.Js.Done" xml:space="preserve"><value>The operation has completed.</value></data>
+  <data name="Shift.Js.StaffFallback" xml:space="preserve"><value>Staff</value></data>
+  <data name="Shift.Js.CancelScheduleTitle" xml:space="preserve"><value>Cancel work schedule</value></data>
+  <data name="Shift.Js.CancelReasonLabel" xml:space="preserve"><value>Cancellation reason</value></data>
+  <data name="Shift.Js.CancelReasonPlaceholder" xml:space="preserve"><value>Enter a reason to keep history...</value></data>
+  <data name="Shift.Js.CancelConfirm" xml:space="preserve"><value>Cancel schedule</value></data>
+  <data name="Shift.Js.Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Shift.Js.CancelReasonRequired" xml:space="preserve"><value>Please enter a cancellation reason.</value></data>
+  <data name="Shift.Js.CancelPrompt" xml:space="preserve"><value>Cancellation reason:</value></data>
+  <data name="Shift.Js.StopVerb" xml:space="preserve"><value>stop</value></data>
+  <data name="Shift.Js.ActivateVerb" xml:space="preserve"><value>activate</value></data>
+  <data name="Shift.Js.ConfirmPrefix" xml:space="preserve"><value>Confirm</value></data>
+  <data name="Shift.Js.ConfirmToggle" xml:space="preserve"><value>Are you sure you want to {action} this template?</value></data>
+  <data name="Shift.Js.Agree" xml:space="preserve"><value>Agree</value></data>
+  <data name="Shift.Js.CancelShort" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Shift.Js.AssignScheduleTitle" xml:space="preserve"><value>Assign work schedule</value></data>
+  <data name="Shift.Js.EditScheduleTitle" xml:space="preserve"><value>Edit work schedule</value></data>
+  <data name="Shift.Js.CreateTemplateTitle" xml:space="preserve"><value>Create shift template</value></data>
+  <data name="Shift.Js.EditTemplateTitle" xml:space="preserve"><value>Edit shift template</value></data>
+  <data name="Optimization.Index.Title" xml:space="preserve"><value>Schedule data configuration</value></data>
+  <data name="Optimization.Index.TitleWithStore" xml:space="preserve"><value>Schedule data configuration — {0}</value></data>
+  <data name="Optimization.Index.Eyebrow" xml:space="preserve"><value>Workforce &amp; operations</value></data>
+  <data name="Optimization.Index.Subtitle" xml:space="preserve"><value>Declare reference data for managers when assigning schedules manually.</value></data>
+  <data name="Optimization.Index.BackToSchedule" xml:space="preserve"><value>Back to schedule</value></data>
+  <data name="Optimization.Index.GuideAria" xml:space="preserve"><value>Usage guide</value></data>
+  <data name="Optimization.Index.GuideTitle" xml:space="preserve"><value>How to use:</value></data>
+  <data name="Optimization.Index.GuideStepAvailability" xml:space="preserve"><value>Availability</value></data>
+  <data name="Optimization.Index.GuideStepConstraint" xml:space="preserve"><value>Hour limits</value></data>
+  <data name="Optimization.Index.GuideStepRequirement" xml:space="preserve"><value>Staffing levels</value></data>
+  <data name="Optimization.Index.GuideStepTimeOff" xml:space="preserve"><value>Time off</value></data>
+  <data name="Optimization.Index.GuideArrow" xml:space="preserve"><value>→</value></data>
+  <data name="Optimization.Index.GuideNote" xml:space="preserve"><value>These settings do not auto-check, auto-assign, or apply schedules.</value></data>
+  <data name="Optimization.Index.GuideSentence" xml:space="preserve"><value>enter background data in this order {availability} {arrow} {constraint} {arrow2} {requirement} {arrow3} {timeoff}.</value></data>
+  <data name="Optimization.Tab.Availability" xml:space="preserve"><value>Availability</value></data>
+  <data name="Optimization.Tab.AvailabilityDesc" xml:space="preserve"><value>When can staff work?</value></data>
+  <data name="Optimization.Tab.Constraint" xml:space="preserve"><value>Hour limits</value></data>
+  <data name="Optimization.Tab.ConstraintDesc" xml:space="preserve"><value>Weekly/daily hour caps and minimum rest between shifts.</value></data>
+  <data name="Optimization.Tab.Requirement" xml:space="preserve"><value>Staffing levels</value></data>
+  <data name="Optimization.Tab.RequirementDesc" xml:space="preserve"><value>Minimum/target/maximum people needed per shift?</value></data>
+  <data name="Optimization.Tab.TimeOff" xml:space="preserve"><value>Time off</value></data>
+  <data name="Optimization.Tab.TimeOffDesc" xml:space="preserve"><value>Periods when staff cannot work.</value></data>
+  <data name="Optimization.Availability.Legend" xml:space="preserve"><value>Declare availability windows</value></data>
+  <data name="Optimization.Availability.Help" xml:space="preserve"><value>Declare recurring time windows when staff can take shifts.</value></data>
+  <data name="Optimization.Field.Staff" xml:space="preserve"><value>Staff</value></data>
+  <data name="Optimization.Field.DayOfWeek" xml:space="preserve"><value>Day of week</value></data>
+  <data name="Optimization.Field.Start" xml:space="preserve"><value>Start</value></data>
+  <data name="Optimization.Field.End" xml:space="preserve"><value>End</value></data>
+  <data name="Optimization.Field.EffectiveFrom" xml:space="preserve"><value>Effective from</value></data>
+  <data name="Optimization.Field.Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Optimization.Constraint.Legend" xml:space="preserve"><value>Declare hour limits</value></data>
+  <data name="Optimization.Constraint.Help" xml:space="preserve"><value>Used to avoid overtime and ensure rest between two shifts.</value></data>
+  <data name="Optimization.Field.TargetWeeklyHours" xml:space="preserve"><value>Target hours/week</value></data>
+  <data name="Optimization.Field.MaxWeeklyHours" xml:space="preserve"><value>Max hours/week</value></data>
+  <data name="Optimization.Field.MaxDailyHours" xml:space="preserve"><value>Max hours/day</value></data>
+  <data name="Optimization.Field.MinimumRestMinutes" xml:space="preserve"><value>Minimum rest (minutes)</value></data>
+  <data name="Optimization.Requirement.Legend" xml:space="preserve"><value>Declare staffing levels</value></data>
+  <data name="Optimization.Requirement.Help" xml:space="preserve"><value>Levels help managers reference desired headcount per shift.</value></data>
+  <data name="Optimization.Field.Shift" xml:space="preserve"><value>Shift</value></data>
+  <data name="Optimization.Field.MinimumStaff" xml:space="preserve"><value>Minimum (people)</value></data>
+  <data name="Optimization.Field.TargetStaff" xml:space="preserve"><value>Target (people)</value></data>
+  <data name="Optimization.Field.MaximumStaff" xml:space="preserve"><value>Maximum (people)</value></data>
+  <data name="Optimization.Field.RequiredRole" xml:space="preserve"><value>Required role</value></data>
+  <data name="Optimization.Field.NoRoleRequired" xml:space="preserve"><value>No specific role required</value></data>
+  <data name="Optimization.TimeOff.Legend" xml:space="preserve"><value>Declare time off</value></data>
+  <data name="Optimization.TimeOff.Help" xml:space="preserve"><value>Enter only approved leave; staff off in this window will not be listed as suitable candidates.</value></data>
+  <data name="Optimization.Field.From" xml:space="preserve"><value>From</value></data>
+  <data name="Optimization.Field.To" xml:space="preserve"><value>To</value></data>
+  <data name="Optimization.Field.Reason" xml:space="preserve"><value>Reason</value></data>
+  <data name="Optimization.Saved.Title" xml:space="preserve"><value>Configuration saved</value></data>
+  <data name="Optimization.Saved.Subtitle" xml:space="preserve"><value>Review the reference data stored for manual scheduling.</value></data>
+  <data name="Optimization.Day.Monday" xml:space="preserve"><value>Monday</value></data>
+  <data name="Optimization.Day.Tuesday" xml:space="preserve"><value>Tuesday</value></data>
+  <data name="Optimization.Day.Wednesday" xml:space="preserve"><value>Wednesday</value></data>
+  <data name="Optimization.Day.Thursday" xml:space="preserve"><value>Thursday</value></data>
+  <data name="Optimization.Day.Friday" xml:space="preserve"><value>Friday</value></data>
+  <data name="Optimization.Day.Saturday" xml:space="preserve"><value>Saturday</value></data>
+  <data name="Optimization.Day.Sunday" xml:space="preserve"><value>Sunday</value></data>
+  <data name="Optimization.Js.Day.Sunday" xml:space="preserve"><value>Sunday</value></data>
+  <data name="Optimization.Js.Day.Monday" xml:space="preserve"><value>Monday</value></data>
+  <data name="Optimization.Js.Day.Tuesday" xml:space="preserve"><value>Tuesday</value></data>
+  <data name="Optimization.Js.Day.Wednesday" xml:space="preserve"><value>Wednesday</value></data>
+  <data name="Optimization.Js.Day.Thursday" xml:space="preserve"><value>Thursday</value></data>
+  <data name="Optimization.Js.Day.Friday" xml:space="preserve"><value>Friday</value></data>
+  <data name="Optimization.Js.Day.Saturday" xml:space="preserve"><value>Saturday</value></data>
+  <data name="Optimization.Js.Status.Approved" xml:space="preserve"><value>Approved</value></data>
+  <data name="Optimization.Js.Status.Pending" xml:space="preserve"><value>Pending</value></data>
+  <data name="Optimization.Js.Status.Rejected" xml:space="preserve"><value>Rejected</value></data>
+  <data name="Optimization.Js.EndpointMissing" xml:space="preserve"><value>The save-configuration endpoint has not been declared.</value></data>
+  <data name="Optimization.Js.SaveFailed" xml:space="preserve"><value>Could not save the configuration.</value></data>
+  <data name="Optimization.Js.NoConfig" xml:space="preserve"><value>No configuration yet.</value></data>
+  <data name="Optimization.Js.ShowingFirst" xml:space="preserve"><value>Showing the first 8 of {count} items.</value></data>
+  <data name="Optimization.Js.Saved" xml:space="preserve"><value>Schedule data configuration has been saved.</value></data>
+  <data name="Optimization.Js.Label.StaffName" xml:space="preserve"><value>Staff</value></data>
+  <data name="Optimization.Js.Label.DayOfWeek" xml:space="preserve"><value>Day</value></data>
+  <data name="Optimization.Js.Label.StartTime" xml:space="preserve"><value>Start</value></data>
+  <data name="Optimization.Js.Label.EndTime" xml:space="preserve"><value>End</value></data>
+  <data name="Optimization.Js.Label.EffectiveFrom" xml:space="preserve"><value>Effective from</value></data>
+  <data name="Optimization.Js.Label.TargetWeeklyHours" xml:space="preserve"><value>Target hours/week</value></data>
+  <data name="Optimization.Js.Label.MaxWeeklyHours" xml:space="preserve"><value>Max hours/week</value></data>
+  <data name="Optimization.Js.Label.MaxDailyHours" xml:space="preserve"><value>Max hours/day</value></data>
+  <data name="Optimization.Js.Label.MinimumRestMinutes" xml:space="preserve"><value>Minimum rest (minutes)</value></data>
+  <data name="Optimization.Js.Label.ShiftName" xml:space="preserve"><value>Shift</value></data>
+  <data name="Optimization.Js.Label.MinimumStaff" xml:space="preserve"><value>Minimum (people)</value></data>
+  <data name="Optimization.Js.Label.TargetStaff" xml:space="preserve"><value>Target (people)</value></data>
+  <data name="Optimization.Js.Label.MaximumStaff" xml:space="preserve"><value>Maximum (people)</value></data>
+  <data name="Optimization.Js.Label.RequiredRoleName" xml:space="preserve"><value>Required role</value></data>
+  <data name="Optimization.Js.Label.FromUtc" xml:space="preserve"><value>From</value></data>
+  <data name="Optimization.Js.Label.ToUtc" xml:space="preserve"><value>To</value></data>
+  <data name="Optimization.Js.Label.Reason" xml:space="preserve"><value>Reason</value></data>
+  <data name="Optimization.Js.Label.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Approvals.Index.Title" xml:space="preserve"><value>Late shift-open approvals</value></data>
+  <data name="Approvals.Index.Eyebrow" xml:space="preserve"><value>Workforce &amp; operations</value></data>
+  <data name="Approvals.Index.Subtitle" xml:space="preserve"><value>Only Store Manager, Area Manager, or Business Owner in the correct scope may decide.</value></data>
+  <data name="Approvals.Index.NoPending" xml:space="preserve"><value>No pending requests</value></data>
+  <data name="Approvals.Index.Status" xml:space="preserve"><value>Status:</value></data>
+  <data name="Approvals.Index.MinutesLate" xml:space="preserve"><value>{0} minutes late</value></data>
+  <data name="Approvals.Index.Terminal" xml:space="preserve"><value>Terminal:</value></data>
+  <data name="Approvals.Index.Store" xml:space="preserve"><value>Store:</value></data>
+  <data name="Approvals.Index.Expires" xml:space="preserve"><value>Expires:</value></data>
+  <data name="Approvals.Index.ReasonLabel" xml:space="preserve"><value>Decision reason</value></data>
+  <data name="Approvals.Index.TooLateNotice" xml:space="preserve"><value>The shift is more than {0} minutes late so it cannot open on the original schedule. Reject it or convert to an unscheduled shift.</value></data>
+  <data name="Approvals.Index.Approve" xml:space="preserve"><value>Approve opening</value></data>
+  <data name="Approvals.Index.ApproveTooLateTitle" xml:space="preserve"><value>A shift more than {0} minutes late cannot be approved on the original schedule.</value></data>
+  <data name="Approvals.Index.ApproveOkTitle" xml:space="preserve"><value>Approve a late open within the {0}-minute limit</value></data>
+  <data name="Approvals.Index.Reject" xml:space="preserve"><value>Reject</value></data>
+  <data name="Approvals.Index.Convert" xml:space="preserve"><value>Convert to unscheduled</value></data>
+  <data name="Approvals.Js.NoDecision" xml:space="preserve"><value>No handling option was received. Please try again.</value></data>
+  <data name="Approvals.Js.ReasonInvalid" xml:space="preserve"><value>The decision reason must be 10 to 500 characters and contain specific content.</value></data>
+  <data name="Anomalies.Index.Title" xml:space="preserve"><value>Operational signals</value></data>
+  <data name="Anomalies.Index.Eyebrow" xml:space="preserve"><value>Workforce &amp; operations</value></data>
+  <data name="Anomalies.Index.Subtitle" xml:space="preserve"><value>Notable changes that need extra review; this is not a finding of wrongdoing.</value></data>
+  <data name="Anomalies.Index.StoreSelectorAria" xml:space="preserve"><value>Select store</value></data>
+  <data name="Anomalies.Index.Col.Metric" xml:space="preserve"><value>Metric to check</value></data>
+  <data name="Anomalies.Index.Col.CurrentValue" xml:space="preserve"><value>Recorded value</value></data>
+  <data name="Anomalies.Index.Col.Baseline" xml:space="preserve"><value>Typical prior level</value></data>
+  <data name="Anomalies.Index.Col.Deviation" xml:space="preserve"><value>Deviation</value></data>
+  <data name="Anomalies.Index.Col.Severity" xml:space="preserve"><value>Priority</value></data>
+  <data name="Anomalies.Index.Col.Status" xml:space="preserve"><value>Handling status</value></data>
+  <data name="Anomalies.Index.Empty" xml:space="preserve"><value>No open signals.</value></data>
+  <data name="Anomalies.Index.DateLabel" xml:space="preserve"><value>Date</value></data>
+  <data name="Anomalies.Index.Basis" xml:space="preserve"><value>Detection basis</value></data>
+  <data name="Anomalies.Index.BusinessDateLabel" xml:space="preserve"><value>Business date:</value></data>
+  <data name="Anomalies.Index.RobustScoreLabel" xml:space="preserve"><value>normalized deviation:</value></data>
+  <data name="Anomalies.Index.Explain" xml:space="preserve"><value>Explain</value></data>
+  <data name="Anomalies.Index.Acknowledge" xml:space="preserve"><value>Acknowledge</value></data>
+  <data name="Anomalies.Index.Resolve" xml:space="preserve"><value>Mark as handled</value></data>
+  <data name="Anomalies.Index.Feedback" xml:space="preserve"><value>Feedback</value></data>
+  <data name="Anomalies.Js.DataChanged" xml:space="preserve"><value>Data has changed</value></data>
+  <data name="Anomalies.Js.SignalUpdated" xml:space="preserve"><value>The signal was updated. Reload data before continuing.</value></data>
+  <data name="Anomalies.Js.UpdateFailed" xml:space="preserve"><value>Could not update</value></data>
+  <data name="Anomalies.Js.UpdateFailedFallback" xml:space="preserve"><value>Data has changed.</value></data>
+  <data name="Anomalies.Js.ConnectionError" xml:space="preserve"><value>Connection error</value></data>
+  <data name="Anomalies.Js.ConnectionErrorText" xml:space="preserve"><value>The action could not be saved right now. Please try again.</value></data>
+  <data name="Anomalies.Js.ExplainFallback" xml:space="preserve"><value>Could not explain the signal.</value></data>
+  <data name="Anomalies.Js.ImpactLabel" xml:space="preserve"><value>Possible impact:</value></data>
+  <data name="Anomalies.Js.WhyLabel" xml:space="preserve"><value>Why this alert exists:</value></data>
+  <data name="Anomalies.Js.ChecksLabel" xml:space="preserve"><value>Data to check:</value></data>
+  <data name="Anomalies.Js.ImmediateLabel" xml:space="preserve"><value>Do this now:</value></data>
+  <data name="Anomalies.Js.PreparationLabel" xml:space="preserve"><value>Records to prepare:</value></data>
+  <data name="Anomalies.Js.Disclaimer" xml:space="preserve"><value>This is only a review-support signal, not enough to conclude a cause, violation, or personal responsibility.</value></data>
+  <data name="Anomalies.Js.Analyzing" xml:space="preserve"><value>Analyzing...</value></data>
+  <data name="Anomalies.Js.AnalyzingText" xml:space="preserve"><value>The AI system is analyzing operational-signal data. Please wait a moment.</value></data>
+  <data name="Anomalies.Js.ExplainTitle" xml:space="preserve"><value>Signal explanation</value></data>
+  <data name="Anomalies.Js.AiConnectionErrorText" xml:space="preserve"><value>Could not connect to the AI system to explain the signal right now.</value></data>
+  <data name="Anomalies.Js.ResolveTitle" xml:space="preserve"><value>Confirm handled</value></data>
+  <data name="Anomalies.Js.ResolveNote" xml:space="preserve"><value>Handling notes</value></data>
+  <data name="Anomalies.Js.ResolveConfirm" xml:space="preserve"><value>Mark as handled</value></data>
+  <data name="Anomalies.Js.CancelShort" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Anomalies.Js.FeedbackTitle" xml:space="preserve"><value>Signal feedback</value></data>
+  <data name="Anomalies.Js.FeedbackUseful" xml:space="preserve"><value>Useful</value></data>
+  <data name="Anomalies.Js.FeedbackNotUseful" xml:space="preserve"><value>Not useful</value></data>
+  <data name="Anomalies.Js.FeedbackFalsePositive" xml:space="preserve"><value>Inappropriate alert</value></data>
+  <data name="Anomalies.Js.FeedbackConfirm" xml:space="preserve"><value>Send feedback</value></data>
+  <data name="Anomalies.Js.FeedbackRecorded" xml:space="preserve"><value>Feedback recorded</value></data>
+  <data name="Anomalies.Js.FeedbackSaved" xml:space="preserve"><value>Feedback has been saved.</value></data>
+  <data name="Ice.Index.Title" xml:space="preserve"><value>Shift ice management</value></data>
+  <data name="Ice.Index.Eyebrow" xml:space="preserve"><value>Inventory &amp; Supply</value></data>
+  <data name="Ice.Index.Subtitle" xml:space="preserve"><value>Issue ice via reservation, track POS usage, and close variance without double-deducting stock.</value></data>
+  <data name="Ice.Index.FilterAria" xml:space="preserve"><value>Filter ice operation shifts</value></data>
+  <data name="Ice.Index.Store" xml:space="preserve"><value>Branch</value></data>
+  <data name="Ice.Index.BusinessDate" xml:space="preserve"><value>Business date</value></data>
+  <data name="Ice.Index.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Ice.Index.AllStatuses" xml:space="preserve"><value>All statuses</value></data>
+  <data name="Ice.Index.Apply" xml:space="preserve"><value>Apply</value></data>
+  <data name="Ice.Index.InventoryAria" xml:space="preserve"><value>Ice ingredient inventory</value></data>
+  <data name="Ice.Index.Physical" xml:space="preserve"><value>Physical stock</value></data>
+  <data name="Ice.Index.Reserved" xml:space="preserve"><value>Reserved</value></data>
+  <data name="Ice.Index.Available" xml:space="preserve"><value>Available stock</value></data>
+  <data name="Ice.Index.AvailableAfterOpening" xml:space="preserve"><value>Available after opening at quota</value></data>
+  <data name="Ice.Index.ShiftOverviewAria" xml:space="preserve"><value>Ice shift overview</value></data>
+  <data name="Ice.Index.QuotaPerShift" xml:space="preserve"><value>Quota per shift</value></data>
+  <data name="Ice.Index.ShiftsToday" xml:space="preserve"><value>Shifts today</value></data>
+  <data name="Ice.Index.Running" xml:space="preserve"><value>Running</value></data>
+  <data name="Ice.Index.NeedsAction" xml:space="preserve"><value>Needs action</value></data>
+  <data name="Ice.Index.PolicyTitle" xml:space="preserve"><value>Branch ice policy</value></data>
+  <data name="Ice.Index.Configured" xml:space="preserve"><value>Configured</value></data>
+  <data name="Ice.Index.NotConfigured" xml:space="preserve"><value>Not configured</value></data>
+  <data name="Ice.Index.PolicyIngredientLegend" xml:space="preserve"><value>Ingredient and unit</value></data>
+  <data name="Ice.Index.PolicyIngredientHint" xml:space="preserve"><value>Only ingredients designated for ice operations that are active, exist at the branch, have a gram base, and convert g ↔ kg appear here.</value></data>
+  <data name="Ice.Index.IceIngredient" xml:space="preserve"><value>Ice ingredient</value></data>
+  <data name="Ice.Index.NoSuitableIngredient" xml:space="preserve"><value>No suitable ingredient</value></data>
+  <data name="Ice.Index.DisplayUnit" xml:space="preserve"><value>Display unit</value></data>
+  <data name="Ice.Index.MissingUnitPair" xml:space="preserve"><value>Missing g/kg unit pair</value></data>
+  <data name="Ice.Index.PolicyQuotaLegend" xml:space="preserve"><value>Quota</value></data>
+  <data name="Ice.Index.PolicyQuotaHint" xml:space="preserve"><value>Shift quota must be greater than 0 and must not exceed the daily quota.</value></data>
+  <data name="Ice.Index.DailyQuota" xml:space="preserve"><value>Daily quota ({0})</value></data>
+  <data name="Ice.Index.ShiftQuota" xml:space="preserve"><value>Quota per shift ({0})</value></data>
+  <data name="Ice.Index.PolicyApprovalLegend" xml:space="preserve"><value>Approval and handoff rules</value></data>
+  <data name="Ice.Index.PolicyApprovalHint" xml:space="preserve"><value>Every positive variance needs approval. The two thresholds below decide when to escalate the approver.</value></data>
+  <data name="Ice.Index.VarianceThresholdFrom" xml:space="preserve"><value>Variance requires approval from ({0})</value></data>
+  <data name="Ice.Index.VarianceThresholdPercent" xml:space="preserve"><value>Variance requires approval from (%)</value></data>
+  <data name="Ice.Index.AllowSupplement" xml:space="preserve"><value>Allow supplemental issue during the shift</value></data>
+  <data name="Ice.Index.AllowCarryOver" xml:space="preserve"><value>Allow same-day handoff between shifts</value></data>
+  <data name="Ice.Index.FixedSafetyRule" xml:space="preserve"><value>Fixed safety rule</value></data>
+  <data name="Ice.Index.RequireVarianceApproval" xml:space="preserve"><value>Require approval for every positive variance</value></data>
+  <data name="Ice.Index.SavePolicy" xml:space="preserve"><value>Save policy</value></data>
+  <data name="Ice.Index.PlanKicker" xml:space="preserve"><value>Plan</value></data>
+  <data name="Ice.Index.CreateShiftTitle" xml:space="preserve"><value>Create operation shift</value></data>
+  <data name="Ice.Index.CreateShiftHint" xml:space="preserve"><value>One ice shift can link to multiple POS selling shifts.</value></data>
+  <data name="Ice.Index.NoShiftLead" xml:space="preserve"><value>This branch has no active Shift Lead or Store Manager to own the shift.</value></data>
+  <data name="Ice.Index.CreateModeLegend" xml:space="preserve"><value>How to create the shift</value></data>
+  <data name="Ice.Index.CreateFromSchedule" xml:space="preserve"><value>Create from work schedule</value></data>
+  <data name="Ice.Index.CreateManual" xml:space="preserve"><value>Create manually</value></data>
+  <data name="Ice.Index.LoadingSchedule" xml:space="preserve"><value>Loading work schedule…</value></data>
+  <data name="Ice.Index.CheckingSchedule" xml:space="preserve"><value>Checking the schedule at {0} on {1}.</value></data>
+  <data name="Ice.Index.ScheduleShift" xml:space="preserve"><value>Scheduled shift</value></data>
+  <data name="Ice.Index.ScheduleShiftHelp" xml:space="preserve"><value>Only assignments with the same effective hours are grouped into one operation shift.</value></data>
+  <data name="Ice.Index.SourceLabel" xml:space="preserve"><value>Creation source</value></data>
+  <data name="Ice.Index.SourceWorkSchedule" xml:space="preserve"><value>Work schedule</value></data>
+  <data name="Ice.Index.ExpectedStaff" xml:space="preserve"><value>Expected staff</value></data>
+  <data name="Ice.Index.ExpectedLead" xml:space="preserve"><value>Expected shift lead</value></data>
+  <data name="Ice.Index.SuggestedQuota" xml:space="preserve"><value>Suggested ice quota</value></data>
+  <data name="Ice.Index.NoMatchingSchedule" xml:space="preserve"><value>No matching work schedule.</value></data>
+  <data name="Ice.Index.NoShiftFound" xml:space="preserve"><value>No work shift found at {0} on {1}.</value></data>
+  <data name="Ice.Index.NoShiftFoundHint" xml:space="preserve"><value>You can create a staff schedule first or switch to manual creation.</value></data>
+  <data name="Ice.Index.ViewSchedule" xml:space="preserve"><value>View work schedule</value></data>
+  <data name="Ice.Index.SwitchToManual" xml:space="preserve"><value>Switch to manual creation</value></data>
+  <data name="Ice.Index.ScheduleLoadError" xml:space="preserve"><value>Could not load the work schedule. Please try again.</value></data>
+  <data name="Ice.Index.ScheduleLoadErrorHint" xml:space="preserve"><value>The connection or schedule data is temporarily unavailable.</value></data>
+  <data name="Ice.Index.Retry" xml:space="preserve"><value>Retry</value></data>
+  <data name="Ice.Index.PrefillNotice" xml:space="preserve"><value>The fields below are taken from the selected scheduled shift and cannot be edited in this mode.</value></data>
+  <data name="Ice.Index.ShiftName" xml:space="preserve"><value>Shift name</value></data>
+  <data name="Ice.Index.ShiftNamePlaceholder" xml:space="preserve"><value>Example: Morning shift</value></data>
+  <data name="Ice.Index.Start" xml:space="preserve"><value>Start</value></data>
+  <data name="Ice.Index.StartHint" xml:space="preserve"><value>24-hour format: dd/MM/yyyy HH:mm.</value></data>
+  <data name="Ice.Index.End" xml:space="preserve"><value>End</value></data>
+  <data name="Ice.Index.EndHint" xml:space="preserve"><value>24-hour format: dd/MM/yyyy HH:mm.</value></data>
+  <data name="Ice.Index.ShiftLead" xml:space="preserve"><value>Shift lead</value></data>
+  <data name="Ice.Index.SelectLead" xml:space="preserve"><value>Select the person in charge</value></data>
+  <data name="Ice.Index.LeadHint" xml:space="preserve"><value>Only an active Shift Lead or Store Manager at this branch.</value></data>
+  <data name="Ice.Index.CreateShift" xml:space="preserve"><value>Create shift</value></data>
+  <data name="Ice.Index.DateLabel" xml:space="preserve"><value>Date</value></data>
+  <data name="Ice.Index.ShiftListTitle" xml:space="preserve"><value>Ice operation shifts</value></data>
+  <data name="Ice.Index.ShiftListHint" xml:space="preserve"><value>Issued is reserved quantity; physical stock only drops via POS or an approved variance.</value></data>
+  <data name="Ice.Index.NoShiftsTitle" xml:space="preserve"><value>No operation shifts yet</value></data>
+  <data name="Ice.Index.NoShiftsText" xml:space="preserve"><value>Create the first shift to confirm ice issue and link POS selling shifts.</value></data>
+  <data name="Ice.Index.Col.Shift" xml:space="preserve"><value>Operation shift</value></data>
+  <data name="Ice.Index.Col.TimeRange" xml:space="preserve"><value>Time range</value></data>
+  <data name="Ice.Index.Col.Quota" xml:space="preserve"><value>Quota</value></data>
+  <data name="Ice.Index.Col.Issued" xml:space="preserve"><value>Issued</value></data>
+  <data name="Ice.Index.Col.Theoretical" xml:space="preserve"><value>Theoretical</value></data>
+  <data name="Ice.Index.Col.Variance" xml:space="preserve"><value>Variance</value></data>
+  <data name="Ice.Index.Col.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Ice.Index.Col.Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Ice.Index.ShiftNumber" xml:space="preserve"><value>Shift #{0}</value></data>
+  <data name="Ice.Index.LinkedShifts" xml:space="preserve"><value>Linked to {0} POS selling shifts</value></data>
+  <data name="Ice.Index.SourceScheduleCancelled" xml:space="preserve"><value>The source scheduled shift was cancelled</value></data>
+  <data name="Ice.Index.LeadAssignmentCancelled" xml:space="preserve"><value>The scheduled shift lead assignment was cancelled</value></data>
+  <data name="Ice.Index.ScheduleChanged" xml:space="preserve"><value>The work schedule has changed</value></data>
+  <data name="Ice.Index.SavedShift" xml:space="preserve"><value>Saved shift:</value></data>
+  <data name="Ice.Index.CurrentSchedule" xml:space="preserve"><value>Current schedule:</value></data>
+  <data name="Ice.Index.StaffSuffix" xml:space="preserve"><value>staff</value></data>
+  <data name="Ice.Index.CancelledAssignments" xml:space="preserve"><value>{0} assignments were cancelled. The system does not auto-cancel or change the operation shift.</value></data>
+  <data name="Ice.Index.SyncSchedule" xml:space="preserve"><value>Sync schedule</value></data>
+  <data name="Ice.Index.ManualReasonLabel" xml:space="preserve"><value>Reason for switching to a manual shift</value></data>
+  <data name="Ice.Index.ManualReasonPlaceholder" xml:space="preserve"><value>Example: Source schedule cancelled, continue operating manually</value></data>
+  <data name="Ice.Index.ConvertToManual" xml:space="preserve"><value>Convert to manual</value></data>
+  <data name="Ice.Index.CancelDraftConfirm" xml:space="preserve"><value>Cancel this draft operation shift? History is still kept.</value></data>
+  <data name="Ice.Index.CancelDraftReasonLabel" xml:space="preserve"><value>Draft cancellation reason</value></data>
+  <data name="Ice.Index.CancelDraftReasonPlaceholder" xml:space="preserve"><value>Enter the cancellation reason</value></data>
+  <data name="Ice.Index.CancelDraft" xml:space="preserve"><value>Cancel draft shift</value></data>
+  <data name="Ice.Index.ReplacementLeadLabel" xml:space="preserve"><value>Select a replacement shift lead</value></data>
+  <data name="Ice.Index.SelectReplacementLead" xml:space="preserve"><value>Select shift lead</value></data>
+  <data name="Ice.Index.ReplacementReasonLabel" xml:space="preserve"><value>Reason for replacing the shift lead</value></data>
+  <data name="Ice.Index.ReplacementReasonPlaceholder" xml:space="preserve"><value>Enter the replacement reason</value></data>
+  <data name="Ice.Index.UpdateLead" xml:space="preserve"><value>Update shift lead</value></data>
+  <data name="Ice.Index.OpenOrClosedNote" xml:space="preserve"><value>The shift is already open or closed, so the system only warns and does not auto-change operation data.</value></data>
+  <data name="Ice.Index.Details" xml:space="preserve"><value>Details</value></data>
+  <data name="Ice.Index.ViewReportTitle" xml:space="preserve"><value>View shift report</value></data>
+  <data name="Ice.Index.IssueLabel" xml:space="preserve"><value>Opening issue quantity</value></data>
+  <data name="Ice.Index.ConfirmIssue" xml:space="preserve"><value>Confirm issue</value></data>
+  <data name="Ice.Index.ResolveScheduleFirst" xml:space="preserve"><value>Resolve the schedule change before issuing ice</value></data>
+  <data name="Ice.Index.WaitingValidConfig" xml:space="preserve"><value>Waiting for a valid configuration</value></data>
+  <data name="Ice.Index.MissingLead" xml:space="preserve"><value>Missing shift lead</value></data>
+  <data name="Ice.Index.BranchFallback" xml:space="preserve"><value>Branch #{0}</value></data>
+  <data name="Ice.Index.Js.ShiftQuotaExceeded" xml:space="preserve"><value>Shift quota must not exceed the daily quota.</value></data>
+  <data name="Ice.Index.Js.StaffSuffix" xml:space="preserve"><value>staff</value></data>
+  <data name="Ice.Index.Js.Undetermined" xml:space="preserve"><value>Not determined</value></data>
+  <data name="Ice.Index.Js.DateTimeFormatMessage" xml:space="preserve"><value>Please enter date and time as dd/MM/yyyy HH:mm (24-hour).</value></data>
+  <data name="Ice.Index.Js.DateFormatMessage" xml:space="preserve"><value>Please enter the date as dd/MM/yyyy.</value></data>
+  <data name="Ice.Index.Js.Processing" xml:space="preserve"><value>Processing...</value></data>
+  <data name="Ice.Details.Title" xml:space="preserve"><value>Ice shift {0}</value></data>
+  <data name="Ice.Details.BackToList" xml:space="preserve"><value>Ice shift list</value></data>
+  <data name="Ice.Details.Report" xml:space="preserve"><value>Shift report</value></data>
+  <data name="Ice.Details.WorkflowAria" xml:space="preserve"><value>Ice shift workflow</value></data>
+  <data name="Ice.Details.Workflow.Plan" xml:space="preserve"><value>Plan</value></data>
+  <data name="Ice.Details.Workflow.ConfirmIssue" xml:space="preserve"><value>Confirm issue</value></data>
+  <data name="Ice.Details.Workflow.Operate" xml:space="preserve"><value>Operate</value></data>
+  <data name="Ice.Details.Workflow.Close" xml:space="preserve"><value>Close shift</value></data>
+  <data name="Ice.Details.Workflow.Approve" xml:space="preserve"><value>Approve</value></data>
+  <data name="Ice.Details.Workflow.Lock" xml:space="preserve"><value>Lock</value></data>
+  <data name="Ice.Details.SummaryAria" xml:space="preserve"><value>Ice shift figures</value></data>
+  <data name="Ice.Details.Available" xml:space="preserve"><value>Available stock</value></data>
+  <data name="Ice.Details.PhysicalPrefix" xml:space="preserve"><value>Physical stock:</value></data>
+  <data name="Ice.Details.Reserved" xml:space="preserve"><value>Reserved</value></data>
+  <data name="Ice.Details.ReservedStorePrefix" xml:space="preserve"><value>Whole warehouse:</value></data>
+  <data name="Ice.Details.TotalIssued" xml:space="preserve"><value>Total issued</value></data>
+  <data name="Ice.Details.IssuedBreakdown" xml:space="preserve"><value>Opening {0} · Supplemental {1}</value></data>
+  <data name="Ice.Details.TheoreticalUsage" xml:space="preserve"><value>POS theoretical usage</value></data>
+  <data name="Ice.Details.ActualUsage" xml:space="preserve"><value>Actual usage</value></data>
+  <data name="Ice.Details.Variance" xml:space="preserve"><value>Variance</value></data>
+  <data name="Ice.Details.PosLinkKicker" xml:space="preserve"><value>Sales link</value></data>
+  <data name="Ice.Details.PosShiftsTitle" xml:space="preserve"><value>POS selling shifts</value></data>
+  <data name="Ice.Details.NotLinked" xml:space="preserve"><value>Not linked</value></data>
+  <data name="Ice.Details.LinkedCount" xml:space="preserve"><value>Linked to {0} shifts</value></data>
+  <data name="Ice.Details.TheoreticalSourceNote" xml:space="preserve"><value>Theoretical usage source</value></data>
+  <data name="Ice.Details.NoPosShifts" xml:space="preserve"><value>No POS selling shifts linked yet.</value></data>
+  <data name="Ice.Details.Col.PosShift" xml:space="preserve"><value>POS selling shift</value></data>
+  <data name="Ice.Details.Col.Staff" xml:space="preserve"><value>Staff</value></data>
+  <data name="Ice.Details.Col.Start" xml:space="preserve"><value>Start</value></data>
+  <data name="Ice.Details.Col.End" xml:space="preserve"><value>End</value></data>
+  <data name="Ice.Details.Col.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Ice.Details.Open" xml:space="preserve"><value>Open</value></data>
+  <data name="Ice.Details.MatchingPosShifts" xml:space="preserve"><value>Found {0} matching POS selling shifts</value></data>
+  <data name="Ice.Details.ConfirmLink" xml:space="preserve"><value>Confirm link</value></data>
+  <data name="Ice.Details.NoLinkableTitle" xml:space="preserve"><value>No POS selling shifts can be linked yet.</value></data>
+  <data name="Ice.Details.SupplementKicker" xml:space="preserve"><value>During shift</value></data>
+  <data name="Ice.Details.SupplementTitle" xml:space="preserve"><value>Supplemental issue</value></data>
+  <data name="Ice.Details.SupplementHint" xml:space="preserve"><value>Only approved quantities increase the shift reservation.</value></data>
+  <data name="Ice.Details.NoSupplements" xml:space="preserve"><value>No supplemental requests yet.</value></data>
+  <data name="Ice.Details.Col.Time" xml:space="preserve"><value>Time</value></data>
+  <data name="Ice.Details.Col.RequestedBy" xml:space="preserve"><value>Requested by</value></data>
+  <data name="Ice.Details.Col.Quantity" xml:space="preserve"><value>Quantity</value></data>
+  <data name="Ice.Details.Col.Reason" xml:space="preserve"><value>Reason</value></data>
+  <data name="Ice.Details.Col.StatusApproval" xml:space="preserve"><value>Status / approval</value></data>
+  <data name="Ice.Details.ApproveSupplementTitle" xml:space="preserve"><value>Approve supplemental issue</value></data>
+  <data name="Ice.Details.RejectReasonPlaceholder" xml:space="preserve"><value>Rejection reason</value></data>
+  <data name="Ice.Details.RejectSupplementTitle" xml:space="preserve"><value>Reject supplemental issue</value></data>
+  <data name="Ice.Details.SupplementQuantityLabel" xml:space="preserve"><value>Supplemental quantity ({0})</value></data>
+  <data name="Ice.Details.SupplementReasonLabel" xml:space="preserve"><value>Reason</value></data>
+  <data name="Ice.Details.SendRequest" xml:space="preserve"><value>Send request</value></data>
+  <data name="Ice.Details.HandoffKicker" xml:space="preserve"><value>Handoff</value></data>
+  <data name="Ice.Details.HandoffTitle" xml:space="preserve"><value>Same-day handoff</value></data>
+  <data name="Ice.Details.HandoffHint" xml:space="preserve"><value>The receiving shift quantity always equals the quantity the previous shift confirmed handing over.</value></data>
+  <data name="Ice.Details.NoHandoffs" xml:space="preserve"><value>No handoffs between shifts yet.</value></data>
+  <data name="Ice.Details.Col.Direction" xml:space="preserve"><value>Direction</value></data>
+  <data name="Ice.Details.Col.RelatedShift" xml:space="preserve"><value>Related shift</value></data>
+  <data name="Ice.Details.Col.HandedOverBy" xml:space="preserve"><value>Handed over by</value></data>
+  <data name="Ice.Details.Col.ReceivedBy" xml:space="preserve"><value>Received by</value></data>
+  <data name="Ice.Details.NotConfirmed" xml:space="preserve"><value>Not confirmed</value></data>
+  <data name="Ice.Details.ReceivingShift" xml:space="preserve"><value>Receiving shift</value></data>
+  <data name="Ice.Details.HandoffQuantityLabel" xml:space="preserve"><value>Quantity ({0})</value></data>
+  <data name="Ice.Details.Receiver" xml:space="preserve"><value>Receiver</value></data>
+  <data name="Ice.Details.ConfirmHandoff" xml:space="preserve"><value>Confirm handoff</value></data>
+  <data name="Ice.Details.AuditKicker" xml:space="preserve"><value>Audit</value></data>
+  <data name="Ice.Details.PostingTitle" xml:space="preserve"><value>Inventory adjustment postings</value></data>
+  <data name="Ice.Details.PostingHint" xml:space="preserve"><value>Each positive variance creates only one stock-decrease posting.</value></data>
+  <data name="Ice.Details.NoPostings" xml:space="preserve"><value>No adjustment postings yet.</value></data>
+  <data name="Ice.Details.Col.Type" xml:space="preserve"><value>Type</value></data>
+  <data name="Ice.Details.Col.Cost" xml:space="preserve"><value>Cost</value></data>
+  <data name="Ice.Details.Col.Approver" xml:space="preserve"><value>Approver</value></data>
+  <data name="Ice.Details.Col.IdempotencyKey" xml:space="preserve"><value>Idempotency key</value></data>
+  <data name="Ice.Details.PostingType.OverTheoreticalLoss" xml:space="preserve"><value>Loss above theoretical</value></data>
+  <data name="Ice.Details.NoPrice" xml:space="preserve"><value>No price yet</value></data>
+  <data name="Ice.Details.ActionColumnAria" xml:space="preserve"><value>Ice shift actions</value></data>
+  <data name="Ice.Details.NextStepKicker" xml:space="preserve"><value>Next step</value></data>
+  <data name="Ice.Details.CloseShiftTitle" xml:space="preserve"><value>Close shift</value></data>
+  <data name="Ice.Details.CloseShiftHint" xml:space="preserve"><value>The system computes theoretical usage from POS sales. Ice already issued for use is not returned to stock.</value></data>
+  <data name="Ice.Details.ReturnQuantityLabel" xml:space="preserve"><value>Sealed bags returned to stock ({0})</value></data>
+  <data name="Ice.Details.ReturnCondition" xml:space="preserve"><value>Condition</value></data>
+  <data name="Ice.Details.SelectCondition" xml:space="preserve"><value>Select condition</value></data>
+  <data name="Ice.Details.SealedIntact" xml:space="preserve"><value>Sealed, unused</value></data>
+  <data name="Ice.Details.ReturnReceiver" xml:space="preserve"><value>Stock return receiver</value></data>
+  <data name="Ice.Details.SelectReceiver" xml:space="preserve"><value>Select receiver</value></data>
+  <data name="Ice.Details.CloseReasonLabel" xml:space="preserve"><value>Variance reason (if any)</value></data>
+  <data name="Ice.Details.CloseReasonPlaceholder" xml:space="preserve"><value>Explain when actual usage differs from POS theoretical usage</value></data>
+  <data name="Ice.Details.SubmitClose" xml:space="preserve"><value>Submit close</value></data>
+  <data name="Ice.Details.PendingKicker" xml:space="preserve"><value>Pending approval</value></data>
+  <data name="Ice.Details.ApproveVarianceTitle" xml:space="preserve"><value>Approve variance</value></data>
+  <data name="Ice.Details.ApproveVarianceHint" xml:space="preserve"><value>A positive variance creates exactly one extra stock-decrease posting.</value></data>
+  <data name="Ice.Details.ApprovalReasonLabel" xml:space="preserve"><value>Approval reason</value></data>
+  <data name="Ice.Details.ApproveAndWriteOff" xml:space="preserve"><value>Approve and write off</value></data>
+  <data name="Ice.Details.ReconciliationKicker" xml:space="preserve"><value>Needs reconciliation</value></data>
+  <data name="Ice.Details.ReconciliationTitle" xml:space="preserve"><value>Complete reconciliation</value></data>
+  <data name="Ice.Details.ReconciliationHint" xml:space="preserve"><value>A negative variance does not auto-increase stock. Check BOM, POS, refunds, and handoffs before locking.</value></data>
+  <data name="Ice.Details.ReconciliationResultLabel" xml:space="preserve"><value>Reconciliation result</value></data>
+  <data name="Ice.Details.ConfirmReconciliation" xml:space="preserve"><value>Confirm reconciliation</value></data>
+  <data name="Ice.Details.StatusKicker" xml:space="preserve"><value>Status</value></data>
+  <data name="Ice.Details.ClosedNote" xml:space="preserve"><value>The shift is complete. Data and postings are kept for tracing.</value></data>
+  <data name="Ice.Details.NoActionNote" xml:space="preserve"><value>You have no action to take in this status.</value></data>
+  <data name="Ice.Details.AuditInfoTitle" xml:space="preserve"><value>Audit information</value></data>
+  <data name="Ice.Details.AllocationIdLabel" xml:space="preserve"><value>Ice allocation ID</value></data>
+  <data name="Ice.Details.OpeningCarryLabel" xml:space="preserve"><value>Opening carry</value></data>
+  <data name="Ice.Details.ClosingCarryLabel" xml:space="preserve"><value>Closing carry</value></data>
+  <data name="Ice.Details.ValidReturnLabel" xml:space="preserve"><value>Valid returned ice</value></data>
+  <data name="Ice.Details.CostSnapshotLabel" xml:space="preserve"><value>Cost at close</value></data>
+  <data name="Ice.Details.CostStatusLabel" xml:space="preserve"><value>Cost status</value></data>
+  <data name="Ice.Details.CloseReasonTitle" xml:space="preserve"><value>Close explanation</value></data>
+  <data name="Ice.Details.ReconciliationResultTitle" xml:space="preserve"><value>Reconciliation result</value></data>
+  <data name="Ice.Details.CancelAllocationSummary" xml:space="preserve"><value>Cancel allocation</value></data>
+  <data name="Ice.Details.CancelReasonLabel" xml:space="preserve"><value>Cancellation reason</value></data>
+  <data name="Ice.Details.CancelAndRelease" xml:space="preserve"><value>Cancel and release reservation</value></data>
+  <data name="Ice.Details.Js.Linking" xml:space="preserve"><value>Linking...</value></data>
+  <data name="Ice.Report.Title" xml:space="preserve"><value>Ice report {0}</value></data>
+  <data name="Ice.Report.BackToShift" xml:space="preserve"><value>Back to ice shift</value></data>
+  <data name="Ice.Report.Heading" xml:space="preserve"><value>Report {0}</value></data>
+  <data name="Ice.Report.CostSourceNote" xml:space="preserve"><value>Cost data comes from recorded inventory transactions.</value></data>
+  <data name="Ice.Report.DownloadPdf" xml:space="preserve"><value>Download PDF</value></data>
+  <data name="Ice.Report.Print" xml:space="preserve"><value>Print report</value></data>
+  <data name="Ice.Report.SnapshotMismatch" xml:space="preserve"><value>Theoretical usage saved at close was {0}, while current transaction data is {1}. Reconcile linked orders before using this report.</value></data>
+  <data name="Ice.Report.ShiftLabel" xml:space="preserve"><value>Operation shift</value></data>
+  <data name="Ice.Report.StatusLabel" xml:space="preserve"><value>Status</value></data>
+  <data name="Ice.Report.AllocationIdPrefix" xml:space="preserve"><value>Ice allocation ID</value></data>
+  <data name="Ice.Report.PosShiftsLabel" xml:space="preserve"><value>POS selling shifts</value></data>
+  <data name="Ice.Report.NotLinked" xml:space="preserve"><value>Not linked</value></data>
+  <data name="Ice.Report.TheoreticalSourceNote" xml:space="preserve"><value>Theoretical usage source</value></data>
+  <data name="Ice.Report.CostStatusLabel" xml:space="preserve"><value>Cost status</value></data>
+  <data name="Ice.Report.CostStatusNote" xml:space="preserve"><value>Based on recorded inventory transactions</value></data>
+  <data name="Ice.Report.QuantityKicker" xml:space="preserve"><value>Quantity</value></data>
+  <data name="Ice.Report.QuantityTitle" xml:space="preserve"><value>Shift/day reconciliation</value></data>
+  <data name="Ice.Report.ActualUsageFormula" xml:space="preserve"><value>Actual usage = total issued + opening handoff received − closing handoff − valid stock return.</value></data>
+  <data name="Ice.Report.OpeningCarry" xml:space="preserve"><value>Opening carry</value></data>
+  <data name="Ice.Report.InitialIssued" xml:space="preserve"><value>Opening issue</value></data>
+  <data name="Ice.Report.SupplementalIssued" xml:space="preserve"><value>Supplemental issue</value></data>
+  <data name="Ice.Report.ReturnedQuantity" xml:space="preserve"><value>Valid stock return</value></data>
+  <data name="Ice.Report.ClosingCarry" xml:space="preserve"><value>Closing carry</value></data>
+  <data name="Ice.Report.ActualUsage" xml:space="preserve"><value>Actual usage</value></data>
+  <data name="Ice.Report.TheoreticalUsage" xml:space="preserve"><value>POS usage</value></data>
+  <data name="Ice.Report.Variance" xml:space="preserve"><value>Variance</value></data>
+  <data name="Ice.Report.NotClosed" xml:space="preserve"><value>Not closed</value></data>
+  <data name="Ice.Report.CostKicker" xml:space="preserve"><value>Inventory transaction data</value></data>
+  <data name="Ice.Report.CostTitle" xml:space="preserve"><value>Operating cost</value></data>
+  <data name="Ice.Report.CostNote" xml:space="preserve"><value>Missing-data cells are left blank on purpose; cost is not estimated.</value></data>
+  <data name="Ice.Report.TheoreticalCost" xml:space="preserve"><value>POS cost</value></data>
+  <data name="Ice.Report.VarianceCost" xml:space="preserve"><value>Variance cost</value></data>
+  <data name="Ice.Report.ActualCost" xml:space="preserve"><value>Actual cost</value></data>
+  <data name="Ice.Report.InsufficientData" xml:space="preserve"><value>Insufficient data</value></data>
+  <data name="Ice.Report.InventoryUnitFallback" xml:space="preserve"><value>inventory unit</value></data>
+  <data name="Ice.Report.ResponsibilityKicker" xml:space="preserve"><value>Responsibility</value></data>
+  <data name="Ice.Report.ResponsibilityTitle" xml:space="preserve"><value>Issuer / receiver / approver</value></data>
+  <data name="Ice.Report.IssuedBy" xml:space="preserve"><value>Opening issuer</value></data>
+  <data name="Ice.Report.ShiftLead" xml:space="preserve"><value>Shift lead / receiver</value></data>
+  <data name="Ice.Report.ReturnedBy" xml:space="preserve"><value>Returned by</value></data>
+  <data name="Ice.Report.ReturnReceivedBy" xml:space="preserve"><value>Stock return receiver</value></data>
+  <data name="Ice.Report.ClosedBy" xml:space="preserve"><value>Closed by</value></data>
+  <data name="Ice.Report.ApprovedBy" xml:space="preserve"><value>Adjustment approver</value></data>
+  <data name="Ice.Report.HandoffKicker" xml:space="preserve"><value>Handoff</value></data>
+  <data name="Ice.Report.HandoffTitle" xml:space="preserve"><value>Same-day handoff</value></data>
+  <data name="Ice.Report.NoHandoffs" xml:space="preserve"><value>No handoffs between shifts.</value></data>
+  <data name="Ice.Report.AuditKicker" xml:space="preserve"><value>Audit</value></data>
+  <data name="Ice.Report.PostingTitle" xml:space="preserve"><value>Inventory posting reference</value></data>
+  <data name="Ice.Report.PostingHint" xml:space="preserve"><value>Each positive variance has one idempotency key and one inventory transaction.</value></data>
+  <data name="Ice.Report.NoPostingsTitle" xml:space="preserve"><value>No adjustment postings</value></data>
+  <data name="Ice.Report.NoPostingsText" xml:space="preserve"><value>The shift had no approved positive variance.</value></data>
+  <data name="Ice.Report.Col.Posting" xml:space="preserve"><value>Posting</value></data>
+  <data name="Ice.Report.Col.IdempotencyKey" xml:space="preserve"><value>Idempotency key</value></data>
+  <data name="Ice.Report.Col.InventoryTransaction" xml:space="preserve"><value>Inventory transaction</value></data>
+  <data name="Ice.Report.Col.Quantity" xml:space="preserve"><value>Quantity</value></data>
+  <data name="Ice.Report.Col.Value" xml:space="preserve"><value>Value</value></data>
+  <data name="Ice.Report.Col.Approver" xml:space="preserve"><value>Approver</value></data>
+  <data name="Ice.Report.ReconciliationKicker" xml:space="preserve"><value>Reconciliation</value></data>
+  <data name="Ice.Report.ReconciliationTitle" xml:space="preserve"><value>Reason and conclusion</value></data>
+  <data name="Ice.Report.VarianceReasonLabel" xml:space="preserve"><value>Variance reason:</value></data>
+  <data name="Ice.Report.ReconciliationConclusionLabel" xml:space="preserve"><value>Reconciliation conclusion:</value></data>
+  <data name="Permission.Index.Title" xml:space="preserve"><value>Permission matrix</value></data>
+  <data name="Permission.Index.Eyebrow" xml:space="preserve"><value>System / Permission matrix</value></data>
+  <data name="Permission.Index.Subtitle" xml:space="preserve"><value>Control roles, action rights, and data scope for each staff member.</value></data>
+  <data name="Permission.Index.Refresh" xml:space="preserve"><value>Reload</value></data>
+  <data name="Permission.Index.RefreshAria" xml:space="preserve"><value>Reload permission data</value></data>
+  <data name="Permission.Index.TabsAria" xml:space="preserve"><value>Permission function groups</value></data>
+  <data name="Permission.Index.Tab.Roles" xml:space="preserve"><value>Role management</value></data>
+  <data name="Permission.Index.Tab.Assign" xml:space="preserve"><value>Assign roles</value></data>
+  <data name="Permission.Index.Tab.Override" xml:space="preserve"><value>User permission overrides</value></data>
+  <data name="Permission.Index.Tab.Scope" xml:space="preserve"><value>Store scope</value></data>
+  <data name="Permission.Index.RoleSearchPlaceholder" xml:space="preserve"><value>Search roles...</value></data>
+  <data name="Permission.Index.RoleCount" xml:space="preserve"><value>{0} roles</value></data>
+  <data name="Permission.Index.Col.Ordinal" xml:space="preserve"><value>No.</value></data>
+  <data name="Permission.Index.Col.RoleName" xml:space="preserve"><value>Role name</value></data>
+  <data name="Permission.Index.Col.Users" xml:space="preserve"><value>Users</value></data>
+  <data name="Permission.Index.Col.Permissions" xml:space="preserve"><value>Permissions</value></data>
+  <data name="Permission.Index.Col.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Permission.Index.Col.Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Permission.Index.StaffSearchPlaceholder" xml:space="preserve"><value>Search staff...</value></data>
+  <data name="Permission.Index.StaffCount" xml:space="preserve"><value>{0} staff</value></data>
+  <data name="Permission.Index.Col.Staff" xml:space="preserve"><value>Staff</value></data>
+  <data name="Permission.Index.Col.Email" xml:space="preserve"><value>Email</value></data>
+  <data name="Permission.Index.Col.Store" xml:space="preserve"><value>Store</value></data>
+  <data name="Permission.Index.Col.Roles" xml:space="preserve"><value>Roles</value></data>
+  <data name="Permission.Index.SelectedStaffLabel" xml:space="preserve"><value>Staff</value></data>
+  <data name="Permission.Index.NotSelected" xml:space="preserve"><value>Not selected</value></data>
+  <data name="Permission.Index.Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Permission.Index.PermissionSearchPlaceholder" xml:space="preserve"><value>Search permissions...</value></data>
+  <data name="Permission.Index.OverrideEmpty" xml:space="preserve"><value>Select a staff member to edit override permissions.</value></data>
+  <data name="Permission.Index.ScopeLabel" xml:space="preserve"><value>Scope</value></data>
+  <data name="Permission.Index.ParentArea" xml:space="preserve"><value>Parent area</value></data>
+  <data name="Permission.Index.StoreOrArea" xml:space="preserve"><value>Store/area</value></data>
+  <data name="Permission.Index.Add" xml:space="preserve"><value>Add</value></data>
+  <data name="Permission.Index.ScopeEmpty" xml:space="preserve"><value>Select a staff member to set store scope.</value></data>
+  <data name="Permission.RoleModal.Title" xml:space="preserve"><value>Role permissions</value></data>
+  <data name="Permission.RoleModal.CloseTitle" xml:space="preserve"><value>Close</value></data>
+  <data name="Permission.RoleModal.SelectAll" xml:space="preserve"><value>Select all</value></data>
+  <data name="Permission.RoleModal.Clear" xml:space="preserve"><value>Clear</value></data>
+  <data name="Permission.RoleModal.ExpandAll" xml:space="preserve"><value>Expand all</value></data>
+  <data name="Permission.RoleModal.SelectedCount" xml:space="preserve"><value>Selected: {0} permissions</value></data>
+  <data name="Permission.RoleModal.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Permission.StaffRoleModal.Title" xml:space="preserve"><value>Assign roles to staff</value></data>
+  <data name="Permission.StaffRoleModal.Note" xml:space="preserve"><value>Select multiple roles if the staff member holds more than one position.</value></data>
+  <data name="Permission.StaffRoleModal.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Permission.Js.ScopeType.Country" xml:space="preserve"><value>Country</value></data>
+  <data name="Permission.Js.ScopeType.Province" xml:space="preserve"><value>Province/City</value></data>
+  <data name="Permission.Js.ScopeType.Ward" xml:space="preserve"><value>Ward/Commune/Special zone</value></data>
+  <data name="Permission.Js.ScopeType.Store" xml:space="preserve"><value>Store</value></data>
+  <data name="Permission.Js.ScopeFallback" xml:space="preserve"><value>Scope</value></data>
+  <data name="Permission.Js.RequestFailed" xml:space="preserve"><value>The request could not be processed.</value></data>
+  <data name="Permission.Js.LoginRequired" xml:space="preserve"><value>You need to sign in to use this function.</value></data>
+  <data name="Permission.Js.AccessDenied" xml:space="preserve"><value>You do not have access to this function.</value></data>
+  <data name="Permission.Js.Saving" xml:space="preserve"><value>Saving...</value></data>
+  <data name="Permission.Js.Saved" xml:space="preserve"><value>Saved</value></data>
+  <data name="Permission.Js.LoginRequiredTitle" xml:space="preserve"><value>Sign-in required</value></data>
+  <data name="Permission.Js.LoginHint" xml:space="preserve"><value>Please sign in to continue.</value></data>
+  <data name="Permission.Js.Login" xml:space="preserve"><value>Sign in</value></data>
+  <data name="Permission.Js.Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Permission.Js.AccessDeniedTitle" xml:space="preserve"><value>Access denied</value></data>
+  <data name="Permission.Js.AccessDeniedHint" xml:space="preserve"><value>Please contact a supervisor or administrator to request access.</value></data>
+  <data name="Permission.Js.Failed" xml:space="preserve"><value>Unsuccessful</value></data>
+  <data name="Permission.Js.NoRolesYet" xml:space="preserve"><value>No roles yet</value></data>
+  <data name="Permission.Js.NoMatchingRoles" xml:space="preserve"><value>No matching roles.</value></data>
+  <data name="Permission.Js.Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Permission.Js.Inactive" xml:space="preserve"><value>Inactive</value></data>
+  <data name="Permission.Js.AssignPermissions" xml:space="preserve"><value>Assign permissions</value></data>
+  <data name="Permission.Js.NoMatchingStaff" xml:space="preserve"><value>No matching staff.</value></data>
+  <data name="Permission.Js.AssignRole" xml:space="preserve"><value>Assign role</value></data>
+  <data name="Permission.Js.Loading" xml:space="preserve"><value>Loading...</value></data>
+  <data name="Permission.Js.RoleMeta" xml:space="preserve"><value>Role: {role} | Users: {users} | Permissions: {permissions}</value></data>
+  <data name="Permission.Js.NoMutableRolePermissions" xml:space="preserve"><value>You have no permissions you can change in this role.</value></data>
+  <data name="Permission.Js.SelectedPermissions" xml:space="preserve"><value>Selected: {count} permissions</value></data>
+  <data name="Permission.Js.RolePermissionsSaved" xml:space="preserve"><value>Role permissions saved</value></data>
+  <data name="Permission.Js.StaffRolesSaved" xml:space="preserve"><value>Staff roles saved</value></data>
+  <data name="Permission.Js.OverridesSaved" xml:space="preserve"><value>Override permissions saved</value></data>
+  <data name="Permission.Js.ScopesSaved" xml:space="preserve"><value>Store scopes saved</value></data>
+  <data name="Permission.Js.NoMutableStaffPermissions" xml:space="preserve"><value>You have no permissions you can change for this staff member.</value></data>
+  <data name="Permission.Js.ByRole" xml:space="preserve"><value>By role</value></data>
+  <data name="Permission.Js.NoRole" xml:space="preserve"><value>No role yet</value></data>
+  <data name="Permission.Js.Inherit" xml:space="preserve"><value>Inherit</value></data>
+  <data name="Permission.Js.Allow" xml:space="preserve"><value>Allow</value></data>
+  <data name="Permission.Js.Deny" xml:space="preserve"><value>Deny</value></data>
+  <data name="Permission.Js.SelectScope" xml:space="preserve"><value>-- Select scope --</value></data>
+  <data name="Permission.Js.SelectObject" xml:space="preserve"><value>-- Select object --</value></data>
+  <data name="Permission.Js.AllObjectsAssigned" xml:space="preserve"><value>-- All objects already assigned --</value></data>
+  <data name="Permission.Js.SelectParentArea" xml:space="preserve"><value>-- Select parent area --</value></data>
+  <data name="Permission.Js.NoScopesYet" xml:space="preserve"><value>No scopes yet.</value></data>
+  <data name="Permission.Js.Remove" xml:space="preserve"><value>Remove</value></data>
+</root>

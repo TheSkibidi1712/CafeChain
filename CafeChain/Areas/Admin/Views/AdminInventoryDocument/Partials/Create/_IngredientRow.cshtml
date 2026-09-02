@@ -1,3 +1,6 @@
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<InventoryResource> L
+
 @{
     var hideMoneyColumns = ViewData["HideMoneyColumns"] as bool? == true;
     var showVarianceColumn = ViewData["ShowVarianceColumn"] as bool? == true;
@@ -11,15 +14,15 @@
 
     <td>
         <select class="form-select create-control ingredient-select">
-            <option value="">Chọn nguyên liệu</option>
+            <option value="">@L["InvDoc.Create.SelectIngredient"]</option>
         </select>
 
         <div class="ingredient-row-meta">
-            <span class="base-unit-name">Đơn vị gốc</span>
-            <span class="ingredient-source">Chưa chọn</span>
-            <span class="available-stock-display">Tồn: -</span>
-            <span class="price-source-display @(hideMoneyColumns ? "d-none" : "")">Nguồn giá: -</span>
-            <span class="unit-conversion-display">Quy đổi: -</span>
+            <span class="base-unit-name">@L["InvDoc.Create.BaseUnit"]</span>
+            <span class="ingredient-source">@L["InvDoc.Create.NotSelected"]</span>
+            <span class="available-stock-display">@L["InvDoc.Create.StockLabel"]</span>
+            <span class="price-source-display @(hideMoneyColumns ? "d-none" : "")">@L["InvDoc.Create.PriceSource"]</span>
+            <span class="unit-conversion-display">@L["InvDoc.Create.Conversion"]</span>
         </div>
 
         <input type="hidden"
@@ -37,7 +40,7 @@
 
     <td class="create-col-unit">
         <select class="form-select create-control unit-select">
-            <option value="">ĐVT</option>
+            <option value="">@L["InvDoc.General.Unit"]</option>
         </select>
     </td>
 
@@ -47,7 +50,7 @@
                min="0"
                step="any"
                inputmode="decimal"
-               placeholder="Nhập số lượng"
+               placeholder="@L["InvDoc.Create.QtyPlaceholder"]"
                disabled />
     </td>
 
@@ -71,7 +74,7 @@
 
     <td class="create-col-total @(hideMoneyColumns ? "d-none" : "")">
         <span class="line-total-display">0</span>
-        <small>VNĐ</small>
+        <small>@L["Common.Currency"]</small>
 
         <input type="hidden"
                class="total line-total"
@@ -81,8 +84,8 @@
     <td class="create-col-action">
         <button type="button"
                 class="create-remove-row-btn btn-remove-row"
-                title="Xóa dòng nguyên liệu"
-                aria-label="Xóa dòng nguyên liệu">
+                title="@L["InvDoc.Create.RemoveRow"]"
+                aria-label="@L["InvDoc.Create.RemoveRow"]">
             <i class="fas fa-trash-alt"></i>
         </button>
     </td>

@@ -2,9 +2,11 @@
 @using CafeChain.Application.DTOs.Admin.StoreScope
 @using CafeChain.Application.Interfaces.Systems
 @using CafeChain.ViewModels.Admin.Shared
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<InventoryResource> L
 @inject IBusinessDateService BusinessDateService
 @{
-    ViewData["Title"] = "Cảnh báo kho";
+    ViewData["Title"] = L["StockAlert.Title"];
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var statusFilter = ViewBag.StatusFilter as string ?? "OPEN";
     var currentPage = Model.Page;
@@ -14,7 +16,10 @@
     var manualCount = Model.Items.Count(x => x.Source == "SALES_REPORT");
     var stores = ViewBag.StoreOptions as IReadOnlyList<AdminStoreOptionDto>
         ?? Array.Empty<AdminStoreOptionDto>();
-    var selectedStoreName = stores.FirstOrDefault(x => x.StoreId == Model.StoreId)?.StoreName ?? "cửa hàng đang chọn";
+    var selectedStoreName = stores.FirstOrDefault(x => x.StoreId == Model.StoreId)?.StoreName ?? L["Common.SelectedStore"];
+    string AlertStatus(string status) => L[$"StockAlert.Status.{status}"];
+    string AlertType(string type) => L[$"StockAlert.Type.{type}"];
+    string AlertSource(string source) => L[$"StockAlert.Source.{source}"];
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
@@ -22,16 +27,16 @@
 <main class="ops-shell cc-warehouse-page">
     <header class="ops-header cc-warehouse-header">
         <div>
-            <div class="ops-eyebrow">Kho &amp; Cung ứng</div>
-            <h1 class="ops-title"><i class="fa-solid fa-triangle-exclamation me-2 text-warning" aria-hidden="true"></i> Cảnh báo kho</h1>
-            <p class="ops-subtitle">Theo dõi thiếu hụt tại @selectedStoreName. Trạng thái tồn kho và trạng thái xử lý được hiển thị riêng để quản lý ra quyết định rõ ràng.</p>
+            <div class="ops-eyebrow">@L["Common.InventorySupply"]</div>
+            <h1 class="ops-title"><i class="fa-solid fa-triangle-exclamation me-2 text-warning" aria-hidden="true"></i> @L["StockAlert.Title"]</h1>
+            <p class="ops-subtitle">@L["StockAlert.Subtitle", selectedStoreName]</p>
         </div>
         <div class="ops-actions">
             <a class="ops-btn" asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index" asp-route-storeId="@Model.StoreId">
-                <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i> Xem tồn kho
+                <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i> @L["Common.ViewInventory"]
             </a>
             <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-storeId="@Model.StoreId">
-                <i class="fa-solid fa-truck-ramp-box" aria-hidden="true"></i> Yêu cầu nhập hàng
+                <i class="fa-solid fa-truck-ramp-box" aria-hidden="true"></i> @L["Common.RestockRequests"]
             </a>
         </div>
     </header>
@@ -51,10 +56,10 @@
 
     @if (stores.Count > 1)
     {
-        <form method="get" class="ops-filterbar cc-warehouse-filter" aria-label="Chọn chi nhánh">
+        <form method="get" class="ops-filterbar cc-warehouse-filter" aria-label="@L["Common.SelectBranch"]">
             <input type="hidden" name="status" value="@statusFilter" />
             <div class="ops-filter-group">
-                <label class="ops-form-label mb-0" for="stockAlertStoreId">Chi nhánh</label>
+                <label class="ops-form-label mb-0" for="stockAlertStoreId">@L["Common.Branch"]</label>
                 <select id="stockAlertStoreId" name="storeId" class="ops-select" onchange="this.form.submit()">
                     @foreach (var store in stores)
                     {
@@ -62,23 +67,23 @@
                     }
                 </select>
             </div>
-            <noscript><button type="submit" class="ops-btn">Áp dụng</button></noscript>
+            <noscript><button type="submit" class="ops-btn">@L["Common.Apply"]</button></noscript>
         </form>
     }
 
-    <section class="ops-metrics cc-warehouse-summary-grid" aria-label="Tóm tắt cảnh báo trên trang">
-        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">Kết quả theo bộ lọc</span><strong class="ops-metric-value">@Model.Total</strong></div>
-        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">Hết hàng trên trang</span><strong class="ops-metric-value danger">@outCount</strong></div>
-        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">Sắp hết trên trang</span><strong class="ops-metric-value warning">@lowCount</strong></div>
-        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">Nhân viên báo thiếu</span><strong class="ops-metric-value">@manualCount</strong></div>
+    <section class="ops-metrics cc-warehouse-summary-grid" aria-label="@L["StockAlert.SummaryAria"]">
+        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">@L["Common.FilteredResults"]</span><strong class="ops-metric-value">@Model.Total</strong></div>
+        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">@L["StockAlert.OutOfStockPage"]</span><strong class="ops-metric-value danger">@outCount</strong></div>
+        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">@L["StockAlert.LowStockPage"]</span><strong class="ops-metric-value warning">@lowCount</strong></div>
+        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">@L["StockAlert.ManualReports"]</span><strong class="ops-metric-value">@manualCount</strong></div>
     </section>
 
-    <nav class="ops-status-tabs" aria-label="Lọc theo trạng thái xử lý">
+    <nav class="ops-status-tabs" aria-label="@L["StockAlert.StatusFilterAria"]">
         @foreach (var status in new[] { "OPEN", "CONFIRMED", "MANAGER_REJECTED", "RESOLVED", "" })
         {
             <a class="ops-tab @(statusFilter == status ? "active" : "")"
                asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-storeId="@Model.StoreId"
-               asp-route-status="@status">@(string.IsNullOrEmpty(status) ? "Tất cả" : AdminStatusDisplay.StockAlert(status).Label)</a>
+               asp-route-status="@status">@(string.IsNullOrEmpty(status) ? L["Common.All"] : AlertStatus(status))</a>
         }
     </nav>
 
@@ -86,31 +91,22 @@
     {
         <section class="ops-empty cc-warehouse-empty" aria-labelledby="stockAlertEmptyTitle">
             <span class="ops-empty-icon"><i class="fa-regular fa-circle-check" aria-hidden="true"></i></span>
-            <h2 id="stockAlertEmptyTitle" class="ops-empty-title">Không có cảnh báo kho phù hợp</h2>
-            <p class="ops-empty-copy">Kho trong phạm vi hiện tại không có cảnh báo theo bộ lọc này. Bạn có thể xem tồn kho hoặc đổi trạng thái để kiểm tra lại.</p>
+            <h2 id="stockAlertEmptyTitle" class="ops-empty-title">@L["StockAlert.EmptyTitle"]</h2>
+            <p class="ops-empty-copy">@L["StockAlert.EmptyCopy"]</p>
             <div class="ops-empty-actions">
-                <a class="ops-btn" asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index" asp-route-storeId="@Model.StoreId">Xem tồn kho</a>
-                <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-storeId="@Model.StoreId">Xem yêu cầu bổ sung</a>
+                <a class="ops-btn" asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index" asp-route-storeId="@Model.StoreId">@L["Common.ViewInventory"]</a>
+                <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-storeId="@Model.StoreId">@L["Common.ViewRestockRequests"]</a>
             </div>
         </section>
     }
     else
     {
-        <section class="ops-table-wrap cc-warehouse-table-shell" aria-label="Danh sách cảnh báo kho">
+        <section class="ops-table-wrap cc-warehouse-table-shell" aria-label="@L["StockAlert.ListAria"]">
             <div class="ops-table-scroll">
                 <table class="ops-table">
                     <thead>
                         <tr>
-                            <th>Mặt hàng</th>
-                            <th>Trạng thái tồn</th>
-                            <th class="number">Tồn vật lý</th>
-                            <th class="number">Giữ chỗ</th>
-                            <th class="number">Khả dụng</th>
-                            <th class="number">Ngưỡng / mục tiêu</th>
-                            <th>Luồng xử lý</th>
-                            <th>Nguồn</th>
-                            <th>Cập nhật</th>
-                            <th class="text-end">Thao tác</th>
+                            <th>@L["Common.Item"]</th><th>@L["StockAlert.InventoryStatus"]</th><th class="number">@L["Common.OnHand"]</th><th class="number">@L["Common.Reserved"]</th><th class="number">@L["Common.Available"]</th><th class="number">@L["StockAlert.ThresholdTarget"]</th><th>@L["StockAlert.Workflow"]</th><th>@L["Common.Source"]</th><th>@L["Common.Updated"]</th><th class="text-end">@L["Common.Actions"]</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -119,12 +115,12 @@
                         <tr>
                             <td>
                                 <div class="ops-item-name">@item.ItemName</div>
-                                <div class="ops-secondary">@item.ItemTypeLabel@(string.IsNullOrWhiteSpace(item.ReporterName) ? "" : $" · Báo bởi {item.ReporterName}")</div>
+                                <div class="ops-secondary">@item.ItemTypeLabel@(string.IsNullOrWhiteSpace(item.ReporterName) ? "" : $" · {L["StockAlert.ReportedBy", item.ReporterName]}")</div>
                             </td>
                             <td>
                                 <span class="ops-badge @(item.AlertType == "OUT_OF_STOCK" ? "ops-badge-danger" : "ops-badge-warning")">
                                     <i class="fa-solid @(item.AlertType == "OUT_OF_STOCK" ? "fa-circle-xmark" : "fa-arrow-trend-down")" aria-hidden="true"></i>
-                                    @AdminStatusDisplay.StockAlertType(item.AlertType)
+                                    @AlertType(item.AlertType)
                                 </span>
                             </td>
                             <td class="number">@(item.OnHandQty.HasValue ? AdminStatusDisplay.Quantity(item.OnHandQty.Value) : "—")</td>
@@ -134,20 +130,20 @@
                                 @if (item.IsOutOfThresholdManualDemand)
                                 {
                                     <strong>@(item.DecisionTargetBaseQuantity.HasValue ? AdminStatusDisplay.Quantity(item.DecisionTargetBaseQuantity.Value) : "—")</strong>
-                                    <div class="ops-secondary">Mục tiêu thủ công</div>
+                                <div class="ops-secondary">@L["StockAlert.ManualTarget"]</div>
                                 }
                                 else
                                 {
                                     <span>@(item.ThresholdSnapshot.HasValue ? AdminStatusDisplay.Quantity(item.ThresholdSnapshot.Value) : "—")</span>
-                                    <div class="ops-secondary">Ngưỡng tối thiểu</div>
+                                    <div class="ops-secondary">@L["StockAlert.MinimumThreshold"]</div>
                                 }
                             </td>
-                            <td><span class="ops-badge @AdminStatusDisplay.StockAlert(item.Status).CssClass">@AdminStatusDisplay.StockAlert(item.Status).Label</span></td>
-                            <td><span class="ops-secondary">@AdminStatusDisplay.StockAlertSource(item.Source)</span></td>
+                            <td><span class="ops-badge @AdminStatusDisplay.StockAlert(item.Status).CssClass">@AlertStatus(item.Status)</span></td>
+                            <td><span class="ops-secondary">@AlertSource(item.Source)</span></td>
                             <td class="text-nowrap"><span class="ops-secondary">@BusinessDateService.ToBusinessTime(item.UpdatedAt).ToString("dd/MM/yyyy HH:mm")</span></td>
                             <td class="text-end">
                                 <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Details" asp-route-id="@item.StockAlertId" asp-route-storeId="@item.StoreId">
-                                    Chi tiết <i class="fa-solid fa-chevron-right ms-1" aria-hidden="true"></i>
+                                    @L["Common.Details"] <i class="fa-solid fa-chevron-right ms-1" aria-hidden="true"></i>
                                 </a>
                             </td>
                         </tr>
@@ -158,15 +154,15 @@
         </section>
 
         <div class="ops-pagination">
-            <span>Trang @currentPage / @totalPages · Tổng @Model.Total cảnh báo</span>
+            <span>@L["StockAlert.Pagination", currentPage, totalPages, Model.Total]</span>
             <div class="ops-page-links">
                 @if (currentPage > 1)
                 {
-                    <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-status="@statusFilter" asp-route-storeId="@Model.StoreId" asp-route-page="@(currentPage - 1)">Trước</a>
+                    <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-status="@statusFilter" asp-route-storeId="@Model.StoreId" asp-route-page="@(currentPage - 1)">@L["Common.Previous"]</a>
                 }
                 @if (currentPage < totalPages)
                 {
-                    <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-status="@statusFilter" asp-route-storeId="@Model.StoreId" asp-route-page="@(currentPage + 1)">Sau</a>
+                    <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-status="@statusFilter" asp-route-storeId="@Model.StoreId" asp-route-page="@(currentPage + 1)">@L["Common.Next"]</a>
                 }
             </div>
         </div>

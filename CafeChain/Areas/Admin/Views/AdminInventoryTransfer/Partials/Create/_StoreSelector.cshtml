@@ -1,11 +1,12 @@
 @model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferCreateVM
+@inject Microsoft.Extensions.Localization.IStringLocalizer<CafeChain.InventoryResource> InventoryText
 
 <section class="transfer-card">
     <div class="transfer-card-header compact">
         <div>
             <span class="section-kicker">
                 <i class="fas fa-shuffle"></i>
-                Lựa chọn kho nguồn & kho đích
+                @InventoryText["Transfer.Create.StoreSelection"]
             </span>
         </div>
     </div>
@@ -14,10 +15,10 @@
         <div class="transfer-field route-field route-source">
             <label for="transferFromStore">
                 <i class="fas fa-warehouse"></i>
-                Kho nguồn
+                @InventoryText["Transfer.SourceStore"]
             </label>
             <select class="transfer-input" id="transferFromStore">
-                <option value="">Chọn kho nguồn</option>
+                <option value="">@InventoryText["Transfer.Create.SelectSourceStore"]</option>
                 @foreach (var store in Model.Stores)
                 {
                     <option value="@store.StoreId">@store.StoreName</option>
@@ -27,16 +28,16 @@
 
         <div class="route-arrow" aria-hidden="true">
             <i class="fas fa-arrow-right"></i>
-            <span>Chuyển</span>
+            <span>@InventoryText["Transfer.Create.Transfer"]</span>
         </div>
 
         <div class="transfer-field route-field route-destination">
             <label for="transferToStore">
                 <i class="fas fa-store"></i>
-                Kho đích
+                @InventoryText["Transfer.DestinationStore"]
             </label>
             <select class="transfer-input" id="transferToStore">
-                <option value="">Chọn kho đích</option>
+                <option value="">@InventoryText["Transfer.Create.SelectDestinationStore"]</option>
                 @foreach (var store in Model.Stores)
                 {
                     <option value="@store.StoreId">@store.StoreName</option>
@@ -46,11 +47,11 @@
     </div>
 
     <div class="transfer-purpose-row">
-        <label for="transferPurpose">Mục đích</label>
+        <label for="transferPurpose">@InventoryText["Transfer.Purpose"]</label>
         <select class="transfer-input" id="transferPurpose">
-            <option value="@((int)CafeChain.Models.Enums.Inventory.InventoryTransferPurpose.REPLENISHMENT)">Bổ sung hàng</option>
-            <option value="@((int)CafeChain.Models.Enums.Inventory.InventoryTransferPurpose.BALANCING)">Cân đối tồn kho</option>
-            <option value="@((int)CafeChain.Models.Enums.Inventory.InventoryTransferPurpose.OTHER)">Khác</option>
+            <option value="@((int)CafeChain.Models.Enums.Inventory.InventoryTransferPurpose.REPLENISHMENT)">@InventoryText["Transfer.Purpose.REPLENISHMENT"]</option>
+            <option value="@((int)CafeChain.Models.Enums.Inventory.InventoryTransferPurpose.BALANCING)">@InventoryText["Transfer.Purpose.BALANCING"]</option>
+            <option value="@((int)CafeChain.Models.Enums.Inventory.InventoryTransferPurpose.OTHER)">@InventoryText["Transfer.Purpose.OTHER"]</option>
         </select>
     </div>
 </section>

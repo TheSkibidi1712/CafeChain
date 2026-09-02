@@ -1,4 +1,6 @@
 const InventoryTransferCreate = (() => {
+    const catalog = window.CafeChainUiCatalog.read("inventoryTransferUiCatalog");
+    const t = (key, values) => window.CafeChainUiCatalog.text(catalog, key, values);
     const nativeFetch = window.fetch.bind(window);
     const fetch = (input, init = {}) => {
         const options = { ...init };
@@ -34,7 +36,7 @@ const InventoryTransferCreate = (() => {
     function getEndpoint(name) {
         const endpoint = document.querySelector(selector.form)?.dataset[name];
         if (!endpoint) {
-            throw new Error(`Thiếu cấu hình endpoint: ${name}.`);
+            throw new Error(t("Transfer.Js.MissingEndpoint", { name }));
         }
 
         return endpoint;
@@ -118,14 +120,14 @@ const InventoryTransferCreate = (() => {
 
         if (!fromStoreId) {
             if (status) {
-                status.textContent = "Chọn kho nguồn để tải nguyên liệu.";
+                status.textContent = t("Transfer.Js.SelectSource");
             }
 
             return;
         }
 
         if (status) {
-            status.textContent = "Đang tải nguyên liệu...";
+            status.textContent = t("Transfer.Js.LoadingItems");
         }
 
         try {
@@ -138,7 +140,7 @@ const InventoryTransferCreate = (() => {
             ingredients = await response.json();
 
             if (status) {
-                status.textContent = `${ingredients.length} mặt hàng có thể chuyển.`;
+                status.textContent = t("Transfer.Js.AvailableItems", { count: ingredients.length });
             }
 
             if (addButton) {
@@ -147,7 +149,7 @@ const InventoryTransferCreate = (() => {
         }
         catch (error) {
             if (status) {
-                status.textContent = error.message || "Không tải được nguyên liệu.";
+                status.textContent = error.message || t("Transfer.Js.LoadItemsFailed");
             }
         }
     }
@@ -167,7 +169,7 @@ const InventoryTransferCreate = (() => {
             <td class="transfer-row-index"></td>
             <td>
                 <select class="transfer-input transfer-ingredient">
-                    <option value="">Chọn hàng hóa</option>
+                    <option value="">${escapeHtml(t("Transfer.Js.SelectItem"))}</option>
                     ${ingredients.map(toIngredientOption).join("")}
                 </select>
                 <span class="transfer-row-warning" hidden></span>
@@ -182,7 +184,7 @@ const InventoryTransferCreate = (() => {
             <td class="transfer-diff">0</td>
             <td class="transfer-row-status">-</td>
             <td class="text-end">
-                <button class="transfer-remove" type="button" title="Xóa dòng">
+                <button class="transfer-remove" type="button" title="${escapeHtml(t("Transfer.Js.RemoveLine"))}">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>`;
@@ -282,7 +284,7 @@ const InventoryTransferCreate = (() => {
 
         if (ingredient && baseQuantity > available) {
             warning.hidden = false;
-            warning.textContent = "Vượt tồn nguồn; dispatch sẽ bị chặn.";
+            warning.textContent = t("Transfer.Js.ExceedsSourceStock");
         }
         else {
             warning.hidden = true;
@@ -316,10 +318,10 @@ const InventoryTransferCreate = (() => {
             setTransferId(saved);
             setTransferRowVersion(read(result.transfer, "rowVersion", "RowVersion"));
             updateCodePreview(code);
-            notifySuccess("Đã lưu nháp phiếu chuyển kho.");
+            notifySuccess(t("Transfer.Js.DraftSaved"));
         }
         catch (error) {
-            notifyError(error.message || "Không lưu được phiếu chuyển kho.");
+            notifyError(error.message || t("Transfer.Js.SaveDraftFailed"));
         }
         finally {
             isSaving = false;
@@ -341,7 +343,7 @@ const InventoryTransferCreate = (() => {
             validateClient();
             await validateStock();
             if (!preflightReady || preflightBlocked) {
-                throw new Error("Preflight quantity/FIFO chưa đạt; không thể dispatch.");
+                throw new Error(t("Transfer.Js.PreflightBlocked"));
             }
 
             let transferId = getTransferId();
@@ -365,12 +367,12 @@ const InventoryTransferCreate = (() => {
                 {});
             updateCodePreview(read(result.transfer, "code", "Code"));
 
-            notifySuccess("Đã xác nhận phiếu chuyển kho.");
+            notifySuccess(t("Transfer.Js.TransferConfirmed"));
             confirmRequestKey = null;
             redirectToDetail(read(result.transfer, "inventoryTransferId", "InventoryTransferId") || transferId);
         }
         catch (error) {
-            notifyError(error.message || "Không xác nhận được phiếu chuyển kho.");
+            notifyError(error.message || t("Transfer.Js.ConfirmFailed"));
         }
         finally {
             isConfirming = false;
@@ -411,7 +413,7 @@ const InventoryTransferCreate = (() => {
         catch (error) {
             preflightReady = false;
             preflightBlocked = true;
-            renderWarnings([{ message: error.message || "Không chạy được preflight quantity/FIFO." }]);
+            renderWarnings([{ message: error.message || t("Transfer.Js.PreflightFailed") }]);
             syncConfirmState();
             return false;
         }
@@ -458,19 +460,19 @@ const InventoryTransferCreate = (() => {
         const dto = buildDto(createRequestKey(), false);
 
         if (!dto.fromStoreId) {
-            throw new Error("Vui lòng chọn kho nguồn.");
+            throw new Error(t("Transfer.Js.SourceRequired"));
         }
 
         if (!dto.toStoreId) {
-            throw new Error("Vui lòng chọn kho đích.");
+            throw new Error(t("Transfer.Js.DestinationRequired"));
         }
 
         if (dto.fromStoreId === dto.toStoreId) {
-            throw new Error("Kho nguồn và kho đích phải khác nhau.");
+            throw new Error(t("Transfer.Js.StoresMustDiffer"));
         }
 
         if (!dto.details.length) {
-            throw new Error("Vui lòng thêm ít nhất một mặt hàng.");
+            throw new Error(t("Transfer.Js.ItemRequired"));
         }
 
         const seen = new Set();
@@ -478,24 +480,24 @@ const InventoryTransferCreate = (() => {
         for (const detail of dto.details) {
             if ((!detail.ingredientId && !detail.preparedItemId)
                 || (detail.ingredientId && detail.preparedItemId)) {
-                throw new Error("Vui lòng chọn đúng một nguyên liệu hoặc bán thành phẩm.");
+                throw new Error(t("Transfer.Js.SingleItemTypeRequired"));
             }
 
             const identityKey = detail.ingredientId
                 ? `I:${detail.ingredientId}`
                 : `P:${detail.preparedItemId}`;
             if (seen.has(identityKey)) {
-                throw new Error("Mỗi mặt hàng chỉ được xuất hiện một lần.");
+                throw new Error(t("Transfer.Js.DuplicateItem"));
             }
 
             seen.add(identityKey);
 
             if (!detail.unitId) {
-                throw new Error("Vui lòng chọn đơn vị tính.");
+                throw new Error(t("Transfer.Js.UnitRequired"));
             }
 
             if (detail.quantity <= 0) {
-                throw new Error("Số lượng chuyển phải lớn hơn 0.");
+                throw new Error(t("Transfer.Js.QuantityPositive"));
             }
         }
     }
@@ -522,7 +524,7 @@ const InventoryTransferCreate = (() => {
         }
 
         if (!response.ok || data?.success === false) {
-            throw new Error(data?.message || "Yêu cầu không thành công.");
+            throw new Error(data?.message || t("Transfer.Js.RequestFailed"));
         }
 
         return data;
@@ -532,10 +534,10 @@ const InventoryTransferCreate = (() => {
         try {
             const data = await response.json();
 
-            return data?.message || "Yêu cầu không thành công.";
+            return data?.message || t("Transfer.Js.RequestFailed");
         }
         catch {
-            return await response.text() || "Yêu cầu không thành công.";
+            return await response.text() || t("Transfer.Js.RequestFailed");
         }
     }
 
@@ -590,7 +592,7 @@ const InventoryTransferCreate = (() => {
             return;
         }
 
-        body.innerHTML = '<tr class="transfer-empty-row"><td colspan="8">Chưa có hàng hóa.</td></tr>';
+        body.innerHTML = `<tr class="transfer-empty-row"><td colspan="8">${escapeHtml(t("Transfer.Js.NoItems"))}</td></tr>`;
         syncConfirmState();
     }
 
@@ -619,7 +621,7 @@ const InventoryTransferCreate = (() => {
         }
 
         if (statusCell) {
-            statusCell.textContent = diff >= 0 ? "OK" : "Vượt";
+            statusCell.textContent = diff >= 0 ? t("Transfer.Js.Ok") : t("Transfer.Js.Exceeded");
             statusCell.classList.toggle("transfer-status-ok", diff >= 0);
             statusCell.classList.toggle("transfer-status-bad", diff < 0);
         }
@@ -635,20 +637,20 @@ const InventoryTransferCreate = (() => {
         if (warningCount > 0) {
             status.classList.add("has-error");
             status.innerHTML =
-                `<i class="fas fa-triangle-exclamation"></i> ${warningCount} dòng cần kiểm tra tồn kho trước khi xác nhận.`;
+                `<i class="fas fa-triangle-exclamation"></i> ${escapeHtml(t("Transfer.Js.WarningLines", { count: warningCount }))}`;
             return;
         }
 
         status.classList.remove("has-error");
         status.innerHTML =
-            '<i class="fas fa-circle-info"></i> Kiểm tra tồn kho trước khi xác nhận.';
+            `<i class="fas fa-circle-info"></i> ${escapeHtml(t("Transfer.Js.CheckStockFirst"))}`;
     }
 
     function updateCodePreview(code) {
         const input = document.querySelector(selector.codePreview);
 
         if (input) {
-            input.value = code || "Tự động sinh";
+            input.value = code || t("Transfer.Js.AutomaticCode");
         }
     }
 
@@ -689,12 +691,12 @@ const InventoryTransferCreate = (() => {
         const id = getItemIdentity(ingredient);
         const name = escapeHtml(read(ingredient, "itemName", "ItemName") || "");
         const type = read(ingredient, "itemType", "ItemType") === "PREPARED_ITEM"
-            ? "Bán thành phẩm"
-            : "Nguyên liệu";
+            ? t("Transfer.Js.PreparedItem")
+            : t("Transfer.Js.Ingredient");
         const available = read(ingredient, "availableBaseQuantity", "AvailableBaseQuantity") || 0;
         const unitCode = escapeHtml(read(ingredient, "baseUnitCode", "BaseUnitCode") || "");
 
-        return `<option value="${id}">[${type}] ${name} - tồn ${formatQuantity(available)} ${unitCode}</option>`;
+        return `<option value="${id}">${escapeHtml(t("Transfer.Js.ItemOption", { type, name, available: formatQuantity(available), unit: unitCode }))}</option>`;
     }
 
     function getItemIdentity(item) {

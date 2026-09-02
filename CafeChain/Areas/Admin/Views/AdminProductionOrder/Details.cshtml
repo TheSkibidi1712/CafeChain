@@ -1,8 +1,10 @@
 @model CafeChain.Application.DTOs.Admin.Production.ProductionRunDetailDto
 @using CafeChain.Models.Enums.Inventory
 @using CafeChain.ViewModels.Admin.Shared
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<ProductionResource> L
 @{
-    ViewData["Title"] = $"Lệnh PR-{Model.ProductionRunId}";
+    ViewData["Title"] = L["Details.PageTitle", Model.ProductionRunId].Value;
     var unit = Model.OutputUnitCode;
     var currentStep = Model.Status switch
     {
@@ -17,22 +19,22 @@
     };
     var hero = new AdminPageHeroVM
     {
-        Eyebrow = "Sản xuất / Định mức nguyên liệu",
-        Title = $"Lệnh sản xuất PR-{Model.ProductionRunId}",
-        Description = $"{Model.StoreName} · {Model.OutputName}. Theo dõi kế hoạch, số liệu thực tế và bước xử lý tiếp theo.",
+        Eyebrow = L["Details.Eyebrow"].Value,
+        Title = L["Details.Title", Model.ProductionRunId].Value,
+        Description = L["Details.Description", Model.StoreName, Model.OutputName].Value,
         IconClass = "fas fa-industry",
-        StatusLabel = Model.StatusLabel,
+        StatusLabel = L[$"ProductionOrder.Status.{Model.Status}"].Value,
         StatusCssClass = Model.Status == ProductionRunStatus.Cancelled ? "rb-status-inactive" : "rb-status-active",
         Breadcrumbs =
         [
-            new() { Label = "Lệnh sản xuất", Url = Url.Action("Index", new { storeId = Model.StoreId }) },
+            new() { Label = L["Details.List"].Value, Url = Url.Action("Index", new { storeId = Model.StoreId }) },
             new() { Label = $"PR-{Model.ProductionRunId}" }
         ],
         Actions =
         [
             new()
             {
-                Label = "Danh sách lệnh",
+                Label = L["Details.Back"].Value,
                 Url = Url.Action("Index", new { storeId = Model.StoreId }) ?? "#",
                 IconClass = "fas fa-arrow-left"
             }
@@ -40,27 +42,27 @@
     };
     var lifecycle = new AdminLifecycleStepperVM
     {
-        AccessibleLabel = "Tiến trình lệnh sản xuất",
+        AccessibleLabel = L["Details.Progress"].Value,
         Steps = new[]
         {
-            new AdminLifecycleStepVM { Label = "Lập kế hoạch", IconClass = "fas fa-clipboard-list", IsCompleted = currentStep > 0, IsCurrent = currentStep == 0 },
-            new AdminLifecycleStepVM { Label = "Phát hành", IconClass = "fas fa-paper-plane", IsCompleted = currentStep > 1, IsCurrent = currentStep == 1 },
-            new AdminLifecycleStepVM { Label = "Sản xuất", IconClass = "fas fa-gears", IsCompleted = currentStep > 2, IsCurrent = currentStep == 2 },
-            new AdminLifecycleStepVM { Label = "Ghi nhận thực tế", IconClass = "fas fa-clipboard-check", IsCompleted = currentStep > 3, IsCurrent = currentStep == 3 },
-            new AdminLifecycleStepVM { Label = "Nhận đầu ra", IconClass = "fas fa-boxes-stacked", IsCompleted = currentStep > 4, IsCurrent = currentStep == 4 },
-            new AdminLifecycleStepVM { Label = "Hoàn tất", IconClass = "fas fa-check", IsCompleted = currentStep >= 5, IsCurrent = currentStep == 5 }
+            new AdminLifecycleStepVM { Label = L["Details.Step.Plan"].Value, IconClass = "fas fa-clipboard-list", IsCompleted = currentStep > 0, IsCurrent = currentStep == 0 },
+            new AdminLifecycleStepVM { Label = L["Details.Step.Release"].Value, IconClass = "fas fa-paper-plane", IsCompleted = currentStep > 1, IsCurrent = currentStep == 1 },
+            new AdminLifecycleStepVM { Label = L["Details.Step.Produce"].Value, IconClass = "fas fa-gears", IsCompleted = currentStep > 2, IsCurrent = currentStep == 2 },
+            new AdminLifecycleStepVM { Label = L["Details.Step.Record"].Value, IconClass = "fas fa-clipboard-check", IsCompleted = currentStep > 3, IsCurrent = currentStep == 3 },
+            new AdminLifecycleStepVM { Label = L["Details.Step.Accept"].Value, IconClass = "fas fa-boxes-stacked", IsCompleted = currentStep > 4, IsCurrent = currentStep == 4 },
+            new AdminLifecycleStepVM { Label = L["Details.Step.Complete"].Value, IconClass = "fas fa-check", IsCompleted = currentStep >= 5, IsCurrent = currentStep == 5 }
         }
     };
     var nextAction = Model.Status switch
     {
-        ProductionRunStatus.Planned => new AdminNextActionPanelVM { Description = "Quản lý cửa hàng kiểm tra khả năng đáp ứng nguyên liệu và phát hành lệnh.", RoleLabel = "Quản lý cửa hàng", IconClass = "fas fa-paper-plane" },
-        ProductionRunStatus.Released => new AdminNextActionPanelVM { Description = "Giám sát ca bắt đầu thực hiện lệnh sản xuất tại cửa hàng.", RoleLabel = "Giám sát ca", IconClass = "fas fa-play" },
-        ProductionRunStatus.InProgress => new AdminNextActionPanelVM { Description = "Giám sát ca xác nhận đầu vào thực tế và sản lượng sau khi hoàn tất sản xuất.", RoleLabel = "Giám sát ca", IconClass = "fas fa-clipboard-check" },
-        ProductionRunStatus.AwaitingVarianceApproval => new AdminNextActionPanelVM { Description = "Chênh lệch vượt ngưỡng cần một người có quyền độc lập xem xét trước khi nhận đầu ra.", RoleLabel = "Chủ doanh nghiệp", IconClass = "fas fa-user-check" },
-        ProductionRunStatus.AwaitingAcceptance => new AdminNextActionPanelVM { Description = "Đầu ra đã được ghi nhận và đang chờ xác nhận nhập vào tồn kho cửa hàng.", RoleLabel = "Quản lý cửa hàng", IconClass = "fas fa-boxes-stacked" },
-        ProductionRunStatus.Completed => new AdminNextActionPanelVM { Title = "Lệnh đã hoàn tất", Description = "Sản lượng đạt đã được ghi nhận vào tồn kho. Các số liệu thực tế và lịch sử được giữ để đối chiếu.", IconClass = "fas fa-circle-check" },
-        ProductionRunStatus.Cancelled => new AdminNextActionPanelVM { Title = "Lệnh đã hủy", Description = "Không còn thao tác vận hành trên lệnh này. Xem lịch sử để biết người thực hiện và lý do hủy.", IconClass = "fas fa-ban" },
-        _ => new AdminNextActionPanelVM { Description = "Theo dõi trạng thái và lịch sử để xác định bước xử lý phù hợp.", IconClass = "fas fa-arrow-right" }
+        ProductionRunStatus.Planned => new AdminNextActionPanelVM { Description = L["Details.Next.Planned"].Value, RoleLabel = L["Details.Role.StoreManager"].Value, IconClass = "fas fa-paper-plane" },
+        ProductionRunStatus.Released => new AdminNextActionPanelVM { Description = L["Details.Next.Released"].Value, RoleLabel = L["Details.Role.ShiftSupervisor"].Value, IconClass = "fas fa-play" },
+        ProductionRunStatus.InProgress => new AdminNextActionPanelVM { Description = L["Details.Next.InProgress"].Value, RoleLabel = L["Details.Role.ShiftSupervisor"].Value, IconClass = "fas fa-clipboard-check" },
+        ProductionRunStatus.AwaitingVarianceApproval => new AdminNextActionPanelVM { Description = L["Details.Next.Variance"].Value, RoleLabel = L["Details.Role.Owner"].Value, IconClass = "fas fa-user-check" },
+        ProductionRunStatus.AwaitingAcceptance => new AdminNextActionPanelVM { Description = L["Details.Next.Acceptance"].Value, RoleLabel = L["Details.Role.StoreManager"].Value, IconClass = "fas fa-boxes-stacked" },
+        ProductionRunStatus.Completed => new AdminNextActionPanelVM { Title = L["Details.Next.CompletedTitle"].Value, Description = L["Details.Next.Completed"].Value, IconClass = "fas fa-circle-check" },
+        ProductionRunStatus.Cancelled => new AdminNextActionPanelVM { Title = L["Details.Next.CancelledTitle"].Value, Description = L["Details.Next.Cancelled"].Value, IconClass = "fas fa-ban" },
+        _ => new AdminNextActionPanelVM { Description = L["Details.Next.Default"].Value, IconClass = "fas fa-arrow-right" }
     };
 }
 <link rel="stylesheet" href="~/css/Admin/ProductionOrder/production-order.css" />
@@ -80,38 +82,38 @@
     }
 
     <section id="production-plan" class="po-main-card mb-4" aria-labelledby="production-summary-title">
-        <h2 id="production-summary-title" class="po-section-title">Kế hoạch và nhu cầu</h2>
+        <h2 id="production-summary-title" class="po-section-title">@L["Details.Plan.Title"]</h2>
         <div class="row g-4">
             <div class="col-md-3">
-                <div class="text-muted small">@(Model.PlannedBatchCount.HasValue ? "Số mẻ kế hoạch" : "Hệ số công thức")</div>
+                <div class="text-muted small">@(Model.PlannedBatchCount.HasValue ? L["Details.Plan.Batches"].Value : L["Details.Plan.Factor"].Value)</div>
                 <strong class="fs-4">@(Model.PlannedBatchCount?.ToString() ?? Model.RequestedRunCount.ToString("0.#####"))</strong>
             </div>
-            <div class="col-md-3"><div class="text-muted small">Sản lượng mỗi mẻ</div><strong class="fs-4">@(Model.ExpectedOutputPerBatchBase?.ToString("0.###") ?? "—") @unit</strong></div>
-            <div class="col-md-3"><div class="text-muted small">Sản lượng dự kiến</div><strong class="fs-4">@(Model.ExpectedOutputBase?.ToString("0.###") ?? "—") @unit</strong></div>
-            <div class="col-md-3"><div class="text-muted small">Ngưỡng chênh lệch</div><strong class="fs-4">@Model.YieldVarianceTolerancePercent.ToString("0.##")%</strong></div>
+            <div class="col-md-3"><div class="text-muted small">@L["Details.Plan.PerBatch"]</div><strong class="fs-4">@(Model.ExpectedOutputPerBatchBase?.ToString("0.###") ?? "—") @unit</strong></div>
+            <div class="col-md-3"><div class="text-muted small">@L["Details.Plan.Expected"]</div><strong class="fs-4">@(Model.ExpectedOutputBase?.ToString("0.###") ?? "—") @unit</strong></div>
+            <div class="col-md-3"><div class="text-muted small">@L["Details.Plan.Tolerance"]</div><strong class="fs-4">@Model.YieldVarianceTolerancePercent.ToString("0.##")%</strong></div>
         </div>
         @if (Model.RestockRequestId.HasValue)
         {
             <hr />
             <div class="row g-3">
-                <div class="col-md-3"><span class="text-muted">Nhu cầu bổ sung</span><div><a asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@Model.RestockRequestId">@AdminStatusDisplay.RestockReference(Model.RestockReferenceCode, Model.RestockRequestId.Value)</a></div></div>
-                <div class="col-md-3"><span class="text-muted">Nhu cầu</span><div><strong>@Model.RestockRequestedQuantity?.ToString("0.###") @unit</strong></div></div>
-                <div class="col-md-3"><span class="text-muted">Đã đáp ứng</span><div><strong>@Model.RestockFulfilledQuantity.ToString("0.###") @unit</strong></div></div>
-                <div class="col-md-3"><span class="text-muted">Còn lại</span><div><strong>@Model.RestockRemainingQuantity.ToString("0.###") @unit</strong></div></div>
+                <div class="col-md-3"><span class="text-muted">@L["Details.Restock.Reference"]</span><div><a asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@Model.RestockRequestId">@AdminStatusDisplay.RestockReference(Model.RestockReferenceCode, Model.RestockRequestId.Value)</a></div></div>
+                <div class="col-md-3"><span class="text-muted">@L["Details.Restock.Requested"]</span><div><strong>@Model.RestockRequestedQuantity?.ToString("0.###") @unit</strong></div></div>
+                <div class="col-md-3"><span class="text-muted">@L["Details.Restock.Fulfilled"]</span><div><strong>@Model.RestockFulfilledQuantity.ToString("0.###") @unit</strong></div></div>
+                <div class="col-md-3"><span class="text-muted">@L["Details.Restock.Remaining"]</span><div><strong>@Model.RestockRemainingQuantity.ToString("0.###") @unit</strong></div></div>
             </div>
         }
     </section>
 
     <section id="production-inputs" class="history-section mb-4" aria-labelledby="actual-input-title">
-        <div class="history-header"><h2 id="actual-input-title" class="history-title">Đầu vào thực tế</h2><span class="small text-muted">Nhập trước - xuất trước (FIFO) dùng số lượng thực tế đã xác nhận</span></div>
+        <div class="history-header"><h2 id="actual-input-title" class="history-title">@L["Details.Input.Title"]</h2><span class="small text-muted">@L["Details.Input.Help"]</span></div>
         <div class="history-card">
             <div class="table-responsive">
                 <table class="table po-table align-middle">
-                    <thead><tr><th>ĐẦU VÀO</th><th>KẾ HOẠCH</th><th>THỰC TẾ</th></tr></thead>
+                    <thead><tr><th>@L["Details.Input.Column"]</th><th>@L["Details.Plan.Column"]</th><th>@L["Details.Actual.Column"]</th></tr></thead>
                     <tbody>
                     @foreach (var input in Model.Inputs)
                     {
-                        <tr><td><strong>@input.Name</strong><div class="small text-muted">@input.Code</div></td><td>@input.PlannedBaseQuantity.ToString("0.###") @input.BaseUnitCode</td><td>@(input.ActualBaseQuantity?.ToString("0.###") ?? "Chưa xác nhận") @input.BaseUnitCode</td></tr>
+                        <tr><td><strong>@input.Name</strong><div class="small text-muted">@input.Code</div></td><td>@input.PlannedBaseQuantity.ToString("0.###") @input.BaseUnitCode</td><td>@(input.ActualBaseQuantity?.ToString("0.###") ?? L["Details.NotConfirmed"].Value) @input.BaseUnitCode</td></tr>
                     }
                     </tbody>
                 </table>
@@ -122,49 +124,49 @@
     @if (Model.Output != null)
     {
         <section id="production-output" class="po-main-card mb-4" aria-labelledby="actual-output-title">
-            <h2 id="actual-output-title" class="po-section-title">Sản lượng thực tế</h2>
+            <h2 id="actual-output-title" class="po-section-title">@L["Details.Output.Title"]</h2>
             <div class="row g-4">
-                <div class="col-md-3"><div class="text-muted small">Đã sản xuất</div><strong>@Model.Output.ActualProducedBase.ToString("0.###") @unit</strong></div>
-                <div class="col-md-3"><div class="text-muted small">Sản lượng đạt</div><strong>@Model.Output.AcceptedOutputBase.ToString("0.###") @unit</strong></div>
-                <div class="col-md-3"><div class="text-muted small">Loại bỏ / hao hụt</div><strong>@Model.Output.RejectedOutputBase.ToString("0.###") @unit</strong></div>
-                <div class="col-md-3"><div class="text-muted small">Chênh lệch</div><strong>@Model.Output.VariancePercent.ToString("0.##")%</strong></div>
+                <div class="col-md-3"><div class="text-muted small">@L["Details.Output.Produced"]</div><strong>@Model.Output.ActualProducedBase.ToString("0.###") @unit</strong></div>
+                <div class="col-md-3"><div class="text-muted small">@L["Details.Output.Accepted"]</div><strong>@Model.Output.AcceptedOutputBase.ToString("0.###") @unit</strong></div>
+                <div class="col-md-3"><div class="text-muted small">@L["Details.Output.Rejected"]</div><strong>@Model.Output.RejectedOutputBase.ToString("0.###") @unit</strong></div>
+                <div class="col-md-3"><div class="text-muted small">@L["Details.Output.Variance"]</div><strong>@Model.Output.VariancePercent.ToString("0.##")%</strong></div>
             </div>
-            @if (!string.IsNullOrWhiteSpace(Model.Output.Reason)) { <p class="mt-3 mb-0"><span class="text-muted">Lý do:</span> @Model.Output.Reason</p> }
+            @if (!string.IsNullOrWhiteSpace(Model.Output.Reason)) { <p class="mt-3 mb-0"><span class="text-muted">@L["Details.Reason"]</span> @Model.Output.Reason</p> }
         </section>
     }
 
     <partial name="_NextActionPanel" model="nextAction" />
 
     <section id="production-actions" class="po-main-card mb-4" aria-labelledby="production-actions-title">
-        <h2 id="production-actions-title" class="po-section-title">Thao tác hợp lệ tiếp theo</h2>
+        <h2 id="production-actions-title" class="po-section-title">@L["Details.Actions.Title"]</h2>
         <div class="d-flex flex-wrap gap-3">
             @if (Model.CanRelease)
             {
-                <form asp-action="Release" asp-route-id="@Model.ProductionRunId" method="post">@Html.AntiForgeryToken()<button class="btn btn-primary-action" type="submit"><i class="fas fa-paper-plane" aria-hidden="true"></i> Phát hành lệnh</button></form>
+                <form asp-action="Release" asp-route-id="@Model.ProductionRunId" method="post">@Html.AntiForgeryToken()<button class="btn btn-primary-action" type="submit"><i class="fas fa-paper-plane" aria-hidden="true"></i> @L["Details.Actions.Release"]</button></form>
             }
             @if (Model.CanStart)
             {
-                <form asp-action="Start" asp-route-id="@Model.ProductionRunId" method="post">@Html.AntiForgeryToken()<button class="btn btn-primary-action" type="submit"><i class="fas fa-play" aria-hidden="true"></i> Bắt đầu sản xuất</button></form>
+                <form asp-action="Start" asp-route-id="@Model.ProductionRunId" method="post">@Html.AntiForgeryToken()<button class="btn btn-primary-action" type="submit"><i class="fas fa-play" aria-hidden="true"></i> @L["Details.Actions.Start"]</button></form>
             }
             @if (Model.CanApproveVariance)
             {
                 <form asp-action="ApproveVariance" asp-route-id="@Model.ProductionRunId" method="post" class="d-flex flex-wrap gap-2">
-                    @Html.AntiForgeryToken()<label class="visually-hidden" for="approveReason">Ghi chú phê duyệt</label><input id="approveReason" class="form-control" name="reason" maxlength="500" placeholder="Ghi chú phê duyệt" /><button class="btn btn-primary-action" type="submit"><i class="fas fa-user-check" aria-hidden="true"></i> Duyệt chênh lệch</button>
+                    @Html.AntiForgeryToken()<label class="visually-hidden" for="approveReason">@L["Details.Actions.ApprovalNote"]</label><input id="approveReason" class="form-control" name="reason" maxlength="500" placeholder="@L["Details.Actions.ApprovalNote"]" /><button class="btn btn-primary-action" type="submit"><i class="fas fa-user-check" aria-hidden="true"></i> @L["Details.Actions.Approve"]</button>
                 </form>
             }
             @if (Model.CanAcceptOutput)
             {
-                <form asp-action="AcceptOutput" asp-route-id="@Model.ProductionRunId" method="post">@Html.AntiForgeryToken()<button class="btn btn-primary-action" type="submit"><i class="fas fa-boxes-stacked" aria-hidden="true"></i> Xác nhận nhập đầu ra</button></form>
+                <form asp-action="AcceptOutput" asp-route-id="@Model.ProductionRunId" method="post">@Html.AntiForgeryToken()<button class="btn btn-primary-action" type="submit"><i class="fas fa-boxes-stacked" aria-hidden="true"></i> @L["Details.Actions.Accept"]</button></form>
             }
             @if (Model.CanCancel)
             {
                 <form asp-action="Cancel" asp-route-id="@Model.ProductionRunId" method="post" class="d-flex flex-wrap gap-2">
-                    @Html.AntiForgeryToken()<label class="visually-hidden" for="cancelReason">Lý do hủy</label><input id="cancelReason" class="form-control" name="reason" maxlength="500" required placeholder="Lý do hủy" /><button class="btn btn-outline-danger" type="submit"><i class="fas fa-ban" aria-hidden="true"></i> Hủy lệnh</button>
+                    @Html.AntiForgeryToken()<label class="visually-hidden" for="cancelReason">@L["Details.Actions.CancelReason"]</label><input id="cancelReason" class="form-control" name="reason" maxlength="500" required placeholder="@L["Details.Actions.CancelReason"]" /><button class="btn btn-outline-danger" type="submit"><i class="fas fa-ban" aria-hidden="true"></i> @L["Details.Actions.Cancel"]</button>
                 </form>
             }
             @if (!Model.CanRelease && !Model.CanStart && !Model.CanRecordActual && !Model.CanApproveVariance && !Model.CanAcceptOutput && !Model.CanCancel)
             {
-                <span class="text-muted">Trang đang ở chế độ theo dõi. Thao tác tiếp theo do vai trò được nêu phía trên thực hiện.</span>
+                <span class="text-muted">@L["Details.Actions.ReadOnly"]</span>
             }
         </div>
     </section>
@@ -172,7 +174,7 @@
     @if (Model.CanRecordActual)
     {
         <section id="production-record-actual" class="po-main-card mb-4" aria-labelledby="record-actual-title">
-            <h2 id="record-actual-title" class="po-section-title">Xác nhận đầu vào và sản lượng thực tế</h2>
+            <h2 id="record-actual-title" class="po-section-title">@L["Details.Record.Title"]</h2>
             <form asp-action="RecordActual" method="post" class="row g-3">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="ProductionRunId" value="@Model.ProductionRunId" />
@@ -181,26 +183,26 @@
                     <input type="hidden" name="Inputs[@i].IngredientId" value="@Model.Inputs[i].IngredientId" />
                     <input type="hidden" name="Inputs[@i].PreparedItemId" value="@Model.Inputs[i].PreparedItemId" />
                     <div class="col-lg-6">
-                        <label class="form-label" for="input-@i">@Model.Inputs[i].Name thực tế (@Model.Inputs[i].BaseUnitCode)</label>
+                        <label class="form-label" for="input-@i">@L["Details.Record.Input", Model.Inputs[i].Name, Model.Inputs[i].BaseUnitCode]</label>
                         <input id="input-@i" class="form-control" type="number" step="0.001" min="0" required name="Inputs[@i].ActualBaseQuantity" value="@Model.Inputs[i].PlannedBaseQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
-                        <div class="form-text">Kế hoạch: @Model.Inputs[i].PlannedBaseQuantity.ToString("0.###") @Model.Inputs[i].BaseUnitCode</div>
+                        <div class="form-text">@L["Details.Record.Planned", Model.Inputs[i].PlannedBaseQuantity.ToString("0.###"), Model.Inputs[i].BaseUnitCode]</div>
                     </div>
                 }
-                <div class="col-md-4"><label class="form-label" for="actualProduced">Tổng sản lượng thực tế (@unit)</label><input id="actualProduced" class="form-control" name="ActualProducedBase" type="number" step="0.001" min="0" required /></div>
-                <div class="col-md-4"><label class="form-label" for="acceptedOutput">Sản lượng đạt (@unit)</label><input id="acceptedOutput" class="form-control" name="AcceptedOutputBase" type="number" step="0.001" min="0" required /></div>
-                <div class="col-md-4"><label class="form-label" for="rejectedOutput">Lượng loại bỏ (@unit)</label><input id="rejectedOutput" class="form-control" name="RejectedOutputBase" type="number" step="0.001" min="0" value="0" required /></div>
-                <div class="col-12"><label class="form-label" for="varianceReason">Lý do chênh lệch</label><textarea id="varianceReason" class="form-control" name="Reason" maxlength="500" rows="2" placeholder="Bắt buộc khi vượt ngưỡng hoặc sản lượng đạt bằng 0"></textarea></div>
-                <div class="col-12"><button class="btn btn-primary-action" type="submit"><i class="fas fa-clipboard-check" aria-hidden="true"></i> Xác nhận số liệu thực tế</button></div>
+                <div class="col-md-4"><label class="form-label" for="actualProduced">@L["Details.Record.Produced", unit]</label><input id="actualProduced" class="form-control" name="ActualProducedBase" type="number" step="0.001" min="0" required /></div>
+                <div class="col-md-4"><label class="form-label" for="acceptedOutput">@L["Details.Record.Accepted", unit]</label><input id="acceptedOutput" class="form-control" name="AcceptedOutputBase" type="number" step="0.001" min="0" required /></div>
+                <div class="col-md-4"><label class="form-label" for="rejectedOutput">@L["Details.Record.Rejected", unit]</label><input id="rejectedOutput" class="form-control" name="RejectedOutputBase" type="number" step="0.001" min="0" value="0" required /></div>
+                <div class="col-12"><label class="form-label" for="varianceReason">@L["Details.Record.VarianceReason"]</label><textarea id="varianceReason" class="form-control" name="Reason" maxlength="500" rows="2" placeholder="@L["Details.Record.VariancePlaceholder"]"></textarea></div>
+                <div class="col-12"><button class="btn btn-primary-action" type="submit"><i class="fas fa-clipboard-check" aria-hidden="true"></i> @L["Details.Record.Submit"]</button></div>
             </form>
         </section>
     }
 
     <section id="production-history" class="history-section mb-5" aria-labelledby="timeline-title">
-        <div class="history-header"><h2 id="timeline-title" class="history-title">Lịch sử trạng thái</h2></div>
+        <div class="history-header"><h2 id="timeline-title" class="history-title">@L["Details.History.Title"]</h2></div>
         <div class="history-card">
             @if (Model.Transitions.Count == 0)
             {
-                <div class="p-4 text-muted">Chưa có lịch sử chuyển trạng thái.</div>
+                <div class="p-4 text-muted">@L["Details.History.Empty"]</div>
             }
             else
             {

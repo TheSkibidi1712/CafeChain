@@ -3,17 +3,20 @@
 @using CafeChain.Application.DTOs.Admin.StoreInventories
 @using CafeChain.Models.Enums.Inventory
 @using CafeChain.ViewModels.Admin.Shared
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<ProductionResource> ProductionText
 @{
-    ViewData["Title"] = "Lệnh sản xuất theo mẻ";
+    ViewData["Title"] = ProductionText["ProductionOrder.PageTitle"];
     var stores = ViewBag.Stores as IReadOnlyCollection<InventoryStoreDTO> ?? [];
     var selectedStoreId = ViewBag.SelectedStoreId as int? ?? 0;
     var selectedStatus = ViewBag.SelectedStatus as string;
     var canCreateLegacy = ViewBag.CanCreateLegacy is true;
+    string StatusText(ProductionRunStatus value) => ProductionText[$"ProductionOrder.Status.{value}"];
     var heroActions = new List<AdminPageHeroActionVM>
     {
         new()
         {
-            Label = "Năng lực sản xuất",
+            Label = ProductionText["ProductionOrder.Capabilities"],
             Url = Url.Action("Capabilities", new { storeId = selectedStoreId }) ?? "#",
             IconClass = "fas fa-sliders"
         }
@@ -22,18 +25,18 @@
     {
         heroActions.Add(new()
         {
-            Label = "Sơ chế độc lập",
+            Label = ProductionText["ProductionOrder.Standalone"],
             Url = Url.Action("Create", new { storeId = selectedStoreId }) ?? "#",
             IconClass = "fas fa-fire-burner"
         });
     }
     var hero = new AdminPageHeroVM
     {
-        Eyebrow = "Sản xuất / Định mức nguyên liệu",
-        Title = "Lệnh sản xuất",
-        Description = "Theo dõi kế hoạch theo mẻ, sản lượng thực tế, chênh lệch và tiến độ đáp ứng nhu cầu tại cửa hàng.",
+        Eyebrow = ProductionText["Production.Breadcrumb"],
+        Title = ProductionText["ProductionOrder.Title"],
+        Description = ProductionText["ProductionOrder.Description"],
         IconClass = "fas fa-industry",
-        Breadcrumbs = [new() { Label = "Sản xuất / Định mức nguyên liệu" }, new() { Label = "Lệnh sản xuất" }],
+        Breadcrumbs = [new() { Label = ProductionText["Production.Breadcrumb"] }, new() { Label = ProductionText["ProductionOrder.Title"] }],
         Actions = heroActions
     };
 }
@@ -50,12 +53,12 @@
 
     <section class="production-filter-card" aria-labelledby="production-filter-title">
         <header class="production-filter-card__heading">
-            <h2 id="production-filter-title">Bộ lọc vận hành</h2>
-            <p>Thu hẹp danh sách theo cửa hàng và trạng thái xử lý.</p>
+            <h2 id="production-filter-title">@ProductionText["ProductionOrder.Filter.Title"]</h2>
+            <p>@ProductionText["ProductionOrder.Filter.Description"]</p>
         </header>
         <form method="get" class="production-filter-grid">
             <div class="production-filter-field">
-                <label for="storeId" class="form-label">Cửa hàng</label>
+                <label for="storeId" class="form-label">@ProductionText["Common.Store"]</label>
                 <select id="storeId" name="storeId" class="form-select">
                     @foreach (var store in stores)
                     {
@@ -64,20 +67,20 @@
                 </select>
             </div>
             <div class="production-filter-field">
-                <label for="status" class="form-label">Trạng thái</label>
+                <label for="status" class="form-label">@ProductionText["Common.Status"]</label>
                 <select id="status" name="status" class="form-select">
-                    <option value="">Tất cả trạng thái</option>
+                    <option value="">@ProductionText["Common.AllStatuses"]</option>
                     @foreach (var status in Enum.GetValues<ProductionRunStatus>())
                     {
                         <option value="@status" selected="@(string.Equals(selectedStatus, status.ToString(), StringComparison.OrdinalIgnoreCase))">
-                            @ProductionRunDisplay.Status(status)
+                            @StatusText(status)
                         </option>
                     }
                 </select>
             </div>
             <div class="production-filter-actions">
-                <button class="btn btn-primary-action" type="submit"><i class="fas fa-filter" aria-hidden="true"></i> Áp dụng</button>
-                <a class="btn btn-ghost production-filter-reset" asp-action="Index" asp-route-storeId="@selectedStoreId" aria-label="Đặt lại bộ lọc" title="Đặt lại bộ lọc">
+                <button class="btn btn-primary-action" type="submit"><i class="fas fa-filter" aria-hidden="true"></i> @ProductionText["Common.Apply"]</button>
+                <a class="btn btn-ghost production-filter-reset" asp-action="Index" asp-route-storeId="@selectedStoreId" aria-label="@ProductionText["Common.ResetFilters"]" title="@ProductionText["Common.ResetFilters"]">
                     <i class="fas fa-rotate-left" aria-hidden="true"></i>
                 </a>
             </div>
@@ -87,10 +90,10 @@
     <section class="production-list-section" aria-labelledby="production-list-title">
         <header class="production-section-header">
             <div>
-                <h2 id="production-list-title">Danh sách lệnh sản xuất</h2>
-                <p>Theo dõi quy mô, sản lượng dự kiến và người phụ trách từng lệnh.</p>
+                <h2 id="production-list-title">@ProductionText["ProductionOrder.List.Title"]</h2>
+                <p>@ProductionText["ProductionOrder.List.Description"]</p>
             </div>
-            <span class="production-section-header__count"><strong>@Model.TotalCount</strong> lệnh</span>
+            <span class="production-section-header__count">@ProductionText["ProductionOrder.List.Count", Model.TotalCount]</span>
         </header>
         <div class="history-card production-table-panel p-0">
             <div class="table-responsive">
@@ -107,40 +110,40 @@
                     </colgroup>
                     <thead>
                         <tr>
-                            <th>Lệnh</th>
-                            <th>Đầu ra</th>
-                            <th>Quy mô</th>
-                            <th>Sản lượng dự kiến</th>
-                            <th>Yêu cầu</th>
-                            <th>Trạng thái</th>
-                            <th>Người lập</th>
-                            <th class="production-action-column">Thao tác</th>
+                            <th>@ProductionText["ProductionOrder.Column.Order"]</th>
+                            <th>@ProductionText["ProductionOrder.Column.Output"]</th>
+                            <th>@ProductionText["ProductionOrder.Column.Scale"]</th>
+                            <th>@ProductionText["ProductionOrder.Column.ExpectedOutput"]</th>
+                            <th>@ProductionText["ProductionOrder.Column.Request"]</th>
+                            <th>@ProductionText["Common.Status"]</th>
+                            <th>@ProductionText["ProductionOrder.Column.CreatedBy"]</th>
+                            <th class="production-action-column">@ProductionText["Common.Actions"]</th>
                         </tr>
                     </thead>
                     <tbody>
                         @if (Model.Items.Count == 0)
                         {
-                            <tr><td colspan="8" class="text-center text-muted py-5">Chưa có lệnh sản xuất phù hợp với bộ lọc.</td></tr>
+                            <tr><td colspan="8" class="text-center text-muted py-5">@ProductionText["ProductionOrder.Empty"]</td></tr>
                         }
                         else
                         {
                             @foreach (var item in Model.Items)
                             {
                                 <tr>
-                                    <td><strong>PR-@item.ProductionRunId</strong><div class="small text-muted">@(item.ContractVersion == 2 ? "Theo nhu cầu nhập hàng" : "Sơ chế độc lập")</div></td>
+                                    <td><strong>PR-@item.ProductionRunId</strong><div class="small text-muted">@(item.ContractVersion == 2 ? ProductionText["ProductionOrder.RestockDriven"] : ProductionText["ProductionOrder.Standalone"])</div></td>
                                     <td><strong>@item.OutputName</strong><div class="small text-muted">@item.RecipeName</div></td>
                                     <td>
                                         @if (item.PlannedBatchCount.HasValue)
                                         {
-                                            <span>@item.PlannedBatchCount mẻ</span>
+                                            <span>@ProductionText["ProductionOrder.BatchCount", item.PlannedBatchCount]</span>
                                         }
                                         else
                                         {
-                                            <span>@item.RequestedRunCount.ToString("0.#####") hệ số</span>
+                                            <span>@ProductionText["ProductionOrder.RunFactor", item.RequestedRunCount.ToString("0.#####")]</span>
                                         }
                                     </td>
                                     <td>@(item.ExpectedOutputBase?.ToString("0.###") ?? "—") @item.OutputUnitCode</td>
-                                    <td>@(item.RestockRequestId.HasValue ? $"Nhu cầu bổ sung #{item.RestockRequestId}" : "Sơ chế độc lập")</td>
+                                    <td>@(item.RestockRequestId.HasValue ? ProductionText["ProductionOrder.RestockRequest", item.RestockRequestId] : ProductionText["ProductionOrder.Standalone"])</td>
                                     <td>
                                         @{ var statusClass = item.Status switch
                                             {
@@ -150,12 +153,12 @@
                                                 ProductionRunStatus.InProgress or ProductionRunStatus.AwaitingAcceptance => "is-progress",
                                                 _ => "is-neutral"
                                             }; }
-                                        <span class="production-status @statusClass">@item.StatusLabel</span>
+                                        <span class="production-status @statusClass">@StatusText(item.Status)</span>
                                     </td>
                                     <td>@item.CreatedByName<div class="small text-muted">@item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div></td>
                                     <td class="production-action-column">
                                         <a class="btn btn-sm rb-table-action production-row-action" asp-action="Details" asp-route-id="@item.ProductionRunId">
-                                            <i class="fas fa-arrow-right" aria-hidden="true"></i> Chi tiết
+                                            <i class="fas fa-arrow-right" aria-hidden="true"></i> @ProductionText["Common.Details"]
                                         </a>
                                     </td>
                                 </tr>
@@ -169,12 +172,12 @@
                 var firstPage = Math.Max(1, Model.Page - 2);
                 var lastPage = Math.Min(Model.TotalPages, firstPage + 4);
                 firstPage = Math.Max(1, lastPage - 4);
-                <nav class="production-pagination" aria-label="Phân trang lệnh sản xuất">
-                    <span class="production-pagination__summary">Trang @Model.Page trên @Model.TotalPages</span>
+                <nav class="production-pagination" aria-label="@ProductionText["ProductionOrder.Pagination.Label"]">
+                    <span class="production-pagination__summary">@ProductionText["ProductionOrder.Pagination", Model.Page, Model.TotalPages]</span>
                     <div class="production-pagination__links">
                         @if (Model.Page > 1)
                         {
-                            <a class="production-page-link is-nav" aria-label="Trang trước" asp-route-storeId="@selectedStoreId" asp-route-status="@selectedStatus" asp-route-page="@(Model.Page - 1)"><i class="fas fa-chevron-left" aria-hidden="true"></i></a>
+                            <a class="production-page-link is-nav" aria-label="@ProductionText["Common.PreviousPage"]" asp-route-storeId="@selectedStoreId" asp-route-status="@selectedStatus" asp-route-page="@(Model.Page - 1)"><i class="fas fa-chevron-left" aria-hidden="true"></i></a>
                         }
                         @for (var pageNumber = firstPage; pageNumber <= lastPage; pageNumber++)
                         {
@@ -187,7 +190,7 @@
                         }
                         @if (Model.Page < Model.TotalPages)
                         {
-                            <a class="production-page-link is-nav" aria-label="Trang sau" asp-route-storeId="@selectedStoreId" asp-route-status="@selectedStatus" asp-route-page="@(Model.Page + 1)"><i class="fas fa-chevron-right" aria-hidden="true"></i></a>
+                            <a class="production-page-link is-nav" aria-label="@ProductionText["Common.NextPage"]" asp-route-storeId="@selectedStoreId" asp-route-status="@selectedStatus" asp-route-page="@(Model.Page + 1)"><i class="fas fa-chevron-right" aria-hidden="true"></i></a>
                         }
                     </div>
                 </nav>

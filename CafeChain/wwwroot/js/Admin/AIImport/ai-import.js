@@ -5,6 +5,8 @@
     if (!app) return;
 
     const byId = id => document.getElementById(id);
+    const catalog = window.CafeChainUiCatalog.read('aiImportUiCatalog');
+    const t = (key, values) => window.CafeChainUiCatalog.text(catalog, key, values);
     const token = document.querySelector('#antiForgeryForm input[name="__RequestVerificationToken"]')?.value || '';
     const state = {
         session: null,
@@ -32,14 +34,14 @@
     });
 
     const entityLabels = {
-        Category: 'Danh mục', Drink: 'Đồ uống', Size: 'Kích cỡ', Ingredient: 'Nguyên liệu', Supplier: 'Nhà cung cấp', Unknown: 'Chưa xác định'
+        Category: t('Entity.Category'), Drink: t('Entity.Drink'), Size: t('Entity.Size'), Ingredient: t('Entity.Ingredient'), Supplier: t('Entity.Supplier'), Unknown: t('Common.Unknown')
     };
     const statusLabels = {
         VALID: 'Hợp lệ', WARNING: 'Cảnh báo', ERROR: 'Lỗi', REVIEW_REQUIRED: 'Cần xem lại', SKIPPED: 'Bỏ qua', IMPORTED: 'Đã nhập',
         READY_TO_PREVIEW: 'Sẵn sàng xem trước', ANALYZING: 'Đang phân tích', VALIDATING: 'Đang kiểm tra', IMPORTING: 'Đang nhập',
         COMPLETED: 'Hoàn tất', FAILED: 'Thất bại', CANCELLED: 'Đã hủy', EXPIRED: 'Đã hết hạn', UPLOADED: 'Đã tải lên'
     };
-    const actionLabels = { CREATE: 'Tạo mới', SKIP: 'Bỏ qua' };
+    const actionLabels = { CREATE: t('Action.Create'), SKIP: t('Action.Skip') };
     const formatLabels = { XLSX: 'Excel', DOCX: 'DOCX', PDF: 'PDF', MULTI: 'Nhiều tệp' };
     const sourceDocumentStatusLabels = {
         PROCESSING: 'Đang xử lý', READY: 'Sẵn sàng', FAILED: 'Không thành công', REMOVED: 'Đã loại khỏi phiên'
@@ -1095,8 +1097,8 @@
             toggle.disabled = !ready;
             if (!ready) toggle.checked = false;
             const status = ready
-                ? `${capability.provider} · ${capability.providerVersion || 'Tesseract'} · ${capability.languages} sẵn sàng`
-                : capability.healthMessage || 'Tesseract local chưa sẵn sàng.';
+                ? t('Ocr.Ready', { provider: capability.provider, version: capability.providerVersion || 'Tesseract', languages: capability.languages })
+                : capability.healthMessage || t('Ocr.Unavailable');
             toggle.title = status;
             toggle.closest('label')?.setAttribute('title', status);
         } catch (error) {

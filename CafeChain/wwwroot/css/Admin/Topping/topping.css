@@ -1051,3 +1051,35 @@
     display: inline !important;
     font-weight: 700 !important;
 }
+
+:root[data-theme="dark"] .topping-admin-page {
+    color: var(--cc-text);
+}
+
+:root[data-theme="dark"] :is(.topping-admin-page .main-card, .topping-admin-page .table-responsive,
+    .catalog-table-footer, .topping-source-component, .topping-cost-authority,
+    .topping-module-modal .modal-content, .topping-module-modal .modal-header,
+    .topping-module-modal .modal-body, .topping-module-modal .modal-footer,
+    .topping-upload-section, .topping-custom-file-input, .drink-card, .ai-suggestion-panel, .ai-option-card) {
+    background: var(--cc-surface-raised) !important;
+    color: var(--cc-text) !important;
+    border-color: var(--cc-border) !important;
+    box-shadow: var(--cc-shadow-sm) !important;
+}
+
+:root[data-theme="dark"] .topping-admin-page .table :is(th, td) {
+    background: transparent !important;
+    color: var(--cc-text) !important;
+    border-color: var(--cc-border) !important;
+}
+
+:root[data-theme="dark"] :is(.topping-admin-page .table tbody tr:hover,
+    .topping-module-modal .drink-card:hover, .topping-module-modal .ai-option-card:hover) {
+    background: var(--cc-surface-active) !important;
+}
+
+:root[data-theme="dark"] .topping-module-modal :is(.form-control, .form-select) {
+    background: var(--cc-surface-muted) !important;
+    color: var(--cc-text) !important;
+    border-color: var(--cc-border-strong) !important;
+}

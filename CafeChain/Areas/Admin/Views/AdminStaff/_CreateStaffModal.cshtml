@@ -1,5 +1,8 @@
 @model CafeChain.ViewModels.Admin.Staffs.StaffCreateVM
 @using CafeChain.Application.Constants
+@using Microsoft.Extensions.Localization
+@using System.Text.Json
+@inject IStringLocalizer<StaffResource> L
 @{
     var roles = ViewBag.Roles as List<CafeChain.Models.Permissions.Role> ?? new();
     var stores = ViewBag.Stores as List<CafeChain.Models.Stores.Store> ?? new();
@@ -26,65 +29,65 @@
                         <span class="staff-modal-heading-icon cc-admin-heading__icon" aria-hidden="true">
                             <i class="fas fa-user-plus"></i>
                         </span>
-                        <div><h4 class="modal-title" id="createStaffTitle">Thêm nhân viên mới</h4><small>Tạo hồ sơ, tài khoản và phạm vi làm việc trong một giao dịch.</small></div>
+                        <div><h4 class="modal-title" id="createStaffTitle">@L["Staff.Create.Title"]</h4><small>@L["Staff.Create.Subtitle"]</small></div>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["Staff.Create.Close"]"></button>
                 </div>
 
                 <div class="modal-body px-4 pt-3">
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 d-none" id="createStaffValidationSummary"></div>
                     <ul class="nav nav-tabs mb-4" id="createStaffTabs" role="tablist">
-                        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#create-general" type="button"><span>1</span>Thông tin chung</button></li>
-                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#create-scope" type="button"><span>2</span>Vai trò &amp; phạm vi</button></li>
-                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#create-account" type="button"><span>3</span>Công việc &amp; tài khoản</button></li>
+                        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#create-general" type="button"><span>1</span>@L["Staff.Create.Tab.General"]</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#create-scope" type="button"><span>2</span>@L["Staff.Create.Tab.Scope"]</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#create-account" type="button"><span>3</span>@L["Staff.Create.Tab.Account"]</button></li>
                     </ul>
 
                     <div class="tab-content">
                         <div class="tab-pane fade show active" id="create-general">
                             <div class="row g-4">
                                 <div class="col-lg-3 d-flex flex-column align-items-center">
-                                    <label class="form-label align-self-start">Ảnh đại diện</label>
+                                    <label class="form-label align-self-start">@L["Staff.Create.Avatar"]</label>
                                     <div class="avatar-upload-box" id="createAvatarBox" role="button" tabindex="0">
-                                        <div class="avatar-upload-placeholder" id="createAvatarPlaceholder"><i class="fas fa-cloud-upload-alt"></i><span>Click để chọn ảnh<br />JPG, PNG, WebP · tối đa 2 MB</span></div>
-                                        <img id="createAvatarPreview" alt="Ảnh đại diện xem trước" />
+                                        <div class="avatar-upload-placeholder" id="createAvatarPlaceholder"><i class="fas fa-cloud-upload-alt"></i><span>@L["Staff.Create.AvatarHint"]<br />@L["Staff.Create.AvatarFormats"]</span></div>
+                                        <img id="createAvatarPreview" alt="@L["Staff.Create.AvatarAlt"]" />
                                     </div>
                                     <input asp-for="AvatarFile" id="createAvatarInput" type="file" class="d-none" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
-                                    <div class="avatar-actions"><button type="button" class="btn btn-sm btn-outline-secondary" id="chooseCreateAvatar">Chọn ảnh</button><button type="button" class="btn btn-sm btn-outline-danger d-none" id="removeCreateAvatar">Bỏ ảnh</button></div>
+                                    <div class="avatar-actions"><button type="button" class="btn btn-sm btn-outline-secondary" id="chooseCreateAvatar">@L["Staff.Create.ChoosePhoto"]</button><button type="button" class="btn btn-sm btn-outline-danger d-none" id="removeCreateAvatar">@L["Staff.Create.RemovePhoto"]</button></div>
                                     <span asp-validation-for="AvatarFile" class="text-danger small"></span>
                                 </div>
                                 <div class="col-lg-9">
-                                    <div class="section-title"><i class="fas fa-id-card me-1"></i> Thông tin cá nhân</div>
+                                    <div class="section-title"><i class="fas fa-id-card me-1"></i> @L["Staff.Create.Personal"]</div>
                                     <div class="row g-3">
-                                         <div class="col-md-6"><label asp-for="FullName" class="form-label">Họ và tên <span class="text-danger">*</span></label><input asp-for="FullName" class="form-control" placeholder="Nguyễn Văn A" /><span asp-validation-for="FullName" class="text-danger small"></span></div>
-                                         <div class="col-md-6"><label asp-for="CCCD" class="form-label">Căn cước công dân <span class="text-danger">*</span></label><input asp-for="CCCD" class="form-control" inputmode="numeric" maxlength="12" placeholder="12 chữ số" /><span asp-validation-for="CCCD" class="text-danger small"></span></div>
-                                        <div class="col-md-4"><label asp-for="Gender" class="form-label">Giới tính</label><select asp-for="Gender" class="form-select"><option value="0">Nữ</option><option value="1">Nam</option><option value="2">Khác</option></select></div>
-                                        <div class="col-md-4"><label asp-for="DateOfBirth" class="form-label">Ngày sinh <span class="text-danger">*</span></label><input asp-for="DateOfBirth" type="date" class="form-control" /></div>
-                                        <div class="col-md-4"><label class="form-label" for="createPhone">Số điện thoại</label><input name="Phones[0]" id="createPhone" class="form-control" autocomplete="tel" placeholder="09xx xxx xxx" /></div>
+                                         <div class="col-md-6"><label asp-for="FullName" class="form-label">@L["Staff.Create.FullName"] <span class="text-danger">*</span></label><input asp-for="FullName" class="form-control" placeholder="@L["Staff.Create.FullNamePlaceholder"]" /><span asp-validation-for="FullName" class="text-danger small"></span></div>
+                                         <div class="col-md-6"><label asp-for="CCCD" class="form-label">@L["Staff.Create.Cccd"] <span class="text-danger">*</span></label><input asp-for="CCCD" class="form-control" inputmode="numeric" maxlength="12" placeholder="@L["Staff.Create.CccdPlaceholder"]" /><span asp-validation-for="CCCD" class="text-danger small"></span></div>
+                                        <div class="col-md-4"><label asp-for="Gender" class="form-label">@L["Staff.Create.Gender"]</label><select asp-for="Gender" class="form-select"><option value="0">@L["Staff.Create.Gender.Female"]</option><option value="1">@L["Staff.Create.Gender.Male"]</option><option value="2">@L["Staff.Create.Gender.Other"]</option></select></div>
+                                        <div class="col-md-4"><label asp-for="DateOfBirth" class="form-label">@L["Staff.Create.Dob"] <span class="text-danger">*</span></label><input asp-for="DateOfBirth" type="date" class="form-control" /></div>
+                                        <div class="col-md-4"><label class="form-label" for="createPhone">@L["Staff.Create.Phone"]</label><input name="Phones[0]" id="createPhone" class="form-control" autocomplete="tel" placeholder="09xx xxx xxx" /></div>
                                     </div>
-                                    <div class="section-title mt-4"><i class="fas fa-map-marker-alt me-1"></i> Địa chỉ thường trú</div>
+                                    <div class="section-title mt-4"><i class="fas fa-map-marker-alt me-1"></i> @L["Staff.Create.AddressSection"]</div>
                                     <div class="row g-3">
-                                        <div class="col-md-6"><label asp-for="ProvinceId" class="form-label">Tỉnh/Thành phố <span class="text-danger">*</span></label><select asp-for="ProvinceId" id="createProvince" class="form-select"><option value="">-- Chọn Tỉnh/Thành phố --</option>@foreach (var p in provinces) { <option value="@p.ProvinceId">@p.Name</option> }</select><span asp-validation-for="ProvinceId" class="text-danger small"></span></div>
-                                        <div class="col-md-6"><label asp-for="WardId" class="form-label">Xã/Phường/Đặc khu <span class="text-danger">*</span></label><select asp-for="WardId" id="createWard" class="form-select" disabled><option value="">-- Chọn Xã/Phường/Đặc khu --</option></select><span asp-validation-for="WardId" class="text-danger small"></span></div>
-                                        <div class="col-12"><label asp-for="Address" class="form-label">Địa chỉ chi tiết <span class="text-danger">*</span></label><input asp-for="Address" class="form-control" maxlength="500" placeholder="Số nhà, tên đường..." /><span asp-validation-for="Address" class="text-danger small"></span></div>
+                                        <div class="col-md-6"><label asp-for="ProvinceId" class="form-label">@L["Staff.Create.Province"] <span class="text-danger">*</span></label><select asp-for="ProvinceId" id="createProvince" class="form-select"><option value="">@L["Staff.Create.SelectProvince"]</option>@foreach (var p in provinces) { <option value="@p.ProvinceId">@p.Name</option> }</select><span asp-validation-for="ProvinceId" class="text-danger small"></span></div>
+                                        <div class="col-md-6"><label asp-for="WardId" class="form-label">@L["Staff.Create.Ward"] <span class="text-danger">*</span></label><select asp-for="WardId" id="createWard" class="form-select" disabled><option value="">@L["Staff.Create.SelectWard"]</option></select><span asp-validation-for="WardId" class="text-danger small"></span></div>
+                                        <div class="col-12"><label asp-for="Address" class="form-label">@L["Staff.Create.Address"] <span class="text-danger">*</span></label><input asp-for="Address" class="form-control" maxlength="500" placeholder="@L["Staff.Create.AddressPlaceholder"]" /><span asp-validation-for="Address" class="text-danger small"></span></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="tab-pane fade" id="create-scope">
-                            <div class="section-title"><i class="fas fa-user-shield me-1"></i> Vai trò và phạm vi dữ liệu</div>
-                            <div class="staff-scope-help mb-4"><i class="fas fa-info-circle me-1"></i> Chọn vai trò trước, sau đó cấp phạm vi dữ liệu. Cửa hàng chính là nơi làm việc hằng ngày và bắt buộc phải nằm trong phạm vi vừa cấp.</div>
+                            <div class="section-title"><i class="fas fa-user-shield me-1"></i> @L["Staff.Create.ScopeSection"]</div>
+                            <div class="staff-scope-help mb-4"><i class="fas fa-info-circle me-1"></i> @L["Staff.Create.ScopeHelp"]</div>
                             <div class="row g-3">
-                                <div class="col-md-4"><label asp-for="SelectedRoleId" class="form-label">Vai trò <span class="text-danger">*</span></label><select asp-for="SelectedRoleId" id="createRole" class="form-select"><option value="">-- Chọn vai trò --</option>@foreach (var r in roles) { <option value="@r.RoleId" data-scope-mode="@ScopeMode(r.Name)">@r.Name</option> }</select><span asp-validation-for="SelectedRoleId" class="text-danger small"></span></div>
-                                <div class="col-md-4"><label asp-for="ScopeTypeId" class="form-label">Loại phạm vi <span class="text-danger">*</span></label><select asp-for="ScopeTypeId" id="createScopeType" class="form-select" disabled><option value="">-- Chọn vai trò trước --</option>@foreach (var s in scopeTypes) { <option value="@s.ScopeTypeId" data-code="@s.Code">@s.DisplayName</option> }</select><span asp-validation-for="ScopeTypeId" class="text-danger small"></span></div>
-                                <div class="col-md-4"><label asp-for="ScopeRefId" class="form-label">Phạm vi được cấp <span class="text-danger">*</span></label><select asp-for="ScopeRefId" id="createScopeRef" class="form-select" disabled><option value="">-- Chọn loại phạm vi trước --</option></select><span asp-validation-for="ScopeRefId" class="text-danger small"></span></div>
+                                <div class="col-md-4"><label asp-for="SelectedRoleId" class="form-label">@L["Staff.Create.Role"] <span class="text-danger">*</span></label><select asp-for="SelectedRoleId" id="createRole" class="form-select"><option value="">@L["Staff.Create.SelectRole"]</option>@foreach (var r in roles) { <option value="@r.RoleId" data-scope-mode="@ScopeMode(r.Name)">@r.Name</option> }</select><span asp-validation-for="SelectedRoleId" class="text-danger small"></span></div>
+                                <div class="col-md-4"><label asp-for="ScopeTypeId" class="form-label">@L["Staff.Create.ScopeType"] <span class="text-danger">*</span></label><select asp-for="ScopeTypeId" id="createScopeType" class="form-select" disabled><option value="">@L["Staff.Create.SelectRoleFirst"]</option>@foreach (var s in scopeTypes) { <option value="@s.ScopeTypeId" data-code="@s.Code">@s.DisplayName</option> }</select><span asp-validation-for="ScopeTypeId" class="text-danger small"></span></div>
+                                <div class="col-md-4"><label asp-for="ScopeRefId" class="form-label">@L["Staff.Create.ScopeRef"] <span class="text-danger">*</span></label><select asp-for="ScopeRefId" id="createScopeRef" class="form-select" disabled><option value="">@L["Staff.Create.SelectScopeTypeFirst"]</option></select><span asp-validation-for="ScopeRefId" class="text-danger small"></span></div>
                             </div>
                             <div class="row g-3 mt-1 d-none" id="createScopeCascade">
-                                <div class="col-md-6 d-none" id="createScopeProvinceWrap"><label class="form-label" for="createScopeProvince">Tỉnh/Thành phố của phạm vi</label><select id="createScopeProvince" class="form-select" disabled><option value="">-- Chọn Tỉnh/Thành phố --</option></select></div>
+                                <div class="col-md-6 d-none" id="createScopeProvinceWrap"><label class="form-label" for="createScopeProvince">@L["Staff.Create.ScopeProvince"]</label><select id="createScopeProvince" class="form-select" disabled><option value="">@L["Staff.Create.SelectProvince"]</option></select></div>
                             </div>
                             <div class="row g-3 mt-2">
                                 <div class="col-md-6">
-                                    <label asp-for="StoreId" class="form-label">Cửa hàng chính <span class="text-danger">*</span></label>
+                                    <label asp-for="StoreId" class="form-label">@L["Staff.Create.PrimaryStore"] <span class="text-danger">*</span></label>
                                     @if (isStoreManager)
                                     {
                                         <input asp-for="StoreId" type="hidden" value="@currentStoreId" />
@@ -93,7 +96,7 @@
                                     else
                                     {
                                         <select asp-for="StoreId" id="createStore" class="form-select" disabled>
-                                            <option value="">-- Chọn phạm vi trước --</option>
+                                            <option value="">@L["Staff.Create.SelectScopeFirst"]</option>
                                             @foreach (var s in stores)
                                             {
                                                 <option value="@s.StoreId" data-province-id="@s.ProvinceId" data-ward-id="@s.WardId">@s.Name</option>
@@ -101,30 +104,33 @@
                                         </select>
                                     }
                                     <span asp-validation-for="StoreId" class="text-danger small"></span>
-                                    <small class="text-muted">Nơi công tác chính để xếp lịch và vận hành POS; không thay thế phạm vi dữ liệu.</small>
+                                    <small class="text-muted">@L["Staff.Create.StoreHelp"]</small>
                                 </div>
                             </div>
                         </div>
 
                         <div class="tab-pane fade" id="create-account">
-                            <div class="section-title"><i class="fas fa-briefcase me-1"></i> Công việc và tài khoản đăng nhập</div>
+                            <div class="section-title"><i class="fas fa-briefcase me-1"></i> @L["Staff.Create.AccountSection"]</div>
                             <div class="row g-3">
-                                <div class="col-md-6"><label asp-for="Email" class="form-label">Email đăng nhập <span class="text-danger">*</span></label><input asp-for="Email" class="form-control" autocomplete="off" placeholder="staff@cafechain.vn" /><span asp-validation-for="Email" class="text-danger small"></span></div>
-                                <div class="col-md-6"><label asp-for="Password" class="form-label">Mật khẩu ban đầu <span class="text-danger">*</span></label><div class="input-group"><input asp-for="Password" id="createPassword" type="password" class="form-control" autocomplete="new-password" /><button type="button" class="btn btn-outline-secondary" id="toggleCreatePassword" aria-label="Hiện hoặc ẩn mật khẩu"><i class="fas fa-eye"></i></button></div><span asp-validation-for="Password" class="text-danger small"></span><small class="text-muted">Nhân viên có thể chủ động đổi mật khẩu sau khi đăng nhập.</small></div>
-                                <div class="col-md-4"><label asp-for="StartDate" class="form-label">Ngày bắt đầu <span class="text-danger">*</span></label><input asp-for="StartDate" type="date" class="form-control" /></div>
-                                <div class="col-md-4"><label asp-for="EmployeeStatus" class="form-label">Trạng thái nhân sự</label><select asp-for="EmployeeStatus" class="form-select"><option value="1">Thử việc</option><option value="2">Chính thức</option><option value="3">Đã nghỉ việc</option></select></div>
+                                <div class="col-md-6"><label asp-for="Email" class="form-label">@L["Staff.Create.LoginEmail"] <span class="text-danger">*</span></label><input asp-for="Email" class="form-control" autocomplete="off" placeholder="staff@cafechain.vn" /><span asp-validation-for="Email" class="text-danger small"></span></div>
+                                <div class="col-md-6"><label asp-for="Password" class="form-label">@L["Staff.Create.Password"] <span class="text-danger">*</span></label><div class="input-group"><input asp-for="Password" id="createPassword" type="password" class="form-control" autocomplete="new-password" /><button type="button" class="btn btn-outline-secondary" id="toggleCreatePassword" aria-label="@L["Staff.Create.TogglePassword"]"><i class="fas fa-eye"></i></button></div><span asp-validation-for="Password" class="text-danger small"></span><small class="text-muted">@L["Staff.Create.PasswordHelp"]</small></div>
+                                <div class="col-md-4"><label asp-for="StartDate" class="form-label">@L["Staff.Create.StartDate"] <span class="text-danger">*</span></label><input asp-for="StartDate" type="date" class="form-control" /></div>
+                                <div class="col-md-4"><label asp-for="EmployeeStatus" class="form-label">@L["Staff.Create.EmployeeStatus"]</label><select asp-for="EmployeeStatus" class="form-select"><option value="1">@L["Staff.Create.Status.Probation"]</option><option value="2">@L["Staff.Create.Status.Official"]</option><option value="3">@L["Staff.Create.Status.Resigned"]</option></select></div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer px-4 py-3"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button><button type="submit" class="btn btn-primary" id="createStaffSubmit"><i class="fas fa-user-plus me-1"></i> Tạo nhân viên</button></div>
+                <div class="modal-footer px-4 py-3"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["Staff.Create.Cancel"]</button><button type="submit" class="btn btn-primary" id="createStaffSubmit"><i class="fas fa-user-plus me-1"></i> @L["Staff.Create.Submit"]</button></div>
             </form>
         </div>
     </div>
 </div>
 
+<script id="staff-create-ui-catalog" type="application/json">@Html.Raw(JsonSerializer.Serialize(L.GetAllStrings().Where(x => x.Name.StartsWith("Staff.Create.Js.") || x.Name.StartsWith("Staff.Create.Select")).ToDictionary(x => x.Name, x => x.Value)))</script>
 <script>
 (() => {
+    const catalog = CafeChainUiCatalog.read('staff-create-ui-catalog');
+    const t = (key, values) => CafeChainUiCatalog.text(catalog, key, values);
     const form = document.getElementById('createStaffForm');
     if (!form) return;
     const scopeEndpoint = '@Url.Action("GetScopeReferences", "AdminStaff", new { area = "Admin" })';
@@ -177,7 +183,7 @@
         select.disabled = true;
     };
     const loadScopeOptions = async (select, scopeTypeId, parentId, placeholder) => {
-        resetSelect(select, 'Đang tải...');
+        resetSelect(select, t('Staff.Create.Js.Loading'));
         try {
             const suffix = parentId ? `&parentId=${encodeURIComponent(parentId)}` : '';
             const response = await fetch(`${scopeEndpoint}?scopeTypeId=${scopeTypeId}${suffix}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
@@ -187,10 +193,10 @@
             rows.forEach(x => select.add(new Option(x.name, x.id)));
             select.disabled = rows.length === 0;
             return rows;
-        } catch { resetSelect(select, 'Không tải được dữ liệu'); return []; }
+        } catch { resetSelect(select, t('Staff.Create.Js.LoadFailed')); return []; }
     };
     const loadLocationOptions = async (select, url, parameterName, parentId, placeholder, requestVersion) => {
-        resetSelect(select, 'Đang tải...');
+        resetSelect(select, t('Staff.Create.Js.Loading'));
         try {
             const response = await fetch(`${url}?${parameterName}=${encodeURIComponent(parentId)}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             if (!response.ok) throw new Error();
@@ -201,7 +207,7 @@
             select.disabled = rows.length === 0;
             return rows;
         } catch {
-            if (requestVersion()) resetSelect(select, 'Không tải được dữ liệu');
+            if (requestVersion()) resetSelect(select, t('Staff.Create.Js.LoadFailed'));
             return [];
         }
     };
@@ -217,7 +223,7 @@
             if (type === '5') return store.value === reference;
             return false;
         });
-        resetSelect(primaryStore, matches.length ? '-- Chọn cửa hàng chính --' : '-- Phạm vi không có cửa hàng phù hợp --');
+        resetSelect(primaryStore, matches.length ? t('Staff.Create.Js.SelectPrimaryStore') : t('Staff.Create.Js.NoMatchingStore'));
         matches.forEach(store => primaryStore.add(new Option(store.text, store.value)));
         primaryStore.disabled = matches.length === 0;
         if (matches.some(store => store.value === previousValue)) primaryStore.value = previousValue;
@@ -225,9 +231,9 @@
     };
     const renderScopeTypesForRole = async () => {
         const mode = role.selectedOptions[0]?.dataset.scopeMode;
-        resetSelect(scopeType, mode ? '-- Chọn loại phạm vi --' : '-- Chọn vai trò trước --');
-        resetSelect(scopeRef, '-- Chọn loại phạm vi trước --');
-        resetSelect(primaryStore, '-- Chọn phạm vi trước --');
+        resetSelect(scopeType, mode ? t('Staff.Create.Js.SelectScopeType') : t('Staff.Create.SelectRoleFirst'));
+        resetSelect(scopeRef, t('Staff.Create.SelectScopeTypeFirst'));
+        resetSelect(primaryStore, t('Staff.Create.SelectScopeFirst'));
         scopeCascade.classList.add('d-none');
         if (!mode) return;
         const allowedIds = mode === 'country' ? ['1'] : mode === 'store' ? ['5'] : ['2', '4', '5'];
@@ -245,28 +251,28 @@
 
     province?.addEventListener('change', async () => {
         const requestVersion = ++wardRequestVersion;
-        resetSelect(ward, '-- Chọn Xã/Phường/Đặc khu --');
+        resetSelect(ward, t('Staff.Create.SelectWard'));
         if (province.value) await loadLocationOptions(
             ward,
             wardsEndpoint,
             'provinceId',
             province.value,
-            '-- Chọn Xã/Phường/Đặc khu --',
+            t('Staff.Create.SelectWard'),
             () => requestVersion === wardRequestVersion && province.value !== '');
     });
     const handleScopeTypeChange = async () => {
-        resetSelect(scopeRef, '-- Chọn phạm vi --');
-        resetSelect(primaryStore, '-- Chọn phạm vi trước --');
+        resetSelect(scopeRef, t('Staff.Create.Js.SelectScope'));
+        resetSelect(primaryStore, t('Staff.Create.SelectScopeFirst'));
         scopeCascade.classList.add('d-none'); scopeProvinceWrap.classList.add('d-none');
-        resetSelect(scopeProvince, '-- Chọn Tỉnh/Thành phố --');
+        resetSelect(scopeProvince, t('Staff.Create.SelectProvince'));
         if (!scopeType.value) return;
         if (scopeType.value === '4') {
             scopeCascade.classList.remove('d-none'); scopeProvinceWrap.classList.remove('d-none');
-            resetSelect(scopeRef, '-- Chọn Tỉnh/Thành phố trước --');
-            await loadScopeOptions(scopeProvince, 2, null, '-- Chọn Tỉnh/Thành phố --');
+            resetSelect(scopeRef, t('Staff.Create.Js.SelectProvinceFirst'));
+            await loadScopeOptions(scopeProvince, 2, null, t('Staff.Create.SelectProvince'));
             return;
         }
-        const rows = await loadScopeOptions(scopeRef, scopeType.value, null, '-- Chọn phạm vi --');
+        const rows = await loadScopeOptions(scopeRef, scopeType.value, null, t('Staff.Create.Js.SelectScope'));
         if ((scopeType.value === '1' || rows.length === 1) && scopeRef.options.length > 1) {
             scopeRef.selectedIndex = 1;
             filterPrimaryStores();
@@ -276,9 +282,9 @@
     scopeType?.addEventListener('change', handleScopeTypeChange);
     scopeRef?.addEventListener('change', filterPrimaryStores);
     scopeProvince?.addEventListener('change', async () => {
-        resetSelect(scopeRef, '-- Chọn phạm vi --'); resetSelect(primaryStore, '-- Chọn phạm vi trước --');
+        resetSelect(scopeRef, t('Staff.Create.Js.SelectScope')); resetSelect(primaryStore, t('Staff.Create.SelectScopeFirst'));
         if (!scopeProvince.value) return;
-        if (scopeType.value === '4') await loadScopeOptions(scopeRef, 4, scopeProvince.value, '-- Chọn Xã/Phường/Đặc khu --');
+        if (scopeType.value === '4') await loadScopeOptions(scopeRef, 4, scopeProvince.value, t('Staff.Create.SelectWard'));
     });
 
     const openAvatarPicker = () => avatarInput?.click();
@@ -289,7 +295,7 @@
         const file = avatarInput.files?.[0];
         if (!file) return;
         if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
-            avatarInput.value = ''; alert('Ảnh phải là JPG, PNG hoặc WebP và không vượt quá 2 MB.'); return;
+            avatarInput.value = ''; alert(t('Staff.Create.Js.AvatarInvalid')); return;
         }
         const reader = new FileReader();
         reader.onload = e => { avatarPreview.src = e.target.result; avatarPreview.style.display = 'block'; avatarPlaceholder.style.display = 'none'; removeAvatar.classList.remove('d-none'); };
@@ -310,7 +316,7 @@
         const nameInput = document.getElementById('FullName');
         if (nameInput) {
             if (!nameInput.value.trim()) {
-                nameInput.setCustomValidity('Vui lòng nhập họ và tên.');
+                nameInput.setCustomValidity(t('Staff.Create.Js.NameRequired'));
             } else {
                 nameInput.setCustomValidity('');
             }
@@ -320,9 +326,9 @@
         if (cccdField) {
             const val = cccdField.value.trim();
             if (!val) {
-                cccdField.setCustomValidity('Vui lòng nhập căn cước công dân.');
+                cccdField.setCustomValidity(t('Staff.Create.Js.CccdRequired'));
             } else if (!/^\d{12}$/.test(val)) {
-                cccdField.setCustomValidity('Căn cước công dân không hợp lệ (phải gồm đúng 12 chữ số).');
+                cccdField.setCustomValidity(t('Staff.Create.Js.CccdInvalid'));
             } else {
                 cccdField.setCustomValidity('');
             }
@@ -332,7 +338,7 @@
         if (dobField) {
             const val = dobField.value;
             if (!val) {
-                dobField.setCustomValidity('Vui lòng chọn ngày sinh.');
+                dobField.setCustomValidity(t('Staff.Create.Js.DobRequired'));
             } else {
                 dobField.setCustomValidity('');
             }
@@ -341,7 +347,7 @@
         const roleSelect = document.getElementById('createRole');
         if (roleSelect) {
             if (!roleSelect.value) {
-                roleSelect.setCustomValidity('Vui lòng chọn vai trò.');
+                roleSelect.setCustomValidity(t('Staff.Create.Js.RoleRequired'));
             } else {
                 roleSelect.setCustomValidity('');
             }
@@ -350,7 +356,7 @@
         const scopeTypeSelect = document.getElementById('createScopeType');
         if (scopeTypeSelect && !scopeTypeSelect.disabled) {
             if (!scopeTypeSelect.value) {
-                scopeTypeSelect.setCustomValidity('Vui lòng chọn loại phạm vi.');
+                scopeTypeSelect.setCustomValidity(t('Staff.Create.Js.ScopeTypeRequired'));
             } else {
                 scopeTypeSelect.setCustomValidity('');
             }
@@ -361,7 +367,7 @@
         const scopeRefSelect = document.getElementById('createScopeRef');
         if (scopeRefSelect && !scopeRefSelect.disabled) {
             if (!scopeRefSelect.value) {
-                scopeRefSelect.setCustomValidity('Vui lòng chọn phạm vi được cấp.');
+                scopeRefSelect.setCustomValidity(t('Staff.Create.Js.ScopeRefRequired'));
             } else {
                 scopeRefSelect.setCustomValidity('');
             }
@@ -372,7 +378,7 @@
         const storeSelect = document.getElementById('createStore');
         if (storeSelect && !storeSelect.disabled) {
             if (!storeSelect.value) {
-                storeSelect.setCustomValidity('Vui lòng chọn cửa hàng chính.');
+                storeSelect.setCustomValidity(t('Staff.Create.Js.StoreRequired'));
             } else {
                 storeSelect.setCustomValidity('');
             }
@@ -384,9 +390,9 @@
         if (emailInput) {
             const emailVal = emailInput.value.trim();
             if (!emailVal) {
-                emailInput.setCustomValidity('Vui lòng nhập email đăng nhập.');
+                emailInput.setCustomValidity(t('Staff.Create.Js.EmailRequired'));
             } else if (!/^[a-zA-Z0-9._%+-]+@@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(emailVal)) {
-                emailInput.setCustomValidity('Địa chỉ email không đúng định dạng (Ví dụ: example@domain.com).');
+                emailInput.setCustomValidity(t('Staff.Create.Js.EmailInvalid'));
             } else {
                 emailInput.setCustomValidity('');
             }
@@ -396,9 +402,9 @@
         if (passwordInput) {
             const pwVal = passwordInput.value;
             if (!pwVal) {
-                passwordInput.setCustomValidity('Vui lòng nhập mật khẩu ban đầu.');
+                passwordInput.setCustomValidity(t('Staff.Create.Js.PasswordRequired'));
             } else if (pwVal.length < 6) {
-                passwordInput.setCustomValidity('Mật khẩu phải chứa ít nhất 6 ký tự.');
+                passwordInput.setCustomValidity(t('Staff.Create.Js.PasswordMin'));
             } else {
                 passwordInput.setCustomValidity('');
             }
@@ -407,7 +413,7 @@
         const startDateInput = document.querySelector('#create-account input[type="date"]');
         if (startDateInput) {
             if (!startDateInput.value) {
-                startDateInput.setCustomValidity('Vui lòng chọn ngày bắt đầu làm việc.');
+                startDateInput.setCustomValidity(t('Staff.Create.Js.StartDateRequired'));
             } else {
                 startDateInput.setCustomValidity('');
             }
@@ -426,12 +432,12 @@
             const labels = [...new Set(invalidFields.map(validationLabel).filter(Boolean))].slice(0, 5);
             restoreCreateSubmit();
             await Swal.fire({
-                title: 'Thông tin chưa hợp lệ',
+                title: t('Staff.Create.Js.InvalidTitle'),
                 text: labels.length
-                    ? `Vui lòng kiểm tra: ${labels.join(', ')}.`
-                    : 'Vui lòng kiểm tra và nhập đầy đủ các trường bắt buộc.',
+                    ? t('Staff.Create.Js.CheckFields', { labels: labels.join(', ') })
+                    : t('Staff.Create.Js.CheckRequired'),
                 icon: 'warning',
-                confirmButtonText: 'Quay lại kiểm tra'
+                confirmButtonText: t('Staff.Create.Js.BackToCheck')
             });
             requestAnimationFrame(() => invalid?.focus({ preventScroll: false }));
             return;
@@ -450,8 +456,8 @@
                     ? `\n${payload.errors.join('\n')}`
                     : '';
                 await Swal.fire({
-                    title: response.status === 403 ? 'Không có quyền' : 'Không thể tạo nhân viên',
-                    text: `${payload?.message || 'Yêu cầu không thể xử lý.'}${details}`,
+                    title: response.status === 403 ? t('Staff.Create.Js.Forbidden') : t('Staff.Create.Js.CreateFailed'),
+                    text: `${payload?.message || t('Staff.Create.Js.RequestFailed')}${details}`,
                     icon: 'error'
                 });
                 return;
@@ -459,7 +465,7 @@
 
             window.location.assign(payload.redirectUrl || '@Url.Action("Index", "AdminStaff", new { area = "Admin" })');
         } catch {
-            await Swal.fire('Lỗi kết nối', 'Không thể kết nối máy chủ. Dữ liệu bạn đã nhập vẫn được giữ lại.', 'error');
+            await Swal.fire(t('Staff.Create.Js.ConnectionTitle'), t('Staff.Create.Js.ConnectionText'), 'error');
         } finally {
             restoreCreateSubmit();
         }

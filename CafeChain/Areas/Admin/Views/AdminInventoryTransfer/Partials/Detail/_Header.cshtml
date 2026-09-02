@@ -1,11 +1,12 @@
 @model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferDetailVM
+@inject Microsoft.Extensions.Localization.IStringLocalizer<CafeChain.InventoryResource> InventoryText
 
 <header class="transfer-header">
     <div>
         <div class="transfer-breadcrumb">
-            <span>Phiếu kho</span>
+            <span>@InventoryText["Transfer.Create.InventoryDocuments"]</span>
             <i class="fas fa-chevron-right"></i>
-            <span>Chi tiết điều chuyển kho</span>
+            <span>@InventoryText["Transfer.Detail.Breadcrumb"]</span>
         </div>
 
         <div class="transfer-title-row">
@@ -15,11 +16,11 @@
 
             <div>
                 <h1>@Model.Code</h1>
-                <p>Phiếu chuyển kho liên chi nhánh trong hệ thống.</p>
+                <p>@InventoryText["Transfer.Detail.Description"]</p>
             </div>
 
             <span class="transfer-status-pill transfer-status-@Model.Status.ToString().ToLower()">
-                @Model.Status.ToVietnamese()
+                @InventoryText[$"Transfer.Status.{Model.Status}"]
             </span>
         </div>
     </div>
@@ -30,7 +31,7 @@
            asp-controller="AdminInventoryTransfer"
            asp-action="Index">
             <i class="fas fa-arrow-left"></i>
-            Danh sách phiếu
+            @InventoryText["Transfer.Detail.BackToList"]
         </a>
 
         <a class="transfer-back-link"
@@ -38,7 +39,7 @@
            asp-controller="AdminInventoryTransfer"
            asp-action="Create">
             <i class="fas fa-plus"></i>
-            Tạo phiếu mới
+            @InventoryText["Transfer.Detail.CreateNew"]
         </a>
     </div>
 </header>

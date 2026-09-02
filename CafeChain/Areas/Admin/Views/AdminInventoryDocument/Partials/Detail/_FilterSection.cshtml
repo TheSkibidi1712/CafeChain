@@ -1,5 +1,7 @@
 @model CafeChain.ViewModels.Admin.InventoryDocuments.Index.AdminInventoryDocumentIndexVM
 @using CafeChain.Models.Enums.Inventory
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<InventoryResource> L
 
 <form method="get"
       asp-action="Index"
@@ -9,32 +11,32 @@
 
         <div class="inventory-section-heading">
             <div>
-                <span class="inventory-section-kicker">Bộ lọc nhanh</span>
-                <h4>Tìm phiếu kho</h4>
-                <p>Thu hẹp dữ liệu theo nghiệp vụ, cửa hàng và thời gian chứng từ.</p>
+                <span class="inventory-section-kicker">@L["InvDoc.Filter.Kicker"]</span>
+                <h4>@L["InvDoc.Filter.Title"]</h4>
+                <p>@L["InvDoc.Filter.Hint"]</p>
             </div>
-            <span class="inventory-section-pill">3 loại phiếu</span>
+            <span class="inventory-section-pill">@L["InvDoc.Filter.Pill"]</span>
         </div>
 
         <div class="search-box">
-            <button type="submit" class="search-btn" title="Tìm kiếm" aria-label="Tìm kiếm">
+            <button type="submit" class="search-btn" title="@L["InvDoc.Filter.Search"]" aria-label="@L["InvDoc.Filter.Search"]">
                 <i class="fas fa-search" aria-hidden="true"></i>
             </button>
             <input asp-for="Filter.Search"
                    class="form-control"
-                   placeholder="Tìm mã phiếu, cửa hàng, đối tác, người lập..."
-                   aria-label="Tìm kiếm phiếu kho" />
+                   placeholder="@L["InvDoc.Filter.SearchPlaceholder"]"
+                   aria-label="@L["InvDoc.Filter.SearchAria"]" />
         </div>
 
         <div class="filter-row">
 
             <div class="filter-field">
-                <label for="inventoryFilterType">Loại phiếu</label>
+                <label for="inventoryFilterType">@L["InvDoc.Filter.Type"]</label>
                 <select asp-for="Filter.Type"
                         id="inventoryFilterType"
                         class="form-select">
 
-                    <option value="">Tất cả loại phiếu</option>
+                    <option value="">@L["InvDoc.Filter.AllTypes"]</option>
 
                     @foreach (var item in new[]
                     {
@@ -50,11 +52,11 @@
             </div>
 
             <div class="filter-field">
-                <label for="Filter_Status">Trạng thái</label>
+                <label for="Filter_Status">@L["InvDoc.Filter.Status"]</label>
                 <select asp-for="Filter.Status"
                         class="form-select">
 
-                    <option value="">Tất cả trạng thái</option>
+                    <option value="">@L["InvDoc.Filter.AllStatuses"]</option>
 
                     @foreach (var item in Enum.GetValues<InventoryDocumentStatus>())
                     {
@@ -65,18 +67,18 @@
             </div>
 
             <div class="filter-field">
-                <label for="inventoryFilterPurpose">Mục đích</label>
+                <label for="inventoryFilterPurpose">@L["InvDoc.Filter.Purpose"]</label>
                 <select asp-for="Filter.Purpose"
                         id="inventoryFilterPurpose"
                         class="form-select"
                         disabled="@(!Model.Filter.Type.HasValue)">
 
-                    <option value="">@(Model.Filter.Type.HasValue ? "Tất cả mục đích" : "Chọn loại phiếu trước")</option>
+                    <option value="">@(Model.Filter.Type.HasValue ? L["InvDoc.Filter.AllPurposes"].Value : L["InvDoc.Filter.SelectTypeFirst"].Value)</option>
 
                     @foreach (var item in new[]
                     {
                         new { Purpose = InventoryDocumentPurpose.IMPORT_PURCHASE, Type = InventoryDocumentType.IMPORT, Label = InventoryDocumentPurpose.IMPORT_PURCHASE.ToVietnamese() },
-                        new { Purpose = InventoryDocumentPurpose.IMPORT_ADJUSTMENT, Type = InventoryDocumentType.IMPORT, Label = $"{InventoryDocumentPurpose.IMPORT_ADJUSTMENT.ToVietnamese()} (lịch sử)" },
+                        new { Purpose = InventoryDocumentPurpose.IMPORT_ADJUSTMENT, Type = InventoryDocumentType.IMPORT, Label = L["InvDoc.Filter.HistorySuffix", InventoryDocumentPurpose.IMPORT_ADJUSTMENT.ToVietnamese()].Value },
                         new { Purpose = InventoryDocumentPurpose.SALE, Type = InventoryDocumentType.EXPORT, Label = InventoryDocumentPurpose.SALE.ToVietnamese() },
                         new { Purpose = InventoryDocumentPurpose.STOCK_TAKE, Type = InventoryDocumentType.STOCK_TAKE, Label = InventoryDocumentPurpose.STOCK_TAKE.ToVietnamese() },
                         new { Purpose = InventoryDocumentPurpose.DAMAGED, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.DAMAGED.ToVietnamese() },
@@ -96,11 +98,11 @@
             </div>
 
             <div class="filter-field">
-                <label for="Filter_StoreId">Cửa hàng</label>
+                <label for="Filter_StoreId">@L["InvDoc.Filter.Store"]</label>
                 <select asp-for="Filter.StoreId"
                         class="form-select">
 
-                    <option value="">Tất cả cửa hàng</option>
+                    <option value="">@L["InvDoc.Filter.AllStores"]</option>
 
                     @foreach (var store in Model.Stores)
                     {
@@ -113,7 +115,7 @@
             </div>
 
             <div class="filter-field filter-date-field">
-                <label asp-for="Filter.FromDate">Từ ngày</label>
+                <label asp-for="Filter.FromDate">@L["InvDoc.Filter.FromDate"]</label>
                 <input asp-for="Filter.FromDate"
                        type="date"
                        class="form-control"
@@ -121,7 +123,7 @@
             </div>
 
             <div class="filter-field filter-date-field">
-                <label asp-for="Filter.ToDate">Đến ngày</label>
+                <label asp-for="Filter.ToDate">@L["InvDoc.Filter.ToDate"]</label>
                 <input asp-for="Filter.ToDate"
                        type="date"
                        class="form-control"
@@ -133,13 +135,13 @@
                 <a asp-action="Index"
                    class="btn btn-light inventory-action-secondary">
                     <i class="fas fa-rotate-left" aria-hidden="true"></i>
-                    Đặt lại
+                    @L["InvDoc.Filter.Reset"]
                 </a>
 
                 <button type="submit"
                         class="btn btn-primary inventory-action-primary">
                     <i class="fas fa-filter" aria-hidden="true"></i>
-                    Áp dụng
+                    @L["InvDoc.Filter.Apply"]
                 </button>
 
             </div>

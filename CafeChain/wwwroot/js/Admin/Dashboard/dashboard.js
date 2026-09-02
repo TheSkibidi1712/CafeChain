@@ -4,6 +4,94 @@
     const root = document.getElementById("dashboardRoot");
     if (!root) return;
 
+    const locale = document.documentElement.dataset.culture === "en-US" ? "en-US" : "vi-VN";
+    const english = locale === "en-US";
+    const dashboardText = english ? {
+        all: "All",
+        waitForAi: "Please wait for the AI analysis to finish before applying filters.",
+        yes: "Yes", no: "No", unknown: "Unknown", retry: "Try again",
+        noData: "No data available", noDataHint: "Try changing the date range or store scope.",
+        widgetError: "Unable to load widget", unknownError: "Unknown error",
+        loadError: "Unable to load dashboard data.", missingWidget: "This widget is missing from the response.",
+        partialData: "Partial data", shift: "Shift", store: "Store", supplier: "Supplier",
+        ingredient: "Ingredient", product: "Product", size: "Size", transactionType: "Transaction type",
+        count: "Count", volume: "Volume", revenue: "Revenue", margin: "Margin",
+        week: "Week", month: "Month", from: "from", invalidDates: "The from date cannot be later than the to date.",
+        contextError: "Unable to create the dashboard context.",
+        scheduleNotice: "The staff schedule is a forecast plan, not attendance or payroll data.",
+        fields: {
+            bucketDate: "Time", storeId: "Store ID", storeName: "Store", staffId: "Staff ID",
+            movementDate: "Time", receiptDate: "Time", fullName: "Staff member", workShiftId: "Work shift ID",
+            staffShiftId: "Staff shift ID", totalOrders: "Orders", totalTransactions: "Transactions",
+            transactionCount: "Transactions", netSales: "Net sales", amount: "Amount", averageOrderValue: "Average order value",
+            cashDiscrepancy: "Cash discrepancy", absoluteDiscrepancy: "Absolute discrepancy",
+            absoluteCashDiscrepancy: "Total cash discrepancy", startingCash: "Starting cash",
+            expectedEndingCash: "Expected ending cash", actualEndingCash: "Actual ending cash",
+            offlineEstimatedTotalAtClose: "Estimated offline sales", offlineCashTotalAtClose: "Offline cash",
+            paymentMethodName: "Payment method", hourOfDay: "Hour", severity: "Severity",
+            share: "Share", isoWeekday: "Weekday", alertType: "Alert type", alertValue: "Alert value", message: "Details",
+            totalWorkShifts: "Total work shifts", openWorkShifts: "Open shifts", exceptionClosedCount: "Exception-closed shifts",
+            reconciliationCount: "Shifts requiring reconciliation", offlineOrderCountAtClose: "Offline orders",
+            requiresReconciliation: "Requires reconciliation", hasLateOfflineSync: "Late offline sync",
+            isExceptionClosed: "Exception closed", discrepancyReason: "Discrepancy reason", endTime: "Ended at",
+            ingredientId: "Ingredient ID", ingredientName: "Ingredient", availableQty: "Available quantity",
+            reservedQty: "Reserved quantity", minStockLevel: "Minimum stock", maxNegativeQty: "Maximum negative quantity",
+            requestedQuantity: "Requested quantity", suggestedQuantity: "Suggested quantity", priority: "Priority",
+            status: "Status", statusCode: "Status", quantity: "Quantity", wasteValue: "Waste value",
+            wasteQuantity: "Waste quantity", remainingQuantity: "Remaining quantity", remainingValue: "Remaining value",
+            ageDays: "FIFO layer age (days)", preparedItemId: "Prepared item ID", code: "Code",
+            supplierName: "Supplier", expectedDeliveryAtUtc: "Expected delivery", overdueDays: "Days overdue",
+            orderedValue: "Ordered value", rejectionRate: "Rejection rate", averageBaseUnitCost: "Base unit cost",
+            spend: "Spend", issueType: "Issue type", issueCount: "Issues", drinkCode: "Product code",
+            drinkName: "Product", productRevenue: "Product revenue", revenue: "Revenue", confirmedCogs: "Confirmed COGS",
+            confirmedGrossProfit: "Gross profit", confirmedMarginRate: "Gross margin", volume: "Volume",
+            totalSold: "Quantity sold", sizeName: "Size", toppingName: "Topping", recipeCount: "Recipes",
+            recipeLineCount: "BOM lines", invalidLineCount: "Invalid BOM lines", shiftId: "Planned shift ID",
+            shiftName: "Planned shift", workDate: "Work date", plannedStartAt: "Planned start",
+            plannedEndAt: "Planned end", isOvernight: "Overnight shift", scheduledStaffCount: "Scheduled staff",
+            workShiftCount: "POS work shifts", ordersPerWorkShift: "Orders per POS shift", completedOrders: "Completed orders",
+            cancelledOrders: "Cancelled orders", cancellationRate: "Cancellation rate", consumedQuantity: "Consumed quantity",
+            confirmedCost: "Confirmed cost", categoryName: "Category", contributionPercent: "Contribution"
+        },
+        widgets: {
+            netSalesTrend: "Net sales", storeRanking: "Store ranking",
+            paymentMethodMix: "Payment mix", orderHeatmap: "Hourly order density",
+            operationalAlerts: "Operational alerts", orderStatusSummary: "Order status",
+            kpis: "Work shift KPIs", cashDiscrepancy: "Cash discrepancy", shiftSales: "Sales by shift",
+            paymentMix: "Payment by shift", hourlyOrders: "Orders by hour", offlineReconciliation: "Offline reconciliation",
+            topDiscrepancies: "Largest shift discrepancies", shortageRisk: "Shortage risk", movement: "Inventory movement",
+            thresholdRisk: "Stock threshold risk", reorderSuggestions: "Reorder suggestions", waste: "Waste",
+            fifoAge: "FIFO layer age", ingredientConsumptionTrend: "Ingredient consumption trend",
+            purchaseOrderPipeline: "Purchase order pipeline", overduePurchaseOrders: "Overdue purchase orders",
+            supplierQuality: "Supplier quality", purchasePriceTrend: "Purchase price trend",
+            spendBreakdown: "Supplier spend", supplierIssueMix: "Supplier issue mix", topProducts: "Top products",
+            volumeMargin: "Volume and margin", sizeMargin: "Profit by size", topToppings: "Top toppings",
+            bomHealth: "BOM health", lowEfficiency: "High consumption / low efficiency",
+            categoryPerformance: "Category performance", productPeriodPerformance: "Product period performance",
+            lowVolumeProducts: "Low-volume products", lowMarginProducts: "Low-margin products",
+            shiftStatus: "Staff shift status", hourlyDemand: "Hourly demand", scheduledStaff: "Hourly staffing",
+            staffPerformance: "POS activity by staff"
+        },
+        codes: {
+            DRAFT: "Draft", APPROVED: "Approved", MARKED_AS_SENT: "Sent to supplier", PARTIALLY_RECEIVED: "Partially received",
+            COMPLETED: "Completed", CANCELLED: "Cancelled", SCHEDULED: "Scheduled", OPEN: "Open", CLOSED: "Closed",
+            UNDER_REVIEW: "Under review", RESOLVED: "Resolved", DISMISSED: "Dismissed", CRITICAL: "Critical",
+            WARNING: "Warning", HIGH: "High", NORMAL: "Normal", URGENT: "Urgent", LOW: "Low", SUBMITTED: "Submitted",
+            PROCESSING: "Processing", REJECTED: "Rejected", LOW_STOCK: "Low stock", CASH_DISCREPANCY: "Cash discrepancy",
+            OVERDUE_PO: "Overdue purchase order", LATE_DELIVERY: "Late delivery", SHORT_DELIVERY: "Short delivery",
+            WRONG_ITEM: "Wrong item", DAMAGED: "Damaged", EXPIRED: "Expired", QUALITY_FAILURE: "Quality failure",
+            PACKAGING_FAILURE: "Packaging failure", DOCUMENT_MISMATCH: "Document mismatch", OTHER: "Other",
+            SUPPLIER_ISSUE: "Supplier issue"
+        },
+        transactions: {
+            1: "Stock receipt", 2: "Stock issue", 3: "Waste", 4: "Stock count",
+            5: "Production receipt", 6: "Production issue", 7: "Sales deduction",
+            8: "Positive adjustment", 9: "Negative adjustment", 10: "Transfer out",
+            11: "Transfer in", 12: "Consolidation decrease", 13: "Consolidation increase",
+            14: "Receipt document", 15: "Sales return"
+        }
+    } : null;
+
     const stores = JSON.parse(document.getElementById("dashboardStores")?.textContent || "[]");
     const dashboardContext = JSON.parse(document.getElementById("dashboardContext")?.textContent || "null");
     let allowedWidgetKeys = new Set((dashboardContext?.widgets || []).map(widget => widget.key));
@@ -33,7 +121,7 @@
         applyButton.disabled = isAiBusy || isApplyingContext;
         applyButton.setAttribute("aria-disabled", String(applyButton.disabled));
         applyButton.title = isAiBusy
-            ? "Vui lòng chờ AI phân tích xong trước khi áp dụng bộ lọc."
+            ? (dashboardText?.waitForAi || "Vui lòng chờ AI phân tích xong trước khi áp dụng bộ lọc.")
             : "";
     }
 
@@ -87,6 +175,12 @@
         contributionPercent: ["Tỷ trọng đóng góp", "percent"]
     });
 
+    if (dashboardText) {
+        Object.entries(dashboardText.fields).forEach(([key, label]) => {
+            if (fieldMeta[key]) fieldMeta[key][0] = label;
+        });
+    }
+
     const codeLabels = {
         DRAFT: "Nháp", APPROVED: "Đã duyệt", MARKED_AS_SENT: "Đã gửi nhà cung cấp", PARTIALLY_RECEIVED: "Nhận một phần",
         COMPLETED: "Hoàn tất", CANCELLED: "Đã hủy", SCHEDULED: "Đã lên lịch",
@@ -97,12 +191,14 @@
         LATE_DELIVERY: "Giao trễ", SHORT_DELIVERY: "Giao thiếu", WRONG_ITEM: "Sai hàng", DAMAGED: "Hư hỏng", EXPIRED: "Hết hạn",
         QUALITY_FAILURE: "Không đạt chất lượng", PACKAGING_FAILURE: "Lỗi bao bì", DOCUMENT_MISMATCH: "Sai chứng từ", OTHER: "Khác"
     };
+    if (dashboardText) Object.assign(codeLabels, dashboardText.codes);
 
     const inventoryTransactionLabels = {
         1: "Nhập kho", 2: "Xuất kho", 3: "Hao hụt", 4: "Kiểm kê", 5: "Nhập từ sản xuất", 6: "Xuất cho sản xuất",
         7: "Khấu trừ bán hàng", 8: "Điều chỉnh tăng", 9: "Điều chỉnh giảm", 10: "Chuyển kho đi", 11: "Chuyển kho đến",
         12: "Hợp nhất giảm", 13: "Hợp nhất tăng", 14: "Nhập từ phiếu nhận", 15: "Hoàn trả bán hàng"
     };
+    if (dashboardText) Object.assign(inventoryTransactionLabels, dashboardText.transactions);
 
     const widgetAuthorization = {
         netSalesTrend: "NetSalesTrend", storeRanking: "StoreRanking", paymentMethodMix: "PaymentMethodMix",
@@ -127,11 +223,11 @@
 
     const sections = {
         Executive: [
-            chart("netSalesTrend", "Doanh số thuần", "line", "bucketDate", "netSales", { wide: true, axis: "time", valueFormat: "currency" }),
-            chart("storeRanking", "Xếp hạng cửa hàng", "bar", "storeName", "netSales", { entity: "store", valueFormat: "currency" }),
-            chart("paymentMethodMix", "Cơ cấu thanh toán", "donut", "paymentMethodName", "amount", { valueFormat: "currency" }),
-            chart("orderHeatmap", "Mật độ đơn theo giờ", "heatmap", "hourOfDay", "totalOrders", { wide: true, valueFormat: "count" }),
-            table("operationalAlerts", "Cảnh báo vận hành", ["severity", "alertType", "storeId", "alertValue", "message"], true)
+            chart("netSalesTrend", dashboardText?.widgets.netSalesTrend || "Doanh số thuần", "line", "bucketDate", "netSales", { wide: true, axis: "time", valueFormat: "currency" }),
+            chart("storeRanking", dashboardText?.widgets.storeRanking || "Xếp hạng cửa hàng", "bar", "storeName", "netSales", { entity: "store", valueFormat: "currency" }),
+            chart("paymentMethodMix", dashboardText?.widgets.paymentMethodMix || "Cơ cấu thanh toán", "donut", "paymentMethodName", "amount", { valueFormat: "currency" }),
+            chart("orderHeatmap", dashboardText?.widgets.orderHeatmap || "Mật độ đơn theo giờ", "heatmap", "hourOfDay", "totalOrders", { wide: true, valueFormat: "count" }),
+            table("operationalAlerts", dashboardText?.widgets.operationalAlerts || "Cảnh báo vận hành", ["severity", "alertType", "storeId", "alertValue", "message"], true)
         ],
         Operations: [
             kpi("kpis", "KPI ca làm việc", ["totalWorkShifts", "openWorkShifts", "exceptionClosedCount", "reconciliationCount", "absoluteCashDiscrepancy"], true),
@@ -175,7 +271,7 @@
     };
 
     sections.Executive.push(
-        chart("orderStatusSummary", "Tình trạng đơn hàng", "bar", "storeName", "totalOrders", { valueFormat: "count" })
+        chart("orderStatusSummary", dashboardText?.widgets.orderStatusSummary || "Tình trạng đơn hàng", "bar", "storeName", "totalOrders", { valueFormat: "count" })
     );
     sections.Inventory.push(
         chart("ingredientConsumptionTrend", "Xu hướng tiêu thụ nguyên liệu", "line", "bucketDate", "consumedQuantity", { wide: true, axis: "time", seriesBy: "ingredientName", valueFormat: "quantity", missingValue: 0 })
@@ -186,6 +282,12 @@
         table("lowVolumeProducts", "Sản phẩm bán chậm", ["drinkName", "totalSold", "revenue", "confirmedMarginRate"]),
         table("lowMarginProducts", "Sản phẩm biên lợi nhuận thấp", ["drinkName", "totalSold", "revenue", "confirmedGrossProfit", "confirmedMarginRate"])
     );
+
+    if (dashboardText) {
+        Object.values(sections).flat().forEach(widget => {
+            widget.title = dashboardText.widgets[widget.key] || widget.title;
+        });
+    }
 
     function chart(key, title, kind, label, value, options = {}) { return { key, title, kind, label, value, authorizationKey: widgetAuthorization[key], ...options, wide: Boolean(options.wide) }; }
     function table(key, title, columns, wide = false) { return { key, title, kind: "table", columns, wide, authorizationKey: widgetAuthorization[key] }; }
@@ -209,45 +311,45 @@
     function format(value, type) {
         if (value === null || value === undefined || value === "") return "—";
         if (type === "status") return translateCode(value);
-        if (type === "boolean" || typeof value === "boolean") return value ? "Có" : "Không";
-        if (type === "currency") return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Number(value) || 0)} ₫`;
-        if (type === "percent") return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2 }).format((Number(value) || 0) * 100)}%`;
-        if (type === "count") return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Number(value) || 0);
-        if (type === "quantity") return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 3 }).format(Number(value) || 0);
-        if (type === "number" || typeof value === "number") return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2 }).format(Number(value) || 0);
+        if (type === "boolean" || typeof value === "boolean") return value ? (dashboardText?.yes || "Có") : (dashboardText?.no || "Không");
+        if (type === "currency") return new Intl.NumberFormat(locale, { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(Number(value) || 0);
+        if (type === "percent") return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format((Number(value) || 0) * 100)}%`;
+        if (type === "count") return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(Number(value) || 0);
+        if (type === "quantity") return new Intl.NumberFormat(locale, { maximumFractionDigits: 3 }).format(Number(value) || 0);
+        if (type === "number" || typeof value === "number") return new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(Number(value) || 0);
         if (type === "hour") return hourLabel(value);
         if (type === "id") return `#${value}`;
-        if (type === "dateTime" || /^\d{4}-\d{2}-\d{2}T/.test(String(value))) return new Date(value).toLocaleString("vi-VN");
-        if (type === "date" || /^\d{4}-\d{2}-\d{2}$/.test(String(value))) return new Date(value).toLocaleDateString("vi-VN");
+        if (type === "dateTime" || /^\d{4}-\d{2}-\d{2}T/.test(String(value))) return new Date(value).toLocaleString(locale);
+        if (type === "date" || /^\d{4}-\d{2}-\d{2}$/.test(String(value))) return new Date(value).toLocaleDateString(locale);
         return String(value);
     }
 
     function translateCode(value) {
         const normalized = String(value ?? "").trim();
-        if (!normalized) return "Không xác định";
+        if (!normalized) return dashboardText?.unknown || "Không xác định";
         return codeLabels[normalized.toUpperCase()] || normalized.replaceAll("_", " ");
     }
 
-    function inventoryTransactionLabel(value) { return inventoryTransactionLabels[Number(value)] || `Loại giao dịch #${value}`; }
+    function inventoryTransactionLabel(value) { return inventoryTransactionLabels[Number(value)] || `${dashboardText?.transactionType || "Loại giao dịch"} #${value}`; }
     function hourLabel(value) { return `${String(Number(value) || 0).padStart(2, "0")}h`; }
 
     function entityLabel(row, entity, preferred) {
         const definitions = {
-            store: ["storeName", "storeId", "Cửa hàng"], supplier: ["supplierName", "supplierId", "Nhà cung cấp"],
-            ingredient: ["ingredientName", "ingredientId", "Nguyên liệu"], drink: ["drinkName", "drinkId", "Sản phẩm"],
-            topping: ["toppingName", "toppingId", "Topping"], size: ["sizeName", "sizeId", "Kích cỡ"]
+            store: ["storeName", "storeId", dashboardText?.store || "Cửa hàng"], supplier: ["supplierName", "supplierId", dashboardText?.supplier || "Nhà cung cấp"],
+            ingredient: ["ingredientName", "ingredientId", dashboardText?.ingredient || "Nguyên liệu"], drink: ["drinkName", "drinkId", dashboardText?.product || "Sản phẩm"],
+            topping: ["toppingName", "toppingId", "Topping"], size: ["sizeName", "sizeId", dashboardText?.size || "Kích cỡ"]
         };
         const definition = definitions[entity];
         const name = String(preferred ?? (definition ? row[definition[0]] : "") ?? "").trim();
         if (name) return name;
         const id = definition ? row[definition[1]] : null;
-        return id === null || id === undefined || id === "" ? (definition?.[2] || "Không xác định") : `${definition[2]} #${id}`;
+        return id === null || id === undefined || id === "" ? (definition?.[2] || dashboardText?.unknown || "Không xác định") : `${definition[2]} #${id}`;
     }
 
     function shiftLabel(row, detailed = false) {
-        const shift = `Ca #${row.workShiftId ?? "?"}`;
+        const shift = `${dashboardText?.shift || "Ca"} #${row.workShiftId ?? "?"}`;
         if (!detailed) return shift;
-        const owner = String(row.fullName || row.storeName || "").trim() || (row.storeId ? `Cửa hàng #${row.storeId}` : "Chưa xác định");
+        const owner = String(row.fullName || row.storeName || "").trim() || (row.storeId ? `${dashboardText?.store || "Cửa hàng"} #${row.storeId}` : dashboardText?.unknown || "Chưa xác định");
         return `${shift} – ${owner}`;
     }
 
@@ -277,7 +379,7 @@
         return nonEmptyLabel(raw, fieldLabel(widget.seriesBy));
     }
 
-    function nonEmptyLabel(value, fallback = "Không xác định") {
+    function nonEmptyLabel(value, fallback = dashboardText?.unknown || "Không xác định") {
         const normalized = String(value ?? "").trim();
         return normalized || fallback;
     }
@@ -292,11 +394,11 @@
         const selectedProvince = initial ? root.dataset.province : fields.province.value;
         const selectedWard = initial ? root.dataset.ward : fields.ward.value;
         const selectedStore = initial ? root.dataset.store : fields.store.value;
-        fields.province.innerHTML = `<option value="">Tất cả</option>${distinct(stores, "provinceId", "provinceName", selectedProvince)}`;
+        fields.province.innerHTML = `<option value="">${dashboardText?.all || "Tất cả"}</option>${distinct(stores, "provinceId", "provinceName", selectedProvince)}`;
         const provinceStores = selectedProvince ? stores.filter(x => String(x.provinceId) === String(selectedProvince)) : stores;
-        fields.ward.innerHTML = `<option value="">Tất cả</option>${distinct(provinceStores, "wardId", "wardName", selectedWard)}`;
+        fields.ward.innerHTML = `<option value="">${dashboardText?.all || "Tất cả"}</option>${distinct(provinceStores, "wardId", "wardName", selectedWard)}`;
         const storeOptions = provinceStores.filter(x => !selectedWard || String(x.wardId) === String(selectedWard));
-        fields.store.innerHTML = `<option value="">Tất cả</option>${distinct(storeOptions, "storeId", "storeName", selectedStore)}`;
+        fields.store.innerHTML = `<option value="">${dashboardText?.all || "Tất cả"}</option>${distinct(storeOptions, "storeId", "storeName", selectedStore)}`;
     }
 
     function query(section) {
@@ -324,7 +426,7 @@
         try {
             const response = await fetch(`${root.dataset.endpoint}?${query(section)}`, { signal: activeRequest.signal, headers: { Accept: "application/json" } });
             const payload = await response.json();
-            if (!response.ok || !payload.success) throw new Error(payload.message || "Không thể tải dữ liệu dashboard.");
+            if (!response.ok || !payload.success) throw new Error(payload.message || dashboardText?.loadError || "Không thể tải dữ liệu dashboard.");
             cache.set(section, payload.data);
             if (payload.data?.contextId) root.dataset.contextId = payload.data.contextId;
             if (payload.data?.generatedAt) root.dataset.generatedAt = payload.data.generatedAt;
@@ -342,18 +444,20 @@
         const warnings = [];
         const widgets = authorizedSectionWidgets(section);
         panel.innerHTML = widgets.map(widget => {
-            const result = data[widget.dataKey || widget.key] || { status: "ERROR", message: "Payload không có widget này." };
+            const result = data[widget.dataKey || widget.key] || { status: "ERROR", message: dashboardText?.missingWidget || "Payload không có widget này." };
             (result.warnings || []).forEach(item => warnings.push(`${widget.title}: ${item}`));
             return widgetShell(widget, result);
         }).join("");
         widgets.forEach(widget => renderWidget(widget, data[widget.dataKey || widget.key], response?.granularity));
-        const scheduleNotice = section === "Workforce" ? "Lịch nhân sự là kế hoạch dự kiến, không phải dữ liệu chấm công hoặc tính lương." : "";
+        const scheduleNotice = section === "Workforce"
+            ? (dashboardText?.scheduleNotice || "Lịch nhân sự là kế hoạch dự kiến, không phải dữ liệu chấm công hoặc tính lương.")
+            : "";
         const warningNotice = warnings.length ? `Dữ liệu một phần: ${warnings.join(" · ")}` : "";
         showNotice([scheduleNotice, warningNotice].filter(Boolean).join(" · "));
     }
 
     function widgetShell(widget, result) {
-        const badge = result?.warnings?.length ? `<span class="analytics-badge">Dữ liệu một phần</span>` : "";
+        const badge = result?.warnings?.length ? `<span class="analytics-badge">${dashboardText?.partialData || "Dữ liệu một phần"}</span>` : "";
         return `<article class="analytics-widget ${widget.wide ? "is-wide" : ""} ${widget.kind === "kpi" ? "is-compact" : ""}" data-widget="${widget.key}"><div class="analytics-widget__header"><h2>${widget.title}</h2>${badge}</div><div class="analytics-widget__body" id="widget-${widget.key}"></div></article>`;
     }
 
@@ -361,23 +465,36 @@
         const target = document.getElementById(`widget-${widget.key}`);
         if (!target) return;
         if (!result || result.status === "ERROR") {
-            target.innerHTML = state("Không tải được widget", result?.message || "Lỗi không xác định", true);
+            target.innerHTML = state(dashboardText?.widgetError || "Không tải được widget", result?.message || dashboardText?.unknownError || "Lỗi không xác định", true);
             target.querySelector("button")?.addEventListener("click", () => loadSection(activeSection, true));
             return;
         }
         const rows = Array.isArray(result.data) ? result.data : [];
-        if (result.status === "NO_DATA" || rows.length === 0) { target.innerHTML = state("Chưa có dữ liệu", "Hãy thử đổi thời gian hoặc phạm vi cửa hàng."); return; }
+        if (result.status === "NO_DATA" || rows.length === 0) { target.innerHTML = state(dashboardText?.noData || "Chưa có dữ liệu", dashboardText?.noDataHint || "Hãy thử đổi thời gian hoặc phạm vi cửa hàng."); return; }
         if (widget.kind === "table") renderTable(target, rows, widget.columns);
         else if (widget.kind === "kpi") renderKpis(target, rows[0], widget.columns);
         else renderChart(target, rows, widget, granularity);
     }
 
     function state(title, message, retry = false) {
-        return `<div class="analytics-state"><div><strong>${escapeHtml(title)}</strong><span>${escapeHtml(message)}</span>${retry ? '<br><button type="button" class="analytics-retry">Thử lại</button>' : ""}</div></div>`;
+        return `<div class="analytics-state"><div><strong>${escapeHtml(title)}</strong><span>${escapeHtml(message)}</span>${retry ? `<br><button type="button" class="analytics-retry">${escapeHtml(dashboardText?.retry || "Thử lại")}</button>` : ""}</div></div>`;
     }
 
     function renderTable(target, rows, columns) {
-        target.innerHTML = `<div class="analytics-table-wrap"><table class="analytics-table"><thead><tr>${columns.map(key => `<th title="${escapeHtml(fieldLabel(key))}">${escapeHtml(fieldLabel(key))}</th>`).join("")}</tr></thead><tbody>${rows.map(row => `<tr>${columns.map(key => tableCell(row[key], key)).join("")}</tr>`).join("")}</tbody></table></div>`;
+        target.innerHTML = `<div class="analytics-table-wrap"><table class="analytics-table"><thead><tr>${columns.map(key => `<th title="${escapeHtml(fieldLabel(key))}">${escapeHtml(fieldLabel(key))}</th>`).join("")}</tr></thead><tbody>${rows.map(row => `<tr>${columns.map(key => tableCell(key === "message" ? alertMessage(row) : row[key], key)).join("")}</tr>`).join("")}</tbody></table></div>`;
+    }
+
+    function alertMessage(row) {
+        if (!dashboardText) return row.message;
+        const entity = row.entityName || row.entityCode || `#${row.entityId || "?"}`;
+        const store = row.storeName || `${dashboardText.store} #${row.storeId}`;
+        switch (String(row.alertType || "").toUpperCase()) {
+            case "CASH_DISCREPANCY": return `Cash discrepancy for ${entity} at ${store}.`;
+            case "LOW_STOCK": return `${entity} is below its stock threshold at ${store}.`;
+            case "OVERDUE_PO": return `Overdue PO: ${row.entityCode || entity}.`;
+            case "SUPPLIER_ISSUE": return `Supplier issue for ${entity} at ${store}.`;
+            default: return dashboardText.codes[String(row.alertType || "").toUpperCase()] || row.message;
+        }
     }
 
     function tableCell(value, key) {
@@ -448,6 +565,22 @@
         context.instance.setOption(chartOption(context.rows, context.widget, context.granularity, capacity), { notMerge: true, lazyUpdate: true });
     }
 
+    function chartTheme() {
+        const styles = getComputedStyle(document.documentElement);
+        const value = name => styles.getPropertyValue(name).trim();
+        const dark = document.documentElement.dataset.theme === "dark";
+        return {
+            text: value("--cc-text") || (dark ? "#f5eee8" : "#201812"),
+            muted: value("--cc-text-muted") || (dark ? "#ad9e93" : "#7a6c62"),
+            border: value("--cc-border") || (dark ? "#443a33" : "#e2d7ce"),
+            surface: value("--cc-surface-raised") || (dark ? "#25201c" : "#ffffff"),
+            axis: dark ? "#665548" : "#c9b4a4",
+            palette: dark
+                ? ["#d8aa87", "#e5ad75", "#7bc2a9", "#9fc4df", "#ef9292", "#b8c0cb"]
+                : ["#6f4e37", "#c67a45", "#2f6f5e", "#28627f", "#b4232f", "#59636f"]
+        };
+    }
+
     function categoryCapacity(width) {
         if (width <= 430) return 6;
         if (width <= 700) return 8;
@@ -456,7 +589,15 @@
     }
 
     function chartOption(rows, widget, granularity, capacity) {
-        const base = { animationDuration: 350, textStyle: { fontFamily: "Segoe UI, sans-serif" }, tooltip: { trigger: "axis", confine: true }, aria: { enabled: true }, grid: { left: 66, right: 34, top: 42, bottom: 82, containLabel: true } };
+        const theme = chartTheme();
+        const base = {
+            animationDuration: 350,
+            color: theme.palette,
+            textStyle: { fontFamily: "Segoe UI, sans-serif", color: theme.text },
+            tooltip: { trigger: "axis", confine: true, backgroundColor: theme.surface, borderColor: theme.border, textStyle: { color: theme.text } },
+            aria: { enabled: true },
+            grid: { left: 66, right: 34, top: 42, bottom: 82, containLabel: true }
+        };
         if (widget.kind === "donut") return donutOption(rows, widget, base);
         if (widget.kind === "scatter") return scatterOption(rows, widget, base);
         if (widget.kind === "heatmap") return heatmapOption(rows, widget, base);
@@ -469,8 +610,8 @@
         return {
             ...base,
             tooltip: { trigger: "item", confine: true, formatter: params => `${escapeHtml(params.name)}<br>${escapeHtml(format(params.value, widget.valueFormat))} (${format(params.percent / 100, "percent")})` },
-            legend: { bottom: 0, type: "scroll", formatter: name => truncateLabel(name, 28) },
-            series: [{ type: "pie", radius: ["43%", "68%"], avoidLabelOverlap: true, data: rows.map(row => ({ name: resolveLabel(row, widget), value: Number(row[widget.value] || 0) })), itemStyle: { borderColor: "#fff", borderWidth: 2 } }]
+            legend: { bottom: 0, type: "scroll", textStyle: { color: chartTheme().text }, formatter: name => truncateLabel(name, 28) },
+            series: [{ type: "pie", radius: ["43%", "68%"], avoidLabelOverlap: true, data: rows.map(row => ({ name: resolveLabel(row, widget), value: Number(row[widget.value] || 0) })), itemStyle: { borderColor: chartTheme().surface, borderWidth: 2 } }]
         };
     }
 
@@ -482,11 +623,11 @@
                 trigger: "item", confine: true,
                 formatter: params => {
                     const row = params.data.raw;
-                    return `<strong>${escapeHtml(entityLabel(row, "drink"))}</strong><br>Sản lượng: ${escapeHtml(format(row.volume, "count"))}<br>Doanh thu: ${escapeHtml(format(row.revenue, "currency"))}<br>COGS: ${escapeHtml(format(row.confirmedCogs, "currency"))}<br>Biên lợi nhuận: ${escapeHtml(format(row.confirmedMarginRate, "percent"))}`;
+                    return `<strong>${escapeHtml(entityLabel(row, "drink"))}</strong><br>${dashboardText?.volume || "Sản lượng"}: ${escapeHtml(format(row.volume, "count"))}<br>${dashboardText?.revenue || "Doanh thu"}: ${escapeHtml(format(row.revenue, "currency"))}<br>COGS: ${escapeHtml(format(row.confirmedCogs, "currency"))}<br>${dashboardText?.margin || "Biên lợi nhuận"}: ${escapeHtml(format(row.confirmedMarginRate, "percent"))}`;
                 }
             },
-            xAxis: { type: "value", name: "Sản lượng", nameLocation: "middle", nameGap: 34, minInterval: 1 },
-            yAxis: { type: "value", name: "Biên lợi nhuận", nameLocation: "middle", nameGap: 48, axisLabel: { formatter: value => format(value, "percent") } },
+            xAxis: { type: "value", name: dashboardText?.volume || "Sản lượng", nameLocation: "middle", nameGap: 34, minInterval: 1 },
+            yAxis: { type: "value", name: dashboardText?.margin || "Biên lợi nhuận", nameLocation: "middle", nameGap: 48, axisLabel: { formatter: value => format(value, "percent") } },
             series: [{
                 type: "scatter", symbolSize: 16,
                 data: rows.map(row => ({ name: entityLabel(row, "drink"), value: [Number(row.volume || 0), Number(row.confirmedMarginRate || 0)], raw: row })),
@@ -501,9 +642,9 @@
         const max = Math.max(1, ...values.map(item => item[2]));
         return {
             ...base, grid: { ...base.grid, top: 20, bottom: 76 },
-            tooltip: { position: "top", confine: true, formatter: item => `${["T2", "T3", "T4", "T5", "T6", "T7", "CN"][item.data[1]]}, ${hourLabel(item.data[0])}: ${format(item.data[2], widget.valueFormat)}` },
+            tooltip: { position: "top", confine: true, formatter: item => `${(english ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] : ["T2", "T3", "T4", "T5", "T6", "T7", "CN"])[item.data[1]]}, ${hourLabel(item.data[0])}: ${format(item.data[2], widget.valueFormat)}` },
             xAxis: { type: "category", data: Array.from({ length: 24 }, (_, hour) => hourLabel(hour)), splitArea: { show: true }, axisLabel: { interval: 1 } },
-            yAxis: { type: "category", data: ["T2", "T3", "T4", "T5", "T6", "T7", "CN"], splitArea: { show: true } },
+            yAxis: { type: "category", data: english ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] : ["T2", "T3", "T4", "T5", "T6", "T7", "CN"], splitArea: { show: true } },
             visualMap: { min: 0, max, calculable: true, orient: "horizontal", left: "center", bottom: 0 },
             series: [{ type: "heatmap", data: values }]
         };
@@ -516,7 +657,7 @@
             grouped.set(label, (grouped.get(label) || 0) + 1);
         });
         const aggregated = [...grouped].map(([label, value]) => ({ label, value }));
-        return cartesianOption(base, aggregated.map(row => row.label), [{ name: "Số ca", type: "bar", data: aggregated.map(row => row.value) }], widget, granularity, capacity, false);
+        return cartesianOption(base, aggregated.map(row => row.label), [{ name: dashboardText?.count || "Số ca", type: "bar", data: aggregated.map(row => row.value) }], widget, granularity, capacity, false);
     }
 
     function multiSeriesOption(rows, widget, base, granularity, capacity) {
@@ -553,9 +694,8 @@
         const legendTopSpace = hasLegend ? 76 : base.grid.top;
         return {
             ...base,
-            color: ["#6F4E37", "#C67A45", "#2F6F5E", "#99623B", "#991B1B", "#475569", "#C67A45"],
             grid: { ...base.grid, top: legendTopSpace, bottom: useZoom ? 130 : (categoryAxis ? 110 : 82) },
-            legend: hasLegend ? { type: "scroll", top: 4, left: 12, right: 12, itemGap: 16 } : undefined,
+            legend: hasLegend ? { type: "scroll", top: 4, left: 12, right: 12, itemGap: 16, textStyle: { color: chartTheme().text } } : undefined,
             tooltip: { ...base.tooltip, formatter: parameters => chartTooltip(parameters, widget, dateAxis, granularity) },
             dataZoom: useZoom ? [
                 { type: "inside", start: 0, end: zoomEnd, filterMode: "none", zoomOnMouseWheel: true, moveOnMouseMove: true },
@@ -564,6 +704,7 @@
             xAxis: {
                 type: "category", data: labels, boundaryGap: series.some(item => item.type === "bar"),
                 axisLabel: {
+                    color: chartTheme().muted,
                     interval: "auto",           /* FIX: bỏ qua label tự động, không ép show all */
                     hideOverlap: true,          /* FIX: ẩn label bị đè kể cả category axis */
                     rotate: categoryAxis ? 30 : 0, /* FIX: xoay 30° để label dài khỏi chồng nhau */
@@ -572,11 +713,14 @@
                         ? formatAxisLabel(value, true, granularity)
                         : (categoryAxis ? truncateLabel(value, 22) : wrapAxisLabel(value, 14))
                 },
+                axisLine: { lineStyle: { color: chartTheme().axis } },
+                axisTick: { lineStyle: { color: chartTheme().axis } },
                 axisPointer: { label: { formatter: params => fullAxisLabel(params.value, dateAxis, granularity) } }
             },
             yAxis: {
                 type: "value", name: widget.valueLabel || fieldLabel(widget.value), nameTextStyle: { padding: [0, 0, 6, 0] },
-                axisLabel: { formatter: value => compactNumber(value, widget.valueFormat) }
+                axisLabel: { color: chartTheme().muted, formatter: value => compactNumber(value, widget.valueFormat) },
+                splitLine: { lineStyle: { color: chartTheme().border } }
             },
             series
         };
@@ -615,9 +759,9 @@
     function compactNumber(value, type) {
         if (type === "percent") return format(value, "percent");
         const number = Number(value) || 0;
-        if (Math.abs(number) >= 1_000_000_000) return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(number / 1_000_000_000)} tỷ`;
-        if (Math.abs(number) >= 1_000_000) return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(number / 1_000_000)} tr`;
-        if (Math.abs(number) >= 1_000) return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(number / 1_000)}k`;
+        if (Math.abs(number) >= 1_000_000_000) return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(number / 1_000_000_000)}${english ? "B" : " tỷ"}`;
+        if (Math.abs(number) >= 1_000_000) return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(number / 1_000_000)}${english ? "M" : " tr"}`;
+        if (Math.abs(number) >= 1_000) return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(number / 1_000)}k`;
         return format(number, type === "currency" ? "count" : type);
     }
 
@@ -637,10 +781,10 @@
         const date = toValidDate(value);
         if (!date) return nonEmptyLabel(value);
         const mode = String(granularity || "Day").toUpperCase();
-        if (mode === "HOUR") return date.toLocaleString("vi-VN");
-        if (mode === "WEEK") return `Tuần ${isoWeek(date)}, từ ${date.toLocaleDateString("vi-VN")}`;
-        if (mode === "MONTH") return `Tháng ${date.getMonth() + 1}/${date.getFullYear()}`;
-        return date.toLocaleDateString("vi-VN");
+        if (mode === "HOUR") return date.toLocaleString(locale);
+        if (mode === "WEEK") return `${dashboardText?.week || "Tuần"} ${isoWeek(date)}, ${dashboardText?.from || "từ"} ${date.toLocaleDateString(locale)}`;
+        if (mode === "MONTH") return `${dashboardText?.month || "Tháng"} ${date.getMonth() + 1}/${date.getFullYear()}`;
+        return date.toLocaleDateString(locale);
     }
 
     function unique(values) { return [...new Set(values)]; }
@@ -657,7 +801,7 @@
 
     function renderSectionError(section, message) {
         disposeCharts();
-        panel.innerHTML = `<article class="analytics-widget is-wide"><div class="analytics-state"><div><strong>Không tải được tab ${escapeHtml(section)}</strong><span>${escapeHtml(message)}</span><br><button type="button" class="analytics-retry">Thử lại</button></div></div></article>`;
+        panel.innerHTML = `<article class="analytics-widget is-wide"><div class="analytics-state"><div><strong>${escapeHtml(dashboardText?.widgetError || "Không tải được tab")} ${escapeHtml(section)}</strong><span>${escapeHtml(message)}</span><br><button type="button" class="analytics-retry">${escapeHtml(dashboardText?.retry || "Thử lại")}</button></div></div></article>`;
         panel.querySelector("button")?.addEventListener("click", () => loadSection(section, true));
     }
 
@@ -674,6 +818,17 @@
         });
         charts.clear();
     }
+
+    window.addEventListener("cafechain-theme-changed", () => {
+        charts.forEach(context => {
+            if (!context.instance || context.instance.isDisposed?.()) return;
+            context.instance.setOption(
+                chartOption(context.rows, context.widget, context.granularity, context.capacity || categoryCapacity(context.element.clientWidth)),
+                { notMerge: true, lazyUpdate: true }
+            );
+            context.instance.resize();
+        });
+    });
 
     function selectTab(button) {
         document.querySelectorAll(".analytics-tab").forEach(item => {
@@ -727,7 +882,7 @@
     [fields.from, fields.to].forEach(field => field.addEventListener("change", () => { if (fields.preset) fields.preset.value = ""; }));
     async function applyDashboardContext() {
         if (isAiBusy || isApplyingContext) return;
-        if (fields.from.value && fields.to.value && fields.from.value > fields.to.value) { showNotice("Từ ngày không được lớn hơn đến ngày."); return; }
+        if (fields.from.value && fields.to.value && fields.from.value > fields.to.value) { showNotice(dashboardText?.invalidDates || "Từ ngày không được lớn hơn đến ngày."); return; }
         window.dispatchEvent(new CustomEvent("cafechain:dashboard-context-changing", {
             detail: { reason: "filters-applied" }
         }));
@@ -751,7 +906,7 @@
                 })
             });
             const payload = await response.json();
-            if (!response.ok || !payload.success) throw new Error(payload.message || "Không thể tạo context Dashboard.");
+            if (!response.ok || !payload.success) throw new Error(payload.message || dashboardText?.contextError || "Không thể tạo context Dashboard.");
             updateAllowedWidgets(payload.data);
             root.dataset.contextId = payload.data.contextId;
             root.dataset.generatedAt = payload.data.generatedAt;

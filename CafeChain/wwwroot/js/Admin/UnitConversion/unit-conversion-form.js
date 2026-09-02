@@ -1,9 +1,7 @@
-/**
- * #127 Admin unit conversion form — server Evaluate revalidation preview.
- * POST field names preserved; PackageConflictAcknowledged is command-only.
- */
 (function (window, $) {
     'use strict';
+
+    var config = { locale: 'vi-VN', text: {} };
 
     function token() {
         if (window.CafeChainAdminAjax && window.CafeChainAdminAjax.getAntiforgeryToken) {
@@ -12,78 +10,76 @@
         return $('input[name="__RequestVerificationToken"]').val() || '';
     }
 
-    function fmt(n) {
-        if (n == null || n === '') return '—';
-        return Number(n).toLocaleString('vi-VN', { maximumFractionDigits: 8 });
+    function text(key) {
+        var args = Array.prototype.slice.call(arguments, 1);
+        var value = config.text[key] || key;
+        return value.replace(/\{(\d+)\}/g, function (_, index) {
+            return args[Number(index)] == null ? '' : String(args[Number(index)]);
+        });
     }
 
-    function renderEval(panel, res) {
-        if (!res) {
-            panel.removeClass('ok error conflict').html('<div class="small text-muted">Chưa đủ dữ liệu để đánh giá.</div>');
+    function formatNumber(value) {
+        if (value == null || value === '') return '—';
+        return Number(value).toLocaleString(config.locale || 'vi-VN', { maximumFractionDigits: 8 });
+    }
+
+    function renderEvaluation(panel, result) {
+        if (!result) {
+            panel.removeClass('ok error conflict').html('<div class="small text-muted">' + text('insufficientData') + '</div>');
             return;
         }
+
         var html = '';
-        if (res.factor != null) {
-            html += '<div class="mb-2"><strong>Hệ số:</strong> 1 ' + (res.fromUnitCode || '') +
-                ' = ' + fmt(res.factor) + ' ' + (res.toUnitCode || '') + '</div>';
-            html += '<div class="small text-muted mb-2">Chiều ngược (suy ra, không lưu row): 1 ' +
-                (res.toUnitCode || '') + ' ≈ ' + fmt(res.reverseFactor) + ' ' + (res.fromUnitCode || '') + '</div>';
+        if (result.factor != null) {
+            html += '<div class="mb-2"><strong>' + text('factorLabel') + '</strong> ' +
+                text('factorFormula', result.fromUnitCode || '', formatNumber(result.factor) + ' ' + (result.toUnitCode || '')) + '</div>';
+            html += '<div class="small text-muted mb-2">' +
+                text('reverseNote', result.toUnitCode || '', formatNumber(result.reverseFactor), result.fromUnitCode || '') + '</div>';
         }
-        if (res.fromDimension) {
-            html += '<div class="small mb-2">Chiều: ' + res.fromDimension + ' → ' + res.toDimension + '</div>';
+        if (result.fromDimension) {
+            html += '<div class="small mb-2">' + text('direction', result.fromDimension, result.toDimension) + '</div>';
         }
-        if (res.hasPhysicalConflict) {
-            html += '<div class="text-danger small mb-1"><strong>PHYSICAL_CONVERSION_CONFLICT</strong> — ' +
-                (res.message || '') + '</div>';
+        if (result.hasPhysicalConflict) html += '<div class="text-danger small mb-1">' + text('physicalConflict') + '</div>';
+        if (result.isPhysicalStandard || result.errorCode === 'PHYSICAL_STANDARD_ALREADY_SUPPORTED') {
+            html += '<div class="text-danger small mb-1">' + text('physicalNote') + '</div>';
         }
-        if (res.isPhysicalStandard || res.errorCode === 'PHYSICAL_STANDARD_ALREADY_SUPPORTED') {
-            html += '<div class="text-danger small mb-1">Quy đổi vật lý chuẩn — không lưu row.</div>';
+        if (result.isMassVolumeCross || result.errorCode === 'CROSS_DIMENSION_CONVERSION_NOT_SUPPORTED') {
+            html += '<div class="text-danger small mb-1">' + text('crossDimension') + '</div>';
         }
-        if (res.isMassVolumeCross || res.errorCode === 'CROSS_DIMENSION_CONVERSION_NOT_SUPPORTED') {
-            html += '<div class="text-danger small mb-1"><strong>CROSS_DIMENSION</strong> — không hỗ trợ mass↔volume.</div>';
-        }
-        if (res.hasPackageConflict) {
-            html += '<div class="mb-2 p-2 border rounded bg-warning bg-opacity-10">';
-            html += '<strong>Mâu thuẫn với package NCC</strong><ul class="mb-1 small">';
-            html += '<li>Quy cách NCC: ' + fmt(res.primaryPackageQuantity) + ' ' +
-                (res.primaryPackageUnitCode || '') + '/gói' +
-                (res.primarySupplierName ? ' (' + res.primarySupplierName + ')' : '') + '</li>';
-            html += '<li>Quy đổi đo lường ngụ ý: ' + fmt(res.proposedPackageLikeQuantity) + ' ' +
-                (res.primaryPackageUnitCode || '') + '</li>';
-            html += '<li>Giá vốn dùng quy cách nhà cung cấp — không tự chọn winner.</li>';
-            html += '</ul></div>';
+        if (result.hasPackageConflict) {
+            html += '<div class="mb-2 p-2 border rounded bg-warning bg-opacity-10"><strong>' + text('packageConflict') + '</strong><ul class="mb-1 small">';
+            html += '<li>' + text('supplierSpec', formatNumber(result.primaryPackageQuantity), result.primaryPackageUnitCode || '') +
+                (result.primarySupplierName ? ' (' + result.primarySupplierName + ')' : '') + '</li>';
+            html += '<li>' + text('impliedMeasuring') + ' ' + formatNumber(result.proposedPackageLikeQuantity) + ' ' + (result.primaryPackageUnitCode || '') + '</li>';
+            html += '<li>' + text('baseCostNote') + '</li></ul></div>';
             $('#pkgAckWrap').show();
         } else {
             $('#pkgAckWrap').hide();
-            if (!$('#PackageConflictAcknowledged').data('user')) {
-                $('#PackageConflictAcknowledged').prop('checked', false);
-            }
+            if (!$('#PackageConflictAcknowledged').data('user')) $('#PackageConflictAcknowledged').prop('checked', false);
         }
-        if (res.warnings && res.warnings.length) {
+        if (result.warnings && result.warnings.length) {
             html += '<ul class="small text-warning">';
-            res.warnings.forEach(function (w) { html += '<li>' + w + '</li>'; });
+            result.warnings.forEach(function (warning) { html += '<li>' + warning + '</li>'; });
             html += '</ul>';
         }
-        if (!res.success && res.message) {
-            html += '<div class="small text-danger mt-1">' + res.message +
-                (res.errorCode ? ' <code>' + res.errorCode + '</code>' : '') + '</div>';
-            panel.removeClass('ok').addClass(res.hasPackageConflict && !res.success ? 'conflict' : 'error');
-        } else if (res.success) {
-            html += '<div class="small text-success mt-1">Hợp lệ' +
-                (res.hasPackageConflict ? ' (đã cần xác nhận package)' : '') + '.</div>';
-            panel.removeClass('error conflict').addClass(res.hasPackageConflict ? 'conflict' : 'ok');
+        if (!result.success && result.message) {
+            html += '<div class="small text-danger mt-1">' + result.message + (result.errorCode ? ' <code>' + result.errorCode + '</code>' : '') + '</div>';
+            panel.removeClass('ok').addClass(result.hasPackageConflict ? 'conflict' : 'error');
+        } else if (result.success) {
+            html += '<div class="small text-success mt-1">' + text('valid') + (result.hasPackageConflict ? ' ' + text('needPackageAck') : '') + '</div>';
+            panel.removeClass('error conflict').addClass(result.hasPackageConflict ? 'conflict' : 'ok');
         }
-
         panel.html(html || '<div class="small text-muted">—</div>');
     }
 
-    function init(cfg) {
+    function init(options) {
+        config = options || config;
         var timer = null;
         var panel = $('#evalPanel');
 
         function payload() {
             return {
-                unitConversionId: cfg.unitConversionId || ($('#UnitConversionId').val() ? parseInt($('#UnitConversionId').val(), 10) : null),
+                unitConversionId: config.unitConversionId || ($('#UnitConversionId').val() ? parseInt($('#UnitConversionId').val(), 10) : null),
                 ingredientId: parseInt($('#ingredientSelect').val(), 10) || 0,
                 fromUnitId: parseInt($('#FromUnitId').val(), 10) || 0,
                 fromQuantity: parseFloat($('#FromQuantity').val()) || 0,
@@ -94,53 +90,35 @@
         }
 
         function evaluate() {
-            var p = payload();
-            if (!p.ingredientId || !p.fromUnitId || !p.toUnitId || p.fromQuantity <= 0 || p.toQuantity <= 0) {
-                renderEval(panel, null);
+            var data = payload();
+            if (!data.ingredientId || !data.fromUnitId || !data.toUnitId || data.fromQuantity <= 0 || data.toQuantity <= 0) {
+                renderEvaluation(panel, null);
                 return;
             }
-            panel.html('<div class="small text-muted">Đang đánh giá trên server…</div>');
+            panel.html('<div class="small text-muted">' + text('loading') + '</div>');
             $.ajax({
-                url: cfg.evaluateUrl,
+                url: config.evaluateUrl,
                 type: 'POST',
-                headers: {
-                    'RequestVerificationToken': token(),
-                    'Content-Type': 'application/json'
-                },
-                data: JSON.stringify(p),
-                success: function (res) { renderEval(panel, res); },
-                error: function () {
-                    panel.removeClass('ok').addClass('error')
-                        .html('<div class="small text-danger">Lỗi evaluate (antiforgery/kết nối).</div>');
-                }
+                headers: { 'RequestVerificationToken': token(), 'Content-Type': 'application/json' },
+                data: JSON.stringify(data),
+                success: function (result) { renderEvaluation(panel, result); },
+                error: function () { panel.removeClass('ok').addClass('error').html('<div class="small text-danger">' + text('error') + '</div>'); }
             });
         }
 
-        function schedule() {
-            clearTimeout(timer);
-            timer = setTimeout(evaluate, 350);
-        }
-
+        function schedule() { clearTimeout(timer); timer = setTimeout(evaluate, 350); }
         function updateSelectTitles() {
             $('#FromUnitId, #ToUnitId').each(function () {
                 var selectedText = $(this).find('option:selected').text();
-                if (selectedText) {
-                    $(this).attr('title', $.trim(selectedText));
-                }
+                if (selectedText) $(this).attr('title', $.trim(selectedText));
             });
         }
 
-        $('#ingredientSelect, #FromUnitId, #ToUnitId, #FromQuantity, #ToQuantity, #PackageConflictAcknowledged')
-            .on('change input', function () {
-                updateSelectTitles();
-                schedule();
-            });
-
-        $('#PackageConflictAcknowledged').on('change', function () {
-            $(this).data('user', true);
+        $('#ingredientSelect, #FromUnitId, #ToUnitId, #FromQuantity, #ToQuantity, #PackageConflictAcknowledged').on('change input', function () {
+            updateSelectTitles();
+            schedule();
         });
-
-        // Initial
+        $('#PackageConflictAcknowledged').on('change', function () { $(this).data('user', true); });
         updateSelectTitles();
         schedule();
     }

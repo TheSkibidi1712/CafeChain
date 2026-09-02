@@ -4,6 +4,9 @@
     const root = document.getElementById("shiftOptimizationRoot");
     if (!root) return;
 
+    const catalog = window.CafeChainUiCatalog?.read("shift-optimization-ui-catalog") || {};
+    const t = (key, values) => window.CafeChainUiCatalog?.text(catalog, key, values) || key;
+
     const token = document.querySelector("#shiftOptimizationToken input")?.value || "";
     const notice = document.getElementById("shiftOptimizationNotice");
     const configOutput = document.getElementById("shiftOptimizationConfig");
@@ -20,13 +23,18 @@
         timeoff: "timeOffs"
     };
     const dayLabels = {
-        0: "Chủ nhật", 1: "Thứ 2", 2: "Thứ 3", 3: "Thứ 4",
-        4: "Thứ 5", 5: "Thứ 6", 6: "Thứ 7"
+        0: t("Optimization.Js.Day.Sunday"),
+        1: t("Optimization.Js.Day.Monday"),
+        2: t("Optimization.Js.Day.Tuesday"),
+        3: t("Optimization.Js.Day.Wednesday"),
+        4: t("Optimization.Js.Day.Thursday"),
+        5: t("Optimization.Js.Day.Friday"),
+        6: t("Optimization.Js.Day.Saturday")
     };
     const statusLabels = {
-        APPROVED: "Đã duyệt",
-        PENDING: "Chờ duyệt",
-        REJECTED: "Từ chối"
+        APPROVED: t("Optimization.Js.Status.Approved"),
+        PENDING: t("Optimization.Js.Status.Pending"),
+        REJECTED: t("Optimization.Js.Status.Rejected")
     };
     let setup = {};
 
@@ -52,7 +60,7 @@
     );
 
     async function post(url, body) {
-        if (!url) throw new Error("Chức năng lưu cấu hình chưa được khai báo.");
+        if (!url) throw new Error(t("Optimization.Js.EndpointMissing"));
         const response = await fetch(url, {
             method: "POST",
             headers: {
@@ -65,7 +73,7 @@
         });
         const json = await response.json().catch(() => ({}));
         if (!response.ok || json.success === false)
-            throw new Error(json.message || "Không thể lưu cấu hình.");
+            throw new Error(json.message || t("Optimization.Js.SaveFailed"));
         return json.data;
     }
 
@@ -89,19 +97,30 @@
     function renderConfig() {
         if (!configOutput) return;
         const sections = [
-            ["availability", "Khả dụng", ["staffName", "dayOfWeek", "startTime", "endTime", "effectiveFrom"]],
-            ["constraints", "Giới hạn giờ", ["staffName", "targetWeeklyHours", "maxWeeklyHours", "maxDailyHours", "minimumRestMinutes"]],
-            ["requirements", "Định mức", ["shiftName", "dayOfWeek", "minimumStaff", "targetStaff", "maximumStaff", "requiredRoleName"]],
-            ["timeOffs", "Nghỉ phép", ["staffName", "fromUtc", "toUtc", "reason", "status"]]
+            ["availability", t("Optimization.Tab.Availability"), ["staffName", "dayOfWeek", "startTime", "endTime", "effectiveFrom"]],
+            ["constraints", t("Optimization.Tab.Constraint"), ["staffName", "targetWeeklyHours", "maxWeeklyHours", "maxDailyHours", "minimumRestMinutes"]],
+            ["requirements", t("Optimization.Tab.Requirement"), ["shiftName", "dayOfWeek", "minimumStaff", "targetStaff", "maximumStaff", "requiredRoleName"]],
+            ["timeOffs", t("Optimization.Tab.TimeOff"), ["staffName", "fromUtc", "toUtc", "reason", "status"]]
         ];
         const labels = {
-            staffName: "Nhân viên", dayOfWeek: "Ngày", startTime: "Bắt đầu", endTime: "Kết thúc",
-            effectiveFrom: "Hiệu lực từ", targetWeeklyHours: "Mục tiêu giờ/tuần",
-            maxWeeklyHours: "Tối đa giờ/tuần", maxDailyHours: "Tối đa giờ/ngày",
-            minimumRestMinutes: "Nghỉ tối thiểu (phút)", shiftName: "Ca làm",
-            minimumStaff: "Tối thiểu (người)", targetStaff: "Mục tiêu (người)",
-            maximumStaff: "Tối đa (người)", requiredRoleName: "Vai trò bắt buộc",
-            fromUtc: "Từ", toUtc: "Đến", reason: "Lý do", status: "Trạng thái"
+            staffName: t("Optimization.Js.Label.StaffName"),
+            dayOfWeek: t("Optimization.Js.Label.DayOfWeek"),
+            startTime: t("Optimization.Js.Label.StartTime"),
+            endTime: t("Optimization.Js.Label.EndTime"),
+            effectiveFrom: t("Optimization.Js.Label.EffectiveFrom"),
+            targetWeeklyHours: t("Optimization.Js.Label.TargetWeeklyHours"),
+            maxWeeklyHours: t("Optimization.Js.Label.MaxWeeklyHours"),
+            maxDailyHours: t("Optimization.Js.Label.MaxDailyHours"),
+            minimumRestMinutes: t("Optimization.Js.Label.MinimumRestMinutes"),
+            shiftName: t("Optimization.Js.Label.ShiftName"),
+            minimumStaff: t("Optimization.Js.Label.MinimumStaff"),
+            targetStaff: t("Optimization.Js.Label.TargetStaff"),
+            maximumStaff: t("Optimization.Js.Label.MaximumStaff"),
+            requiredRoleName: t("Optimization.Js.Label.RequiredRoleName"),
+            fromUtc: t("Optimization.Js.Label.FromUtc"),
+            toUtc: t("Optimization.Js.Label.ToUtc"),
+            reason: t("Optimization.Js.Label.Reason"),
+            status: t("Optimization.Js.Label.Status")
         };
 
         configOutput.replaceChildren();
@@ -118,7 +137,7 @@
             if (!rows.length) {
                 const empty = document.createElement("p");
                 empty.className = "text-muted small mb-0";
-                empty.textContent = "Chưa có cấu hình.";
+                empty.textContent = t("Optimization.Js.NoConfig");
                 card.append(empty);
             } else {
                 rows.slice(0, 8).forEach((row, index) => {
@@ -139,7 +158,7 @@
                 if (rows.length > 8) {
                     const more = document.createElement("p");
                     more.className = "text-muted small mt-2 mb-0";
-                    more.textContent = `Hiển thị 8 mục đầu trong tổng số ${rows.length} mục.`;
+                    more.textContent = t("Optimization.Js.ShowingFirst", { count: rows.length });
                     card.append(more);
                 }
             }
@@ -180,7 +199,7 @@
                 if (!Array.isArray(setup[key])) setup[key] = [];
                 setup[key].push(enrichSavedConfiguration(kind, body, form));
                 renderConfig();
-                show("Đã lưu cấu hình dữ liệu lịch.");
+                show(t("Optimization.Js.Saved"));
             } catch (error) {
                 show(error.message, true);
             } finally {

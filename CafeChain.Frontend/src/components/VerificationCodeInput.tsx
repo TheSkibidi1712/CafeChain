@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { usePreferences } from '../contexts/PreferencesContext'
 import { OPERATIONAL_OTP_ALPHABET } from '../utils/otpCode'
 
 interface VerificationCodeInputProps {
@@ -20,6 +21,7 @@ export default function VerificationCodeInput({
   label,
   onRejected,
 }: VerificationCodeInputProps) {
+  const { t } = usePreferences()
   const refs = useRef<Array<HTMLInputElement | null>>([])
   const alphabet = mode === 'pin' ? '0123456789' : OPERATIONAL_OTP_ALPHABET
   const allowed = new Set(alphabet)
@@ -55,7 +57,7 @@ export default function VerificationCodeInput({
           value={cell}
           maxLength={1}
           disabled={disabled}
-          aria-label={`${label}, ô ${index + 1}`}
+          aria-label={t('verification.cell', { label, index: index + 1 })}
           aria-invalid={error}
           onFocus={(event) => event.currentTarget.select()}
           onChange={(event) => {

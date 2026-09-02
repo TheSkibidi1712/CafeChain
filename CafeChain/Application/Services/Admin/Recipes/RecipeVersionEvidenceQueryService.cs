@@ -158,6 +158,7 @@ public sealed class RecipeVersionEvidenceQueryService : IRecipeVersionEvidenceQu
             From = BuildSide(from, fromCost),
             To = BuildSide(to, toCost),
             OutputChangeLabel = BuildOutputChange(from, to),
+            OutputChanged = !string.Equals(BuildOutputDisplay(from), BuildOutputDisplay(to), StringComparison.Ordinal),
             DesignCostDelta = fromCost.IsComplete && toCost.IsComplete
                 ? toCost.TotalCost - fromCost.TotalCost
                 : null,
@@ -170,13 +171,13 @@ public sealed class RecipeVersionEvidenceQueryService : IRecipeVersionEvidenceQu
             var hasAfter = toLines.TryGetValue(key, out var after);
             if (!hasBefore)
             {
-                comparison.AddedLines.Add(BuildChange(null, after!, "Đã thêm"));
+                comparison.AddedLines.Add(BuildChange(null, after!, "Đã thêm", ["ADDED"]));
                 continue;
             }
 
             if (!hasAfter)
             {
-                comparison.RemovedLines.Add(BuildChange(before!, null, "Đã bỏ"));
+                comparison.RemovedLines.Add(BuildChange(before!, null, "Đã bỏ", ["REMOVED"]));
                 continue;
             }
 
@@ -185,7 +186,7 @@ public sealed class RecipeVersionEvidenceQueryService : IRecipeVersionEvidenceQu
                 || before.NormalizedQuantity != after.NormalizedQuantity
                 || !string.Equals(before.BaseUnitCode, after.BaseUnitCode, StringComparison.OrdinalIgnoreCase))
             {
-                comparison.ChangedLines.Add(BuildChange(before, after, BuildLineChangeSummary(before, after)));
+                comparison.ChangedLines.Add(BuildChange(before, after, BuildLineChangeSummary(before, after), BuildLineChangeCodes(before, after)));
             }
         }
 
@@ -244,25 +245,40 @@ public sealed class RecipeVersionEvidenceQueryService : IRecipeVersionEvidenceQu
         OutputDisplay = BuildOutputDisplay(recipe),
         DesignCost = cost.IsComplete ? cost.TotalCost : null,
         CostCompletenessLabel = cost.IsComplete ? "Đủ dữ liệu giá" : "Chưa đủ dữ liệu giá"
+        ,IsCurrent = recipe.Active && string.Equals(recipe.Status, "Active", StringComparison.OrdinalIgnoreCase)
+        ,CostComplete = cost.IsComplete
     };
 
     private static RecipeVersionLineChangeVM BuildChange(
         CompareLine? before,
         CompareLine? after,
-        string summary)
+        string summary,
+        List<string> changeCodes)
     {
         var evidence = after ?? before!;
         return new RecipeVersionLineChangeVM
         {
             BusinessName = evidence.BusinessName,
             InputTypeLabel = evidence.InputTypeLabel,
+            InputTypeCode = evidence.InputTypeLabel == "Nguyên liệu trực tiếp" ? "INGREDIENT" : "PREPARED_ITEM",
             TechnicalCode = evidence.TechnicalCode,
             BeforeQuantity = before == null ? null : FormatQuantity(before.Quantity, before.UnitCode),
             AfterQuantity = after == null ? null : FormatQuantity(after.Quantity, after.UnitCode),
             BeforeNormalizedQuantity = FormatNormalized(before),
             AfterNormalizedQuantity = FormatNormalized(after),
-            ChangeSummary = summary
+            ChangeSummary = summary,
+            ChangeCodes = changeCodes
         };
+    }
+
+    private static List<string> BuildLineChangeCodes(CompareLine before, CompareLine after)
+    {
+        var changes = new List<string>();
+        if (before.Quantity != after.Quantity) changes.Add("QUANTITY");
+        if (before.UnitId != after.UnitId) changes.Add("UNIT");
+        if (before.NormalizedQuantity != after.NormalizedQuantity
+            || !string.Equals(before.BaseUnitCode, after.BaseUnitCode, StringComparison.OrdinalIgnoreCase)) changes.Add("NORMALIZED_QUANTITY");
+        return changes;
     }
 
     private static string BuildLineChangeSummary(CompareLine before, CompareLine after)

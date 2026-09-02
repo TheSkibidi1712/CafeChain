@@ -1,0 +1,25 @@
+@using System.Text.Json
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<CafeChain.ProductResource> ProductText
+@{
+    var keys = new[]
+    {
+        "Drink.Js.ConfirmTitle", "Drink.Js.ToggleConfirm", "Drink.Js.Confirm", "Common.Cancel", "Drink.Image",
+        "Drink.Js.ToggleFailed", "Drink.Js.ToggleSuccess", "Drink.Js.FileType", "Drink.Js.FileSize",
+        "Drink.Js.Create", "Drink.Js.Creating", "Drink.Js.Updating", "Drink.Js.Update", "Drink.Js.Validation",
+        "Drink.Js.ImageProcessFailed", "Drink.Js.ImageAlt", "Drink.Js.SetDefaultTitle", "Drink.Js.Default",
+        "Drink.Js.DeleteImageTitle", "Drink.Js.InvalidData", "Drink.Js.NetworkError", "Drink.Js.EntityName",
+        "Drink.Js.SaveFailed", "Drink.Js.StatusActive", "Drink.Js.StatusInactive", "Drink.Js.NoFile",
+        "Drink.Js.DrinkNotFound", "Drink.Js.Uploading", "Drink.Js.ImageAddSuccess", "Drink.Js.ImageAddFailed",
+        "Drink.Js.ImageUploadError", "Drink.Js.DefaultSuccess", "Drink.Js.DefaultFailed", "Drink.Js.DeleteConfirm",
+        "Drink.Js.DeleteSuccess", "Drink.Js.DeleteFailed", "Drink.Js.DeleteSystemError", "Drink.Js.ImageNotFound",
+        "Drink.Js.ChooseReplacement", "Drink.Js.Saving", "Drink.Js.SaveChanges", "Drink.Js.ImageUpdateSuccess",
+        "Drink.Js.ImageUpdateFailed", "Drink.Js.ImageUpdateError", "Drink.Js.ImageLoading", "Drink.Js.ImageListError",
+        "Drink.Js.ImageLoadError", "Drink.Js.ImageEmpty", "Drink.Js.SetDefault", "Drink.Js.SetDefaultHint",
+        "Drink.Js.EditImage", "Drink.Js.Edit", "Drink.Js.Delete", "Drink.Js.NoItems", "Drink.Js.AiRequired",
+        "Drink.Js.AiLoading", "Drink.Js.AiFailed", "Drink.Js.AiOverwrite", "Drink.Js.AiApplied",
+        "Drink.Js.AiTitle", "Drink.Js.AiInvalidReference", "Drink.Js.AiImageFailed"
+    };
+    var catalog = JsonSerializer.Serialize(keys.ToDictionary(key => key, key => ProductText[key].Value));
+}
+<script id="drinkUiCatalog" type="application/json">@Html.Raw(catalog)</script>

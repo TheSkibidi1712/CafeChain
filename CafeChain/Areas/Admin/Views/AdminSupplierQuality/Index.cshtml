@@ -2,8 +2,10 @@
 @using CafeChain.Models.Inventories.Suppliers
 @using CafeChain.Application.DTOs.Admin.StoreScope
 @using CafeChain.ViewModels.Admin.Shared
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<ProcurementResource> L
 @{
-    ViewData["Title"] = "Chất lượng nhà cung cấp";
+    ViewData["Title"] = L["SupplierQuality.Title"];
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var stores = ViewBag.Stores as IReadOnlyList<AdminStoreOptionDto> ?? Array.Empty<AdminStoreOptionDto>();
     var suppliers = ViewBag.Suppliers as IReadOnlyList<Supplier> ?? Array.Empty<Supplier>();
@@ -12,7 +14,10 @@
     var customTo = ViewBag.CustomTo as DateTime?;
     string PerformanceLabel(string value) => value switch
     {
-        "GOOD" => "Tốt", "WATCH" => "Cần theo dõi", "RISK" => "Rủi ro", _ => "Chưa đủ dữ liệu"
+        "GOOD" => L["SupplierQuality.Perf.GOOD"].Value,
+        "WATCH" => L["SupplierQuality.Perf.WATCH"].Value,
+        "RISK" => L["SupplierQuality.Perf.RISK"].Value,
+        _ => L["SupplierQuality.Perf.Unknown"].Value
     };
 }
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
@@ -20,44 +25,44 @@
 <main class="ops-shell supplier-quality-page supplier-quality-index-page cc-warehouse-page">
     <header class="ops-header cc-warehouse-header">
         <div>
-            <div class="ops-eyebrow">Mua hàng / Bằng chứng nhận hàng</div>
-            <h1 class="ops-title"><i class="fa-solid fa-star me-2 text-warning" aria-hidden="true"></i>Chất lượng nhà cung cấp</h1>
-            <p class="ops-subtitle">Đối chiếu đúng hạn, tỷ lệ đáp ứng và sự cố từ phiếu nhận đã xác nhận. Các chỉ số hỗ trợ đánh giá, hệ thống không tự khóa nhà cung cấp.</p>
+            <div class="ops-eyebrow">@L["SupplierQuality.Eyebrow"]</div>
+            <h1 class="ops-title"><i class="fa-solid fa-star me-2 text-warning" aria-hidden="true"></i>@L["SupplierQuality.Title"]</h1>
+            <p class="ops-subtitle">@L["SupplierQuality.Subtitle"]</p>
         </div>
     </header>
 
     @if (TempData["SuccessMessage"] != null) { <div class="ops-notice ops-notice-success" role="status">@TempData["SuccessMessage"]</div> }
     @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMessage"]</div> }
 
-    <form method="get" class="ops-panel cc-warehouse-filter" aria-label="Bộ lọc chất lượng nhà cung cấp">
+    <form method="get" class="ops-panel cc-warehouse-filter" aria-label="@L["SupplierQuality.FilterAria"]">
         <div class="ops-panel-header">
-            <div><h2 class="ops-panel-title">Phạm vi đánh giá</h2><div class="ops-secondary">Chọn chi nhánh, nhà cung cấp và khoảng dữ liệu cần đối chiếu.</div></div>
+            <div><h2 class="ops-panel-title">@L["SupplierQuality.ScopeTitle"]</h2><div class="ops-secondary">@L["SupplierQuality.ScopeHelp"]</div></div>
         </div>
         <div class="ops-panel-body">
             <div class="ops-form-grid">
                 <div class="ops-form-field">
-                    <label class="ops-form-label" for="qualityStoreId">Chi nhánh <span class="ops-required">*</span></label>
+                    <label class="ops-form-label" for="qualityStoreId">@L["Common.Branch"] <span class="ops-required">*</span></label>
                     <select id="qualityStoreId" class="ops-select w-100" name="storeId" required>@foreach(var store in stores){<option value="@store.StoreId" selected="@(store.StoreId == Model.StoreId)">@store.StoreName</option>}</select>
                 </div>
                 <div class="ops-form-field">
-                    <label class="ops-form-label" for="qualitySupplierId">Nhà cung cấp</label>
-                    <select id="qualitySupplierId" class="ops-select w-100" name="supplierId"><option value="">Tất cả nhà cung cấp</option>@foreach(var supplier in suppliers){<option value="@supplier.SupplierId" selected="@(supplier.SupplierId == Model.SupplierId)">@supplier.Code · @supplier.Name</option>}</select>
+                    <label class="ops-form-label" for="qualitySupplierId">@L["Common.Supplier"]</label>
+                    <select id="qualitySupplierId" class="ops-select w-100" name="supplierId"><option value="">@L["SupplierQuality.AllSuppliers"]</option>@foreach(var supplier in suppliers){<option value="@supplier.SupplierId" selected="@(supplier.SupplierId == Model.SupplierId)">@supplier.Code · @supplier.Name</option>}</select>
                 </div>
                 <div class="ops-form-field">
-                    <label class="ops-form-label" for="qualityDays">Khoảng mặc định</label>
-                    <select id="qualityDays" class="ops-select w-100" name="days"><option value="30" selected="@(days == 30)">30 ngày</option><option value="90" selected="@(days == 90)">90 ngày</option><option value="180" selected="@(days == 180)">180 ngày</option></select>
+                    <label class="ops-form-label" for="qualityDays">@L["SupplierQuality.DefaultRange"]</label>
+                    <select id="qualityDays" class="ops-select w-100" name="days"><option value="30" selected="@(days == 30)">@L["SupplierQuality.Days", 30]</option><option value="90" selected="@(days == 90)">@L["SupplierQuality.Days", 90]</option><option value="180" selected="@(days == 180)">@L["SupplierQuality.Days", 180]</option></select>
                 </div>
                 <div class="ops-form-field">
-                    <label class="ops-form-label" for="qualityFrom">Từ ngày (tùy chọn)</label>
+                    <label class="ops-form-label" for="qualityFrom">@L["SupplierQuality.FromOptional"]</label>
                     <input id="qualityFrom" class="ops-input w-100" name="from" type="date" lang="vi" value="@(customFrom?.ToString("yyyy-MM-dd"))" />
                 </div>
                 <div class="ops-form-field">
-                    <label class="ops-form-label" for="qualityTo">Đến ngày (tùy chọn)</label>
+                    <label class="ops-form-label" for="qualityTo">@L["SupplierQuality.ToOptional"]</label>
                     <input id="qualityTo" class="ops-input w-100" name="to" type="date" lang="vi" value="@(customTo?.ToString("yyyy-MM-dd"))" />
                 </div>
                 <div class="ops-form-field">
                     <label class="ops-form-label ops-field-spacer">&nbsp;</label>
-                    <button class="ops-btn ops-btn-primary w-100" type="submit"><i class="fa-solid fa-filter" aria-hidden="true"></i> Áp dụng bộ lọc</button>
+                    <button class="ops-btn ops-btn-primary w-100" type="submit"><i class="fa-solid fa-filter" aria-hidden="true"></i> @L["SupplierQuality.ApplyFilter"]</button>
                 </div>
             </div>
         </div>
@@ -66,34 +71,34 @@
     @if (Model.Performance != null)
     {
         var p = Model.Performance;
-        <section class="ops-metrics" aria-label="Chỉ số nhà cung cấp">
-            <div class="ops-metric"><span class="ops-metric-label">Đánh giá</span><strong class="ops-metric-value">@PerformanceLabel(p.Status)</strong><div class="ops-secondary">@p.CompletedDeliveryCount lần giao hoàn tất</div></div>
-            <div class="ops-metric"><span class="ops-metric-label">Đúng hạn</span><strong class="ops-metric-value">@p.OnTimeRate.ToString("N2")%</strong><div class="ops-secondary">@p.ExpectedDateSampleCount mẫu có hạn giao</div></div>
-            <div class="ops-metric"><span class="ops-metric-label">Tỷ lệ đáp ứng</span><strong class="ops-metric-value">@p.FillRate.ToString("N2")%</strong></div>
-            <div class="ops-metric"><span class="ops-metric-label">Tỷ lệ loại bỏ</span><strong class="ops-metric-value @(p.RejectionRate > 5 ? "warning" : "success")">@p.RejectionRate.ToString("N2")%</strong></div>
-            <div class="ops-metric"><span class="ops-metric-label">Phiếu có sự cố</span><strong class="ops-metric-value">@p.IssueRate.ToString("N2")%</strong><div class="ops-secondary">@p.ConfirmedReceiptCount phiếu xác nhận</div></div>
-            <div class="ops-metric"><span class="ops-metric-label">Trễ trung bình</span><strong class="ops-metric-value">@p.AverageDelayDays.ToString("N2") ngày</strong></div>
+        <section class="ops-metrics" aria-label="@L["SupplierQuality.MetricsAria"]">
+            <div class="ops-metric"><span class="ops-metric-label">@L["SupplierQuality.Rating"]</span><strong class="ops-metric-value">@PerformanceLabel(p.Status)</strong><div class="ops-secondary">@L["SupplierQuality.CompletedDeliveries", p.CompletedDeliveryCount]</div></div>
+            <div class="ops-metric"><span class="ops-metric-label">@L["SupplierQuality.OnTime"]</span><strong class="ops-metric-value">@p.OnTimeRate.ToString("N2")%</strong><div class="ops-secondary">@L["SupplierQuality.ExpectedSamples", p.ExpectedDateSampleCount]</div></div>
+            <div class="ops-metric"><span class="ops-metric-label">@L["SupplierQuality.FillRate"]</span><strong class="ops-metric-value">@p.FillRate.ToString("N2")%</strong></div>
+            <div class="ops-metric"><span class="ops-metric-label">@L["SupplierQuality.RejectRate"]</span><strong class="ops-metric-value @(p.RejectionRate > 5 ? "warning" : "success")">@p.RejectionRate.ToString("N2")%</strong></div>
+            <div class="ops-metric"><span class="ops-metric-label">@L["SupplierQuality.IssueReceipts"]</span><strong class="ops-metric-value">@p.IssueRate.ToString("N2")%</strong><div class="ops-secondary">@L["SupplierQuality.ConfirmedReceipts", p.ConfirmedReceiptCount]</div></div>
+            <div class="ops-metric"><span class="ops-metric-label">@L["SupplierQuality.AvgDelay"]</span><strong class="ops-metric-value">@L["SupplierQuality.AvgDelayValue", p.AverageDelayDays.ToString("N2")]</strong></div>
         </section>
     }
     else
     {
-        <div class="ops-notice ops-notice-info"><strong>Chưa chọn nhà cung cấp.</strong> Chọn một nhà cung cấp để xem chỉ số hiệu suất trong khoảng thời gian.</div>
+        <div class="ops-notice ops-notice-info"><strong>@L["SupplierQuality.NoSupplierTitle"]</strong> @L["SupplierQuality.NoSupplierCopy"]</div>
     }
 
     <section class="ops-panel">
-        <div class="ops-panel-header"><div><h2 class="ops-panel-title">Sự cố từ phiếu nhận</h2><div class="ops-secondary">Sự cố bị bỏ qua không được tính vào tỷ lệ phiếu có sự cố.</div></div></div>
+        <div class="ops-panel-header"><div><h2 class="ops-panel-title">@L["SupplierQuality.IssuesTitle"]</h2><div class="ops-secondary">@L["SupplierQuality.IssuesHelp"]</div></div></div>
         <div class="ops-panel-body p-0">
         @if (Model.Issues.Count == 0)
         {
             <div class="ops-empty cc-warehouse-empty" aria-labelledby="supplierIssueEmptyTitle" role="status">
                 <span class="ops-empty-icon"><i class="fa-regular fa-circle-check" aria-hidden="true"></i></span>
-                <h3 id="supplierIssueEmptyTitle" class="ops-empty-title">Không có sự cố trong khoảng đã chọn</h3>
-                <p class="ops-empty-copy">Các sự cố được ghi nhận từ phiếu nhận hàng sẽ xuất hiện tại đây để theo dõi và xử lý.</p>
+                <h3 id="supplierIssueEmptyTitle" class="ops-empty-title">@L["SupplierQuality.EmptyTitle"]</h3>
+                <p class="ops-empty-copy">@L["SupplierQuality.EmptyCopy"]</p>
             </div>
         }
         else
         {
-            <div class="ops-table-scroll cc-warehouse-table-shell"><table class="ops-table ops-table-min-1100 ops-table-wide"><thead><tr><th>Sự cố</th><th>Nhà cung cấp</th><th>Chứng từ</th><th>Mặt hàng</th><th class="number">Ảnh hưởng</th><th>Trạng thái / xử lý</th></tr></thead><tbody>
+            <div class="ops-table-scroll cc-warehouse-table-shell"><table class="ops-table ops-table-min-1100 ops-table-wide"><thead><tr><th>@L["SupplierQuality.ColIssue"]</th><th>@L["Common.Supplier"]</th><th>@L["SupplierQuality.ColDoc"]</th><th>@L["SupplierQuality.ColItem"]</th><th class="number">@L["SupplierQuality.ColImpact"]</th><th>@L["SupplierQuality.ColStatus"]</th></tr></thead><tbody>
             @foreach (var issue in Model.Issues)
             {
                 var reasonId = $"issueReason{issue.SupplierReceiptIssueId}";
@@ -107,11 +112,11 @@
                     <td><span class="ops-badge @AdminStatusDisplay.SupplierReceiptIssue(issue.Status).CssClass">@AdminStatusDisplay.SupplierReceiptIssue(issue.Status).Label</span>
                         @if (issue.Status is "OPEN" or "UNDER_REVIEW")
                         {
-                            <form method="post" asp-action="Transition" asp-route-id="@issue.SupplierReceiptIssueId" class="mt-2">@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@issue.RowVersion" /><div class="ops-table-actions"><div><label class="visually-hidden" for="@reasonId">Lý do hoặc kết quả xử lý</label><input id="@reasonId" class="ops-input w-100" name="Reason" maxlength="1000" required placeholder="Lý do / kết quả xử lý" /></div><div><label class="visually-hidden" for="@statusId">Trạng thái tiếp theo</label><select id="@statusId" class="ops-select w-100" name="TargetStatus">@if(issue.Status == "OPEN"){<option value="UNDER_REVIEW">Xem xét</option>}<option value="RESOLVED">Đã xử lý</option><option value="DISMISSED">Bỏ qua</option></select></div><button class="ops-btn" type="submit">Cập nhật</button></div></form>
+                            <form method="post" asp-action="Transition" asp-route-id="@issue.SupplierReceiptIssueId" class="mt-2">@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@issue.RowVersion" /><div class="ops-table-actions"><div><label class="visually-hidden" for="@reasonId">@L["SupplierQuality.ReasonAria"]</label><input id="@reasonId" class="ops-input w-100" name="Reason" maxlength="1000" required placeholder="@L["SupplierQuality.ReasonPlaceholder"]" /></div><div><label class="visually-hidden" for="@statusId">@L["SupplierQuality.NextStatusAria"]</label><select id="@statusId" class="ops-select w-100" name="TargetStatus">@if(issue.Status == "OPEN"){<option value="UNDER_REVIEW">@L["SupplierQuality.Review"]</option>}<option value="RESOLVED">@L["SupplierQuality.Resolved"]</option><option value="DISMISSED">@L["SupplierQuality.Dismissed"]</option></select></div><button class="ops-btn" type="submit">@L["SupplierQuality.Update"]</button></div></form>
                         }
                         else if (issue.Status is "RESOLVED" or "DISMISSED")
                         {
-                            <form method="post" asp-action="Transition" asp-route-id="@issue.SupplierReceiptIssueId" class="mt-2">@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@issue.RowVersion" /><input type="hidden" name="TargetStatus" value="CLOSED" /><div class="ops-table-actions"><div><label class="visually-hidden" for="@reasonId">Lý do đóng sự cố</label><input id="@reasonId" class="ops-input w-100" name="Reason" maxlength="1000" required placeholder="Lý do đóng" /></div><span></span><button class="ops-btn" type="submit">Đóng sự cố</button></div></form>
+                            <form method="post" asp-action="Transition" asp-route-id="@issue.SupplierReceiptIssueId" class="mt-2">@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@issue.RowVersion" /><input type="hidden" name="TargetStatus" value="CLOSED" /><div class="ops-table-actions"><div><label class="visually-hidden" for="@reasonId">@L["SupplierQuality.CloseReasonAria"]</label><input id="@reasonId" class="ops-input w-100" name="Reason" maxlength="1000" required placeholder="@L["SupplierQuality.CloseReasonPlaceholder"]" /></div><span></span><button class="ops-btn" type="submit">@L["SupplierQuality.CloseIssue"]</button></div></form>
                         }
                     </td>
                 </tr>

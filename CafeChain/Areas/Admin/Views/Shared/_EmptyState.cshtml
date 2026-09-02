@@ -1,6 +1,8 @@
 @model (string Title, string? Message, string? ActionLabel, string? ActionUrl, string? ActionId, bool ShowAction)
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<CafeChain.SharedResource> SharedText
 @{
-    var title = Model.Title ?? "Chưa có dữ liệu";
+    var title = Model.Title ?? SharedText["Common.NoData"];
     var message = Model.Message;
     var show = Model.ShowAction && (!string.IsNullOrWhiteSpace(Model.ActionLabel));
 }

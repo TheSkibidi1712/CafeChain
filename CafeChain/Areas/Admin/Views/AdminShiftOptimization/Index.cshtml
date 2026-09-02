@@ -1,7 +1,9 @@
 @model CafeChain.Application.DTOs.Admin.Staffs.ShiftOptimizationSetupDto
 @using System.Text.Json
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<OperationsResource> L
 @{
-    ViewData["Title"] = "Cấu hình dữ liệu lịch";
+    ViewData["Title"] = L["Optimization.Index.Title"].Value;
     var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     var setupJson = JsonSerializer.Serialize(new
     {
@@ -12,10 +14,13 @@
     }, jsonOptions);
     var days = new[]
     {
-        (DayOfWeek.Monday, "Thứ 2"), (DayOfWeek.Tuesday, "Thứ 3"),
-        (DayOfWeek.Wednesday, "Thứ 4"), (DayOfWeek.Thursday, "Thứ 5"),
-        (DayOfWeek.Friday, "Thứ 6"), (DayOfWeek.Saturday, "Thứ 7"),
-        (DayOfWeek.Sunday, "Chủ nhật")
+        (DayOfWeek.Monday, L["Optimization.Day.Monday"].Value),
+        (DayOfWeek.Tuesday, L["Optimization.Day.Tuesday"].Value),
+        (DayOfWeek.Wednesday, L["Optimization.Day.Wednesday"].Value),
+        (DayOfWeek.Thursday, L["Optimization.Day.Thursday"].Value),
+        (DayOfWeek.Friday, L["Optimization.Day.Friday"].Value),
+        (DayOfWeek.Saturday, L["Optimization.Day.Saturday"].Value),
+        (DayOfWeek.Sunday, L["Optimization.Day.Sunday"].Value)
     };
 }
 
@@ -28,31 +33,38 @@
 
     <header class="shift-optimization-header d-flex justify-content-between align-items-start gap-3 mb-3">
         <div>
-            <span class="text-uppercase text-muted small fw-semibold">Nhân sự &amp; vận hành</span>
-            <h1 class="h3 mb-1">Cấu hình dữ liệu lịch — @ViewBag.StoreName</h1>
-            <p class="text-muted mb-0">Khai báo dữ liệu tham khảo cho quản lý khi phân lịch thủ công.</p>
+            <span class="text-uppercase text-muted small fw-semibold">@L["Optimization.Index.Eyebrow"]</span>
+            <h1 class="h3 mb-1">@L["Optimization.Index.TitleWithStore", ViewBag.StoreName]</h1>
+            <p class="text-muted mb-0">@L["Optimization.Index.Subtitle"]</p>
         </div>
         <a class="btn btn-outline-secondary" asp-controller="AdminStaffShift" asp-action="Index" asp-route-targetStoreId="@Model.StoreId">
-            <i class="bi bi-arrow-left"></i> Quay lại lịch
+            <i class="bi bi-arrow-left"></i> @L["Optimization.Index.BackToSchedule"]
         </a>
     </header>
 
-    <section class="alert alert-info d-flex gap-2 align-items-start" aria-label="Hướng dẫn sử dụng">
+    <section class="alert alert-info d-flex gap-2 align-items-start" aria-label="@L["Optimization.Index.GuideAria"]">
         <i class="bi bi-info-circle mt-1"></i>
         <div>
-            <strong>Cách sử dụng:</strong>
-            nhập dữ liệu nền theo thứ tự <strong>Khả dụng → Giới hạn giờ → Định mức → Nghỉ phép</strong>.
-            Các cấu hình này không tự kiểm tra, tự xếp hoặc áp dụng lịch.
+            <strong>@L["Optimization.Index.GuideTitle"]</strong>
+            @L["Optimization.Index.GuideSentence"].Value
+                .Replace("{availability}", L["Optimization.Index.GuideStepAvailability"].Value)
+                .Replace("{arrow}", L["Optimization.Index.GuideArrow"].Value)
+                .Replace("{constraint}", L["Optimization.Index.GuideStepConstraint"].Value)
+                .Replace("{arrow2}", L["Optimization.Index.GuideArrow"].Value)
+                .Replace("{requirement}", L["Optimization.Index.GuideStepRequirement"].Value)
+                .Replace("{arrow3}", L["Optimization.Index.GuideArrow"].Value)
+                .Replace("{timeoff}", L["Optimization.Index.GuideStepTimeOff"].Value)
+            @L["Optimization.Index.GuideNote"]
         </div>
     </section>
 
     <ul class="nav nav-tabs" role="tablist">
         @foreach (var tab in new[]
         {
-            ("availability", "Khả dụng", "Nhân viên có thể làm vào thời gian nào?"),
-            ("constraint", "Giới hạn giờ", "Giới hạn giờ làm và thời gian nghỉ tối thiểu."),
-            ("requirement", "Định mức", "Mỗi ca cần tối thiểu/mục tiêu/tối đa bao nhiêu người?"),
-            ("timeoff", "Nghỉ phép", "Khoảng thời gian nhân viên không thể làm.")
+            ("availability", L["Optimization.Tab.Availability"].Value),
+            ("constraint", L["Optimization.Tab.Constraint"].Value),
+            ("requirement", L["Optimization.Tab.Requirement"].Value),
+            ("timeoff", L["Optimization.Tab.TimeOff"].Value)
         })
         {
             <li class="nav-item" role="presentation">
@@ -68,36 +80,36 @@
     <div class="tab-content border border-top-0 rounded-bottom p-3 bg-white">
         <section class="tab-pane fade show active" id="availability" role="tabpanel">
             <fieldset class="border-0 p-0 m-0">
-            <legend class="visually-hidden">Khai báo thời gian khả dụng</legend>
-            <p class="form-text mb-3" id="availabilityHelp">Khai báo khung giờ định kỳ mà nhân viên có thể nhận ca.</p>
+            <legend class="visually-hidden">@L["Optimization.Availability.Legend"]</legend>
+            <p class="form-text mb-3" id="availabilityHelp">@L["Optimization.Availability.Help"]</p>
             <form data-kind="availability" class="row g-3" aria-describedby="availabilityHelp">
                 <div class="col-md-3">
-                    <label class="form-label" for="availabilityStaff">Nhân viên</label>
+                    <label class="form-label" for="availabilityStaff">@L["Optimization.Field.Staff"]</label>
                     <select id="availabilityStaff" class="form-select" name="staffId" required>
                         @foreach (var staff in Model.Staffs) { <option value="@staff.Id">@staff.Name</option> }
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label" for="availabilityDay">Ngày trong tuần</label>
+                    <label class="form-label" for="availabilityDay">@L["Optimization.Field.DayOfWeek"]</label>
                     <select id="availabilityDay" class="form-select" name="dayOfWeek" required>
                         @foreach (var day in days) { <option value="@((int)day.Item1)">@day.Item2</option> }
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label" for="availabilityStart">Bắt đầu</label>
+                    <label class="form-label" for="availabilityStart">@L["Optimization.Field.Start"]</label>
                     <input id="availabilityStart" class="form-control" type="time" name="startTime" required />
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label" for="availabilityEnd">Kết thúc</label>
+                    <label class="form-label" for="availabilityEnd">@L["Optimization.Field.End"]</label>
                     <input id="availabilityEnd" class="form-control" type="time" name="endTime" required />
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label" for="availabilityFrom">Có hiệu lực từ</label>
+                    <label class="form-label" for="availabilityFrom">@L["Optimization.Field.EffectiveFrom"]</label>
                     <input id="availabilityFrom" class="form-control" type="date" name="effectiveFrom"
                            value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
                 </div>
                 <div class="col-md-1 d-flex align-items-end">
-                    <button class="btn btn-primary w-100" type="submit">Lưu</button>
+                    <button class="btn btn-primary w-100" type="submit">@L["Optimization.Field.Save"]</button>
                 </div>
             </form>
             </fieldset>
@@ -105,44 +117,44 @@
 
         <section class="tab-pane fade" id="constraint" role="tabpanel">
             <fieldset class="border-0 p-0 m-0">
-            <legend class="visually-hidden">Khai báo giới hạn giờ làm</legend>
-            <p class="form-text mb-3" id="constraintHelp">Dùng để tránh xếp quá giờ và bảo đảm thời gian nghỉ giữa hai ca.</p>
+            <legend class="visually-hidden">@L["Optimization.Constraint.Legend"]</legend>
+            <p class="form-text mb-3" id="constraintHelp">@L["Optimization.Constraint.Help"]</p>
             <form data-kind="constraint" class="row g-3" aria-describedby="constraintHelp">
                 <div class="col-md-3">
-                    <label class="form-label" for="constraintStaff">Nhân viên</label>
+                    <label class="form-label" for="constraintStaff">@L["Optimization.Field.Staff"]</label>
                     <select id="constraintStaff" class="form-select" name="staffId" required>
                         @foreach (var staff in Model.Staffs) { <option value="@staff.Id">@staff.Name</option> }
                     </select>
                 </div>
-                <div class="col-md-2"><label class="form-label" for="targetWeeklyHours">Giờ mục tiêu/tuần</label><input id="targetWeeklyHours" class="form-control" type="number" min="0" max="168" step="0.5" name="targetWeeklyHours" value="40" required /></div>
-                <div class="col-md-2"><label class="form-label" for="maxWeeklyHours">Tối đa giờ/tuần</label><input id="maxWeeklyHours" class="form-control" type="number" min="1" max="168" step="0.5" name="maxWeeklyHours" value="48" required /></div>
-                <div class="col-md-2"><label class="form-label" for="maxDailyHours">Tối đa giờ/ngày</label><input id="maxDailyHours" class="form-control" type="number" min="1" max="24" step="0.5" name="maxDailyHours" value="8" required /></div>
-                <div class="col-md-2"><label class="form-label" for="minimumRestMinutes">Nghỉ tối thiểu (phút)</label><input id="minimumRestMinutes" class="form-control" type="number" min="0" max="1440" name="minimumRestMinutes" value="480" required /></div>
+                <div class="col-md-2"><label class="form-label" for="targetWeeklyHours">@L["Optimization.Field.TargetWeeklyHours"]</label><input id="targetWeeklyHours" class="form-control" type="number" min="0" max="168" step="0.5" name="targetWeeklyHours" value="40" required /></div>
+                <div class="col-md-2"><label class="form-label" for="maxWeeklyHours">@L["Optimization.Field.MaxWeeklyHours"]</label><input id="maxWeeklyHours" class="form-control" type="number" min="1" max="168" step="0.5" name="maxWeeklyHours" value="48" required /></div>
+                <div class="col-md-2"><label class="form-label" for="maxDailyHours">@L["Optimization.Field.MaxDailyHours"]</label><input id="maxDailyHours" class="form-control" type="number" min="1" max="24" step="0.5" name="maxDailyHours" value="8" required /></div>
+                <div class="col-md-2"><label class="form-label" for="minimumRestMinutes">@L["Optimization.Field.MinimumRestMinutes"]</label><input id="minimumRestMinutes" class="form-control" type="number" min="0" max="1440" name="minimumRestMinutes" value="480" required /></div>
                 <input type="hidden" name="effectiveFrom" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
-                <div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Lưu</button></div>
+                <div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">@L["Optimization.Field.Save"]</button></div>
             </form>
             </fieldset>
         </section>
 
         <section class="tab-pane fade" id="requirement" role="tabpanel">
             <fieldset class="border-0 p-0 m-0">
-            <legend class="visually-hidden">Khai báo định mức nhân sự</legend>
-            <p class="form-text mb-3" id="requirementHelp">Định mức giúp quản lý tham chiếu số nhân sự mong muốn cho từng ca.</p>
+            <legend class="visually-hidden">@L["Optimization.Requirement.Legend"]</legend>
+            <p class="form-text mb-3" id="requirementHelp">@L["Optimization.Requirement.Help"]</p>
             <form data-kind="requirement" class="row g-3" aria-describedby="requirementHelp">
                 <input type="hidden" name="storeId" value="@Model.StoreId" />
-                <div class="col-md-3"><label class="form-label" for="requirementShift">Ca làm</label><select id="requirementShift" class="form-select" name="shiftId" required>@foreach (var shift in Model.Shifts) { <option value="@shift.Id">@shift.Name</option> }</select></div>
-                <div class="col-md-2"><label class="form-label" for="requirementDay">Ngày trong tuần</label><select id="requirementDay" class="form-select" name="dayOfWeek" required>@foreach (var day in days) { <option value="@((int)day.Item1)">@day.Item2</option> }</select></div>
-                <div class="col-md-2"><label class="form-label" for="minimumStaff">Tối thiểu (người)</label><input id="minimumStaff" class="form-control" type="number" min="0" max="100" name="minimumStaff" value="1" required /></div>
-                <div class="col-md-2"><label class="form-label" for="targetStaff">Mục tiêu (người)</label><input id="targetStaff" class="form-control" type="number" min="0" max="100" name="targetStaff" value="2" required /></div>
-                <div class="col-md-2"><label class="form-label" for="maximumStaff">Tối đa (người)</label><input id="maximumStaff" class="form-control" type="number" min="0" max="100" name="maximumStaff" value="3" required /></div>
+                <div class="col-md-3"><label class="form-label" for="requirementShift">@L["Optimization.Field.Shift"]</label><select id="requirementShift" class="form-select" name="shiftId" required>@foreach (var shift in Model.Shifts) { <option value="@shift.Id">@shift.Name</option> }</select></div>
+                <div class="col-md-2"><label class="form-label" for="requirementDay">@L["Optimization.Field.DayOfWeek"]</label><select id="requirementDay" class="form-select" name="dayOfWeek" required>@foreach (var day in days) { <option value="@((int)day.Item1)">@day.Item2</option> }</select></div>
+                <div class="col-md-2"><label class="form-label" for="minimumStaff">@L["Optimization.Field.MinimumStaff"]</label><input id="minimumStaff" class="form-control" type="number" min="0" max="100" name="minimumStaff" value="1" required /></div>
+                <div class="col-md-2"><label class="form-label" for="targetStaff">@L["Optimization.Field.TargetStaff"]</label><input id="targetStaff" class="form-control" type="number" min="0" max="100" name="targetStaff" value="2" required /></div>
+                <div class="col-md-2"><label class="form-label" for="maximumStaff">@L["Optimization.Field.MaximumStaff"]</label><input id="maximumStaff" class="form-control" type="number" min="0" max="100" name="maximumStaff" value="3" required /></div>
                 <div class="col-md-3">
-                    <label class="form-label" for="requiredRoleId">Vai trò bắt buộc</label>
+                    <label class="form-label" for="requiredRoleId">@L["Optimization.Field.RequiredRole"]</label>
                     <select id="requiredRoleId" class="form-select" name="requiredRoleId">
-                        <option value="">Không yêu cầu vai trò cụ thể</option>
+                        <option value="">@L["Optimization.Field.NoRoleRequired"]</option>
                         @foreach (var role in Model.Roles) { <option value="@role.Id">@role.Name</option> }
                     </select>
                 </div>
-                <div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Lưu</button></div>
+                <div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">@L["Optimization.Field.Save"]</button></div>
                 <input type="hidden" name="effectiveFrom" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
             </form>
             </fieldset>
@@ -150,14 +162,14 @@
 
         <section class="tab-pane fade" id="timeoff" role="tabpanel">
             <fieldset class="border-0 p-0 m-0">
-            <legend class="visually-hidden">Khai báo nghỉ phép</legend>
-            <p class="form-text mb-3" id="timeoffHelp">Chỉ nhập thời gian nghỉ đã được duyệt; nhân viên nghỉ trong khoảng này sẽ không được liệt kê là ứng viên phù hợp.</p>
+            <legend class="visually-hidden">@L["Optimization.TimeOff.Legend"]</legend>
+            <p class="form-text mb-3" id="timeoffHelp">@L["Optimization.TimeOff.Help"]</p>
             <form data-kind="timeoff" class="row g-3" aria-describedby="timeoffHelp">
-                <div class="col-md-3"><label class="form-label" for="timeoffStaff">Nhân viên</label><select id="timeoffStaff" class="form-select" name="staffId" required>@foreach (var staff in Model.Staffs) { <option value="@staff.Id">@staff.Name</option> }</select></div>
-                <div class="col-md-3"><label class="form-label" for="timeoffFrom">Từ thời điểm</label><input id="timeoffFrom" class="form-control" type="datetime-local" name="fromUtc" required /></div>
-                <div class="col-md-3"><label class="form-label" for="timeoffTo">Đến thời điểm</label><input id="timeoffTo" class="form-control" type="datetime-local" name="toUtc" required /></div>
-                <div class="col-md-2"><label class="form-label" for="timeoffReason">Lý do</label><input id="timeoffReason" class="form-control" name="reason" maxlength="500" required /></div>
-                <div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Lưu</button></div>
+                <div class="col-md-3"><label class="form-label" for="timeoffStaff">@L["Optimization.Field.Staff"]</label><select id="timeoffStaff" class="form-select" name="staffId" required>@foreach (var staff in Model.Staffs) { <option value="@staff.Id">@staff.Name</option> }</select></div>
+                <div class="col-md-3"><label class="form-label" for="timeoffFrom">@L["Optimization.Field.From"]</label><input id="timeoffFrom" class="form-control" type="datetime-local" name="fromUtc" required /></div>
+                <div class="col-md-3"><label class="form-label" for="timeoffTo">@L["Optimization.Field.To"]</label><input id="timeoffTo" class="form-control" type="datetime-local" name="toUtc" required /></div>
+                <div class="col-md-2"><label class="form-label" for="timeoffReason">@L["Optimization.Field.Reason"]</label><input id="timeoffReason" class="form-control" name="reason" maxlength="500" required /></div>
+                <div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">@L["Optimization.Field.Save"]</button></div>
             </form>
             </fieldset>
         </section>
@@ -165,8 +177,8 @@
     </div>
 
     <section class="mt-4">
-        <h2 class="h5">Cấu hình đã lưu</h2>
-        <p class="text-muted small">Kiểm tra dữ liệu tham khảo đang được lưu cho việc phân lịch thủ công.</p>
+        <h2 class="h5">@L["Optimization.Saved.Title"]</h2>
+        <p class="text-muted small">@L["Optimization.Saved.Subtitle"]</p>
         <div id="shiftOptimizationConfig" class="row g-3"></div>
     </section>
     <div id="shiftOptimizationNotice" class="alert mt-3" hidden role="status"></div>
@@ -178,5 +190,6 @@
     <link rel="stylesheet" href="~/css/Admin/StaffShift/shift-optimization.css" asp-append-version="true" />
 }
 @section Scripts {
+    <script type="application/json" id="shift-optimization-ui-catalog">@Html.Raw(JsonSerializer.Serialize(L.GetAllStrings().Where(x => x.Name.StartsWith("Optimization.Js.") || x.Name.StartsWith("Optimization.Tab.")).ToDictionary(x => x.Name, x => x.Value)))</script>
     <script src="~/js/Admin/StaffShift/shift-optimization.js" asp-append-version="true"></script>
 }

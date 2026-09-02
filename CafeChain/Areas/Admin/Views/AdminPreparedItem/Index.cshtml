@@ -1,7 +1,10 @@
 @model CafeChain.ViewModels.Admin.PreparedItems.AdminPreparedItemIndexPageVM
 @using CafeChain.ViewModels.Admin.Shared
+@using Microsoft.Extensions.Localization
+@using System.Text.Json
+@inject IStringLocalizer<CafeChain.ProductResource> ProductText
 @{
-    ViewData["Title"] = "Danh mục bán thành phẩm";
+    ViewData["Title"] = ProductText["PreparedItem.PageTitle"];
     // Prefer typed page VM (post-#129); fall back to ViewBag if model bag missing CanWrite.
     var canWrite = Model?.CanWrite == true
         || (ViewBag.CanWrite is bool vb && vb);
@@ -15,7 +18,7 @@
             new()
             {
                 Id = "btnCreate",
-                Label = "Tạo bán thành phẩm",
+                Label = ProductText["PreparedItem.Create"],
                 Url = "#preparedItemEditor",
                 IconClass = "fas fa-plus",
                 IsPrimary = true
@@ -24,13 +27,16 @@
         : [];
     var hero = new AdminPageHeroVM
     {
-        Eyebrow = "Sản xuất / BOM",
-        Title = "Bán thành phẩm",
-        Description = "Quản lý định danh tồn kho dùng làm đầu ra của công thức sản xuất. Số lượng tồn thực tế được theo dõi riêng theo từng cửa hàng.",
+        Eyebrow = ProductText["Recipe.Eyebrow"],
+        Title = ProductText["PreparedItem.Title"],
+        Description = ProductText["PreparedItem.Description"],
         IconClass = "fas fa-blender",
-        Breadcrumbs = [new() { Label = "Sản xuất / BOM" }, new() { Label = "Bán thành phẩm" }],
+        Breadcrumbs = [new() { Label = ProductText["Recipe.Eyebrow"] }, new() { Label = ProductText["PreparedItem.Title"] }],
         Actions = heroActions
     };
+    var preparedItemJsCatalog = JsonSerializer.Serialize(ProductText.GetAllStrings()
+        .Where(message => message.Name.StartsWith("PreparedItem.Js.", StringComparison.Ordinal))
+        .ToDictionary(message => message.Name, message => message.Value));
 }
 
 @Html.AntiForgeryToken()
@@ -42,31 +48,31 @@
     <partial name="_PageHero" model="hero" />
 
     <form method="get" class="rb-list-filters production-filter-card" id="filterForm" role="search">
-        <label class="visually-hidden" for="searchBox">Tìm theo mã hoặc tên</label>
+        <label class="visually-hidden" for="searchBox">@ProductText["PreparedItem.SearchLabel"]</label>
         <input name="search" id="searchBox" class="form-control" value="@Model.Search"
-               placeholder="Tìm theo mã hoặc tên bán thành phẩm..." autocomplete="off" />
-        <label class="visually-hidden" for="statusFilter">Trạng thái</label>
+               placeholder="@ProductText["PreparedItem.SearchPlaceholder"]" autocomplete="off" />
+        <label class="visually-hidden" for="statusFilter">@ProductText["Common.Status"]</label>
         <select name="status" id="statusFilter" class="form-select">
-            <option value="">Tất cả trạng thái</option>
-            <option value="true" selected="@(Model.Status == true)">Hoạt động</option>
-            <option value="false" selected="@(Model.Status == false)">Ngừng hoạt động</option>
+            <option value="">@ProductText["Common.AllStatuses"]</option>
+            <option value="true" selected="@(Model.Status == true)">@ProductText["Common.Active"]</option>
+            <option value="false" selected="@(Model.Status == false)">@ProductText["Common.Inactive"]</option>
         </select>
-        <button type="submit" class="btn btn-rb-save"><i class="fas fa-filter" aria-hidden="true"></i>Lọc</button>
-        <a asp-action="Index" class="btn btn-rb-ghost production-filter-reset" aria-label="Đặt lại bộ lọc" title="Đặt lại bộ lọc"><i class="fas fa-rotate-left" aria-hidden="true"></i></a>
+        <button type="submit" class="btn btn-rb-save"><i class="fas fa-filter" aria-hidden="true"></i>@ProductText["Common.Filter"]</button>
+        <a asp-action="Index" class="btn btn-rb-ghost production-filter-reset" aria-label="@ProductText["Common.ResetFilters"]" title="@ProductText["Common.ResetFilters"]"><i class="fas fa-rotate-left" aria-hidden="true"></i></a>
     </form>
 
     <section class="production-list-section" aria-labelledby="prepared-item-list-title">
         <header class="production-section-header">
             <div>
-                <h2 id="prepared-item-list-title">Danh sách bán thành phẩm</h2>
-                <p>Định danh tồn kho, đơn vị cơ sở và công thức đang được áp dụng.</p>
+                <h2 id="prepared-item-list-title">@ProductText["PreparedItem.ListTitle"]</h2>
+                <p>@ProductText["PreparedItem.ListHint"]</p>
             </div>
-            <span class="production-section-header__count"><strong>@items.Count</strong> mục trên trang</span>
+            <span class="production-section-header__count">@ProductText["PreparedItem.PageCount", items.Count]</span>
         </header>
 
     <div class="rb-card production-table-panel">
         <div class="table-responsive">
-            <table class="table rb-table rb-prepareditem-table production-data-table @(canWrite ? "has-actions" : "is-readonly") mb-0" aria-label="Danh sách bán thành phẩm">
+            <table class="table rb-table rb-prepareditem-table production-data-table @(canWrite ? "has-actions" : "is-readonly") mb-0" aria-label="@ProductText["PreparedItem.ListTitle"]">
                 <colgroup>
                     <col class="rb-prepared-col-identity" />
                     <col class="rb-prepared-col-uom" />
@@ -79,13 +85,13 @@
                 </colgroup>
                 <thead>
                     <tr>
-                        <th scope="col">Bán thành phẩm</th>
-                        <th scope="col">Đơn vị tồn kho</th>
-                        <th scope="col">Tình trạng</th>
-                        <th scope="col">Công thức đang hoạt động</th>
+                        <th scope="col">@ProductText["PreparedItem.Column.Item"]</th>
+                        <th scope="col">@ProductText["PreparedItem.Column.Unit"]</th>
+                        <th scope="col">@ProductText["Common.Status"]</th>
+                        <th scope="col">@ProductText["PreparedItem.Column.ActiveRecipe"]</th>
                         @if (canWrite)
                         {
-                            <th scope="col" class="rb-actions-heading">Thao tác</th>
+                            <th scope="col" class="rb-actions-heading">@ProductText["Common.Actions"]</th>
                         }
                     </tr>
                 </thead>
@@ -96,18 +102,18 @@
                         <td colspan="@colCount" class="text-center py-5">
                             @* Inline empty CTA (restored after #129 ValueTuple _EmptyState path) so write roles always get btnCreateEmpty when CanWrite. *@
                             <div class="rb-empty-state" id="preparedItemEmptyState">
-                                <p class="fw-semibold mb-1">Chưa có bán thành phẩm.</p>
+                                <p class="fw-semibold mb-1">@ProductText["PreparedItem.Empty.Title"]</p>
                                 @if (canWrite)
                                 {
-                                    <p class="text-muted small mb-3">Hãy tạo BTP trước khi tạo công thức sơ chế.</p>
+                                    <p class="text-muted small mb-3">@ProductText["PreparedItem.Empty.CreateHint"]</p>
                                     <button type="button" class="btn btn-rb-save" id="btnCreateEmpty">
-                                        Tạo bán thành phẩm đầu tiên
+                                        @ProductText["PreparedItem.Empty.Create"]
                                     </button>
                                 }
                                 else
                                 {
                                     <p class="text-muted small mb-0">
-                                        Chưa có BTP trong hệ thống. Tài khoản hiện tại chỉ có quyền xem.
+                                        @ProductText["PreparedItem.Empty.ReadOnly"]
                                     </p>
                                 }
                             </div>
@@ -141,15 +147,15 @@
                                     <a class="production-link"
                                        asp-area="Admin" asp-controller="AdminRecipe" asp-action="Edit"
                                        asp-route-id="@item.ActiveRecipeId"
-                                       title="Xem công thức đang hoạt động">
-                                        @(string.IsNullOrWhiteSpace(item.ActiveRecipeCode) ? "Công thức đang áp dụng" : item.ActiveRecipeCode)
+                                       title="@ProductText["PreparedItem.ViewActiveRecipe"]">
+                                        @(string.IsNullOrWhiteSpace(item.ActiveRecipeCode) ? ProductText["PreparedItem.ActiveRecipe"] : item.ActiveRecipeCode)
                                     </a>
                                 }
                                 else
                                 {
-                                    <span class="text-muted">Chưa có</span>
+                                    <span class="text-muted">@ProductText["Common.None"]</span>
                                 }
-                                <div class="small text-muted mt-1">@item.VersionCount phiên bản</div>
+                                <div class="small text-muted mt-1">@ProductText["PreparedItem.VersionCount", item.VersionCount]</div>
                             </td>
                             @if (canWrite)
                             {
@@ -160,31 +166,31 @@
                                             <a class="btn btn-sm btn-outline-secondary rb-table-action"
                                                asp-area="Admin" asp-controller="AdminRecipe" asp-action="Edit"
                                                asp-route-id="@item.ActiveRecipeId"
-                                               title="Xem công thức"
-                                               aria-label="Xem công thức của @item.Name">
-                                                <i class="fas fa-diagram-project" aria-hidden="true"></i><span>Xem công thức</span>
+                                               title="@ProductText["PreparedItem.ViewRecipe"]"
+                                               aria-label="@ProductText["PreparedItem.ViewRecipeAria", item.Name]">
+                                                <i class="fas fa-diagram-project" aria-hidden="true"></i><span>@ProductText["PreparedItem.ViewRecipe"]</span>
                                             </a>
                                         }
                                         else
                                         {
                                             <a class="btn btn-sm btn-outline-secondary rb-table-action"
                                                asp-area="Admin" asp-controller="AdminRecipe" asp-action="Create"
-                                               title="Tạo công thức"
-                                               aria-label="Tạo công thức cho @item.Name">
-                                                <i class="fas fa-plus" aria-hidden="true"></i><span>Tạo công thức</span>
+                                               title="@ProductText["PreparedItem.CreateRecipe"]"
+                                               aria-label="@ProductText["PreparedItem.CreateRecipeAria", item.Name]">
+                                                <i class="fas fa-plus" aria-hidden="true"></i><span>@ProductText["PreparedItem.CreateRecipe"]</span>
                                             </a>
                                         }
                                         <div class="dropdown production-row-menu">
                                             <button class="btn btn-sm production-row-menu__trigger" type="button"
                                                     data-bs-toggle="dropdown" aria-expanded="false"
-                                                    title="Mở danh sách thao tác"
-                                                    aria-label="Mở danh sách thao tác cho @item.Name">
+                                                    title="@ProductText["Common.OpenActions"]"
+                                                    aria-label="@ProductText["Common.OpenActionsAria", item.Name]">
                                                 <i class="fas fa-ellipsis-vertical" aria-hidden="true"></i>
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-end">
                                                 <li>
                                                     <button type="button" class="dropdown-item edit-btn" data-id="@item.PreparedItemId">
-                                                        <i class="fas fa-pen" aria-hidden="true"></i>Sửa thông tin
+                                                        <i class="fas fa-pen" aria-hidden="true"></i>@ProductText["PreparedItem.Edit"]
                                                     </button>
                                                 </li>
                                                 <li><hr class="dropdown-divider" /></li>
@@ -192,7 +198,7 @@
                                                     <button type="button" class="dropdown-item toggle-btn @(item.Active ? "text-danger" : "")"
                                                             data-id="@item.PreparedItemId" data-active="@(!item.Active)">
                                                         <i class="fas @(item.Active ? "fa-pause" : "fa-play")" aria-hidden="true"></i>
-                                                        @(item.Active ? "Ngừng hoạt động" : "Kích hoạt")
+                                                        @(item.Active ? ProductText["Common.Deactivate"] : ProductText["Common.Activate"])
                                                     </button>
                                                 </li>
                                             </ul>
@@ -208,12 +214,12 @@
         </div>
     @if (totalPages > 1)
     {
-        <nav class="production-pagination" aria-label="Phân trang danh mục bán thành phẩm">
-            <span class="production-pagination__summary">Trang @(page) trên @totalPages</span>
+        <nav class="production-pagination" aria-label="@ProductText["PreparedItem.PaginationAria"]">
+            <span class="production-pagination__summary">@ProductText["Common.PageSummary", page, totalPages]</span>
             <div class="production-pagination__links">
                 @if (page > 1)
                 {
-                    <a class="production-page-link is-nav" aria-label="Trang trước"
+                    <a class="production-page-link is-nav" aria-label="@ProductText["Common.PreviousPage"]"
                        asp-action="Index" asp-route-page="@(page - 1)"
                        asp-route-search="@(Model?.Search ?? ViewBag.Search as string)"
                        asp-route-status="@(Model?.Status ?? ViewBag.Status as bool?)"><i class="fas fa-chevron-left" aria-hidden="true"></i></a>
@@ -229,7 +235,7 @@
                 }
                 @if (page < totalPages)
                 {
-                    <a class="production-page-link is-nav" aria-label="Trang sau"
+                    <a class="production-page-link is-nav" aria-label="@ProductText["Common.NextPage"]"
                        asp-action="Index" asp-route-page="@(page + 1)"
                        asp-route-search="@(Model?.Search ?? ViewBag.Search as string)"
                        asp-route-status="@(Model?.Status ?? ViewBag.Status as bool?)"><i class="fas fa-chevron-right" aria-hidden="true"></i></a>
@@ -251,11 +257,11 @@
                     <div class="rb-modal-heading">
                         <span class="rb-modal-heading-icon" aria-hidden="true"><i class="fas fa-boxes-stacked"></i></span>
                         <div>
-                            <h2 class="modal-title" id="preparedItemModalTitle">Tạo bán thành phẩm</h2>
-                            <p class="rb-modal-subtitle mb-0">Thiết lập danh tính và đơn vị quản lý tồn kho.</p>
+                            <h2 class="modal-title" id="preparedItemModalTitle">@ProductText["PreparedItem.Create"]</h2>
+                            <p class="rb-modal-subtitle mb-0">@ProductText["PreparedItem.Modal.Subtitle"]</p>
                         </div>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@ProductText["Common.Close"]"></button>
                 </div>
                 <div class="modal-body">
                     <div id="pi-error-summary" class="alert alert-danger py-2 small" style="display:none;" role="alert" tabindex="-1"></div>
@@ -263,17 +269,17 @@
                     <div class="rb-modal-section">
                         <div class="rb-modal-section-heading">
                             <i class="fas fa-fingerprint" aria-hidden="true"></i>
-                            <div><strong>Thông tin định danh</strong><span>Mã và tên dùng xuyên suốt trong công thức BOM.</span></div>
+                            <div><strong>@ProductText["PreparedItem.Identity.Title"]</strong><span>@ProductText["PreparedItem.Identity.Hint"]</span></div>
                         </div>
                         <div class="row g-3">
                         <div class="col-md-5">
-                            <label class="form-label fw-semibold" for="pi-code">Mã BTP <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold" for="pi-code">@ProductText["PreparedItem.Code"] <span class="text-danger">*</span></label>
                             <input id="pi-code" class="form-control" maxlength="50" autocomplete="off"
                                    aria-describedby="pi-code-help pi-error" />
-                            <div id="pi-code-help" class="form-text" style="white-space: nowrap;">Viết hoa, không khoảng trắng thừa.</div>
+                            <div id="pi-code-help" class="form-text" style="white-space: nowrap;">@ProductText["PreparedItem.CodeHint"]</div>
                         </div>
                         <div class="col-md-7">
-                            <label class="form-label fw-semibold" for="pi-name">Tên BTP <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold" for="pi-name">@ProductText["PreparedItem.Name"] <span class="text-danger">*</span></label>
                             <input id="pi-name" class="form-control" maxlength="200" autocomplete="off"
                                    aria-describedby="pi-error" />
                         </div>
@@ -282,26 +288,25 @@
                     <div class="rb-modal-section">
                         <div class="rb-modal-section-heading">
                             <i class="fas fa-warehouse" aria-hidden="true"></i>
-                            <div><strong>Cấu hình tồn kho</strong><span>Chọn đơn vị cơ sở và bổ sung mô tả vận hành.</span></div>
+                            <div><strong>@ProductText["PreparedItem.Inventory.Title"]</strong><span>@ProductText["PreparedItem.Inventory.Hint"]</span></div>
                         </div>
                         <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold" for="pi-unit">Đơn vị tồn kho cơ sở <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold" for="pi-unit">@ProductText["PreparedItem.BaseUnit"] <span class="text-danger">*</span></label>
                             <select id="pi-unit" class="form-select" aria-describedby="pi-unit-help pi-error"></select>
                             <div id="pi-unit-help" class="form-text">
-                                Đơn vị này được dùng để lưu số lượng tồn kho của BTP.
-                                Sau khi đã phát sinh tồn kho, không nên thay đổi tùy tiện.
+                                @ProductText["PreparedItem.BaseUnitHint"]
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold" for="pi-desc">Mô tả</label>
+                            <label class="form-label fw-semibold" for="pi-desc">@ProductText["Common.Description"]</label>
                             <textarea id="pi-desc" class="form-control" maxlength="500" rows="3"
                                       aria-describedby="pi-error"></textarea>
                         </div>
                         <div class="col-12" id="pi-active-wrap" style="display:none">
                             <div class="form-check form-switch rb-brown-switch">
                                 <input class="form-check-input" type="checkbox" id="pi-active" />
-                                <label class="form-check-label" for="pi-active">Hoạt động</label>
+                                <label class="form-check-label" for="pi-active">@ProductText["Common.Active"]</label>
                             </div>
                         </div>
                         </div>
@@ -309,8 +314,8 @@
                     <div id="pi-error" class="text-danger small mt-2" role="status" aria-live="polite"></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-rb-ghost" data-bs-dismiss="modal"><i class="fas fa-xmark" aria-hidden="true"></i>Hủy</button>
-                    <button type="button" class="btn btn-rb-save" id="btnSavePreparedItem"><i class="fas fa-floppy-disk" aria-hidden="true"></i>Lưu bán thành phẩm</button>
+                    <button type="button" class="btn btn-rb-ghost" data-bs-dismiss="modal"><i class="fas fa-xmark" aria-hidden="true"></i>@ProductText["Common.Cancel"]</button>
+                    <button type="button" class="btn btn-rb-save" id="btnSavePreparedItem"><i class="fas fa-floppy-disk" aria-hidden="true"></i>@ProductText["PreparedItem.Save"]</button>
                 </div>
             </div>
         </div>
@@ -320,9 +325,12 @@
 @section Scripts {
 @if (canWrite)
 {
+<script id="preparedItemUiCatalog" type="application/json">@Html.Raw(preparedItemJsCatalog)</script>
 <script>
 (function () {
     const base = '/Admin/AdminPreparedItem';
+    const catalog = window.CafeChainUiCatalog.read('preparedItemUiCatalog');
+    const text = (key, values) => window.CafeChainUiCatalog.text(catalog, key, values);
     let unitsLoaded = false;
     let modal;
 
@@ -351,7 +359,7 @@
             .then(r => r.json())
             .then(res => {
                 const sel = document.getElementById('pi-unit');
-                sel.innerHTML = '<option value="">-- Chọn đơn vị --</option>';
+                sel.replaceChildren(new Option(text('PreparedItem.Js.SelectUnit'), ''));
                 (res.data || []).forEach(u => {
                     const opt = document.createElement('option');
                     opt.value = u.unitId;
@@ -361,7 +369,7 @@
                 unitsLoaded = true;
                 done();
             })
-            .catch(() => showError('Không tải được danh sách đơn vị.'));
+            .catch(() => showError(text('PreparedItem.Js.UnitsLoadFailed')));
     }
     function resetForm() {
         document.getElementById('pi-id').value = '';
@@ -372,7 +380,7 @@
         document.getElementById('pi-active').checked = true;
         document.getElementById('pi-active-wrap').style.display = 'none';
         showError('');
-        document.getElementById('preparedItemModalTitle').textContent = 'Tạo bán thành phẩm';
+        document.getElementById('preparedItemModalTitle').textContent = text('PreparedItem.Js.CreateTitle');
     }
     function openCreate() {
         ensureUnits(function () {
@@ -405,7 +413,7 @@
                         document.getElementById('pi-active').checked = !!d.active;
                         document.getElementById('pi-active-wrap').style.display = '';
                         showError('');
-                        document.getElementById('preparedItemModalTitle').textContent = 'Sửa bán thành phẩm';
+                        document.getElementById('preparedItemModalTitle').textContent = text('PreparedItem.Js.EditTitle');
                         modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('preparedItemModal'));
                         modal.show();
                     });
@@ -428,25 +436,25 @@
             .then(r => r.json())
             .then(res => {
                 if (res.success) location.reload();
-                else showError(res.message || 'Lỗi lưu');
+                else showError(res.message || text('PreparedItem.Js.SaveFailed'));
             })
-            .catch(() => showError('Lỗi kết nối hoặc phiên làm việc không hợp lệ.'));
+            .catch(() => showError(text('PreparedItem.Js.SessionError')));
     });
 
     document.querySelectorAll('.toggle-btn').forEach(btn => {
         btn.addEventListener('click', async function () {
             const id = parseInt(this.getAttribute('data-id'), 10);
             const active = this.getAttribute('data-active') === 'True' || this.getAttribute('data-active') === 'true';
-            const label = active ? 'Kích hoạt' : 'Ngừng hoạt động';
+            const label = active ? text('PreparedItem.Js.Activate') : text('PreparedItem.Js.Deactivate');
             const answer = await Swal.fire({
                 icon: active ? 'question' : 'warning',
-                title: label + ' bán thành phẩm?',
+                title: text('PreparedItem.Js.ToggleTitle', { action: label }),
                 text: active
-                    ? 'Bán thành phẩm sẽ có thể tiếp tục được sử dụng trong cấu hình BOM.'
-                    : 'Bán thành phẩm sẽ không còn được chọn cho cấu hình mới.',
+                    ? text('PreparedItem.Js.ActivateHint')
+                    : text('PreparedItem.Js.DeactivateHint'),
                 showCancelButton: true,
                 confirmButtonText: label,
-                cancelButtonText: 'Hủy',
+                cancelButtonText: text('PreparedItem.Js.Cancel'),
                 reverseButtons: true,
                 customClass: { popup: 'rb-confirm-popup', confirmButton: 'rb-confirm-primary', cancelButton: 'rb-confirm-cancel' },
                 buttonsStyling: false
@@ -460,9 +468,9 @@
             .then(r => r.json())
             .then(res => {
                 if (res.success) location.reload();
-                else Swal.fire({ icon: 'error', title: 'Không thể cập nhật', text: res.message || 'Đã xảy ra lỗi.', confirmButtonColor: '#6f4e37' });
+                else Swal.fire({ icon: 'error', title: text('PreparedItem.Js.UpdateFailed'), text: res.message || text('PreparedItem.Js.GenericError'), confirmButtonColor: '#6f4e37' });
             })
-            .catch(() => Swal.fire({ icon: 'error', title: 'Mất kết nối', text: 'Không thể kết nối máy chủ.', confirmButtonColor: '#6f4e37' }));
+            .catch(() => Swal.fire({ icon: 'error', title: text('PreparedItem.Js.ConnectionLost'), text: text('PreparedItem.Js.ServerUnavailable'), confirmButtonColor: '#6f4e37' }));
         });
     });
 

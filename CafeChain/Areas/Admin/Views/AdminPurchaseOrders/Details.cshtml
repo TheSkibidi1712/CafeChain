@@ -1,7 +1,9 @@
 @model CafeChain.Application.DTOs.Admin.Procurement.PurchaseOrderDetailDto
 @using CafeChain.ViewModels.Admin.Shared
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<ProcurementResource> L
 @{
-    ViewData["Title"] = "Chi tiết đơn đặt hàng";
+    ViewData["Title"] = L["PurchaseOrder.Details.Title"];
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var canApprove = (bool?)ViewBag.CanApprove == true;
     var canSend = (bool?)ViewBag.CanSend == true;
@@ -17,16 +19,16 @@
     var completedWithShortfall = Model.Status == "COMPLETED" && totalClosed > 0;
     var orderStatus = AdminStatusDisplay.PurchaseOrder(Model.Status);
     var orderStatusLabel = completedWithShortfall
-        ? "Hoàn thành có phần không giao bù"
+        ? L["PurchaseOrder.Details.CompletedShortfall"].Value
         : orderStatus.Label;
     var lifecycle = new[]
     {
-        (Label: "Đề nghị mua", Complete: Model.LinkedAdvices.Count > 0),
-        (Label: "Đơn đặt hàng", Complete: true),
-        (Label: "Duyệt", Complete: Model.ApprovedAtUtc.HasValue),
-        (Label: "Gửi nhà cung cấp", Complete: Model.SentAtUtc.HasValue),
-        (Label: "Nhận hàng", Complete: Model.Receipts.Any(x => x.Status == "CONFIRMED")),
-        (Label: "Hoàn tất", Complete: Model.Status == "COMPLETED")
+        (Label: L["PurchaseOrder.Details.Step.Advice"].Value, Complete: Model.LinkedAdvices.Count > 0),
+        (Label: L["PurchaseOrder.Details.Step.Order"].Value, Complete: true),
+        (Label: L["PurchaseOrder.Details.Step.Approve"].Value, Complete: Model.ApprovedAtUtc.HasValue),
+        (Label: L["PurchaseOrder.Details.Step.Send"].Value, Complete: Model.SentAtUtc.HasValue),
+        (Label: L["PurchaseOrder.Details.Step.Receive"].Value, Complete: Model.Receipts.Any(x => x.Status == "CONFIRMED")),
+        (Label: L["PurchaseOrder.Details.Step.Complete"].Value, Complete: Model.Status == "COMPLETED")
     };
 }
 
@@ -38,20 +40,20 @@
         <div>
             <div class="ops-eyebrow">@Model.Code · @Model.StoreName</div>
             <h1 class="ops-title">@Model.SupplierName</h1>
-            <p class="ops-subtitle">@orderStatusLabel. Số lượng còn phải giao chỉ trừ phần đã nhận hợp lệ hoặc phần được đóng rõ ràng.</p>
+            <p class="ops-subtitle">@L["PurchaseOrder.Details.Subtitle", orderStatusLabel]</p>
         </div>
         <div class="ops-actions">
             <a class="ops-btn ops-btn-primary" asp-action="Print" asp-route-id="@Model.PurchaseOrderId" target="_blank">
-                <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Xuất PDF
+                <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> @L["PurchaseOrder.Details.ExportPdf"]
             </a>
             @if (canReceive && canReceiveStatus && totalRemaining > 0)
             {
                 <a class="ops-btn" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="ReceivePurchaseOrder" asp-route-purchaseOrderId="@Model.PurchaseOrderId">
                     <i class="fa-solid fa-box-open" aria-hidden="true"></i>
-                    @(Model.ActiveReceiptDraftId.HasValue ? "Tiếp tục kiểm đếm" : "Nhận hàng")
+                    @(Model.ActiveReceiptDraftId.HasValue ? L["PurchaseOrder.Details.ContinueCount"] : L["PurchaseOrder.Details.Receive"])
                 </a>
             }
-            <a class="ops-btn" asp-action="Index"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách</a>
+            <a class="ops-btn" asp-action="Index"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> @L["Common.List"]</a>
         </div>
     </header>
 
@@ -65,19 +67,19 @@
     }
     @if (completedWithShortfall)
     {
-        <div class="ops-notice ops-notice-info">Đơn đặt hàng đã hoàn thành với một phần nghĩa vụ được đóng rõ ràng. Phần đã đóng không nhập kho; chỉ số lượng nhận hợp lệ mới cập nhật tồn.</div>
+        <div class="ops-notice ops-notice-info">@L["PurchaseOrder.Details.ShortfallNotice"]</div>
     }
 
     <section class="ops-panel" aria-labelledby="poLifecycleTitle">
         <div class="ops-panel-header">
             <div>
-                <h2 id="poLifecycleTitle" class="ops-panel-title">Tiến trình đơn đặt hàng</h2>
-                <div class="ops-secondary">Mỗi bước chỉ hoàn tất khi có sự kiện nghiệp vụ tương ứng.</div>
+                <h2 id="poLifecycleTitle" class="ops-panel-title">@L["PurchaseOrder.Details.Lifecycle"]</h2>
+                <div class="ops-secondary">@L["PurchaseOrder.Details.LifecycleHelp"]</div>
             </div>
             <span class="ops-badge @orderStatus.CssClass">@orderStatusLabel</span>
         </div>
         <div class="ops-panel-body">
-            <div class="ops-workflow" role="list" aria-label="Các bước xử lý đơn đặt hàng">
+            <div class="ops-workflow" role="list" aria-label="@L["PurchaseOrder.Details.StepsAria"]">
                 @for (var stepIndex = 0; stepIndex < lifecycle.Length; stepIndex++)
                 {
                     var step = lifecycle[stepIndex];
@@ -93,40 +95,40 @@
     </section>
 
     <section class="ops-panel" aria-labelledby="poIdentityTitle">
-        <div class="ops-panel-header"><h2 id="poIdentityTitle" class="ops-panel-title">Thông tin chứng từ</h2></div>
+        <div class="ops-panel-header"><h2 id="poIdentityTitle" class="ops-panel-title">@L["PurchaseOrder.Details.DocumentInfo"]</h2></div>
         <div class="ops-panel-body ops-detail-grid">
-            <div><span class="ops-secondary">Mã đơn</span><strong class="d-block">@Model.Code</strong></div>
-            <div><span class="ops-secondary">Nhà cung cấp</span><strong class="d-block">@Model.SupplierName</strong></div>
-            <div><span class="ops-secondary">Nơi nhận</span><strong class="d-block">@Model.StoreName</strong></div>
-            <div><span class="ops-secondary">Người tạo</span><strong class="d-block">@Model.CreatedByStaffName</strong><small>@Model.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small></div>
-            <div><span class="ops-secondary">Người duyệt</span><strong class="d-block">@(Model.ApprovedByStaffName ?? "Chưa duyệt")</strong>@if (Model.ApprovedAtUtc.HasValue) { <small>@Model.ApprovedAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small> }</div>
-            <div><span class="ops-secondary">Người gửi nhà cung cấp</span><strong class="d-block">@(Model.SentByStaffName ?? "Chưa gửi")</strong>@if (Model.SentAtUtc.HasValue) { <small>@Model.SentAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small> }</div>
+            <div><span class="ops-secondary">@L["PurchaseOrder.Code"]</span><strong class="d-block">@Model.Code</strong></div>
+            <div><span class="ops-secondary">@L["Common.Supplier"]</span><strong class="d-block">@Model.SupplierName</strong></div>
+            <div><span class="ops-secondary">@L["PurchaseOrder.Details.Destination"]</span><strong class="d-block">@Model.StoreName</strong></div>
+            <div><span class="ops-secondary">@L["PurchaseOrder.Details.CreatedBy"]</span><strong class="d-block">@Model.CreatedByStaffName</strong><small>@Model.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small></div>
+            <div><span class="ops-secondary">@L["PurchaseOrder.Details.ApprovedBy"]</span><strong class="d-block">@(Model.ApprovedByStaffName ?? L["PurchaseOrder.Details.NotApproved"].Value)</strong>@if (Model.ApprovedAtUtc.HasValue) { <small>@Model.ApprovedAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small> }</div>
+            <div><span class="ops-secondary">@L["PurchaseOrder.Details.SentBy"]</span><strong class="d-block">@(Model.SentByStaffName ?? L["PurchaseOrder.Details.NotSent"].Value)</strong>@if (Model.SentAtUtc.HasValue) { <small>@Model.SentAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small> }</div>
         </div>
     </section>
 
     <section class="ops-metrics">
-        <div class="ops-metric"><span class="ops-metric-label">Giá trị đặt</span><strong class="ops-metric-value">@AdminStatusDisplay.Currency(Model.TotalAmount)</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Số dòng hàng</span><strong class="ops-metric-value">@Model.Lines.Count</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Dòng đã nhận đủ</span><strong class="ops-metric-value success">@Model.Lines.Count(x => x.RemainingBaseQuantity <= 0 && x.AcceptedBaseQuantity > 0)</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Dòng có từ chối</span><strong class="ops-metric-value danger">@rejectedLineCount</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Dòng còn phải giao</span><strong class="ops-metric-value warning">@remainingLineCount</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">@L["PurchaseOrder.Details.OrderValue"]</span><strong class="ops-metric-value">@AdminStatusDisplay.Currency(Model.TotalAmount)</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">@L["PurchaseOrder.Details.LineCount"]</span><strong class="ops-metric-value">@Model.Lines.Count</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">@L["PurchaseOrder.Details.FullyReceived"]</span><strong class="ops-metric-value success">@Model.Lines.Count(x => x.RemainingBaseQuantity <= 0 && x.AcceptedBaseQuantity > 0)</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">@L["PurchaseOrder.Details.RejectedLines"]</span><strong class="ops-metric-value danger">@rejectedLineCount</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">@L["PurchaseOrder.Details.RemainingLines"]</span><strong class="ops-metric-value warning">@remainingLineCount</strong></div>
     </section>
 
     <section class="ops-panel">
-        <div class="ops-panel-header"><h2 class="ops-panel-title">Chi tiết nghĩa vụ giao hàng</h2></div>
+        <div class="ops-panel-header"><h2 class="ops-panel-title">@L["PurchaseOrder.Details.ObligationTitle"]</h2></div>
         <div class="ops-panel-body p-0">
             <div class="ops-table-scroll cc-warehouse-table-shell">
                 <table class="ops-table">
                     <thead>
                         <tr>
-                            <th>Nguyên liệu</th>
-                            <th>Nguồn yêu cầu nhập</th>
-                            <th class="number">Đặt</th>
-                            <th class="number">Số lượng chấp nhận</th>
-                            <th class="number">Số lượng từ chối</th>
-                            <th class="number">Phần còn lại đã đóng</th>
-                            <th class="number">Còn phải giao</th>
-                            <th>Lịch sử</th>
+                            <th>@L["Common.Ingredient"]</th>
+                            <th>@L["PurchaseOrder.Details.RestockSource"]</th>
+                            <th class="number">@L["PurchaseOrder.Details.Ordered"]</th>
+                            <th class="number">@L["PurchaseOrder.Details.Accepted"]</th>
+                            <th class="number">@L["PurchaseOrder.Details.Rejected"]</th>
+                            <th class="number">@L["PurchaseOrder.Details.ClosedRemainder"]</th>
+                            <th class="number">@L["PurchaseOrder.Details.StillDue"]</th>
+                            <th>@L["PurchaseOrder.Details.History"]</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -137,14 +139,14 @@
                                 <strong class="ops-item-name">@line.IngredientName</strong>
                                 @if (line.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Loose)
                                 {
-                                    <div class="ops-secondary">Mua rời @AdminStatusDisplay.Quantity(line.OrderedProcurementQuantity.GetValueOrDefault()) @AdminStatusDisplay.Unit(line.ProcurementUnitName) · @AdminStatusDisplay.Currency(line.UnitPricePerProcurementUnit.GetValueOrDefault())/@AdminStatusDisplay.Unit(line.ProcurementUnitName)</div>
+                                    <div class="ops-secondary">@L["PurchaseOrder.Details.LooseMeta", AdminStatusDisplay.Quantity(line.OrderedProcurementQuantity.GetValueOrDefault()), AdminStatusDisplay.Unit(line.ProcurementUnitName), AdminStatusDisplay.Currency(line.UnitPricePerProcurementUnit.GetValueOrDefault())]</div>
                                 }
                                 else
                                 {
-                                    <div class="ops-secondary">@AdminStatusDisplay.Quantity(line.PackageCount.GetValueOrDefault()) gói · @AdminStatusDisplay.Currency(line.PackagePriceSnapshot.GetValueOrDefault())/gói · 1 gói = @AdminStatusDisplay.Quantity(line.PackageQuantitySnapshot.GetValueOrDefault()) @AdminStatusDisplay.Unit(line.PackageUnitName)</div>
+                                    <div class="ops-secondary">@L["PurchaseOrder.Details.PackageMeta", AdminStatusDisplay.Quantity(line.PackageCount.GetValueOrDefault()), AdminStatusDisplay.Currency(line.PackagePriceSnapshot.GetValueOrDefault()), AdminStatusDisplay.Quantity(line.PackageQuantitySnapshot.GetValueOrDefault()), AdminStatusDisplay.Unit(line.PackageUnitName)]</div>
                                 }
                             </td>
-                            <td>@(line.RestockRequestId.HasValue ? AdminStatusDisplay.RestockReference(line.RestockReferenceCode, line.RestockRequestId.Value) : "Mua chủ động")</td>
+                            <td>@(line.RestockRequestId.HasValue ? AdminStatusDisplay.RestockReference(line.RestockReferenceCode, line.RestockRequestId.Value) : L["PurchaseOrder.Details.DirectPurchase"].Value)</td>
                             <td class="number">
                                 @if (line.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Loose)
                                 {
@@ -153,13 +155,13 @@
                                 }
                                 else
                                 {
-                                    <strong>@AdminStatusDisplay.Quantity(line.PackageCount.GetValueOrDefault()) gói</strong>
-                                    <div class="ops-secondary">Tương đương @AdminStatusDisplay.Quantity(line.PackageEquivalentQuantity.GetValueOrDefault()) @AdminStatusDisplay.Unit(line.PackageUnitName)</div>
+                                    <strong>@L["Reorder.PackageCount", AdminStatusDisplay.Quantity(line.PackageCount.GetValueOrDefault())]</strong>
+                                    <div class="ops-secondary">@L["PurchaseOrder.Details.Equivalent", AdminStatusDisplay.Quantity(line.PackageEquivalentQuantity.GetValueOrDefault()), AdminStatusDisplay.Unit(line.PackageUnitName)]</div>
                                 }
-                                <div class="ops-secondary">Thành tiền @AdminStatusDisplay.Currency(line.LineTotal)</div>
+                                <div class="ops-secondary">@L["PurchaseOrder.Details.LineAmount", AdminStatusDisplay.Currency(line.LineTotal)]</div>
                             </td>
                             <td class="number">@AdminStatusDisplay.Quantity(line.AcceptedDisplayQuantity) @AdminStatusDisplay.Unit(line.FulfillmentDisplayUnitName)</td>
-                            <td class="number">@AdminStatusDisplay.Quantity(line.RejectedDisplayQuantity) @AdminStatusDisplay.Unit(line.FulfillmentDisplayUnitName)<div class="ops-secondary">Không làm giảm phần còn phải giao</div></td>
+                            <td class="number">@AdminStatusDisplay.Quantity(line.RejectedDisplayQuantity) @AdminStatusDisplay.Unit(line.FulfillmentDisplayUnitName)<div class="ops-secondary">@L["PurchaseOrder.Details.RejectDoesNotReduce"]</div></td>
                             <td class="number">
                                 @AdminStatusDisplay.Quantity(line.ClosedDisplayQuantity) @AdminStatusDisplay.Unit(line.FulfillmentDisplayUnitName)
                                 @if (!string.IsNullOrWhiteSpace(line.CloseRemainingReason))
@@ -169,7 +171,7 @@
                             </td>
                             <td class="number"><strong>@AdminStatusDisplay.Quantity(line.RemainingDisplayQuantity) @AdminStatusDisplay.Unit(line.FulfillmentDisplayUnitName)</strong></td>
                             <td>
-                                <span class="ops-badge ops-badge-neutral"><i class="fa-solid fa-clock-rotate-left me-1"></i>@line.ReceiptCount lần nhận</span>
+                                <span class="ops-badge ops-badge-neutral"><i class="fa-solid fa-clock-rotate-left me-1"></i>@L["PurchaseOrder.Details.ReceiptCount", line.ReceiptCount]</span>
                             </td>
                         </tr>
                         @if (canCloseRemaining && canReceiveStatus && line.RemainingBaseQuantity > 0)
@@ -177,21 +179,21 @@
                             <tr>
                                 <td colspan="8" class="p-0 border-0">
                                     <div class="ops-line-closure-box p-3 mx-2 my-2 rounded-3 border text-start" style="background-color: var(--cc-surface-muted); border-color: var(--cc-border) !important;">
-                                        <form method="post" asp-action="CloseLineRemaining" asp-route-id="@Model.PurchaseOrderId" onsubmit="return confirm('Đóng phần còn lại sẽ chấm dứt nghĩa vụ giao bù và không nhập kho. Bạn chắc chắn?');">
+                                        <form method="post" asp-action="CloseLineRemaining" asp-route-id="@Model.PurchaseOrderId" onsubmit="return confirm('@L["PurchaseOrder.Details.ClosePrompt"]');">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="lineId" value="@line.PurchaseOrderLineId" />
                                             <input type="hidden" name="rowVersion" value="@line.RowVersion" />
                                             <input type="hidden" name="requestKey" value="@Guid.NewGuid().ToString("N")" />
                                             <div class="ops-form-grid" style="grid-template-columns: 1fr 2fr;">
                                                 <div>
-                                                    <label class="ops-form-label" for="closeQuantity-@line.PurchaseOrderLineId">Số lượng đóng (@AdminStatusDisplay.Unit(line.BaseUnitName)) <span class="ops-required">*</span></label>
+                                                    <label class="ops-form-label" for="closeQuantity-@line.PurchaseOrderLineId">@L["PurchaseOrder.Details.CloseQty", AdminStatusDisplay.Unit(line.BaseUnitName)] <span class="ops-required">*</span></label>
                                                     <input id="closeQuantity-@line.PurchaseOrderLineId" class="ops-input w-100" type="number" name="closeBaseQuantity" min="0.001" max="@line.RemainingBaseQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" step="0.001" value="@line.RemainingBaseQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" required />
                                                 </div>
                                                 <div>
-                                                    <label class="ops-form-label" for="closeReason-@line.PurchaseOrderLineId">Lý do không yêu cầu giao bù <span class="ops-required">*</span></label>
+                                                    <label class="ops-form-label" for="closeReason-@line.PurchaseOrderLineId">@L["PurchaseOrder.Details.CloseReason"] <span class="ops-required">*</span></label>
                                                     <div class="d-flex gap-2">
-                                                        <input id="closeReason-@line.PurchaseOrderLineId" class="ops-input flex-grow-1" name="reason" maxlength="500" required placeholder="Ví dụ: Nhà cung cấp xác nhận không giao bù" />
-                                                        <button class="ops-btn ops-btn-danger text-nowrap flex-shrink-0" type="submit" style="white-space: nowrap; height: 38px !important; padding: 0 16px; font-size: 0.85rem; font-weight: 700;">Đóng phần còn lại</button>
+                                                        <input id="closeReason-@line.PurchaseOrderLineId" class="ops-input flex-grow-1" name="reason" maxlength="500" required placeholder="@L["PurchaseOrder.Details.CloseReasonPlaceholder"]" />
+                                                        <button class="ops-btn ops-btn-danger text-nowrap flex-shrink-0" type="submit" style="white-space: nowrap; height: 38px !important; padding: 0 16px; font-size: 0.85rem; font-weight: 700;">@L["PurchaseOrder.Details.CloseRemaining"]</button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -209,31 +211,31 @@
 
     <div class="ops-two-column">
         <section class="ops-panel" aria-labelledby="traceabilityTitle">
-            <div class="ops-panel-header"><h2 id="traceabilityTitle" class="ops-panel-title">Chứng từ liên quan</h2></div>
+            <div class="ops-panel-header"><h2 id="traceabilityTitle" class="ops-panel-title">@L["PurchaseOrder.Details.RelatedDocs"]</h2></div>
             <div class="ops-panel-body">
                 <div class="ops-link-list">
                     @foreach (var line in Model.Lines.Where(x => x.RestockRequestId.HasValue).GroupBy(x => new { x.RestockRequestId, x.RestockReferenceCode }).Select(x => x.Key))
                     {
-                        <a class="ops-btn" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@line.RestockRequestId">Yêu cầu nhập @AdminStatusDisplay.RestockReference(line.RestockReferenceCode, line.RestockRequestId!.Value)</a>
+                        <a class="ops-btn" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@line.RestockRequestId">@L["PurchaseOrder.Details.RestockLink", AdminStatusDisplay.RestockReference(line.RestockReferenceCode, line.RestockRequestId!.Value)]</a>
                     }
                     @foreach (var advice in Model.LinkedAdvices)
                     {
-                        <a class="ops-btn" asp-area="Admin" asp-controller="AdminPurchaseAdvices" asp-action="Details" asp-route-id="@advice.PurchaseAdviceId">Đề nghị mua @advice.AdviceNumber</a>
+                        <a class="ops-btn" asp-area="Admin" asp-controller="AdminPurchaseAdvices" asp-action="Details" asp-route-id="@advice.PurchaseAdviceId">@L["PurchaseOrder.Details.AdviceLink", advice.AdviceNumber]</a>
                     }
                     @foreach (var receipt in Model.Receipts)
                     {
-                        <a class="ops-btn" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Details" asp-route-id="@receipt.BranchReceiptId">Phiếu nhận @receipt.ReceiptCode</a>
+                        <a class="ops-btn" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Details" asp-route-id="@receipt.BranchReceiptId">@L["PurchaseOrder.Details.ReceiptLink", receipt.ReceiptCode]</a>
                     }
                     @if (!Model.Lines.Any(x => x.RestockRequestId.HasValue) && Model.LinkedAdvices.Count == 0 && Model.Receipts.Count == 0)
                     {
-                        <p class="ops-secondary mb-0">Chưa có chứng từ nguồn hoặc phiếu nhận liên kết.</p>
+                        <p class="ops-secondary mb-0">@L["PurchaseOrder.Details.NoRelated"]</p>
                     }
                 </div>
             </div>
         </section>
 
         <section class="ops-panel" aria-labelledby="historyTitle">
-            <div class="ops-panel-header"><h2 id="historyTitle" class="ops-panel-title">Lịch sử nghiệp vụ</h2></div>
+            <div class="ops-panel-header"><h2 id="historyTitle" class="ops-panel-title">@L["PurchaseOrder.Details.HistoryTitle"]</h2></div>
             <div class="ops-panel-body">
                 <ol class="ops-timeline">
                     @foreach (var item in Model.History.OrderByDescending(x => x.OccurredAtUtc))
@@ -251,59 +253,59 @@
 
     <section class="ops-panel ops-action-panel">
         <div class="ops-panel-header">
-            <div><h2 class="ops-panel-title">Thao tác tiếp theo</h2><div class="ops-secondary">Chỉ các thao tác phù hợp với trạng thái hiện tại được hiển thị.</div></div>
+            <div><h2 class="ops-panel-title">@L["PurchaseOrder.Details.NextActions"]</h2><div class="ops-secondary">@L["PurchaseOrder.Details.NextHelp"]</div></div>
         </div>
         <div class="ops-panel-body">
             <div class="ops-inline-actions">
                 <a class="ops-btn ops-btn-secondary" asp-action="Print" asp-route-id="@Model.PurchaseOrderId" target="_blank">
-                    <i class="fa-solid fa-file-pdf text-danger" aria-hidden="true"></i> Xuất PDF Đơn đặt hàng
+                    <i class="fa-solid fa-file-pdf text-danger" aria-hidden="true"></i> @L["PurchaseOrder.Details.ExportPdfOrder"]
                 </a>
                 @if (canApprove && Model.Status == "DRAFT")
                 {
-                    <form method="post" asp-action="Approve" asp-route-id="@Model.PurchaseOrderId">@Html.AntiForgeryToken()<input type="hidden" name="rowVersion" value="@Model.RowVersion" /><button class="ops-btn ops-btn-primary">Duyệt đơn</button></form>
+                    <form method="post" asp-action="Approve" asp-route-id="@Model.PurchaseOrderId">@Html.AntiForgeryToken()<input type="hidden" name="rowVersion" value="@Model.RowVersion" /><button class="ops-btn ops-btn-primary">@L["PurchaseOrder.Details.Approve"]</button></form>
                 }
                 @if (canSend && Model.Status == "APPROVED")
                 {
-                    <form method="post" asp-action="MarkSent" asp-route-id="@Model.PurchaseOrderId">@Html.AntiForgeryToken()<input type="hidden" name="rowVersion" value="@Model.RowVersion" /><button class="ops-btn ops-btn-primary">Đánh dấu đã gửi nhà cung cấp</button></form>
+                    <form method="post" asp-action="MarkSent" asp-route-id="@Model.PurchaseOrderId">@Html.AntiForgeryToken()<input type="hidden" name="rowVersion" value="@Model.RowVersion" /><button class="ops-btn ops-btn-primary">@L["PurchaseOrder.Details.MarkSent"]</button></form>
                 }
                 @if (Model.ActiveReceiptDraftId.HasValue)
                 {
-                    <a class="ops-btn" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="EditPurchaseOrderDraft" asp-route-id="@Model.ActiveReceiptDraftId">Mở phiếu kiểm đếm nháp</a>
+                    <a class="ops-btn" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="EditPurchaseOrderDraft" asp-route-id="@Model.ActiveReceiptDraftId">@L["PurchaseOrder.Details.OpenDraft"]</a>
                 }
             </div>
             @if (!canApprove && !canSend && !canReceive && !canCloseRemaining)
             {
                 <div class="ops-notice ops-notice-info mt-3">
-                    <strong>Bước tiếp theo do vai trò phụ trách thực hiện.</strong>
+                    <strong>@L["PurchaseOrder.Details.RoleNextTitle"]</strong>
                     @if (Model.Status == "DRAFT")
                     {
-                        <span> Chủ doanh nghiệp xem xét và duyệt đơn.</span>
+                        <span> @L["PurchaseOrder.Details.RoleNext.Draft"]</span>
                     }
                     else if (Model.Status == "APPROVED")
                     {
-                        <span> Kế toán kho gửi đơn cho nhà cung cấp.</span>
+                        <span> @L["PurchaseOrder.Details.RoleNext.Approved"]</span>
                     }
                     else if (Model.Status is "MARKED_AS_SENT" or "PARTIALLY_RECEIVED")
                     {
-                        <span> Kế toán kho hoặc bộ phận nhận hàng ghi nhận hàng nhà cung cấp giao.</span>
+                        <span> @L["PurchaseOrder.Details.RoleNext.Receive"]</span>
                     }
                     else
                     {
-                        <span> Chứng từ hiện chỉ cho phép theo dõi và xem lịch sử.</span>
+                        <span> @L["PurchaseOrder.Details.RoleNext.Track"]</span>
                     }
                 </div>
             }
             @if (canCancel && Model.Status is "DRAFT" or "APPROVED" or "MARKED_AS_SENT")
             {
                 <details class="ops-danger-disclosure">
-                    <summary>Hủy đơn đặt hàng</summary>
+                    <summary>@L["PurchaseOrder.Details.CancelOrder"]</summary>
                     <div class="ops-danger-content">
-                        <p class="ops-secondary">Chỉ hủy khi đơn không còn được tiếp tục xử lý. Lý do sẽ được lưu cùng lịch sử chứng từ.</p>
+                        <p class="ops-secondary">@L["PurchaseOrder.Details.CancelHelp"]</p>
                         <form method="post" asp-action="Cancel" asp-route-id="@Model.PurchaseOrderId">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
-                            <label class="ops-form-label" for="cancelReason">Lý do hủy đơn đặt hàng <span class="ops-required">*</span></label>
-                            <div class="ops-inline-actions"><input id="cancelReason" name="reason" class="ops-input flex-grow-1" maxlength="500" required placeholder="Nhập lý do hủy..." /><button class="ops-btn ops-btn-danger" type="submit">Xác nhận hủy</button></div>
+                            <label class="ops-form-label" for="cancelReason">@L["PurchaseOrder.Details.CancelReason"] <span class="ops-required">*</span></label>
+                            <div class="ops-inline-actions"><input id="cancelReason" name="reason" class="ops-input flex-grow-1" maxlength="500" required placeholder="@L["PurchaseOrder.Details.CancelPlaceholder"]" /><button class="ops-btn ops-btn-danger" type="submit">@L["PurchaseOrder.Details.ConfirmCancel"]</button></div>
                         </form>
                     </div>
                 </details>

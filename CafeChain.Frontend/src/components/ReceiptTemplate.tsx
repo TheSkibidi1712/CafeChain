@@ -28,26 +28,9 @@ interface ReceiptTemplateProps {
   receipt: ReceiptTemplateData
 }
 
-const receiptMoneyFormatter = new Intl.NumberFormat('vi-VN', {
-  maximumFractionDigits: 0,
-})
-
-const formatReceiptMoney = (amount: number): string =>
-  `${receiptMoneyFormatter.format(Math.max(0, amount))}đ`
-
-const formatReceiptDate = (value: string): string => {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-
-  const day = date.getDate().toString().padStart(2, '0')
-  const month = (date.getMonth() + 1).toString().padStart(2, '0')
-  const year = date.getFullYear()
-  const hour = date.getHours().toString().padStart(2, '0')
-  const minute = date.getMinutes().toString().padStart(2, '0')
-  return `${day}/${month}/${year} ${hour}:${minute}`
-}
-
 export default function ReceiptTemplate({ receipt }: ReceiptTemplateProps) {
+  const { t } = usePreferences()
+  const { formatMoney, formatDateTime } = useLocaleFormatters()
   const hasDiscount = (receipt.discount ?? 0) > 0
 
   return (
@@ -60,29 +43,29 @@ export default function ReceiptTemplate({ receipt }: ReceiptTemplateProps) {
 
       <section className="py-2 border-b border-dashed border-black space-y-1">
         <div className="flex justify-between gap-2">
-          <span>Hóa đơn</span>
+          <span>{t('print.order')}</span>
           <span className="font-bold tabular-nums text-right">{receipt.orderCode}</span>
         </div>
         <div className="flex justify-between gap-2">
-          <span>Ngày giờ</span>
-          <span className="tabular-nums text-right">{formatReceiptDate(receipt.createdAt)}</span>
+          <span>{t('print.dateTime')}</span>
+          <span className="tabular-nums text-right">{formatDateTime(receipt.createdAt)}</span>
         </div>
         <div className="flex justify-between gap-2">
-          <span>Thu ngân</span>
+          <span>{t('print.cashier')}</span>
           <span className="text-right break-words">{receipt.cashierName}</span>
         </div>
         <div className="flex justify-between gap-2">
-          <span>Máy POS</span>
+          <span>{t('print.posMachine')}</span>
           <span className="text-right">{receipt.posMachine}</span>
         </div>
       </section>
 
       <section className="py-2 border-b border-dashed border-black">
         <div className="grid grid-cols-[minmax(0,1fr)_24px_58px_62px] gap-x-1 font-bold border-b border-black pb-1">
-          <span>Món</span>
-          <span className="text-right">SL</span>
-          <span className="text-right">Giá</span>
-          <span className="text-right">Tiền</span>
+          <span>{t('print.item')}</span>
+          <span className="text-right">{t('print.quantity')}</span>
+          <span className="text-right">{t('print.price')}</span>
+          <span className="text-right">{t('print.amount')}</span>
         </div>
 
         <div className="divide-y divide-dashed divide-black/40">
@@ -100,8 +83,8 @@ export default function ReceiptTemplate({ receipt }: ReceiptTemplateProps) {
                 ))}
               </div>
               <span className="text-right tabular-nums">{item.quantity}</span>
-              <span className="text-right tabular-nums">{formatReceiptMoney(item.unitPrice)}</span>
-              <span className="text-right tabular-nums">{formatReceiptMoney(item.lineTotal)}</span>
+              <span className="text-right tabular-nums">{formatMoney(item.unitPrice)}</span>
+              <span className="text-right tabular-nums">{formatMoney(item.lineTotal)}</span>
             </div>
           ))}
         </div>
@@ -109,35 +92,37 @@ export default function ReceiptTemplate({ receipt }: ReceiptTemplateProps) {
 
       <section className="py-2 border-b border-dashed border-black space-y-1">
         <div className="flex justify-between gap-2">
-          <span>Tạm tính</span>
-          <span className="tabular-nums">{formatReceiptMoney(receipt.subtotal)}</span>
+          <span>{t('print.subtotal')}</span>
+          <span className="tabular-nums">{formatMoney(receipt.subtotal)}</span>
         </div>
         {hasDiscount && (
           <div className="flex justify-between gap-2">
-            <span>Giảm giá</span>
-            <span className="tabular-nums">-{formatReceiptMoney(receipt.discount ?? 0)}</span>
+            <span>{t('print.discount')}</span>
+            <span className="tabular-nums">-{formatMoney(receipt.discount ?? 0)}</span>
           </div>
         )}
         <div className="flex justify-between gap-2 text-[15px] font-black pt-1">
-          <span>TỔNG CỘNG</span>
-          <span className="tabular-nums">{formatReceiptMoney(receipt.total)}</span>
+          <span>{t('print.total')}</span>
+          <span className="tabular-nums">{formatMoney(receipt.total)}</span>
         </div>
         <div className="flex justify-between gap-2">
-          <span>Thanh toán</span>
+          <span>{t('print.payment')}</span>
           <span className="text-right">{receipt.paymentMethod}</span>
         </div>
       </section>
 
       <footer className="text-center pt-2 space-y-1">
-        <p className="font-bold">Cảm ơn quý khách!</p>
+        <p className="font-bold">{t('print.thankYou')}</p>
         {receipt.wifiName && (
           <p>
             Wi-Fi: {receipt.wifiName}
             {receipt.wifiPassword ? ` / ${receipt.wifiPassword}` : ''}
           </p>
         )}
-        <p>Hẹn gặp lại.</p>
+        <p>{t('print.seeYouAgain')}</p>
       </footer>
     </section>
   )
 }
+import { usePreferences } from '../contexts/PreferencesContext'
+import { useLocaleFormatters } from '../hooks/useLocaleFormatters'

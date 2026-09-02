@@ -1,18 +1,19 @@
 @model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferCreateVM
+@inject Microsoft.Extensions.Localization.IStringLocalizer<CafeChain.InventoryResource> InventoryText
 
 <section class="transfer-card">
     <div class="transfer-toolbar">
         <div>
             <span class="section-kicker">
                 <i class="fas fa-boxes-stacked"></i>
-                Chi tiết hàng chuyển
+                @InventoryText["Transfer.Create.LinesTitle"]
             </span>
-            <p id="transferStockStatus">Chọn kho nguồn để tải nguyên liệu và bán thành phẩm.</p>
+            <p id="transferStockStatus">@InventoryText["Transfer.Create.SelectSourceToLoad"]</p>
         </div>
 
         <button class="transfer-outline-button" type="button" id="btnAddTransferIngredient" disabled>
             <i class="fas fa-plus"></i>
-            Thêm dòng
+            @InventoryText["Common.AddLine"]
         </button>
     </div>
 
@@ -21,18 +22,18 @@
             <thead>
                 <tr>
                     <th class="col-index">#</th>
-                    <th>Hàng hóa</th>
-                    <th>ĐVT</th>
-                    <th>Tồn kho nguồn</th>
-                    <th>Số chuyển</th>
-                    <th title="Số tồn còn lại ở kho nguồn sau khi chuyển">Còn lại sau chuyển</th>
-                    <th>Trạng thái</th>
+                    <th>@InventoryText["Common.Item"]</th>
+                    <th>@InventoryText["Common.Unit"]</th>
+                    <th>@InventoryText["Transfer.Create.SourceStock"]</th>
+                    <th>@InventoryText["Transfer.Create.TransferQuantity"]</th>
+                    <th title="@InventoryText["Transfer.Create.RemainingTitle"]">@InventoryText["Transfer.Create.Remaining"]</th>
+                    <th>@InventoryText["Common.Status"]</th>
                     <th class="col-action"></th>
                 </tr>
             </thead>
             <tbody id="transferDetailBody">
                 <tr class="transfer-empty-row">
-                    <td colspan="8">Chưa có hàng hóa.</td>
+                    <td colspan="8">@InventoryText["Transfer.Create.NoItems"]</td>
                 </tr>
             </tbody>
         </table>

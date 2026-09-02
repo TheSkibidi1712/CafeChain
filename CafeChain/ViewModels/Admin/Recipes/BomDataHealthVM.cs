@@ -65,6 +65,7 @@ namespace CafeChain.ViewModels.Admin.Recipes
         public int RecipeId { get; set; }
         public string RecipeCode { get; set; } = "";
         public string Name { get; set; } = "";
+        public string TypeCode { get; set; } = "";
         public string TypeLabel { get; set; } = "";
         public string IdentityDisplay { get; set; } = "";
         public BomCurrentRecipeHealthVM CurrentRecipe { get; set; } = new();

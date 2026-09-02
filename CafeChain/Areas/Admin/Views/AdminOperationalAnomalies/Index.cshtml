@@ -1,6 +1,9 @@
 @model IReadOnlyList<CafeChain.Application.DTOs.AI.OperationalAnomalyDto>
+@using System.Text.Json
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<OperationsResource> L
 @{
-    ViewData["Title"] = "Tín hiệu vận hành";
+    ViewData["Title"] = L["Anomalies.Index.Title"].Value;
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var canAcknowledge = ViewBag.CanAcknowledge is true;
     var canResolve = ViewBag.CanResolve is true;
@@ -17,13 +20,13 @@
 <main class="anomalies-page cc-page ops-shell cc-warehouse-page">
     <header class="anomalies-header ops-header cc-warehouse-header">
         <div>
-            <div class="anomalies-eyebrow">Nhân sự & vận hành</div>
-            <h1><i class="fa-solid fa-signal me-2 text-warning" aria-hidden="true"></i>Tín hiệu vận hành</h1>
-            <p class="anomalies-subtitle">Các thay đổi đáng chú ý cần đối chiếu thêm; đây không phải kết luận sai phạm.</p>
+            <div class="anomalies-eyebrow">@L["Anomalies.Index.Eyebrow"]</div>
+            <h1><i class="fa-solid fa-signal me-2 text-warning" aria-hidden="true"></i>@L["Anomalies.Index.Title"]</h1>
+            <p class="anomalies-subtitle">@L["Anomalies.Index.Subtitle"]</p>
         </div>
         <div class="anomalies-header-actions">
             <form method="get" class="anomalies-store-filter">
-                <select class="form-select" name="targetStoreId" onchange="this.form.submit()" aria-label="Chọn cửa hàng">
+                <select class="form-select" name="targetStoreId" onchange="this.form.submit()" aria-label="@L["Anomalies.Index.StoreSelectorAria"]">
                     @foreach (var store in (IReadOnlyList<CafeChain.Application.DTOs.Admin.StoreScope.AdminStoreOptionDto>)ViewBag.Stores)
                     {
                         <option value="@store.StoreId" selected="@(store.StoreId == (int?)ViewBag.SelectedStoreId)">@store.StoreName</option>
@@ -38,29 +41,29 @@
             <table class="cc-anomaly-table">
                 <thead>
                     <tr>
-                        <th>Chỉ số cần kiểm tra</th>
-                        <th>Giá trị ghi nhận</th>
-                        <th>Mức thông thường trước đây</th>
-                        <th>Mức chênh lệch</th>
-                        <th>Mức cần ưu tiên</th>
-                        <th>Trạng thái xử lý</th>
+                        <th>@L["Anomalies.Index.Col.Metric"]</th>
+                        <th>@L["Anomalies.Index.Col.CurrentValue"]</th>
+                        <th>@L["Anomalies.Index.Col.Baseline"]</th>
+                        <th>@L["Anomalies.Index.Col.Deviation"]</th>
+                        <th>@L["Anomalies.Index.Col.Severity"]</th>
+                        <th>@L["Anomalies.Index.Col.Status"]</th>
                         <th></th>
                     </tr>
                 </thead>
                 <tbody>
                 @if (Model.Count == 0)
                 {
-                    <tr><td colspan="7" class="text-center text-muted py-4">Không có tín hiệu đang mở.</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted py-4">@L["Anomalies.Index.Empty"]</td></tr>
                 }
                 @foreach (var item in Model)
                 {
                     <tr id="anomaly-@item.Id">
                         <td>
                             <div class="anomaly-title">@item.MetricDisplayName</div>
-                            <div class="anomaly-meta">Ngày @item.BusinessDate.ToString("dd/MM/yyyy")</div>
+                            <div class="anomaly-meta">@L["Anomalies.Index.DateLabel"] @item.BusinessDate.ToString("dd/MM/yyyy")</div>
                             <details class="anomaly-details">
-                                <summary>Cơ sở phát hiện</summary>
-                                <div class="mt-2">Ngày nghiệp vụ: @item.BusinessDate.ToString("dd/MM/yyyy") &bull; mức chênh lệch chuẩn hóa: @item.RobustScore.ToString("N2")</div>
+                                <summary>@L["Anomalies.Index.Basis"]</summary>
+                                <div class="mt-2">@L["Anomalies.Index.BusinessDateLabel"] @item.BusinessDate.ToString("dd/MM/yyyy") &bull; @L["Anomalies.Index.RobustScoreLabel"] @item.RobustScore.ToString("N2")</div>
                                 <div>@item.ConfidenceDisplay</div>
                             </details>
                         </td>
@@ -72,20 +75,21 @@
                         <td class="text-end text-nowrap">
                             @if (canUseAi)
                             {
-                                <button class="cc-btn-outline" data-explain="@item.Id">Giải thích</button>
+                                <button class="cc-btn-outline" data-explain="@item.Id">@L["Anomalies.Index.Explain"]</button>
                             }
                             @if (canAcknowledge && item.Status == "OPEN")
                             {
-                                <button class="cc-btn-outline cc-btn-outline-primary" data-ack="@item.Id" data-version="@item.RowVersion">Tiếp nhận</button>
+                                <button class="cc-btn-outline cc-btn-outline-primary" data-ack="@item.Id" data-version="@item.RowVersion">@L["Anomalies.Index.Acknowledge"]</button>
                             }
                             @if (canResolve && (item.Status == "OPEN" || item.Status == "ACKNOWLEDGED"))
                             {
-                                <button class="cc-btn-outline cc-btn-outline-success" data-resolve="@item.Id" data-version="@item.RowVersion">Đánh dấu đã xử lý</button>
+                                <button class="cc-btn-outline cc-btn-outline-success" data-resolve="@item.Id" data-version="@item.RowVersion">@L["Anomalies.Index.Resolve"]</button>
                             }
                             @if (canFeedback)
                             {
+                                var feedbackLabel = string.IsNullOrWhiteSpace(item.FeedbackDisplay) ? L["Anomalies.Index.Feedback"].Value : item.FeedbackDisplay;
                                 <button class="cc-btn-outline @(string.IsNullOrWhiteSpace(item.FeedbackDisplay) ? "" : "is-completed")" data-feedback="@item.Id" data-version="@item.RowVersion" @(string.IsNullOrWhiteSpace(item.FeedbackDisplay) ? null : "disabled")>
-                                    @(string.IsNullOrWhiteSpace(item.FeedbackDisplay) ? "Phản hồi" : item.FeedbackDisplay)
+                                    @feedbackLabel
                                 </button>
                                 <small class="anomaly-feedback-status d-block" data-feedback-status="@item.Id">@item.FeedbackDisplay</small>
                             }
@@ -98,4 +102,7 @@
     </div>
 </main>
 
-@section Scripts { <script src="~/js/Admin/Dashboard/operational-anomalies.js" asp-append-version="true"></script> }
+@section Scripts {
+    <script type="application/json" id="anomalies-ui-catalog">@Html.Raw(JsonSerializer.Serialize(L.GetAllStrings().Where(x => x.Name.StartsWith("Anomalies.Js.")).ToDictionary(x => x.Name, x => x.Value)))</script>
+    <script src="~/js/Admin/Dashboard/operational-anomalies.js" asp-append-version="true"></script>
+}

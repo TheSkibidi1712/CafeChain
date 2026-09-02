@@ -1,133 +1,75 @@
+@using Microsoft.Extensions.Localization
+@using System.Text.Json
 @model CafeChain.Application.DTOs.Admin.RestockRequests.CreateProcurementDemandRequest
+@inject IStringLocalizer<ProcurementResource> L
 @{
-    ViewData["Title"] = "Tạo kế hoạch bổ sung trung tâm";
+    ViewData["Title"] = L["RestockForm.CentralTitle"];
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var ingredients = ViewBag.Ingredients;
     var units = ViewBag.Units;
-}
-
-<link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
-
-<main class="restock-page restock-form-page ops-shell cc-warehouse-page">
-<header class="ops-header cc-warehouse-header cc-warehouse-header--compact">
-        <div>
-            <div class="ops-eyebrow">Kho &amp; Cung ứng / Kế hoạch trung tâm</div>
-            <h1 class="ops-title">Tạo kế hoạch bổ sung trung tâm</h1>
-            <p class="ops-subtitle">Ghi nhận nhu cầu kế hoạch trong phạm vi cửa hàng được cấp. Bộ phận phụ trách vẫn phải đánh giá và quyết định nguồn cung sau khi tạo.</p>
-        </div>
-        <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách yêu cầu</a>
-    </header>
-
-    @if (!ViewData.ModelState.IsValid)
+    var uiCatalog = new Dictionary<string, string>
     {
-        <div asp-validation-summary="All" class="ops-notice ops-notice-error cc-warehouse-alert cc-warehouse-alert-danger" role="alert"></div>
-    }
-
+        ["loadingUnits"] = L["RestockForm.LoadingUnits"],
+        ["selectIngredientFirst"] = L["RestockForm.SelectIngredientFirst"],
+        ["selectDemandUnit"] = L["RestockForm.SelectDemandUnit"],
+        ["unitsUnavailable"] = L["RestockForm.UnitsUnavailable"],
+        ["unitLoadError"] = L["RestockForm.UnitLoadError"]
+    };
+}
+<link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
+<main class="restock-page restock-form-page ops-shell cc-warehouse-page">
+    <header class="ops-header cc-warehouse-header cc-warehouse-header--compact">
+        <div><div class="ops-eyebrow">@L["RestockForm.CentralEyebrow"]</div><h1 class="ops-title">@L["RestockForm.CentralTitle"]</h1><p class="ops-subtitle">@L["RestockForm.CentralSubtitle"]</p></div>
+        <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> @L["RestockForm.Back"]</a>
+    </header>
+    @if (!ViewData.ModelState.IsValid) { <div asp-validation-summary="All" class="ops-notice ops-notice-error cc-warehouse-alert cc-warehouse-alert-danger" role="alert"></div> }
     <form id="centralDemandForm" asp-action="CreateCentralPlanner" method="post" data-units-url="@Url.Action("GetDemandUnitOptions", "AdminRestockRequests", new { area = "Admin" })">
         @Html.AntiForgeryToken()
-                <input type="hidden" asp-for="StoreId" />
-                <input type="hidden" asp-for="SourceType" />
-                <input type="hidden" asp-for="SourceReferenceId" />
-
+        <input type="hidden" asp-for="StoreId" /><input type="hidden" asp-for="SourceType" /><input type="hidden" asp-for="SourceReferenceId" />
         <section class="ops-panel">
-            <div class="ops-panel-header">
-                <div>
-                    <h2 class="ops-panel-title">Thông tin kế hoạch</h2>
-                    <div class="ops-secondary">Các trường có dấu <span class="ops-required">*</span> là bắt buộc.</div>
-                </div>
-            </div>
-            <div class="ops-panel-body">
-                <div class="ops-form-grid restock-form-grid">
-                    <div class="restock-form-section-label"><i class="fa-solid fa-box" aria-hidden="true"></i><span><strong>Nhu cầu kế hoạch</strong><small>Chọn mặt hàng, đơn vị và số lượng mục tiêu.</small></span></div>
-                    <div class="ops-form-field">
-                        <label class="ops-form-label" asp-for="IngredientId">Nguyên liệu <span class="ops-required">*</span></label>
-                        <select class="ops-select w-100" asp-for="IngredientId" required>
-                            <option value="">Chọn nguyên liệu</option>
-                            @foreach (var item in ingredients) { <option value="@item.IngredientId">@item.Name</option> }
-                        </select>
-                        <span asp-validation-for="IngredientId" class="ops-text-danger"></span>
-                    </div>
-                    <div class="ops-form-field">
-                        <label class="ops-form-label" asp-for="ProcurementUnitId">Đơn vị nhu cầu <span class="ops-required">*</span></label>
-                        <select class="ops-select w-100" asp-for="ProcurementUnitId" required disabled>
-                            <option value="">Chọn nguyên liệu trước</option>
-                            @foreach (var unit in units) { <option value="@unit.UnitId">@unit.UnitCode · @unit.Name</option> }
-                        </select>
-                        <span asp-validation-for="ProcurementUnitId" class="ops-text-danger"></span>
-                    </div>
-                    <div class="ops-form-field">
-                        <label class="ops-form-label" asp-for="RequestedProcurementQuantity">Số lượng mục tiêu <span class="ops-required">*</span></label>
-                        <input class="ops-input w-100" asp-for="RequestedProcurementQuantity" type="number" min="0.001" step="0.001" required />
-                        <span asp-validation-for="RequestedProcurementQuantity" class="ops-text-danger"></span>
-                    </div>
-                    <div class="restock-form-section-label"><i class="fa-solid fa-calendar-day" aria-hidden="true"></i><span><strong>Thời điểm cần hàng</strong><small>Đặt hạn phù hợp với kế hoạch vận hành.</small></span></div>
-                    <div class="ops-form-field">
-                        <label class="ops-form-label" asp-for="NeedByDate">Cần trước ngày</label>
-                        <input class="ops-input w-100" asp-for="NeedByDate" type="date" lang="vi" />
-                        <div class="ops-help">Ngày/tháng/năm</div>
-                        <span asp-validation-for="NeedByDate" class="ops-text-danger"></span>
-                    </div>
-                    <div class="restock-form-section-label"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span><strong>Bằng chứng và bối cảnh</strong><small>Cung cấp căn cứ để người xét nguồn kiểm tra kế hoạch.</small></span></div>
-                    <div class="ops-form-field ops-form-field-wide">
-                        <label class="ops-form-label" asp-for="ForecastEvidence">Bằng chứng dự báo / kế hoạch <span class="ops-required">*</span></label>
-                        <textarea class="ops-textarea" asp-for="ForecastEvidence" maxlength="1000" rows="3" required placeholder="Nêu số liệu dự báo, sự kiện hoặc kế hoạch vận hành làm phát sinh nhu cầu..."></textarea>
-                        <span asp-validation-for="ForecastEvidence" class="ops-text-danger"></span>
-                    </div>
-                    <div class="ops-form-field ops-form-field-wide">
-                        <label class="ops-form-label" asp-for="Note">Ghi chú</label>
-                        <textarea class="ops-textarea" asp-for="Note" maxlength="500" rows="3" placeholder="Thông tin cần lưu ý cho người xét nguồn cung..."></textarea>
-                        <span asp-validation-for="Note" class="ops-text-danger"></span>
-                    </div>
-                </div>
-            </div>
+            <div class="ops-panel-header"><div><h2 class="ops-panel-title">@L["RestockForm.PlanInformation"]</h2><div class="ops-secondary">@L["RestockForm.RequiredFields"]</div></div></div>
+            <div class="ops-panel-body"><div class="ops-form-grid restock-form-grid">
+                <div class="restock-form-section-label"><i class="fa-solid fa-box" aria-hidden="true"></i><span><strong>@L["RestockForm.PlanSection"]</strong><small>@L["RestockForm.PlanSectionHelp"]</small></span></div>
+                <div class="ops-form-field"><label class="ops-form-label" asp-for="IngredientId">@L["RestockForm.Ingredient"] <span class="ops-required">*</span></label><select class="ops-select w-100" asp-for="IngredientId" required><option value="">@L["RestockForm.SelectIngredient"]</option>@foreach (var item in ingredients) { <option value="@item.IngredientId">@item.Name</option> }</select><span asp-validation-for="IngredientId" class="ops-text-danger"></span></div>
+                <div class="ops-form-field"><label class="ops-form-label" asp-for="ProcurementUnitId">@L["RestockForm.DemandUnit"] <span class="ops-required">*</span></label><select class="ops-select w-100" asp-for="ProcurementUnitId" required disabled><option value="">@L["RestockForm.SelectIngredientFirst"]</option>@foreach (var unit in units) { <option value="@unit.UnitId">@unit.UnitCode · @unit.Name</option> }</select><span asp-validation-for="ProcurementUnitId" class="ops-text-danger"></span></div>
+                <div class="ops-form-field"><label class="ops-form-label" asp-for="RequestedProcurementQuantity">@L["RestockForm.TargetQuantity"] <span class="ops-required">*</span></label><input class="ops-input w-100" asp-for="RequestedProcurementQuantity" type="number" min="0.001" step="0.001" required /><span asp-validation-for="RequestedProcurementQuantity" class="ops-text-danger"></span></div>
+                <div class="restock-form-section-label"><i class="fa-solid fa-calendar-day" aria-hidden="true"></i><span><strong>@L["RestockForm.RequiredDateSection"]</strong><small>@L["RestockForm.RequiredDateHelp"]</small></span></div>
+                <div class="ops-form-field"><label class="ops-form-label" asp-for="NeedByDate">@L["RestockForm.NeedBy"]</label><input class="ops-input w-100" asp-for="NeedByDate" type="date" /><div class="ops-help">@L["RestockForm.DateHelp"]</div><span asp-validation-for="NeedByDate" class="ops-text-danger"></span></div>
+                <div class="restock-form-section-label"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span><strong>@L["RestockForm.EvidenceSection"]</strong><small>@L["RestockForm.EvidenceHelp"]</small></span></div>
+                <div class="ops-form-field ops-form-field-wide"><label class="ops-form-label" asp-for="ForecastEvidence">@L["RestockForm.ForecastEvidence"] <span class="ops-required">*</span></label><textarea class="ops-textarea" asp-for="ForecastEvidence" maxlength="1000" rows="3" required placeholder="@L["RestockForm.ForecastPlaceholder"]"></textarea><span asp-validation-for="ForecastEvidence" class="ops-text-danger"></span></div>
+                <div class="ops-form-field ops-form-field-wide"><label class="ops-form-label" asp-for="Note">@L["RestockForm.GeneralNote"]</label><textarea class="ops-textarea" asp-for="Note" maxlength="500" rows="3" placeholder="@L["RestockForm.GeneralNotePlaceholder"]"></textarea><span asp-validation-for="Note" class="ops-text-danger"></span></div>
+            </div></div>
         </section>
-
-        <div class="ops-form-actions">
-            <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId">Hủy</a>
-            <button class="ops-btn ops-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Tạo kế hoạch bổ sung</button>
-        </div>
+        <div class="ops-form-actions"><a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId">@L["RestockForm.Cancel"]</a><button class="ops-btn ops-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> @L["RestockForm.CreatePlan"]</button></div>
     </form>
 </main>
-
+<script id="restockCentralCatalog" type="application/json">@Html.Raw(JsonSerializer.Serialize(uiCatalog))</script>
 <script>
 (() => {
+    const catalog = window.CafeChainUiCatalog.read('restockCentralCatalog');
+    const t = key => window.CafeChainUiCatalog.text(catalog, key);
     const form = document.getElementById('centralDemandForm');
     const ingredient = document.getElementById('IngredientId');
     const demandUnit = document.getElementById('ProcurementUnitId');
     let requestVersion = 0;
-
     async function loadDemandUnits() {
         const ingredientId = ingredient.value;
         const version = ++requestVersion;
         demandUnit.disabled = true;
-        demandUnit.innerHTML = `<option value="">${ingredientId ? 'Đang tải đơn vị...' : 'Chọn nguyên liệu trước'}</option>`;
+        demandUnit.innerHTML = `<option value="">${t(ingredientId ? 'loadingUnits' : 'selectIngredientFirst')}</option>`;
         if (!ingredientId) return;
-
         try {
             const url = new URL(form.dataset.unitsUrl, window.location.origin);
             url.searchParams.set('ingredientId', ingredientId);
             const response = await fetch(url, { headers: { Accept: 'application/json' } });
             const payload = await response.json();
             if (version !== requestVersion) return;
-            if (!response.ok || payload.success !== true) {
-                throw new Error(payload.message || 'Không thể tải đơn vị nhu cầu.');
-            }
-
-            demandUnit.innerHTML = '<option value="">Chọn đơn vị nhu cầu</option>';
-            for (const item of payload.data || []) {
-                const option = document.createElement('option');
-                option.value = item.unitId;
-                option.textContent = `${item.unitCode} · ${item.unitName}`;
-                demandUnit.append(option);
-            }
+            if (!response.ok || payload.success !== true) throw new Error(payload.message || t('unitLoadError'));
+            demandUnit.innerHTML = `<option value="">${t('selectDemandUnit')}</option>`;
+            for (const item of payload.data || []) { const option = document.createElement('option'); option.value = item.unitId; option.textContent = `${item.unitCode} · ${item.unitName}`; demandUnit.append(option); }
             demandUnit.disabled = false;
-        } catch (error) {
-            if (version !== requestVersion) return;
-            demandUnit.innerHTML = '<option value="">Không tải được đơn vị</option>';
-            console.error('[RestockRequest] Demand unit load failed.', error);
-        }
+        } catch (error) { if (version !== requestVersion) return; demandUnit.innerHTML = `<option value="">${t('unitsUnavailable')}</option>`; console.error('[RestockRequest] Demand unit load failed.', error); }
     }
-
     ingredient.addEventListener('change', loadDemandUnits);
     if (ingredient.value) loadDemandUnits();
 })();

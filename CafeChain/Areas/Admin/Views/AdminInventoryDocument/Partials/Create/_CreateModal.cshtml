@@ -1,5 +1,7 @@
 @model CafeChain.ViewModels.Admin.InventoryDocuments.Create.AdminInventoryDocumentCreateVM
 @using CafeChain.Models.Enums.Inventory;
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<InventoryResource> L
 
 @{
     var effectiveType = Model.Type == InventoryDocumentType.ADJUSTMENT_IN
@@ -8,21 +10,21 @@
     var typeClass = effectiveType.ToString().ToLowerInvariant().Replace("_", "-");
     var title = effectiveType switch
     {
-        InventoryDocumentType.IMPORT => "Tạo Phiếu Nhập Kho",
-        InventoryDocumentType.EXPORT => "Tạo Phiếu Xuất Kho",
-        InventoryDocumentType.STOCK_TAKE => "Tạo Phiếu Kiểm Kê",
-        InventoryDocumentType.WASTE => "Tạo Phiếu Hủy Kho",
-        InventoryDocumentType.ADJUSTMENT_IN => "Tạo Phiếu Nhập Kho",
-        _ => "Tạo Phiếu Kho"
+        InventoryDocumentType.IMPORT => L["InvDoc.Create.Import"].Value,
+        InventoryDocumentType.EXPORT => L["InvDoc.Create.Export"].Value,
+        InventoryDocumentType.STOCK_TAKE => L["InvDoc.Create.StockTake"].Value,
+        InventoryDocumentType.WASTE => L["InvDoc.Create.Waste"].Value,
+        InventoryDocumentType.ADJUSTMENT_IN => L["InvDoc.Create.Import"].Value,
+        _ => L["InvDoc.Create.Default"].Value
     };
 
     var subtitle = effectiveType switch
     {
-        InventoryDocumentType.IMPORT => "Chọn mục đích nhập để hệ thống đổi nghiệp vụ phù hợp",
-        InventoryDocumentType.EXPORT => "Xuất nguyên liệu phục vụ nghiệp vụ bán hàng",
-        InventoryDocumentType.STOCK_TAKE => "Ghi nhận số lượng kiểm kê thực tế",
-        InventoryDocumentType.WASTE => "Ghi nhận hủy hàng hết hạn, hỏng hoặc thất thoát",
-        _ => "Khởi tạo chứng từ kho"
+        InventoryDocumentType.IMPORT => L["InvDoc.Create.SubImport"].Value,
+        InventoryDocumentType.EXPORT => L["InvDoc.Create.SubExport"].Value,
+        InventoryDocumentType.STOCK_TAKE => L["InvDoc.Create.SubStockTake"].Value,
+        InventoryDocumentType.WASTE => L["InvDoc.Create.SubWaste"].Value,
+        _ => L["InvDoc.Create.SubDefault"].Value
     };
 
     var icon = effectiveType switch
@@ -39,10 +41,10 @@
         : "fa-circle-info";
     var notice = effectiveType switch
     {
-        InventoryDocumentType.EXPORT => "Số lượng xuất được kiểm tra theo tồn khả dụng. Xuất vượt tồn phải có lý do và đi qua quy trình phê duyệt.",
-        InventoryDocumentType.STOCK_TAKE => "Hoàn tất kiểm đếm thực tế trước khi xác nhận. Mọi chênh lệch cần được ghi chú rõ để đối soát.",
-        InventoryDocumentType.WASTE => "Phiếu hủy làm giảm tồn kho sau khi xác nhận. Chỉ chọn nguyên liệu còn tồn và nhập số lượng không vượt tồn khả dụng.",
-        _ => "Kiểm tra thông tin phiếu và chi tiết nguyên liệu trước khi xác nhận chứng từ."
+        InventoryDocumentType.EXPORT => L["InvDoc.Create.NoticeExport"].Value,
+        InventoryDocumentType.STOCK_TAKE => L["InvDoc.Create.NoticeStockTake"].Value,
+        InventoryDocumentType.WASTE => L["InvDoc.Create.NoticeWaste"].Value,
+        _ => L["InvDoc.Create.NoticeDefault"].Value
     };
 }
 
@@ -70,7 +72,7 @@
 
             <div>
                 <div class="inventory-create-breadcrumb">
-                    Phiếu kho / Tạo phiếu mới
+                    @L["InvDoc.Create.Breadcrumb"]
                 </div>
 
                 <h4 id="inventoryCreateTitle">@title</h4>
@@ -83,17 +85,17 @@
         <div class="inventory-create-header-meta">
 
             <span class="inventory-create-code">
-                @(string.IsNullOrWhiteSpace(Model.Code) ? "Tự động sinh khi lưu" : Model.Code)
+                @(string.IsNullOrWhiteSpace(Model.Code) ? L["InvDoc.Create.AutoCode"].Value : Model.Code)
             </span>
 
             <span class="inventory-create-status">
-                Nháp
+                @L["InvDoc.Create.Draft"]
             </span>
 
             <button type="button"
                     class="btn-close"
                     data-bs-dismiss="modal"
-                    aria-label="Đóng">
+                    aria-label="@L["InvDoc.Create.Close"]">
             </button>
 
         </div>

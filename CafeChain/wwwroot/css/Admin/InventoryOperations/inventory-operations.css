@@ -2170,3 +2170,13 @@
     width: 100%;
     border-top: 3px solid var(--cc-brown-600, #70482F);
 }
+
+/* Keep the localized threshold copy within the same shared header size as stock alerts. */
+.inventory-threshold-header > div:first-child {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.inventory-threshold-header .ops-subtitle {
+    max-width: 920px;
+}

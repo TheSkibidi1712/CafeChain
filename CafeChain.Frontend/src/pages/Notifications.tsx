@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import VerificationCodeInput from '../components/VerificationCodeInput'
+import { usePreferences } from '../contexts/PreferencesContext'
+import { useLocaleFormatters } from '../hooks/useLocaleFormatters'
 import {
   fetchNotifications,
   confirmTerminalFromNotification,
@@ -13,23 +15,6 @@ import {
 
 const PAGE_SIZE = 20
 
-const formatDateTime = (value: string): string => {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value || '—'
-  const parts = new Intl.DateTimeFormat('vi-VN', {
-    timeZone: 'Asia/Ho_Chi_Minh',
-    hourCycle: 'h23',
-    hour: '2-digit',
-    minute: '2-digit',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).formatToParts(date)
-  const valueOf = (type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((part) => part.type === type)?.value ?? ''
-  return `${valueOf('hour')}:${valueOf('minute')} ${valueOf('day')}/${valueOf('month')}/${valueOf('year')}`
-}
-
 function OperationalOtpCard({
   notificationId,
   otp,
@@ -39,6 +24,8 @@ function OperationalOtpCard({
   otp: OperationalOtpNotification
   onChanged: () => void
 }) {
+  const { t } = usePreferences()
+  const { formatDateTime } = useLocaleFormatters()
   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(0, otp.remainingSeconds))
   const [revealedCode, setRevealedCode] = useState('')
   const [enteredCode, setEnteredCode] = useState('')
@@ -57,22 +44,29 @@ function OperationalOtpCard({
   const minutes = String(Math.floor(remainingSeconds / 60)).padStart(2, '0')
   const seconds = String(remainingSeconds % 60).padStart(2, '0')
   const effectiveStatus = otp.status === 'Waiting' && remainingSeconds <= 0 ? 'Expired' : otp.status
+  const statusLabel = effectiveStatus === 'Waiting'
+    ? t('notifications.status.waiting')
+    : effectiveStatus === 'Expired'
+      ? t('notifications.status.expired')
+      : effectiveStatus === 'Confirmed'
+        ? t('notifications.status.confirmed')
+        : effectiveStatus
 
   return (
     <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3">
       <div className="grid gap-1 text-[11px] text-amber-950 sm:grid-cols-2">
-        <span><strong>Terminal:</strong> {otp.terminalName}</span>
-        <span><strong>Chi nhánh:</strong> {otp.storeName}</span>
-        <span><strong>Người gửi:</strong> {otp.requestedByName}</span>
-        <span><strong>Người xác nhận:</strong> {otp.confirmedByName || otp.approverName}</span>
-        <span><strong>Gửi lúc:</strong> {formatDateTime(otp.sentAtUtc)}</span>
-        <span><strong>Hết hạn:</strong> {formatDateTime(otp.expiresAtUtc)}</span>
-        <span><strong>Trạng thái:</strong> {effectiveStatus}</span>
+        <span><strong>{t('notifications.terminal')}:</strong> {otp.terminalName}</span>
+        <span><strong>{t('notifications.branch')}:</strong> {otp.storeName}</span>
+        <span><strong>{t('notifications.sender')}:</strong> {otp.requestedByName}</span>
+        <span><strong>{t('notifications.approver')}:</strong> {otp.confirmedByName || otp.approverName}</span>
+        <span><strong>{t('notifications.sentAt')}:</strong> {formatDateTime(otp.sentAtUtc)}</span>
+        <span><strong>{t('notifications.expiresAt')}:</strong> {formatDateTime(otp.expiresAtUtc)}</span>
+        <span><strong>{t('notifications.status')}:</strong> {statusLabel}</span>
       </div>
       {effectiveStatus === 'Waiting' && (
         <>
           <p className="mt-2 text-[11px] font-semibold text-amber-800">
-            OTP còn hiệu lực: {minutes} phút {seconds} giây
+            {t('notifications.otpRemaining', { minutes, seconds })}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {revealedCode ? (
@@ -87,14 +81,14 @@ function OperationalOtpCard({
                   try {
                     const result = await revealTerminalOtp(notificationId)
                     if (result.ok && result.data) setRevealedCode(result.data.code.trim())
-                    else setMessage(result.error || 'Không thể xem OTP.')
+                    else setMessage(result.error || t('notifications.revealError'))
                   } finally {
                     setBusyAction(null)
                   }
                 })()}
                 className="rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-xs font-bold text-amber-900 disabled:opacity-50"
               >
-                {busyAction === 'reveal' ? 'Đang xem…' : 'Xem OTP'}
+                {busyAction === 'reveal' ? t('notifications.revealing') : t('notifications.revealOtp')}
               </button>
             )}
             {revealedCode && (
@@ -103,15 +97,15 @@ function OperationalOtpCard({
                   setBusyAction('copy')
                   try {
                     await navigator.clipboard.writeText(revealedCode.trim())
-                    setMessage('Đã sao chép mã OTP')
+                    setMessage(t('notifications.copiedOtp'))
                   } catch {
-                    setMessage('Không thể sao chép OTP trên trình duyệt này.')
+                    setMessage(t('notifications.copyError'))
                   } finally {
                     setBusyAction(null)
                   }
                 })()}
                 className="rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-xs font-bold text-amber-900 disabled:opacity-50">
-                Copy OTP
+                {t('notifications.copyOtp')}
               </button>
             )}
           </div>
@@ -119,7 +113,7 @@ function OperationalOtpCard({
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <div className="w-full sm:w-72">
                 <VerificationCodeInput value={enteredCode} onChange={setEnteredCode}
-                  mode="otp" label="Mã OTP xác nhận Terminal" disabled={busyAction !== null} />
+                  mode="otp" label={t('notifications.confirmOtpLabel')} disabled={busyAction !== null} />
               </div>
               <button
                 type="button"
@@ -131,21 +125,21 @@ function OperationalOtpCard({
                     const requestKey = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}`
                     const result = await confirmTerminalFromNotification(notificationId, enteredCode, requestKey)
                     if (result.ok) onChanged()
-                    else setMessage(result.error || 'Không thể xác nhận Terminal.')
+                    else setMessage(result.error || t('notifications.confirmError'))
                   } finally {
                     setBusyAction(null)
                   }
                 })()}
                 className="rounded-lg bg-amber-800 px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
               >
-                {busyAction === 'confirm' ? 'Đang xác nhận...' : 'Tiếp tục xác nhận Terminal'}
+                {busyAction === 'confirm' ? t('notifications.confirmingTerminal') : t('notifications.confirmTerminal')}
               </button>
             </div>
           )}
         </>
       )}
       {effectiveStatus === 'Expired' && (
-        <p className="mt-2 text-xs font-semibold text-red-700">OTP đã hết hạn. Vui lòng gửi yêu cầu mới.</p>
+        <p className="mt-2 text-xs font-semibold text-red-700">{t('notifications.otpExpired')}</p>
       )}
       {message && <p className="mt-2 text-xs text-red-700">{message}</p>}
     </div>
@@ -153,6 +147,8 @@ function OperationalOtpCard({
 }
 
 export default function Notifications() {
+  const { t } = usePreferences()
+  const { formatDateTime } = useLocaleFormatters()
   const navigate = useNavigate()
   const [items, setItems] = useState<StaffNotificationItem[]>([])
   const [page, setPage] = useState(1)
@@ -170,7 +166,7 @@ export default function Notifications() {
       setItems([])
       setTotal(0)
       setUnreadCount(0)
-      setError(result.error || 'Không tải được thông báo.')
+      setError(result.error || t('notifications.loadError'))
       setLoading(false)
       return
     }
@@ -179,7 +175,7 @@ export default function Notifications() {
     setUnreadCount(result.data.unreadCount ?? 0)
     setLoading(false)
     window.dispatchEvent(new CustomEvent('pos-notifications-changed'))
-  }, [page])
+  }, [page, t])
 
   useEffect(() => {
     let cancelled = false
@@ -193,7 +189,7 @@ export default function Notifications() {
           setItems([])
           setTotal(0)
           setUnreadCount(0)
-          setError(result.error || 'Không tải được thông báo.')
+          setError(result.error || t('notifications.loadError'))
           setLoading(false)
           return
         }
@@ -208,7 +204,7 @@ export default function Notifications() {
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [page])
+  }, [page, t])
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
@@ -238,10 +234,10 @@ export default function Notifications() {
       <div className="max-w-3xl mx-auto flex flex-col gap-4">
         <header className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold text-text-primary">Thông báo</h1>
+            <h1 className="text-xl font-bold text-text-primary">{t('notifications.title')}</h1>
             <p className="text-xs text-text-muted mt-0.5">
-              Thông báo vận hành, POS, OTP và kho thuộc phạm vi của bạn
-              {unreadCount > 0 ? ` · ${unreadCount} chưa đọc` : ''}
+              {t('notifications.description')}
+              {unreadCount > 0 ? ` · ${t('notifications.unreadCount', { count: unreadCount })}` : ''}
             </p>
           </div>
           <button
@@ -250,13 +246,13 @@ export default function Notifications() {
             onClick={() => void onMarkAll()}
             className="px-3 py-2 text-xs font-bold rounded-lg border border-border text-text-secondary hover:border-brand-orange hover:text-brand-orange disabled:opacity-40"
           >
-            Đánh dấu tất cả đã đọc
+            {t('notifications.markAllRead')}
           </button>
         </header>
 
         {loading && (
           <div className="bg-surface-white border border-border rounded-xl p-8 text-center text-sm text-text-secondary">
-            Đang tải thông báo...
+            {t('notifications.loading')}
           </div>
         )}
 
@@ -268,7 +264,7 @@ export default function Notifications() {
 
         {!loading && !error && items.length === 0 && (
           <div className="bg-surface-white border border-border rounded-xl p-8 text-center text-sm text-text-secondary">
-            Chưa có thông báo
+            {t('notifications.empty')}
           </div>
         )}
 
@@ -287,7 +283,7 @@ export default function Notifications() {
                   <div className="font-semibold text-sm text-text-primary">{item.title}</div>
                   {!item.isRead && (
                     <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-danger text-white">
-                      Chưa đọc
+                      {t('notifications.unread')}
                     </span>
                   )}
                 </div>
@@ -306,7 +302,7 @@ export default function Notifications() {
                   <span>{formatDateTime(item.createdAt)}</span>
                   {item.emailAttempted && !item.emailSent && (
                     <span className="text-amber-700">
-                      Email chưa gửi được, nhưng thông báo đã được ghi nhận trong hệ thống.
+                      {t('notifications.emailFailed')}
                     </span>
                   )}
                   {item.targetUrl && (
@@ -316,7 +312,7 @@ export default function Notifications() {
                       onClick={() => void onMarkOne(item)}
                       className="text-brand-orange font-semibold"
                     >
-                      Mở liên quan →
+                      {t('notifications.openRelated')}
                     </button>
                   )}
                 </div>
@@ -328,7 +324,7 @@ export default function Notifications() {
                       onClick={() => void onMarkOne(item)}
                       className="text-[11px] font-bold text-brand-orange disabled:opacity-40"
                     >
-                      Đánh dấu đã đọc
+                      {t('notifications.markRead')}
                     </button>
                   </div>
                 )}
@@ -337,7 +333,7 @@ export default function Notifications() {
 
             <div className="flex items-center justify-between text-xs text-text-secondary pt-2">
               <span>
-                Trang {page}/{totalPages} · Tổng {total}
+                {t('notifications.page', { page, pages: totalPages, total })}
               </span>
               <div className="flex gap-2">
                 <button
@@ -346,7 +342,7 @@ export default function Notifications() {
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   className="px-3 py-1.5 rounded-lg border border-border disabled:opacity-40"
                 >
-                  Trước
+                  {t('notifications.previous')}
                 </button>
                 <button
                   type="button"
@@ -354,7 +350,7 @@ export default function Notifications() {
                   onClick={() => setPage((p) => p + 1)}
                   className="px-3 py-1.5 rounded-lg border border-border disabled:opacity-40"
                 >
-                  Sau
+                  {t('notifications.next')}
                 </button>
               </div>
             </div>

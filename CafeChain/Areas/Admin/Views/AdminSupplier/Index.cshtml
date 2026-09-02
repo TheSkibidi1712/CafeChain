@@ -1,7 +1,11 @@
 @model CafeChain.Application.DTOs.Admin.Suppliers.AdminSupplierIndexPageDTO
+@using Microsoft.Extensions.Localization
+@using System.Text.Json
+@inject IStringLocalizer<ProcurementResource> L
 @{
-    ViewData["Title"] = "Nhà cung cấp";
+    ViewData["Title"] = L["Supplier.Title"].Value;
     var canMutate = ViewBag.CanMutateSupplier is true;
+    string J(string key) => JsonSerializer.Serialize(L[key].Value);
 }
 
 @section Styles {
@@ -11,81 +15,81 @@
 <main class="supplier-page cc-warehouse-page" data-can-mutate="@canMutate.ToString().ToLowerInvariant()">
     <header class="supplier-page-header cc-warehouse-header">
         <div class="supplier-page-header-copy">
-            <p class="supplier-eyebrow">Kho & Cung ứng / Đối tác</p>
-            <h1><i class="fa-solid fa-building-shield me-2 text-warning" aria-hidden="true"></i>Nhà cung cấp</h1>
-            <p class="supplier-subtitle">Quản lý thông tin liên hệ, phạm vi cung ứng và trạng thái hợp tác.</p>
+            <p class="supplier-eyebrow">@L["Supplier.Eyebrow"]</p>
+            <h1><i class="fa-solid fa-building-shield me-2 text-warning" aria-hidden="true"></i>@L["Supplier.Title"]</h1>
+            <p class="supplier-subtitle">@L["Supplier.Subtitle"]</p>
         </div>
         @if (canMutate)
         {
             <button type="button" class="supplier-btn supplier-btn-primary" id="createSupplierButton">
                 <i class="fa-solid fa-plus" aria-hidden="true"></i>
-                Thêm nhà cung cấp
+                @L["Supplier.Add"]
             </button>
         }
     </header>
 
-    <section class="supplier-metrics cc-warehouse-summary-grid" aria-label="Tổng quan nguồn cung">
-        <div><span class="supplier-metric-icon" aria-hidden="true"><i class="fa-solid fa-building"></i></span><span class="supplier-metric-copy"><strong>@Model.SupplierCount</strong><span>Tổng nhà cung cấp</span></span></div>
-        <div><span class="supplier-metric-icon is-success" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span><span class="supplier-metric-copy"><strong>@Model.ActiveSupplierCount</strong><span>Đang hoạt động</span></span></div>
-        <div><span class="supplier-metric-icon" aria-hidden="true"><i class="fa-solid fa-boxes-stacked"></i></span><span class="supplier-metric-copy"><strong>@Model.ActiveOfferCount</strong><span>Gói mua đang áp dụng</span></span></div>
-        <div><span class="supplier-metric-icon" aria-hidden="true"><i class="fa-solid fa-store"></i></span><span class="supplier-metric-copy"><strong>@Model.ActiveStoreCount</strong><span>Lượt gán cửa hàng</span></span></div>
+    <section class="supplier-metrics cc-warehouse-summary-grid" aria-label="@L["Supplier.Metrics.Aria"]">
+        <div><span class="supplier-metric-icon" aria-hidden="true"><i class="fa-solid fa-building"></i></span><span class="supplier-metric-copy"><strong>@Model.SupplierCount</strong><span>@L["Supplier.Metrics.Total"]</span></span></div>
+        <div><span class="supplier-metric-icon is-success" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span><span class="supplier-metric-copy"><strong>@Model.ActiveSupplierCount</strong><span>@L["Supplier.Metrics.Active"]</span></span></div>
+        <div><span class="supplier-metric-icon" aria-hidden="true"><i class="fa-solid fa-boxes-stacked"></i></span><span class="supplier-metric-copy"><strong>@Model.ActiveOfferCount</strong><span>@L["Supplier.Metrics.Offers"]</span></span></div>
+        <div><span class="supplier-metric-icon" aria-hidden="true"><i class="fa-solid fa-store"></i></span><span class="supplier-metric-copy"><strong>@Model.ActiveStoreCount</strong><span>@L["Supplier.Metrics.Stores"]</span></span></div>
     </section>
 
-    <form method="get" class="supplier-toolbar cc-warehouse-filter" aria-label="Bộ lọc nhà cung cấp">
+    <form method="get" class="supplier-toolbar cc-warehouse-filter" aria-label="@L["Supplier.Filter.Aria"]">
         <div class="supplier-filter-heading">
             <div>
-                <span>Phạm vi dữ liệu</span>
-                <strong>Bộ lọc nguồn cung</strong>
+                <span>@L["Supplier.Filter.ScopeLabel"]</span>
+                <strong>@L["Supplier.Filter.ScopeTitle"]</strong>
             </div>
-            <span class="supplier-filter-scope"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i>Theo quyền cửa hàng</span>
+            <span class="supplier-filter-scope"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i>@L["Supplier.Filter.ScopeNote"]</span>
         </div>
         <div class="supplier-filter-grid">
             <label class="supplier-search">
-                <span>Tìm nhà cung cấp</span>
+                <span>@L["Supplier.Filter.SearchLabel"]</span>
                 <span class="supplier-search-control">
                     <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                    <input id="supplierSearch" name="search" value="@Model.Search" type="search" placeholder="Mã, tên, mã số thuế, số điện thoại" autocomplete="off" />
+                    <input id="supplierSearch" name="search" value="@Model.Search" type="search" placeholder="@L["Supplier.Filter.SearchPlaceholder"]" autocomplete="off" />
                 </span>
             </label>
             <label class="supplier-filter-field">
-                <span>Trạng thái hợp tác</span>
+                <span>@L["Supplier.Filter.StatusLabel"]</span>
                 <select id="supplierStatusFilter" name="status">
-                    <option value="" selected="@(!Model.Status.HasValue)">Tất cả trạng thái</option>
-                    <option value="true" selected="@(Model.Status == true)">Đang hoạt động</option>
-                    <option value="false" selected="@(Model.Status == false)">Ngừng hoạt động</option>
+                    <option value="" selected="@(!Model.Status.HasValue)">@L["Supplier.Filter.AllStatuses"]</option>
+                    <option value="true" selected="@(Model.Status == true)">@L["Supplier.Status.Active"]</option>
+                    <option value="false" selected="@(Model.Status == false)">@L["Supplier.Status.Inactive"]</option>
                 </select>
             </label>
             <input type="hidden" name="pageSize" value="@Model.PageSize" />
             <div class="supplier-filter-actions">
-                <a class="supplier-btn supplier-btn-light" href="@Url.Action("Index")">Đặt lại</a>
+                <a class="supplier-btn supplier-btn-light" href="@Url.Action("Index")">@L["Supplier.Reset"]</a>
                 <button type="submit" class="supplier-btn supplier-btn-primary">
                     <i class="fa-solid fa-filter" aria-hidden="true"></i>
-                    Áp dụng
+                    @L["Supplier.Apply"]
                 </button>
             </div>
         </div>
         <div class="supplier-filter-result">
             <span class="supplier-result-count" id="supplierResultCount">
-                Hiển thị <strong>@Model.FirstItemNumber–@Model.LastItemNumber</strong> trên <strong>@Model.TotalCount</strong> kết quả
+                @Html.Raw(L["Supplier.Filter.ResultCount", $"<strong>{Model.FirstItemNumber}", $"{Model.LastItemNumber}</strong>", $"<strong>{Model.TotalCount}</strong>"].Value)
             </span>
         </div>
     </form>
 
     <div class="supplier-workspace">
-        <section class="supplier-list-panel" aria-label="Danh sách nhà cung cấp">
+        <section class="supplier-list-panel" aria-label="@L["Supplier.List.Aria"]">
             <div class="supplier-list-heading">
                 <div class="supplier-list-heading-main">
                     <span class="supplier-list-heading-icon" aria-hidden="true">
                         <i class="fa-solid fa-truck-field"></i>
                     </span>
                     <div class="supplier-list-heading-copy">
-                        <span class="supplier-list-kicker">Danh sách nguồn cung</span>
-                        <h2>Nhà cung cấp trong phạm vi quản lý</h2>
+                        <span class="supplier-list-kicker">@L["Supplier.List.Kicker"]</span>
+                        <h2>@L["Supplier.List.Title"]</h2>
                     </div>
                 </div>
-                <span class="supplier-list-total" aria-label="Tổng cộng @Model.TotalCount nhà cung cấp">
+                <span class="supplier-list-total" aria-label="@L["Supplier.List.TotalAria", Model.TotalCount]">
                     <strong>@Model.TotalCount</strong>
-                    <span>Nhà cung cấp</span>
+                    <span>@L["Supplier.Col.Name"]</span>
                 </span>
             </div>
             <div class="supplier-table-scroll cc-warehouse-table-shell">
@@ -101,13 +105,13 @@
                     </colgroup>
                     <thead>
                         <tr>
-                            <th>Nhà cung cấp</th>
-                            <th class="text-center">Mã số thuế</th>
-                            <th>Đầu mối</th>
-                            <th class="text-center">Gói mua</th>
-                            <th class="text-center">Cửa hàng</th>
-                            <th class="text-center">Trạng thái</th>
-                            <th class="text-center">Thao tác</th>
+                            <th>@L["Supplier.Col.Name"]</th>
+                            <th class="text-center">@L["Supplier.Col.TaxCode"]</th>
+                            <th>@L["Supplier.Col.Contact"]</th>
+                            <th class="text-center">@L["Supplier.Col.Offers"]</th>
+                            <th class="text-center">@L["Supplier.Col.Stores"]</th>
+                            <th class="text-center">@L["Supplier.Col.Status"]</th>
+                            <th class="text-center">@L["Supplier.Col.Actions"]</th>
                         </tr>
                     </thead>
                     <tbody id="supplierRows">
@@ -117,17 +121,17 @@
                                 <td>
                                     <span class="supplier-code">@item.Code</span>
                                     <strong>@item.Name</strong>
-                                    <small>@(string.IsNullOrWhiteSpace(item.Address) ? "Chưa cập nhật địa chỉ" : item.Address)</small>
+                                    <small>@(string.IsNullOrWhiteSpace(item.Address) ? L["Supplier.Row.NoAddress"].Value : item.Address)</small>
                                 </td>
                                 <td class="text-center"><span class="supplier-tax-code">@(string.IsNullOrWhiteSpace(item.TaxCode) ? "—" : item.TaxCode)</span></td>
                                 <td>
-                                    <span>@(item.PrimaryContactName ?? "Chưa có đầu mối")</span>
-                                    <small>@(item.PrimaryContactPhone ?? item.PrimaryPhone ?? "Chưa có số điện thoại")</small>
+                                    <span>@(item.PrimaryContactName ?? L["Supplier.Row.NoContact"].Value)</span>
+                                    <small>@(item.PrimaryContactPhone ?? item.PrimaryPhone ?? L["Supplier.Row.NoPhone"].Value)</small>
                                 </td>
-                                <td class="text-center"><strong class="supplier-number">@item.ActiveOfferCount</strong><small>đang dùng</small></td>
-                                <td class="text-center"><strong class="supplier-number">@item.ActiveStoreCount</strong><small>được gán</small></td>
-                                <td class="text-center"><span class="supplier-status @(item.Active ? "is-active" : "is-inactive")">@(item.Active ? "Đang hoạt động" : "Ngừng hoạt động")</span></td>
-                                <td class="text-center"><button type="button" class="supplier-btn supplier-btn-light open-supplier" data-id="@item.SupplierId" aria-label="Xem chi tiết nhà cung cấp @item.Name">Chi tiết<i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button></td>
+                                <td class="text-center"><strong class="supplier-number">@item.ActiveOfferCount</strong><small>@L["Supplier.Row.OfferSuffix"]</small></td>
+                                <td class="text-center"><strong class="supplier-number">@item.ActiveStoreCount</strong><small>@L["Supplier.Row.StoreSuffix"]</small></td>
+                                <td class="text-center"><span class="supplier-status @(item.Active ? "is-active" : "is-inactive")">@(item.Active ? L["Supplier.Status.Active"].Value : L["Supplier.Status.Inactive"].Value)</span></td>
+                                <td class="text-center"><button type="button" class="supplier-btn supplier-btn-light open-supplier" data-id="@item.SupplierId" aria-label="@L["Supplier.Row.DetailAria", item.Name]">@L["Supplier.Row.Detail"]<i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button></td>
                             </tr>
                         }
                     </tbody>
@@ -135,34 +139,34 @@
             </div>
             <div class="supplier-empty cc-warehouse-empty @(Model.Items.Count == 0 ? "" : "is-hidden")" id="supplierEmptyState" role="status">
                 <i class="fa-solid fa-box-open" aria-hidden="true"></i>
-                <strong>Không có nhà cung cấp phù hợp</strong>
-                <span>Thay đổi từ khóa hoặc trạng thái để xem kết quả khác.</span>
+                <strong>@L["Supplier.Empty.Title"]</strong>
+                <span>@L["Supplier.Empty.Text"]</span>
             </div>
             @if (Model.TotalCount > 0 && Model.TotalPages > 1)
             {
-                <nav class="supplier-pagination" aria-label="Phân trang nhà cung cấp">
+                <nav class="supplier-pagination" aria-label="@L["Supplier.Pagination.Aria"]">
                     <a class="supplier-page-link @(Model.HasPreviousPage ? "" : "is-disabled")"
                        href="@(Model.HasPreviousPage ? Url.Action("Index", new { search = Model.Search, status = Model.Status, page = Model.PageIndex - 1, pageSize = Model.PageSize }) : null)"
                        aria-disabled="@(!Model.HasPreviousPage)">
                         <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
-                        Trước
+                        @L["Supplier.Pagination.Previous"]
                     </a>
-                    <span>Trang <strong>@Model.PageIndex</strong> / @Model.TotalPages</span>
+                    <span>@L["Supplier.Pagination.Page", Model.PageIndex, Model.TotalPages]</span>
                     <a class="supplier-page-link @(Model.HasNextPage ? "" : "is-disabled")"
                        href="@(Model.HasNextPage ? Url.Action("Index", new { search = Model.Search, status = Model.Status, page = Model.PageIndex + 1, pageSize = Model.PageSize }) : null)"
                        aria-disabled="@(!Model.HasNextPage)">
-                        Sau
+                        @L["Supplier.Pagination.Next"]
                         <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                     </a>
                 </nav>
             }
         </section>
 
-        <aside class="offcanvas offcanvas-end supplier-detail" id="supplierDetail" tabindex="-1" aria-label="Chi tiết nhà cung cấp">
+        <aside class="offcanvas offcanvas-end supplier-detail" id="supplierDetail" tabindex="-1" aria-label="@L["Supplier.Detail.Aria"]">
             <div class="supplier-detail-placeholder" id="supplierDetailPlaceholder">
                 <i class="fa-solid fa-truck-ramp-box" aria-hidden="true"></i>
-                <strong>Chọn một nhà cung cấp</strong>
-                <span>Thông tin vận hành sẽ hiển thị tại đây.</span>
+                <strong>@L["Supplier.Detail.PlaceholderTitle"]</strong>
+                <span>@L["Supplier.Detail.PlaceholderText"]</span>
             </div>
 
             <div class="supplier-detail-content is-hidden" id="supplierDetailContent">
@@ -173,18 +177,18 @@
                         <p id="detailSummary"></p>
                         <span class="supplier-status" id="detailStatus"></span>
                     </div>
-                    <button type="button" class="supplier-icon-button" id="closeSupplierDetail" data-bs-dismiss="offcanvas" title="Đóng chi tiết" aria-label="Đóng chi tiết">
+                    <button type="button" class="supplier-icon-button" id="closeSupplierDetail" data-bs-dismiss="offcanvas" title="@L["Supplier.Detail.Close"]" aria-label="@L["Supplier.Detail.Close"]">
                         <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                     </button>
                 </header>
 
-                <nav class="supplier-tabs" aria-label="Nội dung nhà cung cấp">
-                    <button type="button" class="is-active" data-tab="overview">Tổng quan</button>
-                    <button type="button" data-tab="contacts">Liên hệ</button>
-                    <button type="button" data-tab="offers">Gói mua</button>
-                    <button type="button" data-tab="pricing">Lịch sử giá</button>
-                    <button type="button" data-tab="stores">Cửa hàng</button>
-                    <button type="button" data-tab="audit">Theo dõi</button>
+                <nav class="supplier-tabs" aria-label="@L["Supplier.Detail.TabsAria"]">
+                    <button type="button" class="is-active" data-tab="overview">@L["Supplier.Tab.Overview"]</button>
+                    <button type="button" data-tab="contacts">@L["Supplier.Tab.Contacts"]</button>
+                    <button type="button" data-tab="offers">@L["Supplier.Tab.Offers"]</button>
+                    <button type="button" data-tab="pricing">@L["Supplier.Tab.Pricing"]</button>
+                    <button type="button" data-tab="stores">@L["Supplier.Tab.Stores"]</button>
+                    <button type="button" data-tab="audit">@L["Supplier.Tab.Audit"]</button>
                 </nav>
 
                 <div class="supplier-tab-body">
@@ -193,77 +197,77 @@
                             <input type="hidden" id="overviewSupplierId" />
                             <input type="hidden" id="overviewRowVersion" />
                             <div class="supplier-form-grid">
-                                <label><span>Tên nhà cung cấp</span><input id="overviewName" required maxlength="200" /></label>
-                                <label><span>Mã số thuế</span><input id="overviewTaxCode" maxlength="32" inputmode="numeric" placeholder="Ví dụ: 0312345679 hoặc 0312345679-001" aria-describedby="overviewTaxCodeError" /><small class="supplier-field-error is-hidden" id="overviewTaxCodeError"></small></label>
-                                <label><span>Trạng thái</span><select id="overviewActive"><option value="true">Đang hoạt động</option><option value="false">Ngừng hoạt động</option></select></label>
-                                <label class="is-wide"><span>Địa chỉ</span><input id="overviewAddress" maxlength="500" /></label>
-                                <label class="is-wide"><span>Ghi chú</span><textarea id="overviewNote" rows="4" maxlength="1000"></textarea></label>
+                                <label><span>@L["Supplier.Overview.Name"]</span><input id="overviewName" required maxlength="200" /></label>
+                                <label><span>@L["Supplier.Overview.TaxCode"]</span><input id="overviewTaxCode" maxlength="32" inputmode="numeric" placeholder="@L["Supplier.Overview.TaxCodePlaceholder"]" aria-describedby="overviewTaxCodeError" /><small class="supplier-field-error is-hidden" id="overviewTaxCodeError"></small></label>
+                                <label><span>@L["Supplier.Overview.Status"]</span><select id="overviewActive"><option value="true">@L["Supplier.Status.Active"]</option><option value="false">@L["Supplier.Status.Inactive"]</option></select></label>
+                                <label class="is-wide"><span>@L["Supplier.Overview.Address"]</span><input id="overviewAddress" maxlength="500" /></label>
+                                <label class="is-wide"><span>@L["Supplier.Overview.Note"]</span><textarea id="overviewNote" rows="4" maxlength="1000"></textarea></label>
                             </div>
                             @if (canMutate)
                             {
-                                <div class="supplier-form-actions"><button class="supplier-btn supplier-btn-primary" type="submit">Lưu thông tin</button></div>
+                                <div class="supplier-form-actions"><button class="supplier-btn supplier-btn-primary" type="submit">@L["Supplier.Overview.Save"]</button></div>
                             }
                         </form>
                     </section>
 
                     <section class="supplier-tab" data-tab-panel="contacts">
-                        <div class="supplier-section-heading"><div><h3>Số điện thoại</h3><p>Hotline và số liên hệ chung của nhà cung cấp.</p></div></div>
+                        <div class="supplier-section-heading"><div><h3>@L["Supplier.Phones.Title"]</h3><p>@L["Supplier.Phones.Help"]</p></div></div>
                         @if (canMutate)
                         {
-                            <form class="supplier-inline-form" id="addPhoneForm"><input id="newPhone" placeholder="Số điện thoại mới" required maxlength="20" /><button class="supplier-btn supplier-btn-light" type="submit">Thêm số</button></form>
+                            <form class="supplier-inline-form" id="addPhoneForm"><input id="newPhone" placeholder="@L["Supplier.Phones.NewPlaceholder"]" required maxlength="20" /><button class="supplier-btn supplier-btn-light" type="submit">@L["Supplier.Phones.Add"]</button></form>
                         }
                         <div class="supplier-stack" id="phoneList"></div>
 
-                        <div class="supplier-section-heading supplier-section-spaced"><div><h3>Người liên hệ</h3><p>Đầu mối nhận báo giá và xử lý giao hàng.</p></div></div>
+                        <div class="supplier-section-heading supplier-section-spaced"><div><h3>@L["Supplier.Contacts.Title"]</h3><p>@L["Supplier.Contacts.Help"]</p></div></div>
                         @if (canMutate)
                         {
                             <form class="supplier-form supplier-subform" id="contactForm">
                                 <input type="hidden" id="contactId" />
                                 <div class="supplier-form-grid">
-                                    <label><span>Họ tên</span><input id="contactName" required /></label>
-                                    <label><span>Chức vụ</span><input id="contactPosition" /></label>
-                                    <label><span>Điện thoại</span><input id="contactPhone" /></label>
-                                    <label><span>Email</span><input id="contactEmail" type="email" /></label>
+                                    <label><span>@L["Supplier.Contacts.Name"]</span><input id="contactName" required /></label>
+                                    <label><span>@L["Supplier.Contacts.Position"]</span><input id="contactPosition" /></label>
+                                    <label><span>@L["Supplier.Contacts.Phone"]</span><input id="contactPhone" /></label>
+                                    <label><span>@L["Supplier.Contacts.Email"]</span><input id="contactEmail" type="email" /></label>
                                 </div>
-                                <div class="supplier-form-actions"><button type="button" class="supplier-btn supplier-btn-quiet is-hidden" id="cancelContactEdit">Hủy sửa</button><button class="supplier-btn supplier-btn-light" type="submit" id="saveContactButton">Thêm liên hệ</button></div>
+                                <div class="supplier-form-actions"><button type="button" class="supplier-btn supplier-btn-quiet is-hidden" id="cancelContactEdit">@L["Supplier.CancelEdit"]</button><button class="supplier-btn supplier-btn-light" type="submit" id="saveContactButton">@L["Supplier.Contacts.Add"]</button></div>
                             </form>
                         }
                         <div class="supplier-stack" id="contactList"></div>
                     </section>
 
                     <section class="supplier-tab" data-tab-panel="offers">
-                        <div class="supplier-section-heading"><div><h3>Quy cách mua nguyên liệu</h3><p>Duy trì giá theo gói và đơn vị mua lẻ tương thích với từng nguyên liệu.</p></div></div>
+                        <div class="supplier-section-heading"><div><h3>@L["Supplier.Offers.FormTitle"]</h3><p>@L["Supplier.Offers.FormHelp"]</p></div></div>
                         @if (canMutate)
                         {
                             <form class="supplier-form supplier-subform" id="offerForm">
                                 <input type="hidden" id="offerId" />
                                 <input type="hidden" id="offerRowVersion" />
                                 <div class="supplier-form-grid">
-                                    <label><span>Nguyên liệu</span><select id="offerIngredient" required></select></label>
-                                    <label><span>Đơn vị nội dung</span><select id="offerUnit" required></select></label>
-                                    <label><span>Lượng trong gói</span><input id="offerPackageQuantity" type="number" min="0.00001" step="0.00001" required /></label>
-                                    <label><span>Giá một gói (VND)</span><input id="offerPrice" type="number" min="0" step="1" required /></label>
-                                    <label><span>MOQ theo gói</span><input id="offerMoq" type="number" min="1" step="1" /></label>
-                                    <label><span>Thời gian giao mặc định (ngày)</span><input id="offerLeadTime" type="number" min="0" step="1" /></label>
-                                    <label class="supplier-check"><input id="offerPrimary" type="checkbox" /><span>Nguồn cung chính</span></label>
-                                    <label class="supplier-check"><input id="offerActive" type="checkbox" checked /><span>Đang hoạt động</span></label>
-                                    <label class="supplier-check"><input id="offerAllowsLoose" type="checkbox" /><span>Cho phép mua lẻ</span></label>
-                                    <label data-loose-field class="is-hidden"><span>Đơn vị mua lẻ</span><select id="offerLooseUnit"></select></label>
-                                    <label data-loose-field class="is-hidden"><span>Cách xác định giá lẻ</span><select id="offerLoosePriceMode"><option value="INDEPENDENT">Nhập đơn giá mua lẻ riêng</option><option value="DERIVED">Tự tính từ giá gói</option></select></label>
-                                    <label data-loose-field class="is-hidden"><span id="offerLoosePriceLabel">Đơn giá mua lẻ (VND/đơn vị)</span><input id="offerLoosePrice" type="number" min="0.01" step="0.01" /></label>
-                                    <label data-loose-field class="is-hidden"><span>MOQ mua lẻ</span><input id="offerLooseMoq" type="number" min="0" step="0.00001" /><small>Tính theo đơn vị mua lẻ đã chọn.</small></label>
-                                    <label data-loose-field class="is-hidden"><span>Bước số lượng mua lẻ</span><input id="offerLooseStep" type="number" min="0.00001" step="0.00001" /><small>Đơn hàng được làm tròn lên theo bước này.</small></label>
-                                    <label class="is-wide"><span>Ghi chú</span><input id="offerNote" /></label>
+                                    <label><span>@L["Supplier.Offers.Ingredient"]</span><select id="offerIngredient" required></select></label>
+                                    <label><span>@L["Supplier.Offers.ContentUnit"]</span><select id="offerUnit" required></select></label>
+                                    <label><span>@L["Supplier.Offers.PackageQuantity"]</span><input id="offerPackageQuantity" type="number" min="0.00001" step="0.00001" required /></label>
+                                    <label><span>@L["Supplier.Offers.PackagePrice"]</span><input id="offerPrice" type="number" min="0" step="1" required /></label>
+                                    <label><span>@L["Supplier.Offers.Moq"]</span><input id="offerMoq" type="number" min="1" step="1" /></label>
+                                    <label><span>@L["Supplier.Offers.LeadTime"]</span><input id="offerLeadTime" type="number" min="0" step="1" /></label>
+                                    <label class="supplier-check"><input id="offerPrimary" type="checkbox" /><span>@L["Supplier.Offers.Primary"]</span></label>
+                                    <label class="supplier-check"><input id="offerActive" type="checkbox" checked /><span>@L["Supplier.Offers.Active"]</span></label>
+                                    <label class="supplier-check"><input id="offerAllowsLoose" type="checkbox" /><span>@L["Supplier.Offers.AllowLoose"]</span></label>
+                                    <label data-loose-field class="is-hidden"><span>@L["Supplier.Offers.LooseUnit"]</span><select id="offerLooseUnit"></select></label>
+                                    <label data-loose-field class="is-hidden"><span>@L["Supplier.Offers.LoosePriceMode"]</span><select id="offerLoosePriceMode"><option value="INDEPENDENT">@L["Supplier.Offers.LoosePriceModeIndependent"]</option><option value="DERIVED">@L["Supplier.Offers.LoosePriceModeDerived"]</option></select></label>
+                                    <label data-loose-field class="is-hidden"><span id="offerLoosePriceLabel">@L["Supplier.Offers.LoosePrice", L["Supplier.Offers.LoosePriceDefaultUnit"].Value]</span><input id="offerLoosePrice" type="number" min="0.01" step="0.01" /></label>
+                                    <label data-loose-field class="is-hidden"><span>@L["Supplier.Offers.LooseMoq"]</span><input id="offerLooseMoq" type="number" min="0" step="0.00001" /><small>@L["Supplier.Offers.LooseMoqHelp"]</small></label>
+                                    <label data-loose-field class="is-hidden"><span>@L["Supplier.Offers.LooseStep"]</span><input id="offerLooseStep" type="number" min="0.00001" step="0.00001" /><small>@L["Supplier.Offers.LooseStepHelp"]</small></label>
+                                    <label class="is-wide"><span>@L["Supplier.Offers.Note"]</span><input id="offerNote" /></label>
                                 </div>
-                                <div class="supplier-form-actions"><button type="button" class="supplier-btn supplier-btn-quiet is-hidden" id="cancelOfferEdit">Hủy sửa</button><button class="supplier-btn supplier-btn-primary" type="submit" id="saveOfferButton">Thêm gói mua</button></div>
+                                <div class="supplier-form-actions"><button type="button" class="supplier-btn supplier-btn-quiet is-hidden" id="cancelOfferEdit">@L["Supplier.CancelEdit"]</button><button class="supplier-btn supplier-btn-primary" type="submit" id="saveOfferButton">@L["Supplier.Offers.Add"]</button></div>
                             </form>
                         }
                         <div class="supplier-stack" id="offerList"></div>
                     </section>
 
                     <section class="supplier-tab" data-tab-panel="pricing">
-                        <div class="supplier-section-heading"><div><h3>Thay đổi & lịch sử giá</h3><p>Mỗi thay đổi tạo một bản ghi giá mới và đóng bản ghi hiện hành trước đó.</p></div></div>
-                        <div class="supplier-empty-inline" id="pricingEmpty">Chọn “Đổi giá” từ một gói mua để xem lịch sử.</div>
+                        <div class="supplier-section-heading"><div><h3>@L["Supplier.Pricing.Title"]</h3><p>@L["Supplier.Pricing.Help"]</p></div></div>
+                        <div class="supplier-empty-inline" id="pricingEmpty">@L["Supplier.Pricing.Empty"]</div>
                         <div class="is-hidden" id="pricingWorkspace">
                             <div class="supplier-pricing-title"><strong id="pricingOfferName"></strong><span id="pricingCurrentValue"></span></div>
                             @if (canMutate)
@@ -272,12 +276,12 @@
                                     <input type="hidden" id="priceOfferId" />
                                     <input type="hidden" id="priceRowVersion" />
                                     <div class="supplier-form-grid">
-                                        <label><span>Giá gói mới</span><input id="newPackagePrice" type="number" min="0" step="1" required /></label>
-                                        <label><span>Lượng trong gói</span><input id="newPackageQuantity" type="number" min="0.00001" step="0.00001" required /></label>
-                                        <label><span>Đơn vị nội dung</span><select id="newPackageUnit" required></select></label>
-                                        <label><span>Lý do thay đổi</span><input id="priceReason" maxlength="500" required /></label>
+                                        <label><span>@L["Supplier.Pricing.NewPrice"]</span><input id="newPackagePrice" type="number" min="0" step="1" required /></label>
+                                        <label><span>@L["Supplier.Offers.PackageQuantity"]</span><input id="newPackageQuantity" type="number" min="0.00001" step="0.00001" required /></label>
+                                        <label><span>@L["Supplier.Offers.ContentUnit"]</span><select id="newPackageUnit" required></select></label>
+                                        <label><span>@L["Supplier.Pricing.Reason"]</span><input id="priceReason" maxlength="500" required /></label>
                                     </div>
-                                    <div class="supplier-form-actions"><button class="supplier-btn supplier-btn-primary" type="submit">Xác nhận đổi giá</button></div>
+                                    <div class="supplier-form-actions"><button class="supplier-btn supplier-btn-primary" type="submit">@L["Supplier.Pricing.Confirm"]</button></div>
                                 </form>
                             }
                             <div class="supplier-history" id="priceHistoryList"></div>
@@ -285,28 +289,28 @@
                     </section>
 
                     <section class="supplier-tab" data-tab-panel="stores">
-                        <div class="supplier-section-heading"><div><h3>Phạm vi cửa hàng</h3><p>Cửa hàng chỉ nhận hàng từ nhà cung cấp đã được gán và đang hoạt động.</p></div></div>
+                        <div class="supplier-section-heading"><div><h3>@L["Supplier.Stores.Title"]</h3><p>@L["Supplier.Stores.Help"]</p></div></div>
                         @if (canMutate)
                         {
                             <form class="supplier-form supplier-subform" id="storeAssignmentForm">
                                 <input type="hidden" id="supplierStoreId" />
                                 <input type="hidden" id="supplierStoreRowVersion" />
                                 <div class="supplier-form-grid">
-                                    <label><span>Cửa hàng</span><select id="assignmentStore" required></select></label>
-                                    <label><span>Thời gian giao riêng (ngày)</span><input id="assignmentLeadTime" type="number" min="0" step="1" /><small>Để trống để dùng thời gian giao mặc định của gói mua; khi nhập, giá trị này sẽ thay thế mặc định tại cửa hàng.</small></label>
-                                    <label><span>Lịch giao hàng dự kiến</span><input id="assignmentSchedule" maxlength="300" placeholder="Ví dụ: Thứ Hai, Thứ Tư và Thứ Sáu" /></label>
-                                    <label class="supplier-check"><input id="assignmentActive" type="checkbox" checked /><span>Đang hoạt động</span></label>
-                                    <label class="is-wide"><span>Ghi chú</span><input id="assignmentNote" maxlength="1000" /></label>
+                                    <label><span>@L["Supplier.Stores.Store"]</span><select id="assignmentStore" required></select></label>
+                                    <label><span>@L["Supplier.Stores.LeadTime"]</span><input id="assignmentLeadTime" type="number" min="0" step="1" /><small>@L["Supplier.Stores.LeadTimeHelp"]</small></label>
+                                    <label><span>@L["Supplier.Stores.Schedule"]</span><input id="assignmentSchedule" maxlength="300" placeholder="@L["Supplier.Stores.SchedulePlaceholder"]" /></label>
+                                    <label class="supplier-check"><input id="assignmentActive" type="checkbox" checked /><span>@L["Supplier.Stores.Active"]</span></label>
+                                    <label class="is-wide"><span>@L["Supplier.Stores.Note"]</span><input id="assignmentNote" maxlength="1000" /></label>
                                 </div>
-                                <div class="supplier-form-actions"><button type="button" class="supplier-btn supplier-btn-quiet is-hidden" id="cancelStoreEdit">Hủy sửa</button><button class="supplier-btn supplier-btn-primary" type="submit" id="saveStoreButton">Gán cửa hàng</button></div>
+                                <div class="supplier-form-actions"><button type="button" class="supplier-btn supplier-btn-quiet is-hidden" id="cancelStoreEdit">@L["Supplier.CancelEdit"]</button><button class="supplier-btn supplier-btn-primary" type="submit" id="saveStoreButton">@L["Supplier.Stores.Assign"]</button></div>
                             </form>
                         }
                         <div class="supplier-stack" id="storeList"></div>
                     </section>
 
                     <section class="supplier-tab" data-tab-panel="audit">
-                        <div class="supplier-section-heading"><div><h3>Dấu vết cập nhật</h3><p>Mốc thời gian của hồ sơ nhà cung cấp.</p></div></div>
-                        <dl class="supplier-audit-list"><div><dt>Khởi tạo</dt><dd id="auditCreatedAt"></dd></div><div><dt>Cập nhật gần nhất</dt><dd id="auditUpdatedAt"></dd></div></dl>
+                        <div class="supplier-section-heading"><div><h3>@L["Supplier.Audit.Title"]</h3><p>@L["Supplier.Audit.Help"]</p></div></div>
+                        <dl class="supplier-audit-list"><div><dt>@L["Supplier.Audit.Created"]</dt><dd id="auditCreatedAt"></dd></div><div><dt>@L["Supplier.Audit.Updated"]</dt><dd id="auditUpdatedAt"></dd></div></dl>
                         <div class="supplier-history" id="supplierAuditEvents"></div>
                     </section>
                 </div>
@@ -324,41 +328,41 @@
                 <div class="supplier-modal-title">
                     <span class="supplier-modal-icon" aria-hidden="true"><i class="fa-solid fa-building-circle-check"></i></span>
                     <div>
-                        <p class="supplier-eyebrow">Hồ sơ nguồn cung</p>
-                        <h2 id="createSupplierTitle">Thêm nhà cung cấp</h2>
-                        <p id="createSupplierDescription">Khởi tạo hồ sơ doanh nghiệp và đầu mối liên hệ chính.</p>
+                        <p class="supplier-eyebrow">@L["Supplier.Create.Eyebrow"]</p>
+                        <h2 id="createSupplierTitle">@L["Supplier.Create.Title"]</h2>
+                        <p id="createSupplierDescription">@L["Supplier.Create.Description"]</p>
                     </div>
                 </div>
-                <button type="button" class="supplier-icon-button" data-bs-dismiss="modal" aria-label="Đóng"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+                <button type="button" class="supplier-icon-button" data-bs-dismiss="modal" aria-label="@L["Supplier.Create.Close"]"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
             </header>
             <form class="supplier-form" id="createSupplierForm">
                 <div class="modal-body supplier-modal-body">
                     <div class="supplier-create-grid">
                     <fieldset class="supplier-form-section">
-                        <legend>Thông tin doanh nghiệp</legend>
-                        <p class="supplier-form-section-note">Thông tin dùng để nhận diện và đối chiếu chứng từ mua hàng.</p>
+                        <legend>@L["Supplier.Create.CompanyTitle"]</legend>
+                        <p class="supplier-form-section-note">@L["Supplier.Create.CompanyNote"]</p>
                         <div class="supplier-form-grid">
-                            <label><span>Tên nhà cung cấp <em>*</em></span><input id="createName" required maxlength="200" /></label>
-                            <label><span>Mã số thuế</span><input id="createTaxCode" maxlength="32" inputmode="numeric" placeholder="Ví dụ: 0312345679 hoặc 0312345679-001" aria-describedby="createTaxCodeError" /><small class="supplier-field-error is-hidden" id="createTaxCodeError"></small></label>
-                            <label><span>Điện thoại chính <em>*</em></span><input id="createPhone" required maxlength="20" /></label>
-                            <label class="is-wide"><span>Địa chỉ</span><input id="createAddress" maxlength="500" /></label>
+                            <label><span>@L["Supplier.Create.Name"] <em>*</em></span><input id="createName" required maxlength="200" /></label>
+                            <label><span>@L["Supplier.Overview.TaxCode"]</span><input id="createTaxCode" maxlength="32" inputmode="numeric" placeholder="@L["Supplier.Overview.TaxCodePlaceholder"]" aria-describedby="createTaxCodeError" /><small class="supplier-field-error is-hidden" id="createTaxCodeError"></small></label>
+                            <label><span>@L["Supplier.Create.PrimaryPhone"] <em>*</em></span><input id="createPhone" required maxlength="20" /></label>
+                            <label class="is-wide"><span>@L["Supplier.Overview.Address"]</span><input id="createAddress" maxlength="500" /></label>
                         </div>
                     </fieldset>
 
                     <fieldset class="supplier-form-section">
-                        <legend>Đầu mối chính</legend>
-                        <p class="supplier-form-section-note">Người nhận báo giá và phối hợp xử lý giao hàng.</p>
+                        <legend>@L["Supplier.Create.MainContactTitle"]</legend>
+                        <p class="supplier-form-section-note">@L["Supplier.Create.MainContactNote"]</p>
                         <div class="supplier-form-grid">
-                            <label><span>Người liên hệ chính <em>*</em></span><input id="createContactName" required maxlength="200" /></label>
-                            <label><span>Chức vụ</span><input id="createContactPosition" maxlength="100" /></label>
-                            <label><span>Điện thoại đầu mối</span><input id="createContactPhone" maxlength="20" /></label>
-                            <label><span>Email đầu mối</span><input id="createContactEmail" type="email" maxlength="200" /></label>
+                            <label><span>@L["Supplier.Create.ContactName"] <em>*</em></span><input id="createContactName" required maxlength="200" /></label>
+                            <label><span>@L["Supplier.Create.ContactPosition"]</span><input id="createContactPosition" maxlength="100" /></label>
+                            <label><span>@L["Supplier.Create.ContactPhone"]</span><input id="createContactPhone" maxlength="20" /></label>
+                            <label><span>@L["Supplier.Create.ContactEmail"]</span><input id="createContactEmail" type="email" maxlength="200" /></label>
                         </div>
                     </fieldset>
 
                     <fieldset class="supplier-form-section supplier-form-section-note-field is-wide">
-                        <legend>Ghi chú vận hành</legend>
-                        <label><span>Thông tin bổ sung</span><textarea id="createNote" rows="3" maxlength="1000" placeholder="Điều kiện giao hàng, thời gian liên hệ hoặc lưu ý đối soát..."></textarea></label>
+                        <legend>@L["Supplier.Create.NoteTitle"]</legend>
+                        <label><span>@L["Supplier.Create.NoteLabel"]</span><textarea id="createNote" rows="3" maxlength="1000" placeholder="@L["Supplier.Create.NotePlaceholder"]"></textarea></label>
                     </fieldset>
                     </div>
 
@@ -368,20 +372,20 @@
                             <p id="duplicatePanelMessage"></p>
                         </div>
                         <div class="supplier-duplicate-list" id="duplicateSupplierList"></div>
-                        <label class="is-hidden" id="duplicateReasonGroup"><span>Lý do vẫn tạo mới</span><textarea id="duplicateReason" maxlength="500" rows="2"></textarea><small class="supplier-field-error is-hidden" id="duplicateReasonError"></small></label>
+                        <label class="is-hidden" id="duplicateReasonGroup"><span>@L["Supplier.Create.DuplicateReason"]</span><textarea id="duplicateReason" maxlength="500" rows="2"></textarea><small class="supplier-field-error is-hidden" id="duplicateReasonError"></small></label>
                         <div class="supplier-form-actions">
-                            <button type="button" class="supplier-btn supplier-btn-quiet" id="cancelDuplicateWarning">Hủy cảnh báo</button>
-                            <button type="button" class="supplier-btn supplier-btn-light is-hidden" id="openDuplicateSupplier">Mở nhà cung cấp hiện có</button>
-                            <button type="button" class="supplier-btn supplier-btn-light is-hidden" id="reactivateDuplicateSupplier">Kích hoạt lại</button>
-                            <button type="button" class="supplier-btn supplier-btn-primary is-hidden" id="confirmDuplicateCreate">Xác nhận vẫn tạo mới</button>
+                            <button type="button" class="supplier-btn supplier-btn-quiet" id="cancelDuplicateWarning">@L["Supplier.Create.CancelDuplicate"]</button>
+                            <button type="button" class="supplier-btn supplier-btn-light is-hidden" id="openDuplicateSupplier">@L["Supplier.Create.OpenExisting"]</button>
+                            <button type="button" class="supplier-btn supplier-btn-light is-hidden" id="reactivateDuplicateSupplier">@L["Supplier.Create.Reactivate"]</button>
+                            <button type="button" class="supplier-btn supplier-btn-primary is-hidden" id="confirmDuplicateCreate">@L["Supplier.Create.ConfirmDuplicate"]</button>
                         </div>
                     </section>
                 </div>
                 <footer class="supplier-modal-footer">
-                    <span><em>*</em> Trường bắt buộc</span>
+                    <span><em>*</em> @L["Supplier.Create.Required"]</span>
                     <div class="supplier-modal-actions">
-                        <button type="button" class="supplier-btn supplier-btn-quiet" data-bs-dismiss="modal">Hủy</button>
-                        <button class="supplier-btn supplier-btn-primary" type="submit"><i class="fa-solid fa-plus" aria-hidden="true"></i>Tạo nhà cung cấp</button>
+                        <button type="button" class="supplier-btn supplier-btn-quiet" data-bs-dismiss="modal">@L["Supplier.Cancel"]</button>
+                        <button class="supplier-btn supplier-btn-primary" type="submit"><i class="fa-solid fa-plus" aria-hidden="true"></i>@L["Supplier.Create.Submit"]</button>
                     </div>
                 </footer>
             </form>
@@ -393,5 +397,120 @@
 <div class="supplier-toast-region" id="supplierToasts" aria-live="polite"></div>
 
 @section Scripts {
+    <script>
+        window.supplierI18n = {
+            noData: @Html.Raw(J("Supplier.Js.NoData")),
+            invalidResponse: @Html.Raw(J("Supplier.Js.InvalidResponse")),
+            requestFailed: @Html.Raw(J("Supplier.Js.RequestFailed")),
+            loadingOffers: @Html.Raw(J("Supplier.Js.LoadingOffers")),
+            loadingStores: @Html.Raw(J("Supplier.Js.LoadingStores")),
+            loadingAudit: @Html.Raw(J("Supplier.Js.LoadingAudit")),
+            selectIngredientFirst: @Html.Raw(J("Supplier.Js.SelectIngredientFirst")),
+            selectOfferFirst: @Html.Raw(J("Supplier.Js.SelectOfferFirst")),
+            selectContentUnit: @Html.Raw(J("Supplier.Js.SelectContentUnit")),
+            selectLooseUnit: @Html.Raw(J("Supplier.Js.SelectLooseUnit")),
+            selectData: @Html.Raw(J("Supplier.Js.SelectData")),
+            selectStore: @Html.Raw(J("Supplier.Js.SelectStore")),
+            openAuditTab: @Html.Raw(J("Supplier.Js.OpenAuditTab")),
+            auditEmpty: @Html.Raw(J("Supplier.Js.AuditEmpty")),
+            auditDefaultTitle: @Html.Raw(J("Supplier.Js.AuditDefaultTitle")),
+            auditSystemActor: @Html.Raw(J("Supplier.Js.AuditSystemActor")),
+            auditEmptyValue: @Html.Raw(J("Supplier.Js.AuditEmptyValue")),
+            auditChangeFallback: @Html.Raw(J("Supplier.Js.AuditChangeFallback")),
+            auditSavedChanges: @Html.Raw(J("Supplier.Js.AuditSavedChanges")),
+            phonesEmpty: @Html.Raw(J("Supplier.Js.Phones.Empty")),
+            phonesPrimary: @Html.Raw(J("Supplier.Js.Phones.Primary")),
+            phonesSecondary: @Html.Raw(J("Supplier.Js.Phones.Secondary")),
+            phonesDelete: @Html.Raw(J("Supplier.Js.Phones.Delete")),
+            contactsEmpty: @Html.Raw(J("Supplier.Js.Contacts.Empty")),
+            contactsPrimaryBadge: @Html.Raw(J("Supplier.Js.Contacts.PrimaryBadge")),
+            contactsNoPosition: @Html.Raw(J("Supplier.Js.Contacts.NoPosition")),
+            contactsNoChannels: @Html.Raw(J("Supplier.Js.Contacts.NoChannels")),
+            edit: @Html.Raw(J("Supplier.Js.Edit")),
+            setPrimary: @Html.Raw(J("Supplier.Js.SetPrimary")),
+            delete: @Html.Raw(J("Supplier.Js.Delete")),
+            errorNameRequired: @Html.Raw(J("Supplier.Js.ErrorNameRequired")),
+            errorTaxCodeInvalid: @Html.Raw(J("Supplier.Js.ErrorTaxCodeInvalid")),
+            errorContactNameRequired: @Html.Raw(J("Supplier.Js.ErrorContactNameRequired")),
+            errorContactNameRequiredCreate: @Html.Raw(J("Supplier.Js.ErrorContactNameRequiredCreate")),
+            errorDuplicateReasonRequired: @Html.Raw(J("Supplier.Js.ErrorDuplicateReasonRequired")),
+            errorTaxCodeFormat: @Html.Raw(J("Supplier.Js.ErrorTaxCodeFormat")),
+            errorEmailFormat: @Html.Raw(J("Supplier.Js.ErrorEmailFormat")),
+            errorRequired: @Html.Raw(J("Supplier.Js.ErrorRequired")),
+            errorPhoneFormat: @Html.Raw(J("Supplier.Js.ErrorPhoneFormat")),
+            labelEmailDefault: @Html.Raw(J("Supplier.Js.Label.EmailDefault")),
+            labelPhoneDefault: @Html.Raw(J("Supplier.Js.Label.PhoneDefault")),
+            labelPhoneNew: @Html.Raw(J("Supplier.Js.Label.PhoneNew")),
+            labelPhoneMain: @Html.Raw(J("Supplier.Js.Label.PhoneMain")),
+            labelPhoneContact: @Html.Raw(J("Supplier.Js.Label.PhoneContact")),
+            labelEmailContact: @Html.Raw(J("Supplier.Js.Label.EmailContact")),
+            labelPhoneContactCreate: @Html.Raw(J("Supplier.Js.Label.PhoneContactCreate")),
+            labelEmailContactCreate: @Html.Raw(J("Supplier.Js.Label.EmailContactCreate")),
+            toastSavedSupplier: @Html.Raw(J("Supplier.Js.ToastSavedSupplier")),
+            toastPhoneAdded: @Html.Raw(J("Supplier.Js.ToastPhoneAdded")),
+            toastPhoneDeleted: @Html.Raw(J("Supplier.Js.ToastPhoneDeleted")),
+            deletePhoneTitle: @Html.Raw(J("Supplier.Js.DeletePhoneTitle")),
+            deletePhoneText: @Html.Raw(J("Supplier.Js.DeletePhoneText")),
+            contactSave: @Html.Raw(J("Supplier.Js.ContactSave")),
+            contactAdd: @Html.Raw(J("Supplier.Contacts.Add")),
+            toastContactUpdated: @Html.Raw(J("Supplier.Js.ToastContactUpdated")),
+            toastContactAdded: @Html.Raw(J("Supplier.Js.ToastContactAdded")),
+            toastPrimaryContactUpdated: @Html.Raw(J("Supplier.Js.ToastPrimaryContactUpdated")),
+            deleteContactTitle: @Html.Raw(J("Supplier.Js.DeleteContactTitle")),
+            deleteContactText: @Html.Raw(J("Supplier.Js.DeleteContactText")),
+            toastContactDeleted: @Html.Raw(J("Supplier.Js.ToastContactDeleted")),
+            offersEmpty: @Html.Raw(J("Supplier.Js.Offers.Empty")),
+            offersPrimaryBadge: @Html.Raw(J("Supplier.Js.Offers.PrimaryBadge")),
+            offersMetaPrefix: @Html.Raw(J("Supplier.Js.Offers.MetaPrefix")),
+            offersLooseMeta: @Html.Raw(J("Supplier.Js.Offers.LooseMeta")),
+            offersLooseUnitDefault: @Html.Raw(J("Supplier.Js.Offers.LooseUnitDefault")),
+            offersLoosePriceDerived: @Html.Raw(J("Supplier.Js.Offers.LoosePriceDerived")),
+            offersLoosePriceManual: @Html.Raw(J("Supplier.Js.Offers.LoosePriceManual")),
+            offersLooseStepUnlimited: @Html.Raw(J("Supplier.Js.Offers.LooseStepUnlimited")),
+            offersPackageOnly: @Html.Raw(J("Supplier.Js.Offers.PackageOnly")),
+            offersStatusAria: @Html.Raw(J("Supplier.Js.Offers.StatusAria")),
+            offersReadinessHelp: @Html.Raw(J("Supplier.Js.Offers.ReadinessHelp")),
+            offersViewPrice: @Html.Raw(J("Supplier.Js.Offers.ViewPrice")),
+            offersEdit: @Html.Raw(J("Supplier.Js.Offers.Edit")),
+            offersEditNotReady: @Html.Raw(J("Supplier.Js.Offers.EditNotReady")),
+            offersDeactivate: @Html.Raw(J("Supplier.Js.Offers.Deactivate")),
+            offersActivate: @Html.Raw(J("Supplier.Js.Offers.Activate")),
+            offersSaveMetadata: @Html.Raw(J("Supplier.Js.Offers.SaveMetadata")),
+            offersAdd: @Html.Raw(J("Supplier.Offers.Add")),
+            toastOfferUpdated: @Html.Raw(J("Supplier.Js.ToastOfferUpdated")),
+            toastOfferAdded: @Html.Raw(J("Supplier.Js.ToastOfferAdded")),
+            toastOfferStale: @Html.Raw(J("Supplier.Js.ToastOfferStale")),
+            toastOfferActivated: @Html.Raw(J("Supplier.Js.ToastOfferActivated")),
+            toastOfferDeactivated: @Html.Raw(J("Supplier.Js.ToastOfferDeactivated")),
+            pricingLoading: @Html.Raw(J("Supplier.Js.Pricing.Loading")),
+            pricingMeta: @Html.Raw(J("Supplier.Js.Pricing.Meta")),
+            pricingNoNote: @Html.Raw(J("Supplier.Js.Pricing.NoNote")),
+            pricingCurrent: @Html.Raw(J("Supplier.Js.Pricing.Current")),
+            pricingClosed: @Html.Raw(J("Supplier.Js.Pricing.Closed")),
+            pricingEmpty: @Html.Raw(J("Supplier.Js.Pricing.Empty")),
+            toastPriceSaved: @Html.Raw(J("Supplier.Js.ToastPriceSaved")),
+            storesEmpty: @Html.Raw(J("Supplier.Js.Stores.Empty")),
+            storesNoSchedule: @Html.Raw(J("Supplier.Js.Stores.NoSchedule")),
+            storesMeta: @Html.Raw(J("Supplier.Js.Stores.Meta")),
+            storesFollowOffer: @Html.Raw(J("Supplier.Js.Stores.FollowOffer")),
+            storesEdit: @Html.Raw(J("Supplier.Js.Stores.Edit")),
+            storesSave: @Html.Raw(J("Supplier.Js.Stores.Save")),
+            storesAssign: @Html.Raw(J("Supplier.Stores.Assign")),
+            toastStoresSaved: @Html.Raw(J("Supplier.Js.ToastStoresSaved")),
+            confirm: @Html.Raw(J("Supplier.Js.Confirm")),
+            keep: @Html.Raw(J("Supplier.Js.Keep")),
+            duplicateSignalTaxCode: @Html.Raw(J("Supplier.Js.DuplicateSignalTaxCode")),
+            duplicatePossibleTitle: @Html.Raw(J("Supplier.Js.DuplicatePossibleTitle")),
+            duplicateExistsTitle: @Html.Raw(J("Supplier.Js.DuplicateExistsTitle")),
+            duplicateMatchLabel: @Html.Raw(J("Supplier.Js.DuplicateMatchLabel")),
+            toastSupplierReactivated: @Html.Raw(J("Supplier.Js.ToastSupplierReactivated")),
+            toastSupplierCreated: @Html.Raw(J("Supplier.Js.ToastSupplierCreated")),
+            statusActive: @Html.Raw(J("Supplier.Status.Active")),
+            statusInactive: @Html.Raw(J("Supplier.Status.Inactive")),
+            noAddress: @Html.Raw(J("Supplier.Row.NoAddress")),
+            loosePriceLabel: @Html.Raw(J("Supplier.Offers.LoosePrice")),
+            loosePriceDefaultUnit: @Html.Raw(J("Supplier.Offers.LoosePriceDefaultUnit"))
+        };
+    </script>
     <script src="~/js/Admin/Supplier/supplier.js" asp-append-version="true"></script>
 }

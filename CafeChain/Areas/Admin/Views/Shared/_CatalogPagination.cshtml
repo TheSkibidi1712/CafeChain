@@ -1,4 +1,6 @@
 @model CafeChain.ViewModels.Admin.Shared.AdminCatalogPaginationVM
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<CafeChain.SharedResource> SharedText
 @{
     var totalPages = Math.Max(1, Model.TotalPages);
     var currentPage = Math.Min(Math.Max(1, Model.PageIndex), totalPages);
@@ -9,9 +11,9 @@
 }
 
 <div class="catalog-table-footer">
-    <span>Hiển thị @startItem-@endItem trong số @Model.TotalCount</span>
+    <span>@SharedText["Common.Pagination.Range", startItem, endItem, Model.TotalCount]</span>
 
-    <nav class="catalog-pagination" aria-label="Phân trang danh sách">
+    <nav class="catalog-pagination" aria-label="@SharedText["Common.Pagination.Aria"]">
         <a asp-action="Index"
            asp-route-keyword="@Model.Keyword"
            asp-route-active="@Model.Active"
@@ -19,7 +21,7 @@
            asp-route-pageSize="@Model.PageSize"
            class="@(currentPage > 1 ? null : "disabled")"
            aria-disabled="@(currentPage > 1 ? "false" : "true")"
-           aria-label="Trang trước"><i class="fas fa-chevron-left"></i></a>
+           aria-label="@SharedText["Common.Pagination.Previous"]"><i class="fas fa-chevron-left"></i></a>
 
         @if (fromPage > 1)
         {
@@ -51,6 +53,6 @@
            asp-route-pageSize="@Model.PageSize"
            class="@(currentPage < totalPages ? null : "disabled")"
            aria-disabled="@(currentPage < totalPages ? "false" : "true")"
-           aria-label="Trang sau"><i class="fas fa-chevron-right"></i></a>
+           aria-label="@SharedText["Common.Pagination.Next"]"><i class="fas fa-chevron-right"></i></a>
     </nav>
 </div>

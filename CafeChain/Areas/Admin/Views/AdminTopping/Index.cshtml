@@ -1,4 +1,7 @@
 @model CafeChain.ViewModels.Admin.Toppings.AdminToppingIndexVM
+@using Microsoft.Extensions.Localization
+@using System.Text.Json
+@inject IStringLocalizer<CafeChain.ProductResource> ProductText
 
 @using System.Security.Claims
 @using CafeChain.Application.Constants
@@ -20,7 +23,9 @@
         canAssign = (await PermissionService.HasPermissionAsync(accountId, PermissionConstants.ToppingAssignDrink)).Data?.Allowed == true;
         canViewSize = (await PermissionService.HasPermissionAsync(accountId, PermissionConstants.SizeView)).Data?.Allowed == true;
     }
-
+    var toppingJsCatalog = JsonSerializer.Serialize(ProductText.GetAllStrings()
+        .Where(message => message.Name.StartsWith("Topping.Js.", StringComparison.Ordinal) || message.Name == "Common.Cancel")
+        .ToDictionary(message => message.Name, message => message.Value));
 }
 
 
@@ -37,10 +42,10 @@
     <header class="topping-page-heading ops-header cc-warehouse-header">
         <div>
             <div class="ops-eyebrow">
-                <i class="fas fa-layer-group me-1"></i> Cấu trúc thực đơn
+                <i class="fas fa-layer-group me-1"></i> @ProductText["Common.MenuStructure"]
             </div>
-            <h1 class="ops-title"><i class="fa-solid fa-cookie-bite me-2 text-warning" aria-hidden="true"></i>Quản lý Topping đồ uống</h1>
-            <p class="ops-subtitle">Thiết lập topping, giá bán và nguồn nguyên liệu tiêu hao trên thực đơn.</p>
+            <h1 class="ops-title"><i class="fa-solid fa-cookie-bite me-2 text-warning" aria-hidden="true"></i>@ProductText["Topping.Title"]</h1>
+            <p class="ops-subtitle">@ProductText["Topping.Description"]</p>
         </div>
 
         <div class="ops-actions">
@@ -51,31 +56,31 @@
                         data-bs-toggle="modal"
                         data-bs-target="#createModal">
                     <i class="fas fa-plus me-2"></i>
-                    Thêm mới
+                    @ProductText["Common.Add"]
                 </button>
             }
         </div>
     </header>
 
     <div class="catalog-list-toolbar">
-        <div class="catalog-filter-tabs" aria-label="Bộ lọc Topping">
+        <div class="catalog-filter-tabs" aria-label="@ProductText["Topping.FilterAria"]">
             <a asp-action="Index"
                asp-route-keyword="@Model.Keyword"
                asp-route-pageSize="@Model.PageSize"
                class="catalog-filter-tab @(!Model.Active.HasValue ? "active" : null)"
-               aria-current="@(!Model.Active.HasValue ? "page" : null)">Tất cả (@Model.AllCount)</a>
+               aria-current="@(!Model.Active.HasValue ? "page" : null)">@ProductText["Common.AllWithCount", Model.AllCount]</a>
             <a asp-action="Index"
                asp-route-keyword="@Model.Keyword"
                asp-route-active="true"
                asp-route-pageSize="@Model.PageSize"
                class="catalog-filter-tab @(Model.Active == true ? "active" : null)"
-               aria-current="@(Model.Active == true ? "page" : null)">Đang hoạt động (@Model.ActiveCount)</a>
+               aria-current="@(Model.Active == true ? "page" : null)">@ProductText["Common.ActiveWithCount", Model.ActiveCount]</a>
             <a asp-action="Index"
                asp-route-keyword="@Model.Keyword"
                asp-route-active="false"
                asp-route-pageSize="@Model.PageSize"
                class="catalog-filter-tab @(Model.Active == false ? "active" : null)"
-               aria-current="@(Model.Active == false ? "page" : null)">Ngừng hoạt động (@Model.InactiveCount)</a>
+               aria-current="@(Model.Active == false ? "page" : null)">@ProductText["Common.InactiveWithCount", Model.InactiveCount]</a>
         </div>
 
         <form asp-action="Index" method="get" class="catalog-list-tools" id="toppingFilterForm" role="search">
@@ -86,15 +91,15 @@
             }
 
             <div class="catalog-search-box">
-                <button type="submit" class="catalog-search-button" title="Tìm kiếm" aria-label="Tìm Topping">
+                <button type="submit" class="catalog-search-button" title="@ProductText["Common.Search"]" aria-label="@ProductText["Topping.SearchAria"]">
                     <i class="fas fa-search" aria-hidden="true"></i>
                 </button>
-                <label for="toppingKeyword" class="visually-hidden">Tìm Topping theo mã hoặc tên</label>
+                <label for="toppingKeyword" class="visually-hidden">@ProductText["Topping.SearchAria"]</label>
                 <input id="toppingKeyword"
                        type="search"
                        name="keyword"
                        value="@Model.Keyword"
-                       placeholder="Tìm Topping..."
+                       placeholder="@ProductText["Topping.SearchPlaceholder"]"
                        autocomplete="off" />
                 @if (!string.IsNullOrWhiteSpace(Model.Keyword))
                 {
@@ -102,16 +107,16 @@
                        asp-route-active="@Model.Active"
                        asp-route-pageSize="@Model.PageSize"
                        class="catalog-search-clear"
-                       title="Xóa lọc"
-                       aria-label="Xóa bộ lọc Topping">
+                       title="@ProductText["Common.ClearFilters"]"
+                       aria-label="@ProductText["Common.ClearFilters"]">
                         <i class="fas fa-times" aria-hidden="true"></i>
                     </a>
                 }
             </div>
 
             <label class="catalog-page-size">
-                <span>Hiển thị:</span>
-                <select name="pageSize" aria-label="Số dòng Topping hiển thị" onchange="this.form.submit()">
+                <span>@ProductText["Common.Display"]</span>
+                <select name="pageSize" aria-label="@ProductText["Common.DisplayRows"]" onchange="this.form.submit()">
                     <option value="10" selected="@(Model.PageSize == 10)">10</option>
                     <option value="25" selected="@(Model.PageSize == 25)">25</option>
                     <option value="50" selected="@(Model.PageSize == 50)">50</option>
@@ -129,7 +134,7 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
 
             <h5 class="fw-bold mb-0">
-                Danh sách Topping
+                @ProductText["Topping.List"]
             </h5>
 
         </div>
@@ -144,11 +149,11 @@
                 <thead class="text-muted">
                     <tr>
                         <th style="width: 18%;">TOPPING</th>
-                        <th class="text-center" style="width: 10%;">MÃ</th>
-                        <th style="width: 12%;">GIÁ BÁN</th>
-                        <th style="width: 32%;">NGUỒN TIÊU HAO / GIÁ VỐN</th>
-                        <th class="text-center" style="width: 14%;">TRẠNG THÁI</th>
-                        <th class="text-center" style="width: 14%;">HÀNH ĐỘNG</th>
+                        <th class="text-center" style="width: 10%;">@ProductText["Topping.Code"]</th>
+                        <th style="width: 12%;">@ProductText["Topping.Price"]</th>
+                        <th style="width: 32%;">@ProductText["Topping.CostSource"]</th>
+                        <th class="text-center" style="width: 14%;">@ProductText["Common.Status"]</th>
+                        <th class="text-center" style="width: 14%;">@ProductText["Common.Actions"]</th>
                     </tr>
                 </thead>
 
@@ -170,7 +175,7 @@
                                         <object data="@item.ImageUrl"
                                                 class="topping-img topping-image-placeholder me-3"
                                                 role="img"
-                                                aria-label="Ảnh topping @item.Name">
+                                                aria-label="@ProductText["Topping.ImageAria", item.Name]">
                                             <span class="topping-img topping-image-placeholder" aria-hidden="true">
                                                 <i class="fa-solid fa-image"></i>
                                             </span>
@@ -191,8 +196,8 @@
 
                             <!-- PRICE -->
                             <td>
-                                <div class="fw-semibold text-danger">+ @item.Price.ToString("N0") đ</div>
-                                <div class="small text-muted">Giá bán từ Topping.Price</div>
+                                <div class="fw-semibold text-danger">+ @item.Price.ToString("N0") ₫</div>
+                                <div class="small text-muted">@ProductText["Topping.PriceSource"]</div>
                             </td>
 
                             <!-- CONSUMPTION SOURCE -->
@@ -207,7 +212,7 @@
                                     <div class="topping-source-component">
                                         <div class="comp-header">
                                             <span class="comp-name">@(component.SourceKind == ToppingConsumptionSourceCodes.DirectIngredient ? component.IngredientName : component.PreparedItemName)</span>
-                                            <span class="comp-qty">@component.QuantityDisplay/phần</span>
+                                            <span class="comp-qty">@component.QuantityDisplay / @ProductText["Topping.PerPortion"]</span>
                                         </div>
                                         <div class="comp-code">
                                             @(component.SourceKind == ToppingConsumptionSourceCodes.DirectIngredient ? component.IngredientCode : component.PreparedItemCode)
@@ -224,7 +229,7 @@
                                                    asp-action="Index"
                                                    asp-route-tab="prepared-items"
                                                    asp-route-search="@component.PreparedItemCode"
-                                                   class="small text-decoration-none text-primary fw-semibold"><i class="fas fa-boxes me-1"></i>Xem tồn kho BTP</a>
+                                                   class="small text-decoration-none text-primary fw-semibold"><i class="fas fa-boxes me-1"></i>@ProductText["Topping.ViewPreparedStock"]</a>
                                             </div>
                                         }
                                     </div>
@@ -234,20 +239,20 @@
                                     @if (item.ConsumptionSource.EstimatedCostPerPortion.HasValue)
                                     {
                                         <div class="topping-cost-row">
-                                            <span>Giá vốn BOM ước tính:</span>
-                                            <span class="topping-cost-val">@item.ConsumptionSource.EstimatedCostPerPortion.Value.ToString("N0") đ/phần</span>
+                                            <span>@ProductText["Topping.EstimatedBomCost"]</span>
+                                            <span class="topping-cost-val">@item.ConsumptionSource.EstimatedCostPerPortion.Value.ToString("N0") ₫ / @ProductText["Topping.PerPortion"]</span>
                                         </div>
                                     }
                                     else
                                     {
                                         <div class="topping-cost-row">
-                                             <span>Trạng thái:</span>
+                                             <span>@ProductText["Topping.StatusLabel"]</span>
                                              <span class="text-warning small"><i class="fas fa-exclamation-triangle me-1"></i>@item.ConsumptionSource.CostStatus</span>
                                         </div>
                                     }
                                     <div class="topping-cost-row small text-muted">
-                                        <span>Giá vốn thực tế:</span>
-                                        <span>FIFO khi bán</span>
+                                        <span>@ProductText["Topping.ActualCost"]</span>
+                                        <span>@ProductText["Topping.FifoAtSale"]</span>
                                     </div>
                                 </div>
 
@@ -265,7 +270,7 @@
                                                asp-controller="AdminRecipe"
                                                asp-action="Edit"
                                                asp-route-id="@item.ConsumptionSource.ActiveRecipeId"
-                                               class="topping-bom-btn primary"><i class="fas fa-pen me-1"></i>Sửa BOM</a>
+                                               class="topping-bom-btn primary"><i class="fas fa-pen me-1"></i>@ProductText["Topping.EditBom"]</a>
                                         }
                                     }
                                     else if (canWriteRecipes)
@@ -273,7 +278,7 @@
                                         <a asp-area="Admin"
                                            asp-controller="AdminRecipe"
                                            asp-action="Create"
-                                           class="topping-bom-btn primary"><i class="fas fa-plus me-1"></i>Tạo BOM</a>
+                                           class="topping-bom-btn primary"><i class="fas fa-plus me-1"></i>@ProductText["Topping.CreateBom"]</a>
                                     }
                                 </div>
                             </td>
@@ -283,13 +288,13 @@
                                 @if (item.Active)
                                 {
                                     <span class="status-active">
-                                        Hoạt động
+                                        @ProductText["Common.Active"]
                                     </span>
                                 }
                                 else
                                 {
                                     <span class="status-inactive">
-                                        Ngừng
+                                        @ProductText["Common.Inactive"]
                                     </span>
                                 }
                             </td>
@@ -302,7 +307,7 @@
                                     {
                                     <button type="button"
                                             class="btn btn-sm btn-warning"
-                                            title="Gán đồ uống"
+                                            title="@ProductText["Size.AssignDrinks"]"
                                             onclick="openDrinkModal(
                                         @item.ToppingId,
                                         '@Html.Raw(item.Name.Replace("'", "\\'"))')">
@@ -315,7 +320,7 @@
                                     {
                                     <button type="button"
                                             class="btn btn-sm btn-light btn-edit-topping is-edit"
-                                            title="Chỉnh sửa"
+                                            title="@ProductText["Common.Edit"]"
                                             data-bs-toggle="modal"
                                             data-bs-target="#editModal"
                                             data-id="@item.ToppingId"
@@ -332,7 +337,7 @@
                                     {
                                     <button type="button"
                                             class="btn btn-sm js-toggle-topping @(item.Active ? "is-lock" : "is-unlock")"
-                                            title="@(item.Active ? "Khóa" : "Mở khóa")"
+                                            title="@(item.Active ? ProductText["Common.Lock"] : ProductText["Common.Unlock"])"
                                             onclick="toggleTopping(@item.ToppingId, '@Url.Action("ToggleStatus", "AdminTopping", new { area = "Admin", id = item.ToppingId })')"
                                             data-id="@item.ToppingId"
                                             data-url="@Url.Action("ToggleStatus", "AdminTopping", new { area = "Admin", id = item.ToppingId })">
@@ -347,7 +352,7 @@
                     }
                     @if (toppings.Count == 0)
                     {
-                        <tr><td colspan="6" class="text-center text-muted py-4">Không tìm thấy Topping phù hợp.</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted py-4">@ProductText["Topping.Empty"]</td></tr>
                     }
 
                 </tbody>
@@ -388,8 +393,8 @@
                 <div class="d-flex align-items-center gap-3">
                     <span class="topping-create-icon"><i class="fas fa-cookie-bite"></i></span>
                     <div>
-                        <h6 class="fw-bold mb-0">Thêm Topping mới</h6>
-                        <small class="text-muted text-uppercase">Cấu hình thực đơn</small>
+                        <h6 class="fw-bold mb-0">@ProductText["Topping.CreateTitle"]</h6>
+                        <small class="text-muted text-uppercase">@ProductText["Topping.Configure"]</small>
                     </div>
                 </div>
 
@@ -415,13 +420,13 @@
                     <div class="mb-3 topping-code-field">
 
                         <label class="form-label">
-                            Mã topping
+                            @ProductText["Topping.CodeLabel"]
                         </label>
 
                         <input name="ToppingCode"
                                class="form-control bg-light"
                                maxlength="50"
-                               placeholder="Ví dụ: TC_DEN"
+                               placeholder="@ProductText["Topping.CodePlaceholder"]"
                                required />
 
                         <span class="text-danger"
@@ -435,7 +440,7 @@
                     <div class="mb-3 topping-name-field">
 
                         <label class="form-label">
-                            Tên topping
+                            @ProductText["Topping.NameLabel"]
                         </label>
 
                         <input name="Name"
@@ -454,14 +459,14 @@
                     <div class="mb-3 topping-price-field">
 
                         <label class="form-label">
-                            Giá topping
+                            @ProductText["Topping.PriceLabel"]
                         </label>
 
                         <input name="Price"
                                type="number"
                                min="1000"
                                step="1"
-                               placeholder="Ví dụ: 5000"
+                               placeholder="@ProductText["Topping.PricePlaceholder"]"
                                class="form-control bg-light"
                                required />
 
@@ -472,35 +477,35 @@
                     </div>
 
                     <div class="mb-3 topping-ai-section d-none">
-                        <label for="toppingAiIdea" class="form-label">Ý tưởng cho AI <span class="text-muted">(không bắt buộc)</span></label>
-                        <select id="toppingAiGenerationMode" class="form-select mb-2" aria-label="Chế độ gợi ý topping">
-                            <option value="0">Tạo mới</option>
-                            <option value="1">Phát triển dữ liệu đang nhập</option>
-                            <option value="2">Tạo biến thể</option>
+                        <label for="toppingAiIdea" class="form-label">@ProductText["Topping.AiIdea"] <span class="text-muted">@ProductText["Topping.Optional"]</span></label>
+                        <select id="toppingAiGenerationMode" class="form-select mb-2" aria-label="@ProductText["Topping.AiModeAria"]">
+                            <option value="0">@ProductText["Topping.AiNew"]</option>
+                            <option value="1">@ProductText["Topping.AiDevelop"]</option>
+                            <option value="2">@ProductText["Topping.AiVariant"]</option>
                         </select>
-                        <input id="toppingAiIdea" class="form-control mb-2" maxlength="200" placeholder="Ví dụ: trân châu hoàng kim" autocomplete="off" />
+                        <input id="toppingAiIdea" class="form-control mb-2" maxlength="200" placeholder="@ProductText["Topping.AiPlaceholder"]" autocomplete="off" />
                         <button type="button" id="btnToppingAiSuggestion" class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-wand-magic-sparkles me-1"></i> AI gợi ý
+                            <i class="fas fa-wand-magic-sparkles me-1"></i> @ProductText["Topping.AiSuggest"]
                         </button>
                         <div id="toppingAiSuggestionPanel" class="ai-suggestion-panel mt-2 d-none">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <strong>Chọn một gợi ý</strong>
+                                <strong>@ProductText["Topping.AiChoose"]</strong>
                                 <span id="toppingAiSource" class="badge bg-secondary"></span>
                             </div>
                             <div id="toppingAiOptionList" class="ai-option-grid"></div>
                             <div id="toppingAiStatus" class="ai-pipeline-status mt-2" aria-live="polite"></div>
-                            <div class="mt-2"><small class="fw-semibold">1. Chọn ảnh tham chiếu Pexels</small></div>
+                            <div class="mt-2"><small class="fw-semibold">@ProductText["Topping.AiReference"]</small></div>
                             <div id="toppingAiReferenceList" class="ai-image-grid"></div>
-                            <div class="mt-2"><small class="fw-semibold">2. Chọn ảnh cuối từ Pexels hoặc ComfyUI</small></div>
+                            <div class="mt-2"><small class="fw-semibold">@ProductText["Topping.AiFinal"]</small></div>
                             <div id="toppingAiGeneratedList" class="ai-image-grid"></div>
                             <div id="toppingAiWarnings" class="small text-warning mt-1"></div>
                             <div class="d-flex gap-2 mt-2">
-                                <button type="button" id="btnApplyToppingAi" class="btn btn-primary btn-sm" disabled>Áp dụng</button>
-                                <button type="button" id="btnUseToppingPexels" class="btn btn-outline-success btn-sm" disabled>Dùng ảnh Pexels</button>
-                                <button type="button" id="btnGenerateToppingAi" class="btn btn-outline-primary btn-sm" disabled>Tạo lại bằng ComfyUI</button>
-                                <button type="button" id="btnGenerateToppingAiWithoutReference" class="btn btn-outline-warning btn-sm d-none">Tạo ảnh bằng ComfyUI không dùng Pexels</button>
-                                <button type="button" id="btnRetryToppingAiSearch" class="btn btn-outline-secondary btn-sm" disabled>Tìm lại Pexels</button>
-                                <button type="button" id="btnDismissToppingAi" class="btn btn-light btn-sm">Bỏ qua</button>
+                                <button type="button" id="btnApplyToppingAi" class="btn btn-primary btn-sm" disabled>@ProductText["Topping.Apply"]</button>
+                                <button type="button" id="btnUseToppingPexels" class="btn btn-outline-success btn-sm" disabled>@ProductText["Topping.UsePexels"]</button>
+                                <button type="button" id="btnGenerateToppingAi" class="btn btn-outline-primary btn-sm" disabled>@ProductText["Topping.GenerateAgain"]</button>
+                                <button type="button" id="btnGenerateToppingAiWithoutReference" class="btn btn-outline-warning btn-sm d-none">@ProductText["Topping.GenerateWithoutReference"]</button>
+                                <button type="button" id="btnRetryToppingAiSearch" class="btn btn-outline-secondary btn-sm" disabled>@ProductText["Topping.SearchAgain"]</button>
+                                <button type="button" id="btnDismissToppingAi" class="btn btn-light btn-sm">@ProductText["Topping.Dismiss"]</button>
                             </div>
                         </div>
                     </div>
@@ -510,10 +515,10 @@
                         <div class="topping-upload-header mb-2">
                             <div class="topping-upload-title-wrap d-flex align-items-center">
                                 <i class="fas fa-cloud-arrow-up topping-upload-title-icon me-2"></i>
-                                <span class="fw-bold fs-14">Thêm ảnh mới</span>
+                                <span class="fw-bold fs-14">@ProductText["Topping.ImageAdd"]</span>
                             </div>
                             <div class="text-muted fs-12 mt-1">
-                                Ảnh JPG hoặc PNG, nên sử dụng ảnh vuông để hiển thị đẹp nhất.
+                                @ProductText["Topping.ImageHint"]
                             </div>
                         </div>
 
@@ -528,18 +533,18 @@
                                     id="btn-trigger-choose-image"
                                     class="topping-pill-choose-btn"
                                     onclick="document.getElementById('create-image-input').click();">
-                                <i class="fas fa-folder me-2"></i>Chọn ảnh
+                                <i class="fas fa-folder me-2"></i>@ProductText["Topping.ImageChoose"]
                             </button>
 
                             <div class="topping-file-status" id="create-file-status-text">
-                                Chưa chọn file nào
+                                @ProductText["Topping.ImageNoFile"]
                             </div>
 
                             <!-- Preview thumbnail if file is chosen -->
                             <div class="topping-file-preview-wrap d-none" id="create-file-preview-container">
-                                <img id="create-preview" src="" alt="Ảnh xem trước" class="topping-file-preview-img" />
+                                <img id="create-preview" src="" alt="@ProductText["Topping.ImagePreview"]" class="topping-file-preview-img" />
                                 <button type="button" class="btn btn-sm btn-outline-danger mt-2" id="create-remove-btn" onclick="removeCreateImage(event)">
-                                    <i class="fas fa-trash-alt me-1"></i>Xóa ảnh đã chọn
+                                    <i class="fas fa-trash-alt me-1"></i>@ProductText["Topping.ImageRemove"]
                                 </button>
                             </div>
                         </div>
@@ -556,7 +561,7 @@
                             class="btn btn-light"
                             data-bs-dismiss="modal">
 
-                        Hủy
+                        @ProductText["Common.Cancel"]
 
                     </button>
 
@@ -565,7 +570,7 @@
                             class="btn btn-orange">
 
                         <i class="fas fa-save me-2"></i>
-                        Lưu thông tin
+                        @ProductText["Topping.Save"]
 
                     </button>
 
@@ -596,7 +601,7 @@
                 <h5 class="modal-title" style="color:#fff;">
 
                     <i class="fas fa-edit me-2"></i>
-                    Cập nhật Topping
+                    @ProductText["Topping.EditTitle"]
 
                 </h5>
 
@@ -629,7 +634,7 @@
                             <div class="mb-3">
 
                                 <label class="form-label">
-                                    Mã topping
+                                    @ProductText["Topping.CodeLabel"]
                                 </label>
 
                                 <input id="edit-code"
@@ -643,7 +648,7 @@
                             <div class="mb-3">
 
                                 <label class="form-label">
-                                    Tên topping
+                                    @ProductText["Topping.NameLabel"]
                                 </label>
 
                                 <input id="edit-name"
@@ -659,14 +664,14 @@
                             <div class="mb-3">
 
                                 <label class="form-label">
-                                    Giá topping
+                                    @ProductText["Topping.PriceLabel"]
                                 </label>
 
                                 <input id="edit-price"
                                        name="Price"
                                        type="number"
                                        min="1000"
-                                       placeholder="Ví dụ: 5000"
+                                       placeholder="@ProductText["Topping.PricePlaceholder"]"
                                        step="1"
                                        class="form-control"
                                        required />
@@ -678,7 +683,7 @@
                         <div class="col-md-5">
 
                             <label class="form-label">
-                                Ảnh topping
+                                @ProductText["Topping.ImageLabel"]
                             </label>
 
                             <div class="text-center">
@@ -698,9 +703,9 @@
                                            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
                                            onchange="previewEditImage(event)" />
                                     <label for="edit-image-input" class="btn btn-brown-pill me-1">
-                                        <i class="fas fa-folder-open me-1"></i> Chọn tệp
+                                        <i class="fas fa-folder-open me-1"></i> @ProductText["Topping.ImageChoose"]
                                     </label>
-                                    <span id="edit-image-file-name" class="topping-file-name-text" title="Chưa chọn tệp nào">Chưa chọn tệp nào</span>
+                                    <span id="edit-image-file-name" class="topping-file-name-text" title="@ProductText["Topping.ImageNoFile"]">@ProductText["Topping.ImageNoFile"]</span>
                                 </div>
 
                                 <button type="button"
@@ -708,13 +713,13 @@
                                         onclick="removeEditImage()">
 
                                     <i class="fas fa-trash me-1"></i>
-                                    Xóa ảnh chọn
+                                    @ProductText["Topping.ImageRemove"]
 
                                 </button>
 
                                 <div class="form-text mt-2">
 
-                                    Bỏ trống nếu không muốn thay đổi ảnh.
+                                    @ProductText["Topping.ImageLeaveEmpty"]
 
                                 </div>
 
@@ -733,7 +738,7 @@
                             class="btn btn-warning">
 
                         <i class="fas fa-save me-2"></i>
-                        Lưu thay đổi
+                        @ProductText["Topping.SaveChanges"]
 
                     </button>
 
@@ -741,7 +746,7 @@
                             class="btn btn-secondary"
                             data-bs-dismiss="modal">
 
-                        Đóng
+                        @ProductText["Common.Close"]
 
                     </button>
 
@@ -776,8 +781,8 @@
                         <i class="fas fa-cookie-bite"></i>
                     </div>
                     <div>
-                        <h5 class="fw-bold mb-0 text-dark" id="drinkModalTitle">Quản lý Đồ uống - Topping</h5>
-                        <small class="text-muted">Gán hoặc ngắt kết nối đồ uống với Topping này</small>
+                        <h5 class="fw-bold mb-0 text-dark" id="drinkModalTitle">@ProductText["Topping.ManageTitle"]</h5>
+                        <small class="text-muted">@ProductText["Topping.ManageHint"]</small>
                     </div>
                 </div>
                 <button type="button"
@@ -794,14 +799,14 @@
 
                 <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom">
                     <span class="badge bg-brown px-3 py-2 fs-6 rounded-pill">Topping: <span id="currentToppingBadge"></span></span>
-                    <span class="small text-muted"><i class="fas fa-info-circle me-1"></i>Bấm Gán để thêm đồ uống dùng Topping, hoặc Tắt/Bật để quản lý trạng thái</span>
+                    <span class="small text-muted"><i class="fas fa-info-circle me-1"></i>@ProductText["Topping.AssignHint"]</span>
                 </div>
 
                 <!-- LOADING -->
                 <div id="drinkLoading"
                      class="text-center py-5 d-none">
                     <div class="spinner-border text-primary"></div>
-                    <div class="mt-2 text-muted">Đang tải dữ liệu...</div>
+                    <div class="mt-2 text-muted">@ProductText["Topping.Loading"]</div>
                 </div>
 
                 <!-- CONTENT -->
@@ -811,20 +816,20 @@
                         <!-- ASSIGNED -->
                         <div class="col-md-6">
                             <div class="d-flex align-items-center justify-content-between mb-3">
-                                <h6 class="fw-bold mb-0 text-secondary"><i class="fas fa-check-circle me-1 text-success"></i> Đã gán</h6>
+                                <h6 class="fw-bold mb-0 text-secondary"><i class="fas fa-check-circle me-1 text-success"></i> @ProductText["Topping.Assigned"]</h6>
                             </div>
                             <div id="assignedList" class="d-flex flex-column gap-2 pb-4">
-                                <div class="text-center py-4 text-muted small">Chưa có dữ liệu</div>
+                                <div class="text-center py-4 text-muted small">@ProductText["Topping.NoData"]</div>
                             </div>
                         </div>
 
                         <!-- UNASSIGNED -->
                         <div class="col-md-6">
                             <div class="d-flex align-items-center justify-content-between mb-3">
-                                <h6 class="fw-bold mb-0 text-secondary"><i class="fas fa-plus-circle me-1 text-primary"></i> Chưa gán</h6>
+                                <h6 class="fw-bold mb-0 text-secondary"><i class="fas fa-plus-circle me-1 text-primary"></i> @ProductText["Topping.Unassigned"]</h6>
                             </div>
                             <div id="unassignedList" class="d-flex flex-column gap-2 pb-4">
-                                <div class="text-center py-4 text-muted small">Chưa có dữ liệu</div>
+                                <div class="text-center py-4 text-muted small">@ProductText["Topping.NoData"]</div>
                             </div>
                         </div>
 
@@ -838,7 +843,7 @@
                 <button type="button"
                         class="btn btn-secondary px-4"
                         data-bs-dismiss="modal">
-                    Đóng
+                    @ProductText["Common.Close"]
                 </button>
             </div>
 
@@ -858,6 +863,7 @@
 {
     <partial name="_ValidationScriptsPartial" />
 
+    <script id="toppingUiCatalog" type="application/json">@Html.Raw(toppingJsCatalog)</script>
     <script src="~/js/Admin/AI/ai-image-pipeline.js" asp-append-version="true"></script>
     <script src="~/js/Admin/Topping/topping.js" asp-append-version="true"></script>
 }

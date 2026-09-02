@@ -1,15 +1,17 @@
 import { useMemo } from 'react'
+import { usePreferences } from '../contexts/PreferencesContext'
 
 interface PaymentResultProps {
   status: 'success' | 'cancel'
 }
 
 export default function PaymentResult({ status }: PaymentResultProps) {
+  const { t } = usePreferences()
   const content = useMemo(() => {
     if (status === 'success') {
       return {
-        title: 'Thanh toán đã ghi nhận',
-        message: 'Bạn có thể quay lại màn hình POS.',
+        title: t('paymentResult.successTitle'),
+        message: t('paymentResult.successMessage'),
         tone: 'text-green-700',
         bg: 'bg-green-50',
         border: 'border-green-200',
@@ -17,13 +19,13 @@ export default function PaymentResult({ status }: PaymentResultProps) {
     }
 
     return {
-      title: 'Thanh toán đã hủy',
-      message: 'Giao dịch PayOS đã được đóng.',
+      title: t('paymentResult.cancelTitle'),
+      message: t('paymentResult.cancelMessage'),
       tone: 'text-danger',
       bg: 'bg-red-50',
       border: 'border-red-100',
     }
-  }, [status])
+  }, [status, t])
 
   return (
     <div className="min-h-screen w-full bg-surface flex items-center justify-center p-6 font-sans">

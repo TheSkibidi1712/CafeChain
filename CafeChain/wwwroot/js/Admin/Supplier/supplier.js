@@ -2,6 +2,12 @@
     'use strict';
 
     const API = '/Admin/AdminSupplier';
+    const i18n = window.supplierI18n || {};
+    const t = (key, ...args) => {
+        const template = i18n[key] ?? key;
+        if (!args.length) return template;
+        return String(template).replace(/\{(\d+)\}/g, (_, index) => args[Number(index)] ?? '');
+    };
     const page = document.querySelector('.supplier-page');
     if (!page) return;
 
@@ -37,7 +43,7 @@
     const formatMoney = (value) => `${new Intl.NumberFormat('vi-VN').format(Number(value || 0))} đ`;
     const formatDate = (value) => value
         ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
-        : 'Chưa có dữ liệu';
+        : t('noData');
 
     async function api(path, options = {}) {
         const init = { ...options, headers: { Accept: 'application/json', ...(options.headers || {}) } };
@@ -48,9 +54,9 @@
         const response = await fetch(`${API}${path}`, init);
         let payload;
         try { payload = await response.json(); }
-        catch { throw new Error('Máy chủ trả về dữ liệu không hợp lệ.'); }
+        catch { throw new Error(t('invalidResponse')); }
         if (!response.ok || payload.success === false) {
-            const error = new Error(payload.message || `Yêu cầu thất bại (HTTP ${response.status}).`);
+            const error = new Error(payload.message || t('requestFailed', response.status));
             error.payload = payload;
             throw error;
         }
@@ -100,26 +106,26 @@
         return /^\d{8,11}$/.test(clean);
     }
 
-    function validateEmailInput(input, labelName = 'Email') {
+    function validateEmailInput(input, labelName = t('labelEmailDefault')) {
         if (!input) return true;
         const val = input.value.trim();
         if (val && !isValidEmail(val)) {
-            input.setCustomValidity(`Địa chỉ ${labelName.toLowerCase()} không đúng định dạng (Ví dụ: example@domain.com).`);
+            input.setCustomValidity(t('errorEmailFormat', labelName.toLowerCase()));
             return false;
         }
         input.setCustomValidity('');
         return true;
     }
 
-    function validatePhoneInput(input, isRequired = false, labelName = 'Số điện thoại') {
+    function validatePhoneInput(input, isRequired = false, labelName = t('labelPhoneDefault')) {
         if (!input) return true;
         const val = input.value.trim();
         if (isRequired && !val) {
-            input.setCustomValidity(`Vui lòng nhập ${labelName.toLowerCase()}.`);
+            input.setCustomValidity(t('errorRequired', labelName.toLowerCase()));
             return false;
         }
         if (val && !isValidPhone(val)) {
-            input.setCustomValidity(`${labelName} không hợp lệ (yêu cầu từ 8 đến 11 chữ số).`);
+            input.setCustomValidity(t('errorPhoneFormat', labelName));
             return false;
         }
         input.setCustomValidity('');
@@ -137,7 +143,7 @@
     function validateTaxCodeInput(input, error) {
         const normalized = normalizeTaxCode(input?.value || '');
         if (normalized === undefined) {
-            setFieldError(input, error, 'Mã số thuế phải gồm 10 chữ số hoặc 10 chữ số, dấu gạch ngang và 3 chữ số.');
+            setFieldError(input, error, t('errorTaxCodeFormat'));
             input?.focus();
             return undefined;
         }
@@ -154,13 +160,13 @@
     async function ensureTabData(tabName) {
         try {
             if (tabName === 'offers' && !state.loaded.offers) {
-                $('#offerList').innerHTML = emptyStack('Đang tải gói mua...');
+                $('#offerList').innerHTML = emptyStack(t('loadingOffers'));
                 await Promise.all([loadOffers(), loadReferenceData()]);
             } else if (tabName === 'stores' && !state.loaded.stores) {
-                $('#storeList').innerHTML = emptyStack('Đang tải phạm vi cửa hàng...');
+                $('#storeList').innerHTML = emptyStack(t('loadingStores'));
                 await loadStores();
             } else if (tabName === 'audit' && !state.loaded.audit) {
-                $('#supplierAuditEvents').innerHTML = emptyStack('Đang tải dấu vết cập nhật...');
+                $('#supplierAuditEvents').innerHTML = emptyStack(t('loadingAudit'));
                 await loadAuditHistory();
             }
         } catch (error) {
@@ -193,25 +199,25 @@
         const ingredientPayload = await api('/GetIngredientOptions');
         state.ingredients = ingredientPayload.data || [];
         fillSelect($('#offerIngredient'), state.ingredients, 'ingredientId', item => `${item.code} · ${item.name}`);
-        fillSelect($('#offerUnit'), [], 'unitId', item => item.name, 'Chọn nguyên liệu trước');
-        fillSelect($('#offerLooseUnit'), [], 'unitId', item => item.name, 'Chọn nguyên liệu trước');
-        fillSelect($('#newPackageUnit'), [], 'unitId', item => item.name, 'Chọn gói mua trước');
+        fillSelect($('#offerUnit'), [], 'unitId', item => item.name, t('selectIngredientFirst'));
+        fillSelect($('#offerLooseUnit'), [], 'unitId', item => item.name, t('selectIngredientFirst'));
+        fillSelect($('#newPackageUnit'), [], 'unitId', item => item.name, t('selectOfferFirst'));
         state.loaded.reference = true;
     }
 
     async function loadCompatibleUnits(ingredientId, selectedContentUnitId = '', selectedLooseUnitId = '') {
         if (!ingredientId) {
             state.units = [];
-            fillSelect($('#offerUnit'), [], 'unitId', item => item.name, 'Chọn nguyên liệu trước');
-            fillSelect($('#offerLooseUnit'), [], 'unitId', item => item.name, 'Chọn nguyên liệu trước');
+            fillSelect($('#offerUnit'), [], 'unitId', item => item.name, t('selectIngredientFirst'));
+            fillSelect($('#offerLooseUnit'), [], 'unitId', item => item.name, t('selectIngredientFirst'));
             updateLoosePriceLabel();
             return;
         }
 
         const payload = await api(`/GetCompatibleUnitOptions?ingredientId=${ingredientId}`);
         state.units = payload.data || [];
-        fillSelect($('#offerUnit'), state.units, 'unitId', item => `${item.unitCode} · ${item.name}`, 'Chọn đơn vị nội dung');
-        fillSelect($('#offerLooseUnit'), state.units, 'unitId', item => `${item.unitCode} · ${item.name}`, 'Chọn đơn vị mua lẻ');
+        fillSelect($('#offerUnit'), state.units, 'unitId', item => `${item.unitCode} · ${item.name}`, t('selectContentUnit'));
+        fillSelect($('#offerLooseUnit'), state.units, 'unitId', item => `${item.unitCode} · ${item.name}`, t('selectLooseUnit'));
         if (selectedContentUnitId) $('#offerUnit').value = String(selectedContentUnitId);
         if (selectedLooseUnitId) $('#offerLooseUnit').value = String(selectedLooseUnitId);
         updateLoosePriceLabel();
@@ -220,7 +226,7 @@
     function updateLoosePriceLabel() {
         const selected = $('#offerLooseUnit')?.selectedOptions?.[0];
         const code = selected?.textContent?.split('·')?.[0]?.trim();
-        $('#offerLoosePriceLabel').textContent = `Đơn giá mua lẻ (VND/${code || 'đơn vị'})`;
+        $('#offerLoosePriceLabel').textContent = t('loosePriceLabel', code || t('loosePriceDefaultUnit'));
         updateDerivedLoosePrice();
     }
 
@@ -243,7 +249,7 @@
             : '';
     }
 
-    function fillSelect(select, items, valueKey, labelFactory, placeholder = 'Chọn dữ liệu') {
+    function fillSelect(select, items, valueKey, labelFactory, placeholder = t('selectData')) {
         if (!select) return;
         const current = select.value;
         select.innerHTML = `<option value="">${escapeHtml(placeholder)}</option>`;
@@ -293,9 +299,9 @@
         const d = state.detail;
         $('#detailCode').textContent = d.code;
         $('#detailName').textContent = d.name;
-        $('#detailSummary').textContent = d.address || 'Chưa cập nhật địa chỉ';
+        $('#detailSummary').textContent = d.address || t('noAddress');
         const detailStatus = $('#detailStatus');
-        detailStatus.textContent = d.active ? 'Đang hoạt động' : 'Ngừng hoạt động';
+        detailStatus.textContent = d.active ? t('statusActive') : t('statusInactive');
         detailStatus.className = `supplier-status ${d.active ? 'is-active' : 'is-inactive'}`;
         $('#overviewSupplierId').value = d.supplierId;
         $('#overviewRowVersion').value = d.rowVersion || '';
@@ -316,26 +322,26 @@
         const rows = state.detail?.audits || [];
         if (!root) return;
         if (!state.loaded.audit) {
-            root.innerHTML = emptyStack('Mở tab Theo dõi để tải dấu vết cập nhật.');
+            root.innerHTML = emptyStack(t('openAuditTab'));
             return;
         }
         if (!rows.length) {
-            root.innerHTML = emptyStack('Chưa có thay đổi mã số thuế hoặc xác nhận trùng được ghi nhận.');
+            root.innerHTML = emptyStack(t('auditEmpty'));
             return;
         }
         root.innerHTML = rows.map(item => `
             <article class="supplier-history-row supplier-audit-event">
                 <time datetime="${escapeHtml(item.createdAt)}">${escapeHtml(formatDate(item.createdAt))}</time>
                 <div class="supplier-audit-event__summary">
-                    <strong>${escapeHtml(item.title || 'Cập nhật nhà cung cấp')}</strong>
-                    <small>${escapeHtml(item.actorName || 'Hệ thống')}${item.actorRole ? ` · ${escapeHtml(item.actorRole)}` : ''}</small>
+                    <strong>${escapeHtml(item.title || t('auditDefaultTitle'))}</strong>
+                    <small>${escapeHtml(item.actorName || t('auditSystemActor'))}${item.actorRole ? ` · ${escapeHtml(item.actorRole)}` : ''}</small>
                 </div>
                 <dl class="supplier-audit-event__changes">
                     ${(item.changes || []).map(change => `
                         <div>
                             <dt>${escapeHtml(change.label)}</dt>
-                            ${change.before != null ? `<dd><span class="supplier-audit-value is-before">${escapeHtml(change.before)}</span><i class="fas fa-arrow-right" aria-hidden="true"></i><span class="supplier-audit-value">${escapeHtml(change.after ?? 'Để trống')}</span></dd>` : `<dd><span class="supplier-audit-value">${escapeHtml(change.after ?? 'Để trống')}</span></dd>`}
-                        </div>`).join('') || '<div><dt>Ghi nhận</dt><dd><span class="supplier-audit-value">Đã lưu thay đổi nghiệp vụ.</span></dd></div>'}
+                            ${change.before != null ? `<dd><span class="supplier-audit-value is-before">${escapeHtml(change.before)}</span><i class="fas fa-arrow-right" aria-hidden="true"></i><span class="supplier-audit-value">${escapeHtml(change.after ?? t('auditEmptyValue'))}</span></dd>` : `<dd><span class="supplier-audit-value">${escapeHtml(change.after ?? t('auditEmptyValue'))}</span></dd>`}
+                        </div>`).join('') || `<div><dt>${escapeHtml(t('auditChangeFallback'))}</dt><dd><span class="supplier-audit-value">${escapeHtml(t('auditSavedChanges'))}</span></dd></div>`}
                 </dl>
             </article>`).join('');
     }
@@ -357,11 +363,11 @@
     function renderPhones() {
         const root = $('#phoneList');
         const rows = state.detail?.phones || [];
-        if (!rows.length) { root.innerHTML = emptyStack('Chưa có số điện thoại.'); return; }
+        if (!rows.length) { root.innerHTML = emptyStack(t('phonesEmpty')); return; }
         root.innerHTML = rows.map(phone => `
             <div class="supplier-stack-item">
-                <div class="supplier-stack-item-main"><strong>${escapeHtml(phone.phoneNumber)}</strong><small>${phone.isPrimary ? 'Số điện thoại chính' : 'Số điện thoại phụ'}</small></div>
-                ${canMutate && !phone.isPrimary ? `<div class="supplier-stack-actions"><button type="button" class="supplier-btn supplier-btn-danger delete-phone" data-id="${phone.supplierPhoneId}">Xóa số</button></div>` : ''}
+                <div class="supplier-stack-item-main"><strong>${escapeHtml(phone.phoneNumber)}</strong><small>${phone.isPrimary ? t('phonesPrimary') : t('phonesSecondary')}</small></div>
+                ${canMutate && !phone.isPrimary ? `<div class="supplier-stack-actions"><button type="button" class="supplier-btn supplier-btn-danger delete-phone" data-id="${phone.supplierPhoneId}">${t('phonesDelete')}</button></div>` : ''}
             </div>`).join('');
         $$('.delete-phone', root).forEach(button => button.addEventListener('click', () => deletePhone(button.dataset.id)));
     }
@@ -369,17 +375,17 @@
     function renderContacts() {
         const root = $('#contactList');
         const rows = state.detail?.contacts || [];
-        if (!rows.length) { root.innerHTML = emptyStack('Chưa có người liên hệ.'); return; }
+        if (!rows.length) { root.innerHTML = emptyStack(t('contactsEmpty')); return; }
         root.innerHTML = rows.map(contact => `
             <div class="supplier-stack-item">
                 <div class="supplier-stack-item-main">
-                    <strong>${escapeHtml(contact.name)} ${contact.isPrimary ? '<span class="supplier-status is-current">Đầu mối chính</span>' : ''}</strong>
-                    <span>${escapeHtml(contact.position || 'Chưa có chức vụ')}</span>
-                    <small>${escapeHtml([contact.phone, contact.email].filter(Boolean).join(' · ') || 'Chưa có điện thoại/email')}</small>
+                    <strong>${escapeHtml(contact.name)} ${contact.isPrimary ? `<span class="supplier-status is-current">${t('contactsPrimaryBadge')}</span>` : ''}</strong>
+                    <span>${escapeHtml(contact.position || t('contactsNoPosition'))}</span>
+                    <small>${escapeHtml([contact.phone, contact.email].filter(Boolean).join(' · ') || t('contactsNoChannels'))}</small>
                 </div>
                 ${canMutate ? `<div class="supplier-stack-actions">
-                    <button type="button" class="supplier-btn supplier-btn-light edit-contact" data-id="${contact.supplierContactId}">Sửa</button>
-                    ${contact.isPrimary ? '' : `<button type="button" class="supplier-btn supplier-btn-light primary-contact" data-id="${contact.supplierContactId}">Đặt làm chính</button><button type="button" class="supplier-btn supplier-btn-danger delete-contact" data-id="${contact.supplierContactId}">Xóa</button>`}
+                    <button type="button" class="supplier-btn supplier-btn-light edit-contact" data-id="${contact.supplierContactId}">${t('edit')}</button>
+                    ${contact.isPrimary ? '' : `<button type="button" class="supplier-btn supplier-btn-light primary-contact" data-id="${contact.supplierContactId}">${t('setPrimary')}</button><button type="button" class="supplier-btn supplier-btn-danger delete-contact" data-id="${contact.supplierContactId}">${t('delete')}</button>`}
                 </div>` : ''}
             </div>`).join('');
         $$('.edit-contact', root).forEach(button => button.addEventListener('click', () => beginContactEdit(Number(button.dataset.id))));
@@ -402,7 +408,7 @@
 
         if (nameInput) {
             if (!nameInput.value.trim()) {
-                nameInput.setCustomValidity('Vui lòng nhập tên nhà cung cấp.');
+                nameInput.setCustomValidity(t('errorNameRequired'));
             } else {
                 nameInput.setCustomValidity('');
             }
@@ -411,7 +417,7 @@
         const taxCode = validateTaxCodeInput(taxCodeInput, $('#overviewTaxCodeError'));
         if (taxCode === undefined) {
             if (taxCodeInput) {
-                taxCodeInput.setCustomValidity('Mã số thuế không đúng định dạng.');
+                taxCodeInput.setCustomValidity(t('errorTaxCodeInvalid'));
                 form.reportValidity();
             }
             return;
@@ -435,7 +441,7 @@
                 active: $('#overviewActive').value === 'true',
                 rowVersion: $('#overviewRowVersion').value
             }});
-            toast('Đã lưu thông tin nhà cung cấp.');
+            toast(t('toastSavedSupplier'));
             window.location.reload();
         } catch (error) {
             if (error.payload?.code === 'SUPPLIER_TAX_CODE_INVALID' || error.payload?.code === 'SUPPLIER_TAX_CODE_DUPLICATE') {
@@ -451,7 +457,7 @@
         event.preventDefault();
         const form = event.currentTarget;
         const phoneInput = $('#newPhone');
-        if (!validatePhoneInput(phoneInput, true, 'Số điện thoại mới')) {
+        if (!validatePhoneInput(phoneInput, true, t('labelPhoneNew'))) {
             form.reportValidity();
             return;
         }
@@ -460,16 +466,16 @@
             await api('/AddPhone', { method: 'POST', body: { supplierId: state.supplierId, phoneNumber: phoneInput.value.trim() } });
             $('#newPhone').value = '';
             await refreshDetailData();
-            toast('Đã thêm số điện thoại.');
+            toast(t('toastPhoneAdded'));
         } catch (error) { toast(error.message, 'error'); }
         finally { setBusy(form, false); }
     });
 
     async function deletePhone(id) {
         if (!await requestConfirmation(
-            'Xóa số điện thoại?',
-            'Số điện thoại này sẽ bị xóa khỏi hồ sơ nhà cung cấp.')) return;
-        try { await api(`/DeletePhone?supplierPhoneId=${id}`, { method: 'POST' }); await refreshDetailData(); toast('Đã xóa số điện thoại.'); }
+            t('deletePhoneTitle'),
+            t('deletePhoneText'))) return;
+        try { await api(`/DeletePhone?supplierPhoneId=${id}`, { method: 'POST' }); await refreshDetailData(); toast(t('toastPhoneDeleted')); }
         catch (error) { toast(error.message, 'error'); }
     }
 
@@ -477,7 +483,7 @@
         $('#contactForm')?.reset();
         $('#contactId').value = '';
         $('#cancelContactEdit')?.classList.add('is-hidden');
-        if ($('#saveContactButton')) $('#saveContactButton').textContent = 'Thêm liên hệ';
+        if ($('#saveContactButton')) $('#saveContactButton').textContent = t('contactAdd');
     }
 
     function beginContactEdit(id) {
@@ -489,7 +495,7 @@
         $('#contactPhone').value = contact.phone || '';
         $('#contactEmail').value = contact.email || '';
         $('#cancelContactEdit').classList.remove('is-hidden');
-        $('#saveContactButton').textContent = 'Lưu liên hệ';
+        $('#saveContactButton').textContent = t('contactSave');
     }
     $('#cancelContactEdit')?.addEventListener('click', resetContactForm);
 
@@ -500,17 +506,17 @@
         const nameInput = $('#contactName');
         if (nameInput) {
             if (!nameInput.value.trim()) {
-                nameInput.setCustomValidity('Vui lòng nhập họ tên người liên hệ.');
+                nameInput.setCustomValidity(t('errorContactNameRequired'));
             } else {
                 nameInput.setCustomValidity('');
             }
         }
 
         const emailInput = $('#contactEmail');
-        validateEmailInput(emailInput, 'Email người liên hệ');
+        validateEmailInput(emailInput, t('labelEmailContact'));
 
         const phoneInput = $('#contactPhone');
-        validatePhoneInput(phoneInput, false, 'Số điện thoại người liên hệ');
+        validatePhoneInput(phoneInput, false, t('labelPhoneContact'));
 
         const form = event.currentTarget;
         if (!form.checkValidity()) {
@@ -527,26 +533,25 @@
             position: $('#contactPosition').value.trim() || null,
             active: true
         };
-        const form = event.currentTarget;
         setBusy(form, true);
         try {
             await api(id ? '/UpdateContact' : '/AddContact', { method: 'POST', body });
             resetContactForm();
             await refreshDetailData();
-            toast(id ? 'Đã cập nhật người liên hệ.' : 'Đã thêm người liên hệ.');
+            toast(id ? t('toastContactUpdated') : t('toastContactAdded'));
         } catch (error) { toast(error.message, 'error'); }
         finally { setBusy(form, false); }
     });
 
     async function setPrimaryContact(id) {
-        try { await api(`/SetPrimaryContact?supplierContactId=${id}`, { method: 'POST' }); await refreshDetailData(); toast('Đã cập nhật đầu mối chính.'); }
+        try { await api(`/SetPrimaryContact?supplierContactId=${id}`, { method: 'POST' }); await refreshDetailData(); toast(t('toastPrimaryContactUpdated')); }
         catch (error) { toast(error.message, 'error'); }
     }
     async function deleteContact(id) {
         if (!await requestConfirmation(
-            'Xóa người liên hệ?',
-            'Người liên hệ này sẽ bị xóa khỏi hồ sơ nhà cung cấp.')) return;
-        try { await api(`/DeleteContact?supplierContactId=${id}`, { method: 'POST' }); await refreshDetailData(); toast('Đã xóa người liên hệ.'); }
+            t('deleteContactTitle'),
+            t('deleteContactText'))) return;
+        try { await api(`/DeleteContact?supplierContactId=${id}`, { method: 'POST' }); await refreshDetailData(); toast(t('toastContactDeleted')); }
         catch (error) { toast(error.message, 'error'); }
     }
 
@@ -561,22 +566,22 @@
 
     function renderOffers() {
         const root = $('#offerList');
-        if (!state.offers.length) { root.innerHTML = emptyStack('Chưa có gói mua nguyên liệu.'); return; }
+        if (!state.offers.length) { root.innerHTML = emptyStack(t('offersEmpty')); return; }
         root.innerHTML = state.offers.map(offer => `
             <div class="supplier-stack-item">
                 <div class="supplier-stack-item-main">
-                    <strong>${escapeHtml(offer.ingredientName)} ${offer.isPrimary ? '<span class="supplier-status is-current">Nguồn chính</span>' : ''}</strong>
+                    <strong>${escapeHtml(offer.ingredientName)} ${offer.isPrimary ? `<span class="supplier-status is-current">${t('offersPrimaryBadge')}</span>` : ''}</strong>
                     <span>${escapeHtml(offer.packageDisplay)} · ${escapeHtml(offer.priceDisplay)}</span>
-                    <small>MOQ ${offer.minimumOrderPackageCount || 1} gói · Thời gian giao ${offer.leadTimeDays || 0} ngày · ${offer.allowsLoosePurchase ? `Mua lẻ theo ${escapeHtml(offer.looseProcurementUnitName || 'đơn vị phù hợp')}, ${offer.loosePriceMode === 'DERIVED' ? 'giá tự tính từ gói' : 'giá nhập riêng'}, MOQ ${offer.looseMinimumOrderQuantity ?? 0}, bước ${offer.looseQuantityStep ?? 'không giới hạn'}` : 'Chỉ mua theo gói'}</small>
-                    <div class="supplier-offer-state" aria-label="Trạng thái gói mua">
-                        <span class="supplier-status ${offer.active ? 'is-active' : 'is-inactive'}">${offer.active ? 'Đang hoạt động' : 'Ngừng hoạt động'}</span>
+                    <small>${t('offersMetaPrefix', offer.minimumOrderPackageCount || 1, offer.leadTimeDays || 0)} · ${offer.allowsLoosePurchase ? t('offersLooseMeta', escapeHtml(offer.looseProcurementUnitName || t('offersLooseUnitDefault')), offer.loosePriceMode === 'DERIVED' ? t('offersLoosePriceDerived') : t('offersLoosePriceManual'), offer.looseMinimumOrderQuantity ?? 0, offer.looseQuantityStep ?? t('offersLooseStepUnlimited')) : t('offersPackageOnly')}</small>
+                    <div class="supplier-offer-state" aria-label="${t('offersStatusAria')}">
+                        <span class="supplier-status ${offer.active ? 'is-active' : 'is-inactive'}">${offer.active ? t('statusActive') : t('statusInactive')}</span>
                         <span class="supplier-status ${offer.isProcurementReady ? 'is-ready' : 'is-not-ready'}">${escapeHtml(offer.procurementReadinessLabel)}</span>
                     </div>
-                    ${offer.isProcurementReady ? '' : `<p class="supplier-readiness-help">${escapeHtml(offer.procurementReadinessMessage)}${canMutate ? ' Hãy sửa quy cách trước khi kích hoạt hoặc sử dụng cho mua hàng.' : ''}</p>`}
+                    ${offer.isProcurementReady ? '' : `<p class="supplier-readiness-help">${escapeHtml(offer.procurementReadinessMessage)}${canMutate ? ` ${t('offersReadinessHelp')}` : ''}</p>`}
                 </div>
                 <div class="supplier-stack-actions">
-                    <button type="button" class="supplier-btn supplier-btn-light view-price" data-id="${offer.ingredientSupplierId}">Đổi giá & lịch sử</button>
-                    ${canMutate ? `<button type="button" class="supplier-btn supplier-btn-light edit-offer" data-id="${offer.ingredientSupplierId}">${offer.isProcurementReady ? 'Sửa quy cách' : 'Sửa quy cách gói'}</button><button type="button" class="supplier-btn ${offer.active ? 'supplier-btn-danger' : 'supplier-btn-light'} toggle-offer" data-id="${offer.ingredientSupplierId}" data-active="${!offer.active}">${offer.active ? 'Ngừng dùng' : 'Kích hoạt'}</button>` : ''}
+                    <button type="button" class="supplier-btn supplier-btn-light view-price" data-id="${offer.ingredientSupplierId}">${t('offersViewPrice')}</button>
+                    ${canMutate ? `<button type="button" class="supplier-btn supplier-btn-light edit-offer" data-id="${offer.ingredientSupplierId}">${offer.isProcurementReady ? t('offersEdit') : t('offersEditNotReady')}</button><button type="button" class="supplier-btn ${offer.active ? 'supplier-btn-danger' : 'supplier-btn-light'} toggle-offer" data-id="${offer.ingredientSupplierId}" data-active="${!offer.active}">${offer.active ? t('offersDeactivate') : t('offersActivate')}</button>` : ''}
                 </div>
             </div>`).join('');
     }
@@ -605,7 +610,7 @@
         syncLooseOfferFields();
         ['offerIngredient', 'offerUnit', 'offerPackageQuantity', 'offerPrice'].forEach(id => { if ($(`#${id}`)) $(`#${id}`).disabled = false; });
         $('#cancelOfferEdit')?.classList.add('is-hidden');
-        if ($('#saveOfferButton')) $('#saveOfferButton').textContent = 'Thêm gói mua';
+        if ($('#saveOfferButton')) $('#saveOfferButton').textContent = t('offersAdd');
     }
 
     async function beginOfferEdit(id) {
@@ -632,7 +637,7 @@
         $('#offerNote').value = offer.note || '';
         ['offerIngredient', 'offerUnit', 'offerPackageQuantity', 'offerPrice'].forEach(fieldId => $(`#${fieldId}`).disabled = true);
         $('#cancelOfferEdit').classList.remove('is-hidden');
-        $('#saveOfferButton').textContent = 'Lưu metadata';
+        $('#saveOfferButton').textContent = t('offersSaveMetadata');
         $('#offerForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
     $('#cancelOfferEdit')?.addEventListener('click', resetOfferForm);
@@ -692,7 +697,7 @@
             await api(id ? '/UpdateIngredientOffer' : '/CreateIngredientOffer', { method: 'POST', body });
             resetOfferForm();
             await loadOffers();
-            toast(id ? 'Đã cập nhật gói mua.' : 'Đã thêm gói mua.');
+            toast(id ? t('toastOfferUpdated') : t('toastOfferAdded'));
         } catch (error) { toast(error.message, 'error'); }
         finally { setBusy(form, false); }
     });
@@ -701,7 +706,7 @@
         if (state.offerToggleRequests.has(id)) return;
         const offer = state.offers.find(item => item.ingredientSupplierId === id);
         if (!offer?.rowVersion) {
-            toast('Dữ liệu gói mua đã thay đổi. Vui lòng tải lại trước khi cập nhật.', 'error');
+            toast(t('toastOfferStale'), 'error');
             return;
         }
         state.offerToggleRequests.add(id);
@@ -712,7 +717,7 @@
                 body: { ingredientSupplierId: id, active, rowVersion: offer.rowVersion }
             });
             await loadOffers();
-            toast(active ? 'Đã kích hoạt gói mua.' : 'Đã ngừng sử dụng gói mua.');
+            toast(active ? t('toastOfferActivated') : t('toastOfferDeactivated'));
         } catch (error) { toast(error.message, 'error'); }
         finally {
             state.offerToggleRequests.delete(id);
@@ -731,7 +736,7 @@
         $('#pricingCurrentValue').textContent = `${offer.priceDisplay} · ${offer.packageDisplay}`;
         if (canMutate) {
             const unitPayload = await api(`/GetCompatibleUnitOptions?ingredientId=${offer.ingredientId}`);
-            fillSelect($('#newPackageUnit'), unitPayload.data || [], 'unitId', item => `${item.unitCode} · ${item.name}`, 'Chọn đơn vị nội dung');
+            fillSelect($('#newPackageUnit'), unitPayload.data || [], 'unitId', item => `${item.unitCode} · ${item.name}`, t('selectContentUnit'));
             $('#priceOfferId').value = id;
             $('#priceRowVersion').value = offer.rowVersion || '';
             $('#newPackagePrice').value = offer.currentPrice;
@@ -744,16 +749,16 @@
 
     async function loadPriceHistory(id) {
         const root = $('#priceHistoryList');
-        root.innerHTML = emptyStack('Đang tải lịch sử giá...');
+        root.innerHTML = emptyStack(t('pricingLoading'));
         try {
             const payload = await api(`/GetPriceHistory?ingredientSupplierId=${id}`);
             const rows = payload.data || [];
             root.innerHTML = rows.length ? rows.map(row => `
                 <div class="supplier-history-row">
                     <time>${escapeHtml(formatDate(row.effectiveDateUtc))}</time>
-                    <div><strong>${escapeHtml(formatMoney(row.price))}</strong><small>${escapeHtml(`${row.packageQuantity || 0} ${row.packageUnitName || ''} / gói · ${row.note || 'Không có ghi chú'}`)}</small></div>
-                    <span class="supplier-status ${row.isCurrent ? 'is-current' : ''}">${row.isCurrent ? 'Hiện hành' : 'Đã đóng'}</span>
-                </div>`).join('') : emptyStack('Chưa có lịch sử giá.');
+                    <div><strong>${escapeHtml(formatMoney(row.price))}</strong><small>${escapeHtml(t('pricingMeta', row.packageQuantity || 0, row.packageUnitName || '', row.note || t('pricingNoNote')))}</small></div>
+                    <span class="supplier-status ${row.isCurrent ? 'is-current' : ''}">${row.isCurrent ? t('pricingCurrent') : t('pricingClosed')}</span>
+                </div>`).join('') : emptyStack(t('pricingEmpty'));
         } catch (error) { root.innerHTML = emptyStack(error.message); }
     }
 
@@ -774,7 +779,7 @@
             const currentId = Number($('#priceOfferId').value);
             const refreshed = state.offers.find(item => item.ingredientSupplierId === currentId);
             if (refreshed) await openPricing(currentId);
-            toast('Đã cập nhật giá và lưu lịch sử.');
+            toast(t('toastPriceSaved'));
         } catch (error) { toast(error.message, 'error'); }
         finally { setBusy(form, false); }
     });
@@ -788,16 +793,16 @@
         state.stores = assignmentPayload.data || [];
         state.loaded.stores = true;
         renderStores();
-        if (canMutate) fillSelect($('#assignmentStore'), optionPayload.data || [], 'storeId', item => item.name, 'Chọn cửa hàng');
+        if (canMutate) fillSelect($('#assignmentStore'), optionPayload.data || [], 'storeId', item => item.name, t('selectStore'));
     }
 
     function renderStores() {
         const root = $('#storeList');
-        if (!state.stores.length) { root.innerHTML = emptyStack('Chưa gán nhà cung cấp cho cửa hàng.'); return; }
+        if (!state.stores.length) { root.innerHTML = emptyStack(t('storesEmpty')); return; }
         root.innerHTML = state.stores.map(store => `
             <div class="supplier-stack-item">
-                <div class="supplier-stack-item-main"><strong>${escapeHtml(store.storeName)}</strong><span>${escapeHtml(store.deliverySchedule || 'Chưa có lịch giao hàng')}</span><small>Thời gian giao riêng: ${store.leadTimeOverrideDays ?? 'Theo gói mua'} · ${store.active ? 'Đang hoạt động' : 'Ngừng hoạt động'}</small></div>
-                ${canMutate ? `<div class="supplier-stack-actions"><button type="button" class="supplier-btn supplier-btn-light edit-store" data-id="${store.supplierStoreId}">Chỉnh sửa</button></div>` : ''}
+                <div class="supplier-stack-item-main"><strong>${escapeHtml(store.storeName)}</strong><span>${escapeHtml(store.deliverySchedule || t('storesNoSchedule'))}</span><small>${t('storesMeta', store.leadTimeOverrideDays ?? t('storesFollowOffer'), store.active ? t('statusActive') : t('statusInactive'))}</small></div>
+                ${canMutate ? `<div class="supplier-stack-actions"><button type="button" class="supplier-btn supplier-btn-light edit-store" data-id="${store.supplierStoreId}">${t('storesEdit')}</button></div>` : ''}
             </div>`).join('');
         $$('.edit-store', root).forEach(button => button.addEventListener('click', () => beginStoreEdit(Number(button.dataset.id))));
     }
@@ -809,7 +814,7 @@
         $('#assignmentStore').disabled = false;
         $('#assignmentActive').checked = true;
         $('#cancelStoreEdit')?.classList.add('is-hidden');
-        if ($('#saveStoreButton')) $('#saveStoreButton').textContent = 'Gán cửa hàng';
+        if ($('#saveStoreButton')) $('#saveStoreButton').textContent = t('storesAssign');
     }
 
     function beginStoreEdit(id) {
@@ -824,7 +829,7 @@
         $('#assignmentNote').value = store.note || '';
         $('#assignmentActive').checked = Boolean(store.active);
         $('#cancelStoreEdit').classList.remove('is-hidden');
-        $('#saveStoreButton').textContent = 'Lưu phạm vi';
+        $('#saveStoreButton').textContent = t('storesSave');
     }
     $('#cancelStoreEdit')?.addEventListener('click', resetStoreForm);
 
@@ -846,7 +851,7 @@
             }});
             resetStoreForm();
             await loadStores();
-            toast('Đã cập nhật phạm vi cửa hàng.');
+            toast(t('toastStoresSaved'));
         } catch (error) { toast(error.message, 'error'); }
         finally { setBusy(form, false); }
     });
@@ -860,8 +865,8 @@
             text: message,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Xác nhận',
-            cancelButtonText: 'Giữ lại',
+            confirmButtonText: t('confirm'),
+            cancelButtonText: t('keep'),
             focusCancel: true
         });
         return result.isConfirmed === true;
@@ -889,17 +894,17 @@
             code: hardMatch.code,
             name: hardMatch.name,
             active: hardMatch.active,
-            matchedSignals: ['Mã số thuế']
+            matchedSignals: [t('duplicateSignalTaxCode')]
         }] : []);
 
         state.duplicateWarningId = isSoft ? softData.warningId : null;
         state.duplicateMatches = matches;
-        $('#duplicatePanelTitle').textContent = isSoft ? 'Có thể trùng nhà cung cấp' : 'Mã số thuế đã tồn tại';
+        $('#duplicatePanelTitle').textContent = isSoft ? t('duplicatePossibleTitle') : t('duplicateExistsTitle');
         $('#duplicatePanelMessage').textContent = error.message;
         $('#duplicateSupplierList').innerHTML = matches.map(item => `
             <div class="supplier-duplicate-item">
                 <strong>${escapeHtml(item.code)} · ${escapeHtml(item.name)}</strong>
-                <span>${item.active ? 'Đang hoạt động' : 'Ngừng hoạt động'} · Khớp: ${escapeHtml((item.matchedSignals || []).join(', '))}</span>
+                <span>${item.active ? t('statusActive') : t('statusInactive')} · ${t('duplicateMatchLabel')}: ${escapeHtml((item.matchedSignals || []).join(', '))}</span>
             </div>`).join('');
 
         duplicatePanel?.classList.remove('is-hidden');
@@ -932,7 +937,7 @@
         if (!match || match.active) return;
         try {
             await api(`/ToggleStatus?id=${match.supplierId}`, { method: 'POST' });
-            toast('Đã kích hoạt lại nhà cung cấp hiện có.');
+            toast(t('toastSupplierReactivated'));
             window.location.reload();
         } catch (error) { toast(error.message, 'error'); }
     });
@@ -944,7 +949,7 @@
         const nameInput = $('#createName');
         if (nameInput) {
             if (!nameInput.value.trim()) {
-                nameInput.setCustomValidity('Vui lòng nhập tên nhà cung cấp.');
+                nameInput.setCustomValidity(t('errorNameRequired'));
             } else {
                 nameInput.setCustomValidity('');
             }
@@ -954,29 +959,29 @@
         const taxCode = validateTaxCodeInput(taxCodeInput, $('#createTaxCodeError'));
         if (taxCode === undefined) {
             if (taxCodeInput) {
-                taxCodeInput.setCustomValidity('Mã số thuế không đúng định dạng.');
+                taxCodeInput.setCustomValidity(t('errorTaxCodeInvalid'));
             }
         } else if (taxCodeInput) {
             taxCodeInput.setCustomValidity('');
         }
 
         const phoneInput = $('#createPhone');
-        validatePhoneInput(phoneInput, true, 'Số điện thoại chính');
+        validatePhoneInput(phoneInput, true, t('labelPhoneMain'));
 
         const contactNameInput = $('#createContactName');
         if (contactNameInput) {
             if (!contactNameInput.value.trim()) {
-                contactNameInput.setCustomValidity('Vui lòng nhập tên người liên hệ chính.');
+                contactNameInput.setCustomValidity(t('errorContactNameRequiredCreate'));
             } else {
                 contactNameInput.setCustomValidity('');
             }
         }
 
         const contactPhoneInput = $('#createContactPhone');
-        validatePhoneInput(contactPhoneInput, false, 'Số điện thoại đầu mối');
+        validatePhoneInput(contactPhoneInput, false, t('labelPhoneContactCreate'));
 
         const contactEmailInput = $('#createContactEmail');
-        validateEmailInput(contactEmailInput, 'Email đầu mối');
+        validateEmailInput(contactEmailInput, t('labelEmailContactCreate'));
 
         if (!form.checkValidity()) {
             form.reportValidity();
@@ -1005,7 +1010,7 @@
         const body = buildCreateBody(confirmDuplicate);
         if (!body) return;
         if (confirmDuplicate && !body.duplicateOverrideReason) {
-            setFieldError($('#duplicateReason'), $('#duplicateReasonError'), 'Vui lòng nhập lý do vẫn tạo nhà cung cấp mới.');
+            setFieldError($('#duplicateReason'), $('#duplicateReasonError'), t('errorDuplicateReasonRequired'));
             $('#duplicateReason')?.focus();
             return;
         }
@@ -1054,7 +1059,7 @@
             if (target.searchParams.get('created') !== '1'
                 || state.detail?.supplierId !== initialSupplierId) return;
 
-            toast(`Đã tạo nhà cung cấp ${state.detail.name}.`);
+            toast(t('toastSupplierCreated', state.detail.name));
             target.searchParams.delete('created');
             window.history.replaceState({}, '', target.toString());
         });

@@ -1,11 +1,12 @@
 @model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferCreateVM
+@inject Microsoft.Extensions.Localization.IStringLocalizer<CafeChain.InventoryResource> InventoryText
 
 <section class="transfer-card">
     <div class="transfer-card-header compact">
         <div>
             <span class="section-kicker">
                 <i class="fas fa-note-sticky"></i>
-                Ghi chú
+                @InventoryText["Common.Note"]
             </span>
         </div>
     </div>
@@ -13,5 +14,5 @@
     <textarea class="transfer-input transfer-note"
               id="transferNote"
               rows="3"
-              placeholder="Bổ sung nguyên liệu cho chi nhánh trước dịp lễ..."></textarea>
+              placeholder="@InventoryText["Transfer.Create.NotePlaceholder"]"></textarea>
 </section>

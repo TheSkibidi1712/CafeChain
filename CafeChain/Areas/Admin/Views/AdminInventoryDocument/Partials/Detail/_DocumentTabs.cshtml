@@ -1,5 +1,7 @@
 @model CafeChain.Application.DTOs.Admin.InventoryDocuments.Index.AdminInventoryDocumentFilterDTO
 @using CafeChain.Models.Enums.Inventory
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<InventoryResource> L
 
 @{
     string ActiveFor(InventoryDocumentType? type, InventoryDocumentPurpose? purpose = null)
@@ -14,25 +16,25 @@
 
     <a asp-action="Index"
        class="tab-btn @allActive">
-        Tất cả
+        @L["InvDoc.Tab.All"]
     </a>
 
     <a asp-action="Index"
        asp-route-Type="EXPORT"
        class="tab-btn @ActiveFor(InventoryDocumentType.EXPORT)">
-        Xuất
+        @L["InvDoc.Tab.Export"]
     </a>
 
     <a asp-action="Index"
        asp-route-Type="STOCK_TAKE"
        class="tab-btn @ActiveFor(InventoryDocumentType.STOCK_TAKE)">
-        Kiểm kê
+        @L["InvDoc.Tab.StockTake"]
     </a>
 
     <a asp-action="Index"
        asp-route-Type="WASTE"
        class="tab-btn @ActiveFor(InventoryDocumentType.WASTE)">
-        Hủy
+        @L["InvDoc.Tab.Waste"]
     </a>
 
 </div>

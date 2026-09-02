@@ -1,17 +1,19 @@
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<CafeChain.SharedResource> SharedText
 @{
     var isAuthenticated = ViewBag.IsAuthenticated as bool? == true;
 
     ViewData["Title"] = isAuthenticated
-        ? "Không có quyền truy cập"
-        : "Cần đăng nhập";
+        ? SharedText["AccessDenied.Forbidden.Title"]
+        : SharedText["AccessDenied.LoginRequired.Title"];
 
     var heading = isAuthenticated
-        ? "Bạn không có quyền truy cập chức năng này!"
-        : "Bạn cần đăng nhập để truy cập chức năng này!";
+        ? SharedText["AccessDenied.Forbidden.Heading"]
+        : SharedText["AccessDenied.LoginRequired.Heading"];
 
     var message = isAuthenticated
-        ? "Vui lòng liên hệ cấp trên hoặc quản trị viên để được cấp quyền."
-        : "Vui lòng đăng nhập để tiếp tục.";
+        ? SharedText["AccessDenied.Forbidden.Detail"]
+        : SharedText["AccessDenied.LoginRequired.Detail"];
 }
 
 <div class="container py-5 text-center access-denied-page">
@@ -36,21 +38,21 @@
                     <button type="button"
                             class="btn btn-light rounded-3 px-4 py-2 border fw-bold text-muted"
                             onclick="history.back()">
-                        QUAY LẠI
+                        @SharedText["Common.Back"]
                     </button>
 
                     @if (isAuthenticated)
                     {
                         <a href="/"
                            class="btn text-white rounded-3 px-4 py-2 fw-bold shadow-sm access-denied-primary">
-                            VỀ TRANG CHỦ
+                            @SharedText["Navigation.Home"]
                         </a>
                     }
                     else
                     {
                         <a href="/Account/Login"
                            class="btn text-white rounded-3 px-4 py-2 fw-bold shadow-sm access-denied-primary">
-                            ĐĂNG NHẬP
+                            @SharedText["Common.Login"]
                         </a>
                     }
                 </div>
@@ -62,7 +64,7 @@
 @section Styles {
     <style>
         body {
-            background-color: #f8f9fa;
+            background-color: var(--cc-canvas, #f8f9fa);
         }
 
         .access-denied-page {
@@ -78,11 +80,11 @@
         }
 
         .access-denied-primary {
-            background-color: #d93d20;
+            background-color: var(--cc-danger, #d93d20);
         }
 
         .access-denied-primary:hover {
-            background-color: #b52f16;
+            filter: brightness(.9);
         }
     </style>
 }

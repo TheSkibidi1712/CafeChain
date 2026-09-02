@@ -3,7 +3,10 @@
 @using CafeChain.Application.Constants
 @using CafeChain.Application.Constants.Cloudinaries
 @using CafeChain.Application.Interfaces.Admin.Permissions
+@using Microsoft.Extensions.Localization
 @inject IAdminPermissionService PermissionService
+@inject IStringLocalizer<CafeChain.SharedResource> SharedText
+@inject IStringLocalizer<CafeChain.AdminNavigationResource> NavigationText
 
 @{
     var isAdminArea =
@@ -18,7 +21,7 @@
     var currentStaffName = User.FindFirstValue(ClaimTypes.Name);
     if (string.IsNullOrWhiteSpace(currentStaffName))
     {
-        currentStaffName = "Nhân viên";
+        currentStaffName = NavigationText["Profile.UnknownStaff"];
     }
     var currentAvatarUrl = User.FindFirstValue("AvatarUrl");
     if (string.IsNullOrWhiteSpace(currentAvatarUrl))
@@ -68,11 +71,12 @@
 }
 
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="@System.Globalization.CultureInfo.CurrentUICulture.Name" data-culture="@System.Globalization.CultureInfo.CurrentUICulture.Name">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="~/js/shared/appearance.js" asp-append-version="true"></script>
 
     <title>@ViewData["Title"] - CafeChain Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
@@ -413,6 +417,7 @@
     <link rel="stylesheet" href="~/css/Admin/admin-unified-depth.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/admin-premium-refresh.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
+    <link rel="stylesheet" href="~/css/shared/appearance.css" asp-append-version="true" />
 </head>
 
 <body class="admin-premium-shell @(usePremiumRefresh ? "admin-premium-refresh" : string.Empty)">
@@ -422,7 +427,7 @@
             <div class="logo-icon" aria-hidden="true"><i class="fas fa-mug-hot"></i></div>
             <div>
                 <div class="logo-text">CafeChain</div>
-                <div class="logo-sub">Admin Dashboard</div>
+                <div class="logo-sub">@SharedText["Admin.Dashboard"]</div>
             </div>
         </div>
 
@@ -433,7 +438,7 @@
             @if (canAccessDashboard)
             {
                 <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="@Html.IsActive("Dashboard")">
-                    <i class="fas fa-chart-pie"></i> Tổng quan
+                <i class="fas fa-chart-pie"></i> @SharedText["Admin.Nav.Overview"]
                 </a>
             }
 
@@ -448,23 +453,23 @@
                 <a href="#collapseProducts" data-bs-toggle="collapse"
                    aria-expanded="@(Html.IsActive("AdminCategory,AdminDrink,AdminSize,AdminTopping,AdminDrinkProfitability,AdminStoreMenu") != "" ? "true" : "false")"
                    class="sidebar-section-header @Html.IsActive("AdminCategory,AdminDrink,AdminSize,AdminTopping,AdminDrinkProfitability,AdminStoreMenu")">
-                    <i class="fas fa-mug-hot section-icon"></i> Sản phẩm
+                <i class="fas fa-mug-hot section-icon"></i> @SharedText["Admin.Nav.Products"]
                     <i class="fas fa-chevron-down chevron"></i>
                 </a>
                 <div class="collapse @Html.IsActive("AdminCategory,AdminDrink,AdminSize,AdminTopping,AdminDrinkProfitability,AdminStoreMenu", cssClass: "show")" id="collapseProducts">
                     <div class="sidebar-sub">
-                        <a asp-area="Admin" asp-controller="AdminCategory" asp-action="Index" class="@Html.IsActive("AdminCategory")"><i class="fas fa-circle"></i> Danh mục</a>
-                        <a asp-area="Admin" asp-controller="AdminDrink" asp-action="Index" class="@Html.IsActive("AdminDrink")"><i class="fas fa-circle"></i> Đồ uống</a>
-                        <a asp-area="Admin" asp-controller="AdminSize" asp-action="Index" class="@Html.IsActive("AdminSize")"><i class="fas fa-circle"></i> Size</a>
-                        <a asp-area="Admin" asp-controller="AdminTopping" asp-action="Index" class="@Html.IsActive("AdminTopping")"><i class="fas fa-circle"></i> Topping</a>
+                        <a asp-area="Admin" asp-controller="AdminCategory" asp-action="Index" class="@Html.IsActive("AdminCategory")"><i class="fas fa-circle"></i> @NavigationText["Products.Category"]</a>
+                        <a asp-area="Admin" asp-controller="AdminDrink" asp-action="Index" class="@Html.IsActive("AdminDrink")"><i class="fas fa-circle"></i> @NavigationText["Products.Drink"]</a>
+                        <a asp-area="Admin" asp-controller="AdminSize" asp-action="Index" class="@Html.IsActive("AdminSize")"><i class="fas fa-circle"></i> @NavigationText["Products.Size"]</a>
+                        <a asp-area="Admin" asp-controller="AdminTopping" asp-action="Index" class="@Html.IsActive("AdminTopping")"><i class="fas fa-circle"></i> @NavigationText["Products.Topping"]</a>
                         @if (User.IsInRole(CafeChain.Application.Constants.RoleConstants.BusinessOwner)
                             || User.IsInRole(CafeChain.Application.Constants.RoleConstants.AccountantWarehouse)
                             || User.IsInRole(CafeChain.Application.Constants.RoleConstants.AreaManager)
                             || User.IsInRole(CafeChain.Application.Constants.RoleConstants.StoreManager)
                             || User.IsInRole(CafeChain.Application.Constants.RoleConstants.SystemAdmin))
                         {
-                            <a asp-area="Admin" asp-controller="AdminDrinkProfitability" asp-action="Index" class="@Html.IsActive("AdminDrinkProfitability")"><i class="fas fa-circle"></i> Vốn & lợi nhuận dự kiến</a>
-                            <a asp-area="Admin" asp-controller="AdminStoreMenu" asp-action="Index" class="@Html.IsActive("AdminStoreMenu")"><i class="fas fa-circle"></i> Menu cửa hàng</a>
+                            <a asp-area="Admin" asp-controller="AdminDrinkProfitability" asp-action="Index" class="@Html.IsActive("AdminDrinkProfitability")"><i class="fas fa-circle"></i> @NavigationText["Products.Profitability"]</a>
+                            <a asp-area="Admin" asp-controller="AdminStoreMenu" asp-action="Index" class="@Html.IsActive("AdminStoreMenu")"><i class="fas fa-circle"></i> @NavigationText["Products.StoreMenu"]</a>
                         }
                     </div>
                 </div>
@@ -473,7 +478,7 @@
                 @if (effectivePermissions.Contains(PermissionConstants.AIImportView))
                 {
                     <a asp-area="Admin" asp-controller="AIImport" asp-action="Index" class="sidebar-section-header @Html.IsActive("AIImport")">
-                        <i class="fas fa-wand-magic-sparkles section-icon"></i> Nhập dữ liệu thông minh
+                <i class="fas fa-wand-magic-sparkles section-icon"></i> @SharedText["Admin.Nav.SmartImport"]
                     </a>
                 }
 
@@ -482,22 +487,22 @@
                 <a href="#collapseProduction" data-bs-toggle="collapse"
                    aria-expanded="@(Html.IsActive("AdminRecipe,AdminProductionOrder,AdminPreparedItem") != "" ? "true" : "false")"
                    class="sidebar-section-header @Html.IsActive("AdminRecipe,AdminProductionOrder,AdminPreparedItem")">
-                    <i class="fas fa-flask section-icon"></i> Sản xuất / BOM
+                <i class="fas fa-flask section-icon"></i> @SharedText["Admin.Nav.Production"]
                     <i class="fas fa-chevron-down chevron"></i>
                 </a>
                 <div class="collapse @Html.IsActive("AdminRecipe,AdminProductionOrder,AdminPreparedItem", cssClass: "show")" id="collapseProduction">
                     <div class="sidebar-sub">
                         @if (effectivePermissions.Contains(PermissionConstants.PreparedItemView))
                         {
-                            <a asp-area="Admin" asp-controller="AdminPreparedItem" asp-action="Index" class="@Html.IsActive("AdminPreparedItem")"><i class="fas fa-circle"></i> Bán thành phẩm</a>
+                            <a asp-area="Admin" asp-controller="AdminPreparedItem" asp-action="Index" class="@Html.IsActive("AdminPreparedItem")"><i class="fas fa-circle"></i> @NavigationText["Production.PreparedItem"]</a>
                         }
                         @if (effectivePermissions.Contains(PermissionConstants.RecipeView))
                         {
-                            <a asp-area="Admin" asp-controller="AdminRecipe" asp-action="Index" class="@Html.IsActive("AdminRecipe")"><i class="fas fa-circle"></i> Công thức &amp; BOM</a>
+                            <a asp-area="Admin" asp-controller="AdminRecipe" asp-action="Index" class="@Html.IsActive("AdminRecipe")"><i class="fas fa-circle"></i> @NavigationText["Production.Recipe"]</a>
                         }
                         @if (effectivePermissions.Contains(PermissionConstants.ProductionOrderView))
                         {
-                            <a asp-area="Admin" asp-controller="AdminProductionOrder" asp-action="Index" class="@Html.IsActive("AdminProductionOrder")"><i class="fas fa-circle"></i> Lệnh sản xuất</a>
+                            <a asp-area="Admin" asp-controller="AdminProductionOrder" asp-action="Index" class="@Html.IsActive("AdminProductionOrder")"><i class="fas fa-circle"></i> @NavigationText["Production.Order"]</a>
                         }
                     </div>
                 </div>
@@ -508,12 +513,12 @@
                 @if (canAccessInventory)
                 {
                 <a href="#collapseInventory" data-bs-toggle="collapse"
-                   aria-expanded="@(Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminBranchReceipts,AdminSupplierQuality,AdminOperationalIce") != "" ? "true" : "false")"
-                   class="sidebar-section-header @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminBranchReceipts,AdminSupplierQuality,AdminOperationalIce")">
-                    <i class="fas fa-warehouse section-icon"></i> Kho & Cung ứng
+                   aria-expanded="@(Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminBranchReceipts,AdminSupplierQuality") != "" ? "true" : "false")"
+                   class="sidebar-section-header @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminBranchReceipts,AdminSupplierQuality")">
+                <i class="fas fa-warehouse section-icon"></i> @SharedText["Admin.Nav.Inventory"]
                     <i class="fas fa-chevron-down chevron"></i>
                 </a>
-                <div class="collapse @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminBranchReceipts,AdminSupplierQuality,AdminOperationalIce", cssClass: "show")" id="collapseInventory">
+                <div class="collapse @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminBranchReceipts,AdminSupplierQuality", cssClass: "show")" id="collapseInventory">
                     <div class="sidebar-sub">
                         @{
                             var inventoryNestedControllers = "AdminInventoryThresholds,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminBranchReceipts,AdminSupplierQuality";
@@ -528,7 +533,7 @@
                                  data-bs-target="#collapseInventoryNested"
                                  data-nested-link="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin" })"
                                  aria-expanded="@(isInventoryNestedActive ? "true" : "false")">
-                                <i class="fas fa-circle section-icon"></i> Tồn kho cửa hàng
+                                <i class="fas fa-circle section-icon"></i> @NavigationText["Inventory.StoreInventory"]
                                 <i class="fas fa-chevron-down chevron-nested"></i>
                             </div>
 
@@ -536,43 +541,43 @@
                                 <div class="sidebar-sub-nested">
                                     @if (effectivePermissions.Contains(PermissionConstants.InventoryThresholdView))
                                     {
-                                        <a asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Index" class="@Html.IsActive("AdminInventoryThresholds")"><i class="fas fa-circle"></i> Ngưỡng tồn kho</a>
+                                        <a asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Index" class="@Html.IsActive("AdminInventoryThresholds")"><i class="fas fa-circle"></i> @NavigationText["Inventory.Threshold"]</a>
                                     }
                                     @if (effectivePermissions.Contains(PermissionConstants.StockAlertView))
                                     {
-                                        <a asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" class="@Html.IsActive("AdminStockAlerts")"><i class="fas fa-circle"></i> Cảnh báo kho</a>
+                                        <a asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" class="@Html.IsActive("AdminStockAlerts")"><i class="fas fa-circle"></i> @NavigationText["Inventory.Alert"]</a>
                                     }
                                     @if (effectivePermissions.Contains(PermissionConstants.RestockView))
                                     {
-                                        <a asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" class="@Html.IsActive("AdminRestockRequests")"><i class="fas fa-circle"></i> Yêu cầu nhập hàng</a>
+                                        <a asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" class="@Html.IsActive("AdminRestockRequests")"><i class="fas fa-circle"></i> @NavigationText["Inventory.Restock"]</a>
                                     }
                                     @if (effectivePermissions.Contains(PermissionConstants.ReorderSuggestionView))
                                     {
-                                        <a asp-area="Admin" asp-controller="AdminReorderSuggestions" asp-action="Index" class="@Html.IsActive("AdminReorderSuggestions")"><i class="fas fa-circle"></i> Gợi ý nhập hàng</a>
+                                        <a asp-area="Admin" asp-controller="AdminReorderSuggestions" asp-action="Index" class="@Html.IsActive("AdminReorderSuggestions")"><i class="fas fa-circle"></i> @NavigationText["Inventory.Reorder"]</a>
                                     }
                                     @if (effectivePermissions.Contains(PermissionConstants.PurchaseAdviceView))
                                     {
-                                        <a asp-area="Admin" asp-controller="AdminPurchaseAdvices" asp-action="Index" class="@Html.IsActive("AdminPurchaseAdvices")"><i class="fas fa-circle"></i> Đề nghị mua hàng</a>
+                                        <a asp-area="Admin" asp-controller="AdminPurchaseAdvices" asp-action="Index" class="@Html.IsActive("AdminPurchaseAdvices")"><i class="fas fa-circle"></i> @NavigationText["Procurement.Advice"]</a>
                                     }
                                     @if (effectivePermissions.Contains(PermissionConstants.PurchaseAdviceConsolidate))
                                     {
-                                        <a asp-area="Admin" asp-controller="AdminPurchaseAdviceConsolidation" asp-action="Index" class="@Html.IsActive("AdminPurchaseAdviceConsolidation")"><i class="fas fa-circle"></i> Tổng hợp đề nghị mua</a>
+                                        <a asp-area="Admin" asp-controller="AdminPurchaseAdviceConsolidation" asp-action="Index" class="@Html.IsActive("AdminPurchaseAdviceConsolidation")"><i class="fas fa-circle"></i> @NavigationText["Procurement.Consolidation"]</a>
                                     }
                                     @if (effectivePermissions.Contains(PermissionConstants.PurchaseOrderViewBatch))
                                     {
-                                        <a asp-area="Admin" asp-controller="AdminPurchaseOrderBatches" asp-action="Index" class="@Html.IsActive("AdminPurchaseOrderBatches")"><i class="fas fa-circle"></i> Đơn đặt hàng gộp</a>
+                                        <a asp-area="Admin" asp-controller="AdminPurchaseOrderBatches" asp-action="Index" class="@Html.IsActive("AdminPurchaseOrderBatches")"><i class="fas fa-circle"></i> @NavigationText["Procurement.OrderBatch"]</a>
                                     }
                                     @if (effectivePermissions.Contains(PermissionConstants.PurchaseOrderView))
                                     {
-                                        <a asp-area="Admin" asp-controller="AdminPurchaseOrders" asp-action="Index" class="@Html.IsActive("AdminPurchaseOrders")"><i class="fas fa-circle"></i> Đơn đặt hàng</a>
+                                        <a asp-area="Admin" asp-controller="AdminPurchaseOrders" asp-action="Index" class="@Html.IsActive("AdminPurchaseOrders")"><i class="fas fa-circle"></i> @NavigationText["Procurement.Order"]</a>
                                     }
                                     @if (effectivePermissions.Contains(PermissionConstants.ReceiptView))
                                     {
-                                        <a asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Index" class="@Html.IsActive("AdminBranchReceipts")"><i class="fas fa-circle"></i> Phiếu nhận hàng</a>
+                                        <a asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Index" class="@Html.IsActive("AdminBranchReceipts")"><i class="fas fa-circle"></i> @NavigationText["Procurement.Receipt"]</a>
                                     }
                                     @if (effectivePermissions.Contains(PermissionConstants.SupplierQualityView))
                                     {
-                                        <a asp-area="Admin" asp-controller="AdminSupplierQuality" asp-action="Index" class="@Html.IsActive("AdminSupplierQuality")"><i class="fas fa-circle"></i> Chất lượng nhà cung cấp</a>
+                                        <a asp-area="Admin" asp-controller="AdminSupplierQuality" asp-action="Index" class="@Html.IsActive("AdminSupplierQuality")"><i class="fas fa-circle"></i> @NavigationText["Procurement.SupplierQuality"]</a>
                                     }
                                 </div>
                             </div>
@@ -581,31 +586,27 @@
                         @* ── Lịch sử giao dịch kho (module chính - direct link) ── *@
                         @if (effectivePermissions.Contains(PermissionConstants.InventoryView))
                         {
-                            <a asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="TransactionHistory" class="@Html.IsActive("AdminStoreInventory", "TransactionHistory")"><i class="fas fa-circle"></i> Lịch sử giao dịch kho</a>
+                            <a asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="TransactionHistory" class="@Html.IsActive("AdminStoreInventory", "TransactionHistory")"><i class="fas fa-circle"></i> @NavigationText["Inventory.History"]</a>
                         }
 
                         @* ── Quản lý đá theo ca (module chính - direct link) ── *@
-                        @if (effectivePermissions.Contains(PermissionConstants.OperationalIceView))
-                        {
-                            <a asp-area="Admin" asp-controller="AdminOperationalIce" asp-action="Index" class="@Html.IsActive("AdminOperationalIce")"><i class="fas fa-circle"></i> Quản lý đá theo ca</a>
-                        }
 
                         @* ── Nguyên liệu (module chính - direct link) ── *@
                         @if (effectivePermissions.Contains(PermissionConstants.IngredientView))
                         {
-                            <a asp-area="Admin" asp-controller="AdminIngredient" asp-action="Index" class="@Html.IsActive("AdminIngredient")"><i class="fas fa-circle"></i> Nguyên liệu</a>
+                            <a asp-area="Admin" asp-controller="AdminIngredient" asp-action="Index" class="@Html.IsActive("AdminIngredient")"><i class="fas fa-circle"></i> @NavigationText["Inventory.Ingredient"]</a>
                         }
 
                         @* ── Đơn vị và quy đổi (module chính - direct link) ── *@
                         @if (effectivePermissions.Contains(PermissionConstants.UnitConversionView))
                         {
-                            <a asp-area="Admin" asp-controller="AdminUnitConversion" asp-action="Index" class="@Html.IsActive("AdminUnitConversion")"><i class="fas fa-circle"></i> Đơn vị và quy đổi</a>
+                            <a asp-area="Admin" asp-controller="AdminUnitConversion" asp-action="Index" class="@Html.IsActive("AdminUnitConversion")"><i class="fas fa-circle"></i> @NavigationText["Inventory.UnitConversion"]</a>
                         }
 
                         @* ── Nhà cung cấp (module chính - direct link) ── *@
                         @if (effectivePermissions.Contains(PermissionConstants.SupplierView))
                         {
-                            <a asp-area="Admin" asp-controller="AdminSupplier" asp-action="Index" class="@Html.IsActive("AdminSupplier")"><i class="fas fa-circle"></i> Nhà cung cấp</a>
+                            <a asp-area="Admin" asp-controller="AdminSupplier" asp-action="Index" class="@Html.IsActive("AdminSupplier")"><i class="fas fa-circle"></i> @NavigationText["Procurement.Supplier"]</a>
                         }
                     </div>
                 </div>
@@ -618,18 +619,18 @@
                 <a href="#collapseInventoryDocument" data-bs-toggle="collapse"
                    aria-expanded="@(Html.IsActive("AdminInventorydocument,AdminInventoryTransfer") != "" ? "true" : "false")"
                    class="sidebar-section-header @Html.IsActive("AdminInventorydocument,AdminInventoryTransfer")">
-                    <i class="fas fa-warehouse section-icon"></i> Phiếu Kho
+                <i class="fas fa-warehouse section-icon"></i> @SharedText["Admin.Nav.InventoryDocuments"]
                     <i class="fas fa-chevron-down chevron"></i>
                 </a>
                 <div class="collapse @Html.IsActive("AdminInventorydocument,AdminInventoryTransfer", cssClass: "show")" id="collapseInventoryDocument">
                     <div class="sidebar-sub">
                         @if (effectivePermissions.Contains(PermissionConstants.InventoryDocumentView))
                         {
-                            <a asp-area="Admin" asp-controller="AdminInventorydocument" asp-action="Index" class="@Html.IsActive("AdminInventorydocument")"><i class="fas fa-circle"></i> Phiếu kho</a>
+                            <a asp-area="Admin" asp-controller="AdminInventorydocument" asp-action="Index" class="@Html.IsActive("AdminInventorydocument")"><i class="fas fa-circle"></i> @NavigationText["Inventory.Document"]</a>
                         }
                         @if (effectivePermissions.Contains(PermissionConstants.InventoryTransferView))
                         {
-                            <a asp-area="Admin" asp-controller="AdminInventoryTransfer" asp-action="Index" class="@Html.IsActive("AdminInventoryTransfer")"><i class="fas fa-circle"></i> Phiếu chuyển kho</a>
+                            <a asp-area="Admin" asp-controller="AdminInventoryTransfer" asp-action="Index" class="@Html.IsActive("AdminInventoryTransfer")"><i class="fas fa-circle"></i> @NavigationText["Inventory.Transfer"]</a>
                         }
                     </div>
                 </div>
@@ -640,12 +641,12 @@
                 <a href="#collapseOrders" data-bs-toggle="collapse"
                    aria-expanded="@(Html.IsActive("AdminOrder") != "" ? "true" : "false")"
                    class="sidebar-section-header @Html.IsActive("AdminOrder")">
-                    <i class="fas fa-receipt section-icon"></i> Đơn hàng
+                <i class="fas fa-receipt section-icon"></i> @SharedText["Admin.Nav.Orders"]
                     <i class="fas fa-chevron-down chevron"></i>
                 </a>
                 <div class="collapse @Html.IsActive("AdminOrder", cssClass: "show")" id="collapseOrders">
                     <div class="sidebar-sub">
-                        <a asp-area="Admin" asp-controller="AdminOrder" asp-action="History" class="@Html.IsActive("AdminOrder", "History")"><i class="fas fa-circle"></i> Lịch sử bán hàng</a>
+                        <a asp-area="Admin" asp-controller="AdminOrder" asp-action="History" class="@Html.IsActive("AdminOrder", "History")"><i class="fas fa-circle"></i> @NavigationText["Orders.History"]</a>
                     </div>
                 </div>
 
@@ -681,7 +682,7 @@
                 data-bs-toggle="collapse"
                 aria-expanded="@(isHrGroupActive ? "true" : "false")"
                 class="sidebar-section-header @(isHrGroupActive ? "active" : "")">
-                    <i class="fas fa-users-cog section-icon"></i> Nhân sự & Vận hành
+                    <i class="fas fa-users-cog section-icon"></i> @SharedText["Admin.Nav.Workforce"]
                     <i class="fas fa-chevron-down chevron"></i>
                 </a>
 
@@ -694,7 +695,7 @@
                             asp-controller="AdminPermission"
                             asp-action="Index"
                             class="@Html.IsActive("AdminPermission")">
-                                <i class="fas fa-circle"></i> Bảng phân quyền
+                                <i class="fas fa-circle"></i> @NavigationText["Staff.Permission"]
                             </a>
                         }
 
@@ -704,7 +705,7 @@
                             asp-controller="AdminStaff"
                             asp-action="Index"
                             class="@Html.IsActive("AdminStaff")">
-                                <i class="fas fa-circle"></i> Quản lý nhân viên
+                                <i class="fas fa-circle"></i> @NavigationText["Staff.Employee"]
                             </a>
                         }
 
@@ -714,7 +715,7 @@
                             asp-controller="AdminStaffShift"
                             asp-action="Index"
                             class="@Html.IsActive("AdminStaffShift")">
-                                <i class="fas fa-circle"></i> Lịch làm việc
+                                <i class="fas fa-circle"></i> @NavigationText["Staff.Schedule"]
                             </a>
                         }
 
@@ -724,7 +725,7 @@
                             asp-controller="AdminStore"
                             asp-action="Index"
                             class="@Html.IsActive("AdminStore")">
-                                <i class="fas fa-circle"></i> Quản lý cửa hàng
+                                <i class="fas fa-circle"></i> @NavigationText["Staff.Store"]
                             </a>
                         }
 
@@ -734,7 +735,7 @@
                                asp-controller="AdminOperationalAnomalies"
                                asp-action="Index"
                                class="@Html.IsActive("AdminOperationalAnomalies")">
-                                <i class="fas fa-circle"></i> Tín hiệu vận hành
+                                <i class="fas fa-circle"></i> @NavigationText["Staff.Anomaly"]
                             </a>
                         }
 
@@ -744,7 +745,7 @@
                                asp-controller="AdminWorkShiftOpenApprovals"
                                asp-action="Index"
                                class="@Html.IsActive("AdminWorkShiftOpenApprovals")">
-                                <i class="fas fa-circle"></i> Duyệt mở ca trễ
+                                <i class="fas fa-circle"></i> @NavigationText["Staff.LateOpenApproval"]
                             </a>
                         }
 
@@ -759,24 +760,33 @@
             @if (effectivePermissions.Contains(PermissionConstants.SettingsView))
             {
                 <a asp-area="Admin" asp-controller="AdminSetting" asp-action="Index" class="@Html.IsActive("AdminSetting")">
-                    <i class="fas fa-sliders"></i> Cài đặt hệ thống
+                    <i class="fas fa-sliders"></i> @SharedText["Admin.Nav.Settings"]
                 </a>
             }
 
             @if (User.Identity?.IsAuthenticated == true && User.HasClaim(claim => claim.Type == "StaffId"))
             {
                 <a asp-area="" asp-controller="AppLauncher" asp-action="Index">
-                    <i class="fas fa-grip"></i> Chọn ứng dụng
+                    <i class="fas fa-grip"></i> @SharedText["Admin.Nav.AppLauncher"]
                 </a>
             }
 
-            <partial name="~/Views/Shared/_LogoutForm.cshtml"
-                     model="CafeChain.ViewModels.Shared.LogoutFormViewModel.AdminSidebar()" />
+            @{
+                var adminLogoutModel = CafeChain.ViewModels.Shared.LogoutFormViewModel.AdminSidebar()
+                    with { Label = SharedText["Common.Logout"].Value };
+            }
+            <partial name="~/Views/Shared/_LogoutForm.cshtml" model="adminLogoutModel" />
         </div>
     </div>
 
     <div class="main-content">
         <div class="topbar">
+            <div class="cc-appearance-controls" aria-label="@SharedText["Common.DisplayPreferences"]">
+                <select class="cc-appearance-select" data-culture-selector aria-label="@SharedText["Language.Label"]">
+                    <option value="vi-VN">Tiếng Việt</option>
+                    <option value="en-US">English</option>
+                </select>
+            </div>
             @if (effectivePermissions.Contains(PermissionConstants.NotificationView))
             {
             <a asp-area="Admin"
@@ -786,8 +796,8 @@
                data-admin-notification-bell
                data-unread-url="@Url.Action("UnreadCount", "AdminNotifications", new { area = "Admin" })"
                data-list-url="@Url.Action("ListJson", "AdminNotifications", new { area = "Admin", page = 1, pageSize = 20 })"
-               title="Thông báo"
-               aria-label="Mở danh sách thông báo">
+               title="@SharedText["Common.Notifications"]"
+               aria-label="@SharedText["Common.OpenNotifications"]">
                 <i class="fas fa-bell" aria-hidden="true"></i>
                 <span id="adminNotificationBadge" class="admin-notification-badge d-none" aria-live="polite"></span>
             </a>
@@ -796,11 +806,11 @@
                asp-controller="AdminProfile"
                asp-action="MyProfile"
                class="topbar-user @Html.IsActive("AdminProfile")"
-               title="Mở hồ sơ của @currentStaffName">
+               title="@NavigationText["Profile.Open", currentStaffName]">
                 <img id="adminTopbarAvatar"
                      class="topbar-user-avatar"
                      src="@currentAvatarUrl"
-                     alt="Ảnh đại diện của @currentStaffName"
+                     alt="@NavigationText["Profile.Avatar", currentStaffName]"
                      onerror="this.onerror=null; this.src='@DefaultImages.StaffAvatarUrl';" />
                 <span class="topbar-user-name">@currentStaffName</span>
             </a>
@@ -819,6 +829,7 @@
     </div>
 
     <!-- Bootstrap & Plugins -->
+    <script src="~/js/shared/ui-catalog.js" asp-append-version="true"></script>
     <script src="~/js/Toast/toast.js" asp-append-version="true"></script>
     @if (currentController is "AdminDrink"
         or "AdminSize"

@@ -1,13 +1,17 @@
 @model CafeChain.ViewModels.Profile.MyProfileVM
 @using CafeChain.Application.Constants.Cloudinaries
+@using CafeChain.Application.Constants
+@using Microsoft.Extensions.Localization
+@using System.Text.Json
+@inject IStringLocalizer<CafeChain.SharedResource> SharedText
 @{
-    ViewData["Title"] = "Hồ sơ của tôi";
+    ViewData["Title"] = SharedText["Profile.Title"];
 
     string statusText = Model.EmployeeStatus switch {
-        1 => "Thử việc",
-        2 => "Chính thức",
-        3 => "Đã nghỉ việc",
-        _ => "Không xác định"
+        1 => SharedText["Profile.Status.Probation"],
+        2 => SharedText["Profile.Status.Official"],
+        3 => SharedText["Profile.Status.Resigned"],
+        _ => SharedText["Profile.Status.Unknown"]
     };
     string statusColor = Model.EmployeeStatus switch {
         1 => "#f59e0b",
@@ -16,11 +20,25 @@
         _ => "#94a3b8"
     };
     string genderText = Model.Gender switch {
-        0 => "Nữ",
-        1 => "Nam",
-        2 => "Khác",
+        0 => SharedText["Profile.Gender.Female"],
+        1 => SharedText["Profile.Gender.Male"],
+        2 => SharedText["Profile.Gender.Other"],
         _ => "—"
     };
+    string roleText = Model.RoleName switch {
+        RoleConstants.BusinessOwner => SharedText["Role.BusinessOwner"],
+        RoleConstants.AreaManager => SharedText["Role.AreaManager"],
+        RoleConstants.StoreManager => SharedText["Role.StoreManager"],
+        RoleConstants.ShiftSupervisor => SharedText["Role.ShiftSupervisor"],
+        RoleConstants.SalesStaff => SharedText["Role.SalesStaff"],
+        RoleConstants.AccountantWarehouse => SharedText["Role.AccountantWarehouse"],
+        RoleConstants.SystemAdmin => SharedText["Role.SystemAdmin"],
+        RoleConstants.Customer => SharedText["Role.Customer"],
+        _ => Model.RoleName
+    };
+    var profileJsCatalog = JsonSerializer.Serialize(SharedText.GetAllStrings()
+        .Where(message => message.Name.StartsWith("Profile.Js.", StringComparison.Ordinal))
+        .ToDictionary(message => message.Name, message => message.Value));
 }
 
 @section Styles {
@@ -183,17 +201,17 @@
             <img id="profileAvatar"
                  src="@(string.IsNullOrWhiteSpace(Model.AvatarUrl) ? DefaultImages.StaffAvatarUrl : Model.AvatarUrl)"
                  onerror="this.onerror=null; this.src='@DefaultImages.StaffAvatarUrl';"
-                 alt="Ảnh đại diện của @Model.FullName" />
+                 alt="@SharedText["Profile.AvatarAlt", Model.FullName]" />
             <button type="button" class="btn-change-avatar" onclick="document.getElementById('avatarInput').click();">
                 <i class="fas fa-camera"></i>
             </button>
             <input type="file" id="avatarInput" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" style="display: none;" onchange="uploadAvatar(this)" />
         </div>
         <div class="info">
-            <div class="profile-eyebrow"><i class="fas fa-user-shield"></i> Hồ sơ quản trị</div>
+            <div class="profile-eyebrow"><i class="fas fa-user-shield"></i> @SharedText["Profile.Eyebrow"]</div>
             <h3>@Model.FullName</h3>
-            <span class="role-badge"><i class="fas fa-shield-alt me-1"></i> @Model.RoleName</span>
-            <p class="profile-summary">Quản lý thông tin cá nhân, công việc và bảo mật tài khoản tại một nơi.</p>
+            <span class="role-badge"><i class="fas fa-shield-alt me-1"></i> @roleText</span>
+            <p class="profile-summary">@SharedText["Profile.Summary"]</p>
         </div>
     </div>
 
@@ -201,9 +219,9 @@
 
     <!-- ==================== THÔNG TIN CÁ NHÂN (Read-only) ==================== -->
     <div class="section-card profile-personal">
-        <div class="section-title"><i class="fas fa-id-card"></i> Thông tin cá nhân</div>
+        <div class="section-title"><i class="fas fa-id-card"></i> @SharedText["Profile.Personal"]</div>
         <div class="field-row">
-            <div class="field-label">Họ và tên</div>
+            <div class="field-label">@SharedText["Profile.FullName"]</div>
             <div class="field-value">@Model.FullName</div>
         </div>
         <div class="field-row">
@@ -215,47 +233,47 @@
             <div class="field-value">@(Model.CCCD ?? "—")</div>
         </div>
         <div class="field-row">
-            <div class="field-label">Ngày sinh</div>
+            <div class="field-label">@SharedText["Profile.BirthDate"]</div>
             <div class="field-value">@(Model.DateOfBirth?.ToString("dd/MM/yyyy") ?? "—")</div>
         </div>
         <div class="field-row">
-            <div class="field-label">Giới tính</div>
+            <div class="field-label">@SharedText["Profile.Gender"]</div>
             <div class="field-value">@genderText</div>
         </div>
     </div>
 
     <!-- ==================== CÔNG VIỆC (Read-only) ==================== -->
     <div class="section-card profile-work">
-        <div class="section-title"><i class="fas fa-briefcase"></i> Thông tin công việc</div>
+        <div class="section-title"><i class="fas fa-briefcase"></i> @SharedText["Profile.Work"]</div>
         <div class="field-row">
-            <div class="field-label">Vai trò</div>
-            <div class="field-value">@Model.RoleName</div>
+            <div class="field-label">@SharedText["Profile.Role"]</div>
+            <div class="field-value">@roleText</div>
         </div>
         <div class="field-row">
-            <div class="field-label">Cửa hàng</div>
+            <div class="field-label">@SharedText["Profile.Store"]</div>
             <div class="field-value">@Model.StoreName</div>
         </div>
         <div class="field-row">
-            <div class="field-label">Trạng thái</div>
+            <div class="field-label">@SharedText["Profile.Status"]</div>
             <div class="field-value">
                 <span class="badge-status" style="background: @statusColor;">@statusText</span>
             </div>
         </div>
         <div class="field-row">
-            <div class="field-label">Ngày bắt đầu</div>
+            <div class="field-label">@SharedText["Profile.StartDate"]</div>
             <div class="field-value">@(Model.StartDate?.ToString("dd/MM/yyyy") ?? "—")</div>
         </div>
     </div>
 
     <!-- ==================== LIÊN HỆ (Editable) ==================== -->
     <div class="section-card profile-contact">
-        <div class="section-title"><i class="fas fa-phone-alt"></i> Liên hệ</div>
+        <div class="section-title"><i class="fas fa-phone-alt"></i> @SharedText["Profile.Contact"]</div>
         <div class="field-row">
-            <div class="field-label">Số điện thoại</div>
+            <div class="field-label">@SharedText["Profile.Phone"]</div>
             <div class="field-value">
                 <div class="editable-field">
-                    <input type="tel" id="phoneInput" value="@Model.PhoneNumber" placeholder="Nhập số điện thoại..." maxlength="10" />
-                    <button class="btn-accent" onclick="updatePhone()"><i class="fas fa-save me-1"></i> Lưu</button>
+                    <input type="tel" id="phoneInput" value="@Model.PhoneNumber" placeholder="@SharedText["Profile.PhonePlaceholder"]" maxlength="10" />
+                    <button class="btn-accent" onclick="updatePhone()"><i class="fas fa-save me-1"></i> @SharedText["Profile.Save"]</button>
                 </div>
             </div>
         </div>
@@ -263,12 +281,12 @@
 
     <!-- ==================== BẢO MẬT ==================== -->
     <div class="section-card profile-security">
-        <div class="section-title"><i class="fas fa-lock"></i> Bảo mật tài khoản</div>
+        <div class="section-title"><i class="fas fa-lock"></i> @SharedText["Profile.Security"]</div>
         <div class="field-row">
-            <div class="field-label">Mật khẩu</div>
+            <div class="field-label">@SharedText["Profile.Password"]</div>
             <div class="field-value">
                 <button class="btn-outline-accent" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
-                    <i class="fas fa-key me-1"></i> Đổi mật khẩu
+                    <i class="fas fa-key me-1"></i> @SharedText["Profile.ChangePassword"]
                 </button>
             </div>
         </div>
@@ -280,27 +298,27 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header accent">
-                <h5 class="modal-title"><i class="fas fa-key me-2"></i> Đổi mật khẩu</h5>
+                <h5 class="modal-title"><i class="fas fa-key me-2"></i> @SharedText["Profile.ChangePassword"]</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
                 <div class="mb-3">
-                    <label class="form-label fw-bold" style="font-size: 13px;">Mật khẩu hiện tại</label>
-                    <input type="password" id="oldPassword" class="form-control" style="border-radius: 10px;" placeholder="Nhập mật khẩu hiện tại..." />
+                    <label class="form-label fw-bold" style="font-size: 13px;">@SharedText["Profile.CurrentPassword"]</label>
+                    <input type="password" id="oldPassword" class="form-control" style="border-radius: 10px;" placeholder="@SharedText["Profile.CurrentPasswordPlaceholder"]" />
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold" style="font-size: 13px;">Mật khẩu mới</label>
-                    <input type="password" id="newPassword" class="form-control" style="border-radius: 10px;" placeholder="Tối thiểu 6 ký tự..." />
+                    <label class="form-label fw-bold" style="font-size: 13px;">@SharedText["Profile.NewPassword"]</label>
+                    <input type="password" id="newPassword" class="form-control" style="border-radius: 10px;" placeholder="@SharedText["Profile.NewPasswordPlaceholder"]" />
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold" style="font-size: 13px;">Xác nhận mật khẩu mới</label>
-                    <input type="password" id="confirmNewPassword" class="form-control" style="border-radius: 10px;" placeholder="Nhập lại mật khẩu mới..." />
+                    <label class="form-label fw-bold" style="font-size: 13px;">@SharedText["Profile.ConfirmPassword"]</label>
+                    <input type="password" id="confirmNewPassword" class="form-control" style="border-radius: 10px;" placeholder="@SharedText["Profile.ConfirmPasswordPlaceholder"]" />
                 </div>
             </div>
             <div class="modal-footer border-0 d-flex justify-content-between px-4 pb-4">
-                <button type="button" class="btn btn-light px-4" style="border-radius: 10px;" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-light px-4" style="border-radius: 10px;" data-bs-dismiss="modal">@SharedText["Common.Cancel"]</button>
                 <button type="button" class="btn px-4" style="background: var(--accent); color: white; border-radius: 10px; font-weight: 600;" onclick="changePassword()">
-                    <i class="fas fa-check me-1"></i> Xác nhận đổi
+                    <i class="fas fa-check me-1"></i> @SharedText["Profile.ConfirmChange"]
                 </button>
             </div>
         </div>
@@ -309,7 +327,10 @@
 
 <!-- SweetAlert2 CDN -->
 @section Scripts {
+    <script id="profileUiCatalog" type="application/json">@Html.Raw(profileJsCatalog)</script>
     <script>
+        const profileCatalog = window.CafeChainUiCatalog?.read('profileUiCatalog') ?? {};
+        const profileText = key => window.CafeChainUiCatalog?.text(profileCatalog, key) ?? profileCatalog[key] ?? key;
         const updateProfileUrl = '@Url.Action("UpdateMyProfile", "AdminProfile", new { area = "Admin" })';
         const changePasswordUrl = '@Url.Action("ChangePassword", "AdminProfile", new { area = "Admin" })';
 
@@ -325,12 +346,12 @@
             const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
             if (!allowedTypes.includes(file.type)) {
                 input.value = '';
-                Swal.fire({ icon: 'warning', title: 'Không hợp lệ', text: 'Chỉ hỗ trợ ảnh JPG, JPEG, PNG hoặc WebP.' });
+                Swal.fire({ icon: 'warning', title: profileText('Profile.Js.Invalid'), text: profileText('Profile.Js.ImageType') });
                 return;
             }
             if (file.size > 2 * 1024 * 1024) {
                 input.value = '';
-                Swal.fire({ icon: 'warning', title: 'Ảnh quá lớn', text: 'Ảnh đại diện không được vượt quá 2 MB.' });
+                Swal.fire({ icon: 'warning', title: profileText('Profile.Js.ImageLarge'), text: profileText('Profile.Js.ImageSize') });
                 return;
             }
 
@@ -350,11 +371,11 @@
                         $('#profileAvatar, #adminTopbarAvatar').attr('src', avatarUrl);
                         Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: res.message, showConfirmButton: false, timer: 2000 });
                     } else {
-                        Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message });
+                        Swal.fire({ icon: 'error', title: profileText('Profile.Js.Error'), text: res.message });
                     }
                 },
                 error: function () {
-                    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể cập nhật ảnh đại diện.' });
+                    Swal.fire({ icon: 'error', title: profileText('Profile.Js.Error'), text: profileText('Profile.Js.AvatarError') });
                 },
                 complete: function () {
                     input.value = '';
@@ -366,12 +387,12 @@
         function updatePhone() {
             var phone = $('#phoneInput').val().trim();
             if (!phone) {
-                Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng nhập số điện thoại.' });
+                Swal.fire({ icon: 'warning', title: profileText('Profile.Js.Missing'), text: profileText('Profile.Js.PhoneRequired') });
                 return;
             }
             // Validate format: 0[3-9]xxxxxxxx
             if (!/^(0[3-9])\d{8}$/.test(phone)) {
-                Swal.fire({ icon: 'warning', title: 'Không hợp lệ', text: 'Số điện thoại phải đúng 10 chữ số, bắt đầu bằng 03-09.' });
+                Swal.fire({ icon: 'warning', title: profileText('Profile.Js.Invalid'), text: profileText('Profile.Js.PhoneInvalid') });
                 return;
             }
 
@@ -384,11 +405,11 @@
                     if (res.success) {
                         Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: res.message, showConfirmButton: false, timer: 2000 });
                     } else {
-                        Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message });
+                        Swal.fire({ icon: 'error', title: profileText('Profile.Js.Error'), text: res.message });
                     }
                 },
                 error: function () {
-                    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể cập nhật số điện thoại.' });
+                    Swal.fire({ icon: 'error', title: profileText('Profile.Js.Error'), text: profileText('Profile.Js.PhoneError') });
                 }
             });
         }
@@ -400,15 +421,15 @@
             var confirmPw = $('#confirmNewPassword').val();
 
             if (!oldPw || !newPw || !confirmPw) {
-                Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng điền đầy đủ các trường.' });
+                Swal.fire({ icon: 'warning', title: profileText('Profile.Js.Missing'), text: profileText('Profile.Js.FieldsRequired') });
                 return;
             }
             if (newPw.length < 6) {
-                Swal.fire({ icon: 'warning', title: 'Không hợp lệ', text: 'Mật khẩu mới phải có ít nhất 6 ký tự.' });
+                Swal.fire({ icon: 'warning', title: profileText('Profile.Js.Invalid'), text: profileText('Profile.Js.PasswordLength') });
                 return;
             }
             if (newPw !== confirmPw) {
-                Swal.fire({ icon: 'warning', title: 'Không khớp', text: 'Mật khẩu xác nhận không trùng khớp.' });
+                Swal.fire({ icon: 'warning', title: profileText('Profile.Js.Mismatch'), text: profileText('Profile.Js.PasswordMismatch') });
                 return;
             }
 
@@ -421,13 +442,13 @@
                     if (res.success) {
                         $('#changePasswordModal').modal('hide');
                         $('#oldPassword, #newPassword, #confirmNewPassword').val('');
-                        Swal.fire({ icon: 'success', title: 'Thành công', text: res.message });
+                        Swal.fire({ icon: 'success', title: profileText('Profile.Js.Success'), text: res.message });
                     } else {
-                        Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message });
+                        Swal.fire({ icon: 'error', title: profileText('Profile.Js.Error'), text: res.message });
                     }
                 },
                 error: function () {
-                    Swal.fire({ icon: 'error', title: 'Lỗi hệ thống', text: 'Không thể đổi mật khẩu.' });
+                    Swal.fire({ icon: 'error', title: profileText('Profile.Js.SystemError'), text: profileText('Profile.Js.PasswordError') });
                 }
             });
         }

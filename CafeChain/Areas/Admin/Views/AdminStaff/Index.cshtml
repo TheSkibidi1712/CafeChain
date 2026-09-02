@@ -1,12 +1,15 @@
 @model CafeChain.ViewModels.Admin.Staffs.StaffIndexPageVM
 @using System.Security.Claims
+@using System.Text.Json
 @using CafeChain.Application.Constants
 @using CafeChain.Application.Constants.Cloudinaries
 @using CafeChain.Application.Interfaces.Admin.Permissions
+@using Microsoft.Extensions.Localization
 @inject IAdminPermissionService StaffPermissionService
+@inject IStringLocalizer<StaffResource> L
 
 @{
-    ViewData["Title"] = "Quản lý nhân sự";
+    ViewData["Title"] = L["Staff.Index.Title"].Value;
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var roles = ViewBag.Roles as List<CafeChain.Models.Permissions.Role>;
     var accountId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var parsedAccountId)
@@ -30,16 +33,16 @@
     
     <header class="staff-page-header ops-header cc-warehouse-header">
         <div>
-            <div class="staff-eyebrow">Nhân sự &amp; Vận hành / Quản lý nhân viên</div>
-            <h1><i class="fa-solid fa-users me-2 text-warning" aria-hidden="true"></i> Quản lý nhân sự</h1>
-            <p class="staff-subtitle">Quản lý thông tin, vai trò và quyền hạn của đội ngũ nhân viên CafeChain.</p>
+            <div class="staff-eyebrow">@L["Staff.Index.Eyebrow"]</div>
+            <h1><i class="fa-solid fa-users me-2 text-warning" aria-hidden="true"></i> @L["Staff.Index.Title"]</h1>
+            <p class="staff-subtitle">@L["Staff.Index.Subtitle"]</p>
         </div>
         <div class="staff-header-actions">
             @if (canCreateStaff)
             {
                 <button type="button" class="btn btn-primary d-flex align-items-center gap-2"
                         data-bs-toggle="modal" data-bs-target="#createStaffModal">
-                    <i class="fas fa-user-plus"></i> Thêm nhân viên
+                    <i class="fas fa-user-plus"></i> @L["Staff.Index.Add"]
                 </button>
             }
         </div>
@@ -51,21 +54,21 @@
             <div class="kpi-icon total"><i class="fas fa-users"></i></div>
             <div class="kpi-info">
                 <h4>@Model.TotalStaff</h4>
-                <span>Tổng nhân sự</span>
+                <span>@L["Staff.Index.Kpi.Total"]</span>
             </div>
         </div>
         <div class="staff-kpi-card">
             <div class="kpi-icon active"><i class="fas fa-user-check"></i></div>
             <div class="kpi-info">
                 <h4>@Model.ActiveCount</h4>
-                <span>Đang làm việc</span>
+                <span>@L["Staff.Index.Kpi.Working"]</span>
             </div>
         </div>
         <div class="staff-kpi-card">
             <div class="kpi-icon inactive"><i class="fas fa-user-lock"></i></div>
             <div class="kpi-info">
                 <h4>@Model.InactiveCount</h4>
-                <span>Đã khóa</span>
+                <span>@L["Staff.Index.Kpi.Locked"]</span>
             </div>
         </div>
     </div>
@@ -77,7 +80,7 @@
             
             <form asp-action="Index" method="get" class="staff-filter-panel row g-3 mb-4 align-items-end">
                 <div class="col-md-5">
-                    <label class="form-label mb-1">Tìm kiếm nhân viên</label>
+                    <label class="form-label mb-1">@L["Staff.Index.SearchLabel"]</label>
                     <div class="input-group">
                         <span class="input-group-text bg-white border-end-0 text-muted">
                             <i class="fas fa-search"></i>
@@ -85,13 +88,13 @@
                         <input type="text" name="search"
                                value="@Model.SearchTerm"
                                class="form-control border-start-0 ps-0"
-                               placeholder="Tên hoặc email nhân viên..." />
+                               placeholder="@L["Staff.Index.SearchPlaceholder"]" />
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label mb-1">Vai trò</label>
+                    <label class="form-label mb-1">@L["Staff.Index.Role"]</label>
                     <select name="roleFilter" class="form-select" onchange="this.form.submit()">
-                        <option value="">Tất cả vai trò</option>
+                        <option value="">@L["Staff.Index.AllRoles"]</option>
                         @if (roles != null)
                         {
                             @foreach (var role in roles)
@@ -106,12 +109,12 @@
                 </div>
                 <div class="col-md-2">
                     <button type="submit" class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2">
-                        <i class="fas fa-filter"></i> Lọc
+                        <i class="fas fa-filter"></i> @L["Staff.Index.Filter"]
                     </button>
                 </div>
                 <div class="col-md-2">
                     <a asp-action="Index" class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2">
-                        <i class="fas fa-undo"></i> Đặt lại
+                        <i class="fas fa-undo"></i> @L["Staff.Index.Reset"]
                     </a>
                 </div>
             </form>
@@ -120,10 +123,10 @@
             <div class="staff-result-summary d-flex justify-content-between align-items-center mb-3">
                 <span class="text-muted">
                     <i class="fas fa-list-ul me-1"></i>
-                    Tìm thấy <strong>@Model.StaffList.TotalCount</strong> nhân viên
+                    @L["Staff.Index.FoundPrefix"] <strong>@Model.StaffList.TotalCount</strong> @L["Staff.Index.FoundSuffix"]
                     @if (!string.IsNullOrEmpty(Model.SearchTerm))
                     {
-                        <span> cho "<em>@Model.SearchTerm</em>"</span>
+                        <span> @L["Staff.Index.FoundFor"] "<em>@Model.SearchTerm</em>"</span>
                     }
                 </span>
             </div>
@@ -133,12 +136,12 @@
                 <table class="table table-custom">
                     <thead>
                         <tr>
-                            <th>Nhân viên</th>
-                            <th>Email</th>
-                            <th>Vai trò</th>
-                            <th>Cửa hàng</th>
-                            <th style="min-width:140px;" class="text-center">Trạng thái</th>
-                            <th style="min-width:140px;" class="text-center">Thao tác</th>
+                            <th>@L["Staff.Index.Col.Staff"]</th>
+                            <th>@L["Staff.Index.Col.Email"]</th>
+                            <th>@L["Staff.Index.Col.Role"]</th>
+                            <th>@L["Staff.Index.Col.Store"]</th>
+                            <th style="min-width:140px;" class="text-center">@L["Staff.Index.Col.Status"]</th>
+                            <th style="min-width:140px;" class="text-center">@L["Staff.Index.Col.Actions"]</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -147,7 +150,7 @@
                             <tr>
                                 <td colspan="6" class="admin-wo-empty py-5">
                                     <i class="fas fa-users-slash d-block mb-2" style="font-size:2rem;color:#DBC4A9;"></i>
-                                    Chưa có nhân viên nào. Hãy thêm mới!
+                                    @L["Staff.Index.Empty"]
                                 </td>
                             </tr>
                         }
@@ -175,13 +178,13 @@
                                     @if (item.Active)
                                     {
                                         <span class="status-badge active">
-                                            <span class="dot"></span> Đang làm việc
+                                            <span class="dot"></span> @L["Staff.Index.Kpi.Working"]
                                         </span>
                                     }
                                     else
                                     {
                                         <span class="status-badge inactive">
-                                            <span class="dot"></span> Đã khóa
+                                            <span class="dot"></span> @L["Staff.Index.Kpi.Locked"]
                                         </span>
                                     }
                                 </td>
@@ -191,13 +194,13 @@
                                         @if (canUpdateStaff)
                                         {
                                             <a href="@Url.Action("Edit", "AdminStaff", new { area = "Admin", id = item.StaffId })"
-                                               class="action-btn action-btn-edit me-1" title="Chỉnh sửa"><i class="fas fa-pen"></i></a>
+                                               class="action-btn action-btn-edit me-1" title="@L["Staff.Index.EditTitle"]"><i class="fas fa-pen"></i></a>
                                         }
                                         @if (canToggleStaff)
                                         {
                                             <button type="button" class="action-btn @(item.Active ? "danger" : "success")"
                                                     onclick="toggleStaffStatus(@item.StaffId, '@item.FullName', @item.Active.ToString().ToLower(), this)"
-                                                    title="@(item.Active ? "Khóa tài khoản" : "Mở khóa")">
+                                                    title="@(item.Active ? L["Staff.Index.LockTitle"] : L["Staff.Index.UnlockTitle"])">
                                                 <i class="fas @(item.Active ? "fa-lock" : "fa-unlock")"></i>
                                             </button>
                                         }
@@ -205,15 +208,15 @@
                                         {
                                             <button type="button" class="action-btn"
                                                     onclick="resetStaffPassword(@item.AccountId, '@item.FullName', this)"
-                                                    title="Đặt lại mật khẩu">
+                                                    title="@L["Staff.Index.ResetPasswordTitle"]">
                                                 <i class="fas fa-key"></i>
                                             </button>
                                         }
                                     }
                                     else
                                     {
-                                        <span class="badge bg-light text-muted border" title="Không có quyền chỉnh sửa">
-                                            <i class="fas fa-ban me-1"></i> Thuộc cấp trên
+                                        <span class="badge bg-light text-muted border" title="@L["Staff.Index.NoEditTitle"]">
+                                            <i class="fas fa-ban me-1"></i> @L["Staff.Index.Superior"]
                                         </span>
                                     }
                                 </td>
@@ -226,7 +229,7 @@
             
             <div class="staff-table-footer d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
                 <span class="text-muted">
-                    Hiển thị @Model.StaffList.Items.Count / @Model.StaffList.TotalCount nhân viên
+                    @L["Staff.Index.Showing", Model.StaffList.Items.Count, Model.StaffList.TotalCount]
                 </span>
                 <div class="page-btns">
                     <a asp-action="Index"
@@ -265,20 +268,23 @@
 }
 
 @section Scripts {
+    <script id="staff-ui-catalog" type="application/json">@Html.Raw(JsonSerializer.Serialize(L.GetAllStrings().Where(x => x.Name.StartsWith("Staff.Js.")).ToDictionary(x => x.Name, x => x.Value)))</script>
     <script>
-        // ==================== Toggle Status ====================
+        const staffCatalog = CafeChainUiCatalog.read('staff-ui-catalog');
+        const staffText = (key, values) => CafeChainUiCatalog.text(staffCatalog, key, values);
+
         function toggleStaffStatus(staffId, staffName, isActive, button) {
-            const action = isActive ? 'khóa' : 'mở khóa';
+            const action = isActive ? staffText('Staff.Js.LockVerb') : staffText('Staff.Js.UnlockVerb');
             const icon = isActive ? 'warning' : 'question';
 
             Swal.fire({
-                title: `${isActive ? 'Khóa' : 'Mở khóa'} tài khoản`,
-                html: `<div class="staff-swal-message">Bạn đang yêu cầu <strong>${action}</strong> tài khoản của</div><div class="staff-swal-subject">${staffName}</div><div class="staff-swal-note">${isActive ? 'Nhân viên sẽ không thể đăng nhập cho đến khi tài khoản được mở lại.' : 'Nhân viên sẽ có thể đăng nhập và tiếp tục làm việc.'}</div>`,
+                title: isActive ? staffText('Staff.Js.LockTitle') : staffText('Staff.Js.UnlockTitle'),
+                html: `<div class="staff-swal-message">${staffText('Staff.Js.ToggleLead')} <strong>${action}</strong> ${staffText('Staff.Js.ToggleOf')}</div><div class="staff-swal-subject">${staffName}</div><div class="staff-swal-note">${isActive ? staffText('Staff.Js.LockNote') : staffText('Staff.Js.UnlockNote')}</div>`,
                 icon: icon,
                 iconHtml: `<i class="fas ${isActive ? 'fa-lock' : 'fa-lock-open'}"></i>`,
                 showCancelButton: true,
-                confirmButtonText: isActive ? '<i class="fas fa-lock"></i> Khóa tài khoản' : '<i class="fas fa-unlock"></i> Mở khóa tài khoản',
-                cancelButtonText: 'Hủy bỏ',
+                confirmButtonText: isActive ? `<i class="fas fa-lock"></i> ${staffText('Staff.Js.LockConfirm')}` : `<i class="fas fa-unlock"></i> ${staffText('Staff.Js.UnlockConfirm')}`,
+                cancelButtonText: staffText('Staff.Js.Cancel'),
                 reverseButtons: true,
                 buttonsStyling: false,
                 focusCancel: isActive,
@@ -303,30 +309,30 @@
                     .then(res => res.json())
                     .then(data => {
                         if (data.success) {
-                            Swal.fire({ title: 'Thành công!', text: data.message, icon: 'success', timer: 1500, showConfirmButton: false })
+                            Swal.fire({ title: staffText('Staff.Js.Success'), text: data.message, icon: 'success', timer: 1500, showConfirmButton: false })
                                 .then(() => location.reload());
                         } else {
-                            Swal.fire('Lỗi!', data.message, 'error');
+                            Swal.fire(staffText('Staff.Js.Error'), data.message, 'error');
                         }
                     })
-                    .catch(() => Swal.fire('Lỗi!', 'Không thể kết nối server.', 'error')));
+                    .catch(() => Swal.fire(staffText('Staff.Js.Error'), staffText('Staff.Js.ServerError'), 'error')));
                 }
             });
         }
 
         async function resetStaffPassword(accountId, staffName, button) {
             const result = await Swal.fire({
-                title: 'Đặt lại mật khẩu',
-                html: `<div class="staff-swal-message">Tạo mật khẩu đăng nhập mới cho</div><div class="staff-swal-subject">${staffName}</div><div class="staff-swal-note">Mật khẩu mới cần có ít nhất 6 ký tự. Hãy gửi mật khẩu cho nhân viên qua kênh an toàn.</div>`,
+                title: staffText('Staff.Js.ResetTitle'),
+                html: `<div class="staff-swal-message">${staffText('Staff.Js.ResetLead')}</div><div class="staff-swal-subject">${staffName}</div><div class="staff-swal-note">${staffText('Staff.Js.ResetNote')}</div>`,
                 icon: 'info',
                 iconHtml: '<i class="fas fa-key"></i>',
                 input: 'password',
-                inputLabel: 'Mật khẩu mới',
-                inputPlaceholder: 'Nhập tối thiểu 6 ký tự',
+                inputLabel: staffText('Staff.Js.NewPassword'),
+                inputPlaceholder: staffText('Staff.Js.NewPasswordPlaceholder'),
                 inputAttributes: { minlength: 6, autocomplete: 'new-password', autocapitalize: 'off', spellcheck: 'false' },
                 showCancelButton: true,
-                confirmButtonText: '<i class="fas fa-key"></i> Đặt lại mật khẩu',
-                cancelButtonText: 'Hủy',
+                confirmButtonText: `<i class="fas fa-key"></i> ${staffText('Staff.Js.ResetConfirm')}`,
+                cancelButtonText: staffText('Staff.Js.CancelShort'),
                 reverseButtons: true,
                 buttonsStyling: false,
                 customClass: {
@@ -341,7 +347,7 @@
                     confirmButton: 'staff-swal-button staff-swal-confirm',
                     cancelButton: 'staff-swal-button staff-swal-cancel'
                 },
-                inputValidator: value => !value || value.length < 6 ? 'Mật khẩu phải có ít nhất 6 ký tự.' : undefined
+                inputValidator: value => !value || value.length < 6 ? staffText('Staff.Js.PasswordMin') : undefined
             });
             if (!result.isConfirmed) return;
 
@@ -356,24 +362,23 @@
                         body: JSON.stringify({ accountId, newPassword: result.value })
                     });
                     const data = await response.json();
-                    await Swal.fire(data.success ? 'Thành công' : 'Không thành công', data.message, data.success ? 'success' : 'error');
+                    await Swal.fire(data.success ? staffText('Staff.Js.SuccessShort') : staffText('Staff.Js.FailedShort'), data.message, data.success ? 'success' : 'error');
                 } catch {
-                    await Swal.fire('Lỗi', 'Không thể kết nối server.', 'error');
+                    await Swal.fire(staffText('Staff.Js.ErrorShort'), staffText('Staff.Js.ServerError'), 'error');
                 }
             });
         }
 
-        // ==================== TempData Messages ====================
         @if (TempData["Success"] != null)
         {
             <text>
-            Swal.fire({ title: 'Thành công!', html: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["Success"])), icon: 'success', timer: 2000, showConfirmButton: false });
+            Swal.fire({ title: staffText('Staff.Js.Success'), html: @Html.Raw(JsonSerializer.Serialize(TempData["Success"])), icon: 'success', timer: 2000, showConfirmButton: false });
             </text>
         }
         @if (TempData["Error"] != null)
         {
             <text>
-            Swal.fire({ title: 'Lỗi!', html: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["Error"])), icon: 'error' });
+            Swal.fire({ title: staffText('Staff.Js.Error'), html: @Html.Raw(JsonSerializer.Serialize(TempData["Error"])), icon: 'error' });
             </text>
         }
     </script>

@@ -1,7 +1,9 @@
 @model CafeChain.Application.DTOs.Admin.Categories.AdminCreateCategoryDto
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<CafeChain.SharedResource> SharedText
 
 @{
-    ViewData["Title"] = "Thêm danh mục mới";
+    ViewData["Title"] = SharedText["Category.Form.Create.Title"];
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 }
 
@@ -10,12 +12,12 @@
 <main class="category-page category-form-page">
 <header class="category-page-header category-form-header">
     <div>
-        <p class="category-eyebrow">Cấu trúc thực đơn</p>
-        <h1 class="category-page-title">Thêm danh mục mới</h1>
-        <p class="category-page-subtitle">Tạo danh mục đồ uống mới cho hệ thống CafeChain.</p>
+        <p class="category-eyebrow">@SharedText["Category.Eyebrow"]</p>
+        <h1 class="category-page-title">@SharedText["Category.Form.Create.Title"]</h1>
+        <p class="category-page-subtitle">@SharedText["Category.Form.Create.Description"]</p>
     </div>
     <a asp-action="Index" class="btn btn-light border">
-        <i class="fas fa-arrow-left"></i> Quay lại danh sách
+        <i class="fas fa-arrow-left"></i> @SharedText["Category.Form.Back"]
     </a>
 </header>
 
@@ -24,34 +26,34 @@
         <form id="createCategoryForm" asp-action="Create" method="post">
             <div class="mb-3">
                 <button type="button" id="btnSuggestCategories" class="btn btn-outline-primary">
-                    <i class="fas fa-wand-magic-sparkles"></i> AI Gợi Ý
+                    <i class="fas fa-wand-magic-sparkles"></i> @SharedText["Category.Form.AiSuggest"]
                 </button>
             </div>
             <div id="categoryAiSuggestions" class="category-ai-suggestions d-none mb-3">
-                <div id="categoryAiSuggestionMessage" class="small text-muted mb-2">Chọn một gợi ý để điền vào form:</div>
+                <div id="categoryAiSuggestionMessage" class="small text-muted mb-2">@SharedText["Category.Form.AiChoose"]</div>
                 <div id="categoryAiSuggestionList" class="category-ai-suggestion-list"></div>
             </div>
             <div class="mb-3">
-                <label asp-for="CategoryCode" class="form-label fw-semibold">Mã danh mục</label>
+                <label asp-for="CategoryCode" class="form-label fw-semibold">@SharedText["Category.Form.Code.Label"]</label>
                 <input asp-for="CategoryCode" class="form-control" />
             </div>
             <div class="mb-3">
-                <label asp-for="Name" class="form-label fw-semibold">Tên danh mục <span class="text-danger">*</span></label>
-                <input asp-for="Name" class="form-control" placeholder="Nhập tên danh mục..." />
+                <label asp-for="Name" class="form-label fw-semibold">@SharedText["Category.Form.Name.Label"] <span class="text-danger">*</span></label>
+                <input asp-for="Name" class="form-control" placeholder="@SharedText["Category.Form.Name.Placeholder"]" />
                 <span asp-validation-for="Name" class="text-danger category-validation"></span>
             </div>
 
             <div class="mb-4 form-check form-switch">
                 <input asp-for="Active" class="form-check-input" type="checkbox" id="flexSwitchCheckChecked" checked>
-                <label class="form-check-label" for="flexSwitchCheckChecked">Hoạt động</label>
+                <label class="form-check-label" for="flexSwitchCheckChecked">@SharedText["Category.Form.Active"]</label>
             </div>
             <div class="mb-3">
-                <label asp-for="Icon" class="form-label fw-semibold">Biểu tượng</label>
-                <input asp-for="Icon" class="form-control" placeholder="Ví dụ: ☕ 🍹 🥤" />
+                <label asp-for="Icon" class="form-label fw-semibold">@SharedText["Category.Form.Icon.Label"]</label>
+                <input asp-for="Icon" class="form-control" placeholder="@SharedText["Category.Form.Icon.Example"]" />
             </div>
 
             <button type="submit" class="btn category-primary-btn px-4 py-2">
-                <i class="fas fa-save"></i> Lưu danh mục
+                <i class="fas fa-save"></i> @SharedText["Category.Form.Save"]
             </button>
         </form>
     </div>
@@ -62,5 +64,6 @@
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     <script src="~/js/Toast/toast.js"></script>
+    <partial name="_CategoryUiCatalog" />
     <script src="~/js/Admin/Category/Category.js" asp-append-version="true"></script>
 }

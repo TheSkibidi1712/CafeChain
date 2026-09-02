@@ -1,4 +1,6 @@
 (() => {
+    const catalog = window.CafeChainUiCatalog.read("inventoryTransferUiCatalog");
+    const t = (key, values) => window.CafeChainUiCatalog.text(catalog, key, values);
     const panel = document.getElementById('transfer-resolution-panel');
     if (!panel) return;
 
@@ -45,11 +47,11 @@
             payloadLines.forEach((entry) => {
                 const source = lines.find((line) => Number(line.dataset.detailId) === entry.inventoryTransferDetailId);
                 if (entry.receivedBaseQuantity + entry.rejectedBaseQuantity > maxFor(source, action) + 0.0001)
-                    throw new Error('Số lượng nhận và từ chối vượt lượng còn đang xử lý.');
+                    throw new Error(t("Transfer.Js.ResolutionExceedsPending"));
                 if (entry.rejectedBaseQuantity > 0 && (!entry.rejectionIssueType || !entry.rejectionReason))
-                    throw new Error('Hãy chọn loại và nhập lý do cho hàng bị từ chối.');
+                    throw new Error(t("Transfer.Js.RejectionDetailsRequired"));
             });
-            if (!payloadLines.length) throw new Error('Hãy nhập số lượng nhận hoặc từ chối.');
+            if (!payloadLines.length) throw new Error(t("Transfer.Js.ResolutionQuantityRequired"));
             return {
                 url: panel.dataset.receiveUrl,
                 body: {
@@ -66,16 +68,16 @@
             inventoryTransferDetailId: Number(line.dataset.detailId),
             baseQuantity: number(line.querySelector('.js-resolution-quantity'))
         })).filter((line) => line.baseQuantity > 0);
-        if (!payloadLines.length) throw new Error('Hãy nhập số lượng cần xử lý.');
+        if (!payloadLines.length) throw new Error(t("Transfer.Js.FollowUpQuantityRequired"));
         payloadLines.forEach((entry) => {
             const source = lines.find((line) => Number(line.dataset.detailId) === entry.inventoryTransferDetailId);
             if (entry.baseQuantity > maxFor(source, action) + 0.0001)
-                throw new Error('Số lượng xử lý vượt giới hạn của dòng hàng.');
+                throw new Error(t("Transfer.Js.ResolutionLineExceeded"));
         });
 
         const note = reason.value.trim();
         if (action !== 'follow-up' && !note)
-            throw new Error('Lý do xử lý là bắt buộc.');
+            throw new Error(t("Transfer.Js.ResolutionReasonRequired"));
         const urls = {
             'request-return': panel.dataset.returnUrl,
             'confirm-return': panel.dataset.confirmReturnUrl,
@@ -103,7 +105,7 @@
             const request = buildPayload();
             submit.disabled = true;
             message.className = 'transfer-resolution-message';
-            message.textContent = 'Đang ghi nhận...';
+            message.textContent = t("Transfer.Js.Recording");
             const response = await fetch(request.url, {
                 method: 'POST',
                 credentials: 'same-origin',
@@ -115,9 +117,9 @@
             });
             const data = await response.json().catch(() => ({}));
             if (!response.ok || data.success === false)
-                throw new Error(data.message || 'Không thể xử lý điều chuyển kho.');
+                throw new Error(data.message || t("Transfer.Js.ResolutionFailed"));
             message.classList.add('is-success');
-            message.textContent = request.followUp ? 'Đã tạo phiếu gửi bù.' : 'Đã ghi nhận thành công.';
+            message.textContent = request.followUp ? t("Transfer.Js.FollowUpCreated") : t("Transfer.Js.RecordedSuccessfully");
             if (request.followUp && data.transfer?.inventoryTransferId) {
                 window.location.href = `${window.location.pathname.replace(/\/Detail\/\d+$/i, '')}/Detail/${data.transfer.inventoryTransferId}`;
                 return;
@@ -125,7 +127,7 @@
             window.location.reload();
         } catch (error) {
             message.className = 'transfer-resolution-message is-error';
-            message.textContent = error instanceof Error ? error.message : 'Không thể xử lý điều chuyển kho.';
+            message.textContent = error instanceof Error ? error.message : t("Transfer.Js.ResolutionFailed");
             submit.disabled = false;
         }
     }

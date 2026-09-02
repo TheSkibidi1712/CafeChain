@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Page.Title" xml:space="preserve"><value>Smart data import with AI</value></data>
+  <data name="Hero.Eyebrow" xml:space="preserve"><value>MASTER DATA / SMART IMPORT</value></data>
+  <data name="Hero.Description" xml:space="preserve"><value>Analyze XLSX, DOCX, and text-layer PDF files; review every record before importing atomically.</value></data>
+  <data name="Action.History" xml:space="preserve"><value>History</value></data>
+  <data name="Upload.Drop" xml:space="preserve"><value>Drop one or more .xlsx, .docx, or .pdf files here</value></data>
+  <data name="Upload.Limits" xml:space="preserve"><value>Up to 10 files · 10 MiB/file · 50 MiB/session</value></data>
+  <data name="Upload.Choose" xml:space="preserve"><value>Choose documents</value></data>
+  <data name="Upload.EntityHint" xml:space="preserve"><value>Data type hint</value></data>
+  <data name="Upload.Auto" xml:space="preserve"><value>Automatic</value></data>
+  <data name="Entity.Category" xml:space="preserve"><value>Category</value></data>
+  <data name="Entity.Drink" xml:space="preserve"><value>Drink</value></data>
+  <data name="Entity.Size" xml:space="preserve"><value>Size</value></data>
+  <data name="Entity.Ingredient" xml:space="preserve"><value>Ingredient</value></data>
+  <data name="Entity.Supplier" xml:space="preserve"><value>Supplier</value></data>
+  <data name="Ocr.Checking" xml:space="preserve"><value>Checking optical character recognition (OCR) configuration…</value></data>
+  <data name="Ocr.Aria" xml:space="preserve"><value>Use optical character recognition for scanned PDF files</value></data>
+  <data name="Ocr.Label" xml:space="preserve"><value>OCR for scanned PDFs</value></data>
+  <data name="Ocr.Ready" xml:space="preserve"><value>{provider} · {version} · {languages} ready</value></data>
+  <data name="Ocr.Unavailable" xml:space="preserve"><value>Local Tesseract is not ready.</value></data>
+  <data name="Action.Analyze" xml:space="preserve"><value>Analyze</value></data>
+  <data name="State.Processing" xml:space="preserve"><value>Processing data…</value></data>
+  <data name="Session.CloseTitle" xml:space="preserve"><value>Close only this view; the session remains available in history</value></data>
+  <data name="Session.Close" xml:space="preserve"><value>Close session</value></data>
+  <data name="Session.Reanalyze" xml:space="preserve"><value>Analyze again</value></data>
+  <data name="Session.Cancel" xml:space="preserve"><value>Cancel session</value></data>
+  <data name="Session.Confirm" xml:space="preserve"><value>Confirm import</value></data>
+  <data name="Preview.SourceRegion" xml:space="preserve"><value>Source / region</value></data>
+  <data name="Preview.Title" xml:space="preserve"><value>Preview</value></data>
+  <data name="Preview.SourceFile" xml:space="preserve"><value>Source file</value></data>
+  <data name="Common.All" xml:space="preserve"><value>All</value></data>
+  <data name="Preview.DataType" xml:space="preserve"><value>Data type</value></data>
+  <data name="Common.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Status.Valid" xml:space="preserve"><value>Valid</value></data>
+  <data name="Status.Warning" xml:space="preserve"><value>Warning</value></data>
+  <data name="Status.Error" xml:space="preserve"><value>Error</value></data>
+  <data name="Status.Review" xml:space="preserve"><value>Review required</value></data>
+  <data name="Status.Skipped" xml:space="preserve"><value>Skipped</value></data>
+  <data name="Status.Imported" xml:space="preserve"><value>Imported</value></data>
+  <data name="Common.Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="Action.Create" xml:space="preserve"><value>Create</value></data>
+  <data name="Action.Skip" xml:space="preserve"><value>Skip</value></data>
+  <data name="Mapping.Title" xml:space="preserve"><value>Data type and column mapping</value></data>
+  <data name="Mapping.Save" xml:space="preserve"><value>Save column mapping</value></data>
+  <data name="Mapping.SourceColumn" xml:space="preserve"><value>Source column</value></data>
+  <data name="Mapping.Sample" xml:space="preserve"><value>Sample value</value></data>
+  <data name="Mapping.Target" xml:space="preserve"><value>Target field</value></data>
+  <data name="Table.SourcePosition" xml:space="preserve"><value>Source position</value></data>
+  <data name="Table.BusinessData" xml:space="preserve"><value>Business data</value></data>
+  <data name="Table.Issues" xml:space="preserve"><value>Errors/warnings</value></data>
+  <data name="Common.Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="History.Title" xml:space="preserve"><value>Current account history</value></data>
+  <data name="Common.Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Edit.Title" xml:space="preserve"><value>Edit source record</value></data>
+  <data name="Edit.Description" xml:space="preserve"><value>Validate using the same rules as the create form.</value></data>
+  <data name="Edit.ManualReview" xml:space="preserve"><value>I compared every review-required field with the source/OCR evidence and confirm the data is correct</value></data>
+  <data name="Edit.SourceData" xml:space="preserve"><value>Additional source data</value></data>
+  <data name="Edit.Acknowledge" xml:space="preserve"><value>I reviewed the warnings and still want to create this record</value></data>
+  <data name="Edit.OverrideReason" xml:space="preserve"><value>Reason for creating a potentially duplicate supplier</value></data>
+  <data name="Edit.OverridePlaceholder" xml:space="preserve"><value>Explain why this supplier should still be created</value></data>
+  <data name="Edit.Skip" xml:space="preserve"><value>Skip row</value></data>
+  <data name="Edit.Save" xml:space="preserve"><value>Save and validate again</value></data>
+</root>

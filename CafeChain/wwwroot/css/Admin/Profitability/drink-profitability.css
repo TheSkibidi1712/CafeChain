@@ -18,6 +18,30 @@
     --pf-warning: var(--cc-warning, #99623b);
 }
 
+:root[data-theme="dark"] .pf-page {
+    background: var(--cc-canvas) !important;
+    color: var(--cc-text);
+}
+
+:root[data-theme="dark"] :is(.pf-header, .pf-filter-band, .pf-meta > div, .pf-result-band,
+    .pf-table-wrap, .pf-table th, .pf-table td, .pf-drawer, .pf-drawer-header,
+    .pf-drawer-body, .pf-drawer-footer, .pf-price-summary, .pf-form-section,
+    .pf-detail-grid section, .pf-mini-table th, .pf-mini-table td) {
+    background: var(--cc-surface-raised) !important;
+    color: var(--cc-text) !important;
+    border-color: var(--cc-border) !important;
+}
+
+:root[data-theme="dark"] :is(.pf-control, .pf-secondary-button, .pf-row-button) {
+    background: var(--cc-surface-muted) !important;
+    color: var(--cc-text) !important;
+    border-color: var(--cc-border-strong) !important;
+}
+
+:root[data-theme="dark"] :is(.pf-table tbody tr:hover > td, .pf-mini-table tbody tr:hover > td) {
+    background: var(--cc-surface-active) !important;
+}
+
 /* Base Workspace Layout */
 .pf-page {
     width: calc(100% - 24px);

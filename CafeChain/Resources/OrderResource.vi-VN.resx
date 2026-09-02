@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Order.History.Title" xml:space="preserve"><value>Lịch sử bán hàng</value></data>
+  <data name="Order.History.Eyebrow" xml:space="preserve"><value>Đơn hàng / Lịch sử bán hàng</value></data>
+  <data name="Order.History.Subtitle" xml:space="preserve"><value>Chỉ hiển thị giao dịch POS tại quầy đã thanh toán hoặc đã hoàn tiền.</value></data>
+  <data name="Order.History.ExportCsv" xml:space="preserve"><value>Xuất CSV</value></data>
+  <data name="Order.History.KpiAria" xml:space="preserve"><value>Tổng quan giao dịch</value></data>
+  <data name="Order.History.Kpi.PaidOrders" xml:space="preserve"><value>Đơn đã thanh toán</value></data>
+  <data name="Order.History.Kpi.Revenue" xml:space="preserve"><value>Doanh thu</value></data>
+  <data name="Order.History.Kpi.Refunded" xml:space="preserve"><value>Đã hoàn tiền</value></data>
+  <data name="Order.History.Kpi.RefundValue" xml:space="preserve"><value>Giá trị hoàn tiền</value></data>
+  <data name="Order.History.Filter.Store" xml:space="preserve"><value>Cửa hàng</value></data>
+  <data name="Order.History.Filter.AllStores" xml:space="preserve"><value>Tất cả cửa hàng trong phạm vi</value></data>
+  <data name="Order.History.Filter.Search" xml:space="preserve"><value>Tìm kiếm</value></data>
+  <data name="Order.History.Filter.SearchPlaceholder" xml:space="preserve"><value>Tìm mã đơn hàng...</value></data>
+  <data name="Order.History.Filter.FromDate" xml:space="preserve"><value>Từ ngày</value></data>
+  <data name="Order.History.Filter.ToDate" xml:space="preserve"><value>Đến ngày</value></data>
+  <data name="Order.History.Filter.Finance" xml:space="preserve"><value>Tài chính</value></data>
+  <data name="Order.History.Filter.AllStatuses" xml:space="preserve"><value>Tất cả trạng thái</value></data>
+  <data name="Order.History.Filter.Paid" xml:space="preserve"><value>Đã thanh toán</value></data>
+  <data name="Order.History.Filter.Refunded" xml:space="preserve"><value>Đã hoàn tiền</value></data>
+  <data name="Order.History.Filter.Payment" xml:space="preserve"><value>Thanh toán</value></data>
+  <data name="Order.History.Filter.AllPayments" xml:space="preserve"><value>Tất cả hình thức</value></data>
+  <data name="Order.History.Filter.Cash" xml:space="preserve"><value>Tiền mặt</value></data>
+  <data name="Order.History.Filter.VietQR" xml:space="preserve"><value>VietQR</value></data>
+  <data name="Order.History.Filter.WalletLegacy" xml:space="preserve"><value>Ví điện tử — dữ liệu cũ</value></data>
+  <data name="Order.History.Filter.ResetTitle" xml:space="preserve"><value>Xóa bộ lọc</value></data>
+  <data name="Order.History.Filter.Reset" xml:space="preserve"><value>Đặt lại</value></data>
+  <data name="Order.History.Col.Code" xml:space="preserve"><value>Mã đơn</value></data>
+  <data name="Order.History.Col.PaidAt" xml:space="preserve"><value>Thời gian thanh toán</value></data>
+  <data name="Order.History.Col.Store" xml:space="preserve"><value>Cửa hàng</value></data>
+  <data name="Order.History.Col.Cashier" xml:space="preserve"><value>Thu ngân</value></data>
+  <data name="Order.History.Col.OrderType" xml:space="preserve"><value>Loại đơn</value></data>
+  <data name="Order.History.Col.Total" xml:space="preserve"><value>Tổng tiền</value></data>
+  <data name="Order.History.Col.Payment" xml:space="preserve"><value>Thanh toán</value></data>
+  <data name="Order.History.Col.Finance" xml:space="preserve"><value>Tài chính</value></data>
+  <data name="Order.History.Col.Sync" xml:space="preserve"><value>Đồng bộ</value></data>
+  <data name="Order.History.Col.Receipt" xml:space="preserve"><value>Hóa đơn</value></data>
+  <data name="Order.History.Col.Label" xml:space="preserve"><value>Tem</value></data>
+  <data name="Order.History.Col.Inventory" xml:space="preserve"><value>Kho</value></data>
+  <data name="Order.History.Col.Actions" xml:space="preserve"><value>Thao tác</value></data>
+  <data name="Order.History.Loading" xml:space="preserve"><value>Đang tải...</value></data>
+  <data name="Order.History.Drawer.Kicker" xml:space="preserve"><value>CHI TIẾT GIAO DỊCH</value></data>
+  <data name="Order.History.Drawer.Title" xml:space="preserve"><value>Đơn hàng</value></data>
+  <data name="Order.History.Drawer.Close" xml:space="preserve"><value>Đóng</value></data>
+  <data name="Order.History.Js.Unknown" xml:space="preserve"><value>Chưa xác định</value></data>
+  <data name="Order.History.Js.Loading" xml:space="preserve"><value>Đang tải lịch sử...</value></data>
+  <data name="Order.History.Js.LoadFailed" xml:space="preserve"><value>Không thể tải lịch sử bán hàng.</value></data>
+  <data name="Order.History.Js.Retry" xml:space="preserve"><value>Thử lại</value></data>
+  <data name="Order.History.Js.LoadFailedShort" xml:space="preserve"><value>Không tải được dữ liệu</value></data>
+  <data name="Order.History.Js.Empty" xml:space="preserve"><value>Không có giao dịch POS phù hợp với bộ lọc.</value></data>
+  <data name="Order.History.Js.ViewDetail" xml:space="preserve"><value>Xem chi tiết</value></data>
+  <data name="Order.History.Js.ZeroTransactions" xml:space="preserve"><value>0 giao dịch</value></data>
+  <data name="Order.History.Js.PageRange" xml:space="preserve"><value>{start}-{end} trong {total} giao dịch</value></data>
+  <data name="Order.History.Js.PrevPage" xml:space="preserve"><value>Trang trước</value></data>
+  <data name="Order.History.Js.NextPage" xml:space="preserve"><value>Trang sau</value></data>
+  <data name="Order.History.Js.OrderTitle" xml:space="preserve"><value>Đơn {code}</value></data>
+  <data name="Order.History.Js.DetailFailed" xml:space="preserve"><value>Không thể tải chi tiết giao dịch. Vui lòng thử lại.</value></data>
+  <data name="Order.History.Js.TxnCode" xml:space="preserve"><value>Mã giao dịch: {code}</value></data>
+  <data name="Order.History.Js.Received" xml:space="preserve"><value>Khách đưa: {received} · Tiền thừa: {change}</value></data>
+  <data name="Order.History.Js.Note" xml:space="preserve"><value>Ghi chú: {note}</value></data>
+  <data name="Order.History.Js.Refund" xml:space="preserve"><value>Hoàn tiền</value></data>
+  <data name="Order.History.Js.RefundId" xml:space="preserve"><value>Mã hoàn tiền</value></data>
+  <data name="Order.History.Js.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Order.History.Js.Amount" xml:space="preserve"><value>Số tiền</value></data>
+  <data name="Order.History.Js.CompletedAt" xml:space="preserve"><value>Hoàn tất lúc</value></data>
+  <data name="Order.History.Js.Reason" xml:space="preserve"><value>Lý do</value></data>
+  <data name="Order.History.Js.TxnInfo" xml:space="preserve"><value>Thông tin giao dịch</value></data>
+  <data name="Order.History.Js.Store" xml:space="preserve"><value>Cửa hàng</value></data>
+  <data name="Order.History.Js.Cashier" xml:space="preserve"><value>Thu ngân</value></data>
+  <data name="Order.History.Js.WorkShift" xml:space="preserve"><value>WorkShift</value></data>
+  <data name="Order.History.Js.OrderType" xml:space="preserve"><value>Loại đơn</value></data>
+  <data name="Order.History.Js.PaidAt" xml:space="preserve"><value>Thanh toán lúc</value></data>
+  <data name="Order.History.Js.ClientOrderId" xml:space="preserve"><value>ClientOrderId</value></data>
+  <data name="Order.History.Js.None" xml:space="preserve"><value>Không có</value></data>
+  <data name="Order.History.Js.State" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Order.History.Js.Finance" xml:space="preserve"><value>Tài chính</value></data>
+  <data name="Order.History.Js.Sync" xml:space="preserve"><value>Đồng bộ</value></data>
+  <data name="Order.History.Js.Receipt" xml:space="preserve"><value>Hóa đơn</value></data>
+  <data name="Order.History.Js.Label" xml:space="preserve"><value>Tem</value></data>
+  <data name="Order.History.Js.Inventory" xml:space="preserve"><value>Ghi nhận kho</value></data>
+  <data name="Order.History.Js.Payment" xml:space="preserve"><value>Thanh toán</value></data>
+  <data name="Order.History.Js.NoPayment" xml:space="preserve"><value>Chưa có dữ liệu thanh toán.</value></data>
+  <data name="Order.History.Js.SoldItems" xml:space="preserve"><value>Món đã bán</value></data>
+  <data name="Order.History.Js.NoItems" xml:space="preserve"><value>Không có dữ liệu món.</value></data>
+  <data name="Order.History.Js.Subtotal" xml:space="preserve"><value>Tạm tính</value></data>
+  <data name="Order.History.Js.Discount" xml:space="preserve"><value>Giảm giá</value></data>
+  <data name="Order.History.Js.Tax" xml:space="preserve"><value>Thuế</value></data>
+  <data name="Order.History.Js.VatIncluded" xml:space="preserve"><value>VAT đã gồm trong giá</value></data>
+  <data name="Order.History.Js.GrandTotal" xml:space="preserve"><value>Tổng cộng</value></data>
+  <data name="Order.History.Js.RefundRequested" xml:space="preserve"><value>Đã yêu cầu</value></data>
+  <data name="Order.History.Js.RefundProcessing" xml:space="preserve"><value>Đang xử lý</value></data>
+  <data name="Order.History.Js.RefundCompleted" xml:space="preserve"><value>Đã hoàn tất</value></data>
+  <data name="Order.History.Js.RefundFailed" xml:space="preserve"><value>Thất bại</value></data>
+</root>

@@ -1,17 +1,18 @@
 @model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferDetailVM
+@inject Microsoft.Extensions.Localization.IStringLocalizer<CafeChain.InventoryResource> InventoryText
 
 <section class="transfer-card">
     <div class="transfer-card-header compact">
         <div>
             <span class="section-kicker">
                 <i class="fas fa-note-sticky"></i>
-                Ghi chú
+                @InventoryText["Common.Note"]
             </span>
-            <h2>Ghi chú phiếu</h2>
+            <h2>@InventoryText["Transfer.Detail.NoteTitle"]</h2>
         </div>
     </div>
 
     <div class="transfer-note-readonly">
-        @(string.IsNullOrWhiteSpace(Model.Note) ? "Không có ghi chú." : Model.Note)
+        @(string.IsNullOrWhiteSpace(Model.Note) ? InventoryText["Common.NoNote"] : Model.Note)
     </div>
 </section>

@@ -1,0 +1,662 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Shift.Index.Title" xml:space="preserve"><value>Quản lý lịch &amp; ca làm việc</value></data>
+  <data name="Shift.Index.Eyebrow" xml:space="preserve"><value>Nhân sự &amp; Vận hành / Lịch &amp; ca làm việc</value></data>
+  <data name="Shift.Index.Subtitle" xml:space="preserve"><value>Điều phối ca trực, phân lịch tuần từ ngày {0} đến ngày {1}.</value></data>
+  <data name="Shift.Index.StoreSelectorAria" xml:space="preserve"><value>Chọn cửa hàng</value></data>
+  <data name="Shift.Index.WeekNavAria" xml:space="preserve"><value>Điều hướng tuần</value></data>
+  <data name="Shift.Index.PrevWeek" xml:space="preserve"><value>Tuần trước</value></data>
+  <data name="Shift.Index.CurrentWeek" xml:space="preserve"><value>Tuần hiện tại</value></data>
+  <data name="Shift.Index.NextWeek" xml:space="preserve"><value>Tuần sau</value></data>
+  <data name="Shift.Index.SummaryAria" xml:space="preserve"><value>Tổng quan lịch làm việc trong tuần</value></data>
+  <data name="Shift.Index.Staff" xml:space="preserve"><value>Nhân viên</value></data>
+  <data name="Shift.Index.ScheduledCount" xml:space="preserve"><value>Lịch đang hoạt động</value></data>
+  <data name="Shift.Index.CancelledCount" xml:space="preserve"><value>Lịch đã hủy</value></data>
+  <data name="Shift.Index.TemplateCount" xml:space="preserve"><value>Mẫu ca đang dùng</value></data>
+  <data name="Shift.Index.TemplateLibrary" xml:space="preserve"><value>Thư viện mẫu ca</value></data>
+  <data name="Shift.Index.TemplateLibraryHint" xml:space="preserve"><value>Kéo mẫu ca vào ô lịch hoặc click “Phân ca”</value></data>
+  <data name="Shift.Index.CreateTemplate" xml:space="preserve"><value>Tạo mẫu ca</value></data>
+  <data name="Shift.Index.ActiveTemplatesAria" xml:space="preserve"><value>Các mẫu ca đang hoạt động</value></data>
+  <data name="Shift.Index.TemplateAria" xml:space="preserve"><value>Mẫu ca {0}, {1} đến {2}</value></data>
+  <data name="Shift.Index.PlusOneDay" xml:space="preserve"><value>(+1 ngày)</value></data>
+  <data name="Shift.Index.PlusOneDayBadge" xml:space="preserve"><value>+1 ngày</value></data>
+  <data name="Shift.Index.NoActiveTemplates" xml:space="preserve"><value>Chưa có mẫu ca đang hoạt động để phân lịch.</value></data>
+  <data name="Shift.Index.Col.Name" xml:space="preserve"><value>Tên ca</value></data>
+  <data name="Shift.Index.Col.Time" xml:space="preserve"><value>Thời gian</value></data>
+  <data name="Shift.Index.Col.Notes" xml:space="preserve"><value>Ghi chú</value></data>
+  <data name="Shift.Index.Col.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Shift.Index.Col.Actions" xml:space="preserve"><value>Thao tác</value></data>
+  <data name="Shift.Index.Using" xml:space="preserve"><value>Đang dùng</value></data>
+  <data name="Shift.Index.Stopped" xml:space="preserve"><value>Đã ngưng</value></data>
+  <data name="Shift.Index.EditTemplateTitle" xml:space="preserve"><value>Chỉnh sửa thông tin mẫu ca</value></data>
+  <data name="Shift.Index.Edit" xml:space="preserve"><value>Sửa</value></data>
+  <data name="Shift.Index.StopTemplateTitle" xml:space="preserve"><value>Ngưng sử dụng mẫu ca này</value></data>
+  <data name="Shift.Index.ActivateTemplateTitle" xml:space="preserve"><value>Kích hoạt lại mẫu ca này</value></data>
+  <data name="Shift.Index.Stop" xml:space="preserve"><value>Ngưng</value></data>
+  <data name="Shift.Index.Activate" xml:space="preserve"><value>Kích hoạt</value></data>
+  <data name="Shift.Index.NoTemplates" xml:space="preserve"><value>Chưa có mẫu ca.</value></data>
+  <data name="Shift.Index.RosterEyebrow" xml:space="preserve"><value>LỊCH TUẦN</value></data>
+  <data name="Shift.Index.RosterTitle" xml:space="preserve"><value>Lịch làm việc nhân viên</value></data>
+  <data name="Shift.Index.LegendAria" xml:space="preserve"><value>Chú thích trạng thái</value></data>
+  <data name="Shift.Index.LegendScheduled" xml:space="preserve"><value>Đang hoạt động</value></data>
+  <data name="Shift.Index.LegendCancelled" xml:space="preserve"><value>Đã hủy</value></data>
+  <data name="Shift.Index.SearchStaff" xml:space="preserve"><value>Tìm kiếm nhân viên</value></data>
+  <data name="Shift.Index.SearchStaffPlaceholder" xml:space="preserve"><value>Tìm tên hoặc vai trò...</value></data>
+  <data name="Shift.Index.ScheduleStatus" xml:space="preserve"><value>Trạng thái lịch</value></data>
+  <data name="Shift.Index.AllStatuses" xml:space="preserve"><value>Tất cả trạng thái</value></data>
+  <data name="Shift.Index.HasSchedule" xml:space="preserve"><value>Có lịch</value></data>
+  <data name="Shift.Index.NoSchedule" xml:space="preserve"><value>Chưa có lịch</value></data>
+  <data name="Shift.Index.HasCancelledSchedule" xml:space="preserve"><value>Có lịch đã hủy</value></data>
+  <data name="Shift.Index.Reset" xml:space="preserve"><value>Đặt lại</value></data>
+  <data name="Shift.Index.Showing" xml:space="preserve"><value>Hiển thị {0}/{1} nhân viên</value></data>
+  <data name="Shift.Index.ScrollHint" xml:space="preserve"><value>Cuộn ngang để xem đủ 7 ngày</value></data>
+  <data name="Shift.Index.Col.Staff" xml:space="preserve"><value>Nhân viên</value></data>
+  <data name="Shift.Index.StaffAvatar" xml:space="preserve"><value>Ảnh của {0}</value></data>
+  <data name="Shift.Index.ShiftsInWeek" xml:space="preserve"><value>{0} ca trong tuần</value></data>
+  <data name="Shift.Index.DropTemplateHere" xml:space="preserve"><value>Thả mẫu ca tại đây</value></data>
+  <data name="Shift.Index.EditScheduleTitle" xml:space="preserve"><value>Sửa lịch của {0}</value></data>
+  <data name="Shift.Index.EditScheduleAria" xml:space="preserve"><value>Sửa lịch {0} của {1}</value></data>
+  <data name="Shift.Index.CancelScheduleTitle" xml:space="preserve"><value>Hủy lịch của {0}</value></data>
+  <data name="Shift.Index.CancelScheduleAria" xml:space="preserve"><value>Hủy lịch {0} của {1}</value></data>
+  <data name="Shift.Index.Cancel" xml:space="preserve"><value>Hủy</value></data>
+  <data name="Shift.Index.Assign" xml:space="preserve"><value>Phân ca</value></data>
+  <data name="Shift.Index.NoStaffInStore" xml:space="preserve"><value>Không có nhân viên trong cửa hàng này.</value></data>
+  <data name="Shift.Index.FilterEmptyTitle" xml:space="preserve"><value>Không tìm thấy nhân viên phù hợp</value></data>
+  <data name="Shift.Index.FilterEmptyText" xml:space="preserve"><value>Hãy thử từ khóa khác hoặc đặt lại bộ lọc.</value></data>
+  <data name="Shift.ScheduleModal.Kicker" xml:space="preserve"><value>LỊCH NHÂN VIÊN</value></data>
+  <data name="Shift.ScheduleModal.AssignTitle" xml:space="preserve"><value>Phân lịch làm việc</value></data>
+  <data name="Shift.ScheduleModal.EditTitle" xml:space="preserve"><value>Sửa lịch làm việc</value></data>
+  <data name="Shift.ScheduleModal.CloseAria" xml:space="preserve"><value>Đóng</value></data>
+  <data name="Shift.ScheduleModal.ShiftTemplate" xml:space="preserve"><value>Mẫu ca</value></data>
+  <data name="Shift.ScheduleModal.SelectTemplate" xml:space="preserve"><value>-- Chọn mẫu ca --</value></data>
+  <data name="Shift.ScheduleModal.UseCustomTime" xml:space="preserve"><value>Dùng giờ riêng cho lịch này</value></data>
+  <data name="Shift.ScheduleModal.Start" xml:space="preserve"><value>Bắt đầu</value></data>
+  <data name="Shift.ScheduleModal.End" xml:space="preserve"><value>Kết thúc</value></data>
+  <data name="Shift.ScheduleModal.CustomTimeHint" xml:space="preserve"><value>Nếu không dùng giờ riêng, lịch sẽ tự động theo giờ của mẫu ca.</value></data>
+  <data name="Shift.ScheduleModal.Close" xml:space="preserve"><value>Đóng</value></data>
+  <data name="Shift.ScheduleModal.Save" xml:space="preserve"><value>Lưu lịch</value></data>
+  <data name="Shift.TemplateModal.Kicker" xml:space="preserve"><value>THƯ VIỆN CA</value></data>
+  <data name="Shift.TemplateModal.Title" xml:space="preserve"><value>Mẫu ca</value></data>
+  <data name="Shift.TemplateModal.CreateTitle" xml:space="preserve"><value>Tạo mẫu ca</value></data>
+  <data name="Shift.TemplateModal.EditTitle" xml:space="preserve"><value>Sửa mẫu ca</value></data>
+  <data name="Shift.TemplateModal.CloseAria" xml:space="preserve"><value>Đóng</value></data>
+  <data name="Shift.TemplateModal.Name" xml:space="preserve"><value>Tên mẫu ca</value></data>
+  <data name="Shift.TemplateModal.Start" xml:space="preserve"><value>Bắt đầu</value></data>
+  <data name="Shift.TemplateModal.End" xml:space="preserve"><value>Kết thúc</value></data>
+  <data name="Shift.TemplateModal.Notes" xml:space="preserve"><value>Ghi chú</value></data>
+  <data name="Shift.TemplateModal.Close" xml:space="preserve"><value>Đóng</value></data>
+  <data name="Shift.TemplateModal.Save" xml:space="preserve"><value>Lưu mẫu ca</value></data>
+  <data name="Shift.Js.Showing" xml:space="preserve"><value>Hiển thị {visible}/{total} nhân viên</value></data>
+  <data name="Shift.Js.Success" xml:space="preserve"><value>Thành công</value></data>
+  <data name="Shift.Js.DataChanged" xml:space="preserve"><value>Dữ liệu đã thay đổi</value></data>
+  <data name="Shift.Js.Failed" xml:space="preserve"><value>Không thành công</value></data>
+  <data name="Shift.Js.InvalidResponse" xml:space="preserve"><value>Máy chủ trả về dữ liệu không hợp lệ.</value></data>
+  <data name="Shift.Js.ActionFailed" xml:space="preserve"><value>Không thể thực hiện thao tác.</value></data>
+  <data name="Shift.Js.ReloadNote" xml:space="preserve"><value>Trang sẽ được tải lại để lấy dữ liệu mới nhất.</value></data>
+  <data name="Shift.Js.Done" xml:space="preserve"><value>Thao tác đã hoàn tất.</value></data>
+  <data name="Shift.Js.StaffFallback" xml:space="preserve"><value>Nhân viên</value></data>
+  <data name="Shift.Js.CancelScheduleTitle" xml:space="preserve"><value>Hủy lịch làm việc</value></data>
+  <data name="Shift.Js.CancelReasonLabel" xml:space="preserve"><value>Lý do hủy</value></data>
+  <data name="Shift.Js.CancelReasonPlaceholder" xml:space="preserve"><value>Nhập lý do để lưu lịch sử...</value></data>
+  <data name="Shift.Js.CancelConfirm" xml:space="preserve"><value>Hủy lịch</value></data>
+  <data name="Shift.Js.Close" xml:space="preserve"><value>Đóng</value></data>
+  <data name="Shift.Js.CancelReasonRequired" xml:space="preserve"><value>Vui lòng nhập lý do hủy.</value></data>
+  <data name="Shift.Js.CancelPrompt" xml:space="preserve"><value>Lý do hủy lịch:</value></data>
+  <data name="Shift.Js.StopVerb" xml:space="preserve"><value>ngưng</value></data>
+  <data name="Shift.Js.ActivateVerb" xml:space="preserve"><value>kích hoạt</value></data>
+  <data name="Shift.Js.ConfirmPrefix" xml:space="preserve"><value>Xác nhận</value></data>
+  <data name="Shift.Js.ConfirmToggle" xml:space="preserve"><value>Bạn có chắc chắn muốn {action} mẫu ca này không?</value></data>
+  <data name="Shift.Js.Agree" xml:space="preserve"><value>Đồng ý</value></data>
+  <data name="Shift.Js.CancelShort" xml:space="preserve"><value>Hủy bỏ</value></data>
+  <data name="Shift.Js.AssignScheduleTitle" xml:space="preserve"><value>Phân lịch làm việc</value></data>
+  <data name="Shift.Js.EditScheduleTitle" xml:space="preserve"><value>Sửa lịch làm việc</value></data>
+  <data name="Shift.Js.CreateTemplateTitle" xml:space="preserve"><value>Tạo mẫu ca</value></data>
+  <data name="Shift.Js.EditTemplateTitle" xml:space="preserve"><value>Sửa mẫu ca</value></data>
+  <data name="Optimization.Index.Title" xml:space="preserve"><value>Cấu hình dữ liệu lịch</value></data>
+  <data name="Optimization.Index.TitleWithStore" xml:space="preserve"><value>Cấu hình dữ liệu lịch — {0}</value></data>
+  <data name="Optimization.Index.Eyebrow" xml:space="preserve"><value>Nhân sự &amp; vận hành</value></data>
+  <data name="Optimization.Index.Subtitle" xml:space="preserve"><value>Khai báo dữ liệu tham khảo cho quản lý khi phân lịch thủ công.</value></data>
+  <data name="Optimization.Index.BackToSchedule" xml:space="preserve"><value>Quay lại lịch</value></data>
+  <data name="Optimization.Index.GuideAria" xml:space="preserve"><value>Hướng dẫn sử dụng</value></data>
+  <data name="Optimization.Index.GuideTitle" xml:space="preserve"><value>Cách sử dụng:</value></data>
+  <data name="Optimization.Index.GuideStepAvailability" xml:space="preserve"><value>Khả dụng</value></data>
+  <data name="Optimization.Index.GuideStepConstraint" xml:space="preserve"><value>Giới hạn giờ</value></data>
+  <data name="Optimization.Index.GuideStepRequirement" xml:space="preserve"><value>Định mức</value></data>
+  <data name="Optimization.Index.GuideStepTimeOff" xml:space="preserve"><value>Nghỉ phép</value></data>
+  <data name="Optimization.Index.GuideArrow" xml:space="preserve"><value>→</value></data>
+  <data name="Optimization.Index.GuideNote" xml:space="preserve"><value>Các cấu hình này không tự kiểm tra, tự xếp hoặc áp dụng lịch.</value></data>
+  <data name="Optimization.Index.GuideSentence" xml:space="preserve"><value>nhập dữ liệu nền theo thứ tự {availability} {arrow} {constraint} {arrow2} {requirement} {arrow3} {timeoff}.</value></data>
+  <data name="Optimization.Tab.Availability" xml:space="preserve"><value>Khả dụng</value></data>
+  <data name="Optimization.Tab.AvailabilityDesc" xml:space="preserve"><value>Nhân viên có thể làm vào thời gian nào?</value></data>
+  <data name="Optimization.Tab.Constraint" xml:space="preserve"><value>Giới hạn giờ</value></data>
+  <data name="Optimization.Tab.ConstraintDesc" xml:space="preserve"><value>Giới hạn giờ làm và thời gian nghỉ tối thiểu.</value></data>
+  <data name="Optimization.Tab.Requirement" xml:space="preserve"><value>Định mức</value></data>
+  <data name="Optimization.Tab.RequirementDesc" xml:space="preserve"><value>Mỗi ca cần tối thiểu/mục tiêu/tối đa bao nhiêu người?</value></data>
+  <data name="Optimization.Tab.TimeOff" xml:space="preserve"><value>Nghỉ phép</value></data>
+  <data name="Optimization.Tab.TimeOffDesc" xml:space="preserve"><value>Khoảng thời gian nhân viên không thể làm.</value></data>
+  <data name="Optimization.Availability.Legend" xml:space="preserve"><value>Khai báo thời gian khả dụng</value></data>
+  <data name="Optimization.Availability.Help" xml:space="preserve"><value>Khai báo khung giờ định kỳ mà nhân viên có thể nhận ca.</value></data>
+  <data name="Optimization.Field.Staff" xml:space="preserve"><value>Nhân viên</value></data>
+  <data name="Optimization.Field.DayOfWeek" xml:space="preserve"><value>Ngày trong tuần</value></data>
+  <data name="Optimization.Field.Start" xml:space="preserve"><value>Bắt đầu</value></data>
+  <data name="Optimization.Field.End" xml:space="preserve"><value>Kết thúc</value></data>
+  <data name="Optimization.Field.EffectiveFrom" xml:space="preserve"><value>Có hiệu lực từ</value></data>
+  <data name="Optimization.Field.Save" xml:space="preserve"><value>Lưu</value></data>
+  <data name="Optimization.Constraint.Legend" xml:space="preserve"><value>Khai báo giới hạn giờ làm</value></data>
+  <data name="Optimization.Constraint.Help" xml:space="preserve"><value>Dùng để tránh xếp quá giờ và bảo đảm thời gian nghỉ giữa hai ca.</value></data>
+  <data name="Optimization.Field.TargetWeeklyHours" xml:space="preserve"><value>Giờ mục tiêu/tuần</value></data>
+  <data name="Optimization.Field.MaxWeeklyHours" xml:space="preserve"><value>Tối đa giờ/tuần</value></data>
+  <data name="Optimization.Field.MaxDailyHours" xml:space="preserve"><value>Tối đa giờ/ngày</value></data>
+  <data name="Optimization.Field.MinimumRestMinutes" xml:space="preserve"><value>Nghỉ tối thiểu (phút)</value></data>
+  <data name="Optimization.Requirement.Legend" xml:space="preserve"><value>Khai báo định mức nhân sự</value></data>
+  <data name="Optimization.Requirement.Help" xml:space="preserve"><value>Định mức giúp quản lý tham chiếu số nhân sự mong muốn cho từng ca.</value></data>
+  <data name="Optimization.Field.Shift" xml:space="preserve"><value>Ca làm</value></data>
+  <data name="Optimization.Field.MinimumStaff" xml:space="preserve"><value>Tối thiểu (người)</value></data>
+  <data name="Optimization.Field.TargetStaff" xml:space="preserve"><value>Mục tiêu (người)</value></data>
+  <data name="Optimization.Field.MaximumStaff" xml:space="preserve"><value>Tối đa (người)</value></data>
+  <data name="Optimization.Field.RequiredRole" xml:space="preserve"><value>Vai trò bắt buộc</value></data>
+  <data name="Optimization.Field.NoRoleRequired" xml:space="preserve"><value>Không yêu cầu vai trò cụ thể</value></data>
+  <data name="Optimization.TimeOff.Legend" xml:space="preserve"><value>Khai báo nghỉ phép</value></data>
+  <data name="Optimization.TimeOff.Help" xml:space="preserve"><value>Chỉ nhập thời gian nghỉ đã được duyệt; nhân viên nghỉ trong khoảng này sẽ không được liệt kê là ứng viên phù hợp.</value></data>
+  <data name="Optimization.Field.From" xml:space="preserve"><value>Từ thời điểm</value></data>
+  <data name="Optimization.Field.To" xml:space="preserve"><value>Đến thời điểm</value></data>
+  <data name="Optimization.Field.Reason" xml:space="preserve"><value>Lý do</value></data>
+  <data name="Optimization.Saved.Title" xml:space="preserve"><value>Cấu hình đã lưu</value></data>
+  <data name="Optimization.Saved.Subtitle" xml:space="preserve"><value>Kiểm tra dữ liệu tham khảo đang được lưu cho việc phân lịch thủ công.</value></data>
+  <data name="Optimization.Day.Monday" xml:space="preserve"><value>Thứ 2</value></data>
+  <data name="Optimization.Day.Tuesday" xml:space="preserve"><value>Thứ 3</value></data>
+  <data name="Optimization.Day.Wednesday" xml:space="preserve"><value>Thứ 4</value></data>
+  <data name="Optimization.Day.Thursday" xml:space="preserve"><value>Thứ 5</value></data>
+  <data name="Optimization.Day.Friday" xml:space="preserve"><value>Thứ 6</value></data>
+  <data name="Optimization.Day.Saturday" xml:space="preserve"><value>Thứ 7</value></data>
+  <data name="Optimization.Day.Sunday" xml:space="preserve"><value>Chủ nhật</value></data>
+  <data name="Optimization.Js.Day.Sunday" xml:space="preserve"><value>Chủ nhật</value></data>
+  <data name="Optimization.Js.Day.Monday" xml:space="preserve"><value>Thứ 2</value></data>
+  <data name="Optimization.Js.Day.Tuesday" xml:space="preserve"><value>Thứ 3</value></data>
+  <data name="Optimization.Js.Day.Wednesday" xml:space="preserve"><value>Thứ 4</value></data>
+  <data name="Optimization.Js.Day.Thursday" xml:space="preserve"><value>Thứ 5</value></data>
+  <data name="Optimization.Js.Day.Friday" xml:space="preserve"><value>Thứ 6</value></data>
+  <data name="Optimization.Js.Day.Saturday" xml:space="preserve"><value>Thứ 7</value></data>
+  <data name="Optimization.Js.Status.Approved" xml:space="preserve"><value>Đã duyệt</value></data>
+  <data name="Optimization.Js.Status.Pending" xml:space="preserve"><value>Chờ duyệt</value></data>
+  <data name="Optimization.Js.Status.Rejected" xml:space="preserve"><value>Từ chối</value></data>
+  <data name="Optimization.Js.EndpointMissing" xml:space="preserve"><value>Chức năng lưu cấu hình chưa được khai báo.</value></data>
+  <data name="Optimization.Js.SaveFailed" xml:space="preserve"><value>Không thể lưu cấu hình.</value></data>
+  <data name="Optimization.Js.NoConfig" xml:space="preserve"><value>Chưa có cấu hình.</value></data>
+  <data name="Optimization.Js.ShowingFirst" xml:space="preserve"><value>Hiển thị 8 mục đầu trong tổng số {count} mục.</value></data>
+  <data name="Optimization.Js.Saved" xml:space="preserve"><value>Đã lưu cấu hình dữ liệu lịch.</value></data>
+  <data name="Optimization.Js.Label.StaffName" xml:space="preserve"><value>Nhân viên</value></data>
+  <data name="Optimization.Js.Label.DayOfWeek" xml:space="preserve"><value>Ngày</value></data>
+  <data name="Optimization.Js.Label.StartTime" xml:space="preserve"><value>Bắt đầu</value></data>
+  <data name="Optimization.Js.Label.EndTime" xml:space="preserve"><value>Kết thúc</value></data>
+  <data name="Optimization.Js.Label.EffectiveFrom" xml:space="preserve"><value>Hiệu lực từ</value></data>
+  <data name="Optimization.Js.Label.TargetWeeklyHours" xml:space="preserve"><value>Mục tiêu giờ/tuần</value></data>
+  <data name="Optimization.Js.Label.MaxWeeklyHours" xml:space="preserve"><value>Tối đa giờ/tuần</value></data>
+  <data name="Optimization.Js.Label.MaxDailyHours" xml:space="preserve"><value>Tối đa giờ/ngày</value></data>
+  <data name="Optimization.Js.Label.MinimumRestMinutes" xml:space="preserve"><value>Nghỉ tối thiểu (phút)</value></data>
+  <data name="Optimization.Js.Label.ShiftName" xml:space="preserve"><value>Ca làm</value></data>
+  <data name="Optimization.Js.Label.MinimumStaff" xml:space="preserve"><value>Tối thiểu (người)</value></data>
+  <data name="Optimization.Js.Label.TargetStaff" xml:space="preserve"><value>Mục tiêu (người)</value></data>
+  <data name="Optimization.Js.Label.MaximumStaff" xml:space="preserve"><value>Tối đa (người)</value></data>
+  <data name="Optimization.Js.Label.RequiredRoleName" xml:space="preserve"><value>Vai trò bắt buộc</value></data>
+  <data name="Optimization.Js.Label.FromUtc" xml:space="preserve"><value>Từ</value></data>
+  <data name="Optimization.Js.Label.ToUtc" xml:space="preserve"><value>Đến</value></data>
+  <data name="Optimization.Js.Label.Reason" xml:space="preserve"><value>Lý do</value></data>
+  <data name="Optimization.Js.Label.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Approvals.Index.Title" xml:space="preserve"><value>Duyệt mở ca trễ</value></data>
+  <data name="Approvals.Index.Eyebrow" xml:space="preserve"><value>Nhân sự &amp; vận hành</value></data>
+  <data name="Approvals.Index.Subtitle" xml:space="preserve"><value>Chỉ Quản lý cửa hàng, Quản lý khu vực hoặc Chủ doanh nghiệp đúng phạm vi mới có quyền quyết định.</value></data>
+  <data name="Approvals.Index.NoPending" xml:space="preserve"><value>Không có yêu cầu đang chờ</value></data>
+  <data name="Approvals.Index.Status" xml:space="preserve"><value>Trạng thái:</value></data>
+  <data name="Approvals.Index.MinutesLate" xml:space="preserve"><value>Trễ {0} phút</value></data>
+  <data name="Approvals.Index.Terminal" xml:space="preserve"><value>Terminal:</value></data>
+  <data name="Approvals.Index.Store" xml:space="preserve"><value>Cửa hàng:</value></data>
+  <data name="Approvals.Index.Expires" xml:space="preserve"><value>Hết hạn:</value></data>
+  <data name="Approvals.Index.ReasonLabel" xml:space="preserve"><value>Lý do quyết định</value></data>
+  <data name="Approvals.Index.TooLateNotice" xml:space="preserve"><value>Ca đã trễ quá {0} phút nên không thể mở theo lịch cũ. Hãy từ chối hoặc chuyển sang ca ngoài lịch.</value></data>
+  <data name="Approvals.Index.Approve" xml:space="preserve"><value>Duyệt mở ca</value></data>
+  <data name="Approvals.Index.ApproveTooLateTitle" xml:space="preserve"><value>Ca trễ quá {0} phút không thể duyệt theo lịch cũ.</value></data>
+  <data name="Approvals.Index.ApproveOkTitle" xml:space="preserve"><value>Duyệt mở ca trễ trong giới hạn {0} phút</value></data>
+  <data name="Approvals.Index.Reject" xml:space="preserve"><value>Từ chối</value></data>
+  <data name="Approvals.Index.Convert" xml:space="preserve"><value>Chuyển ngoài lịch</value></data>
+  <data name="Approvals.Js.NoDecision" xml:space="preserve"><value>Không nhận được lựa chọn xử lý. Vui lòng thử lại.</value></data>
+  <data name="Approvals.Js.ReasonInvalid" xml:space="preserve"><value>Lý do quyết định phải có từ 10 đến 500 ký tự và có nội dung cụ thể.</value></data>
+  <data name="Anomalies.Index.Title" xml:space="preserve"><value>Tín hiệu vận hành</value></data>
+  <data name="Anomalies.Index.Eyebrow" xml:space="preserve"><value>Nhân sự &amp; vận hành</value></data>
+  <data name="Anomalies.Index.Subtitle" xml:space="preserve"><value>Các thay đổi đáng chú ý cần đối chiếu thêm; đây không phải kết luận sai phạm.</value></data>
+  <data name="Anomalies.Index.StoreSelectorAria" xml:space="preserve"><value>Chọn cửa hàng</value></data>
+  <data name="Anomalies.Index.Col.Metric" xml:space="preserve"><value>Chỉ số cần kiểm tra</value></data>
+  <data name="Anomalies.Index.Col.CurrentValue" xml:space="preserve"><value>Giá trị ghi nhận</value></data>
+  <data name="Anomalies.Index.Col.Baseline" xml:space="preserve"><value>Mức thông thường trước đây</value></data>
+  <data name="Anomalies.Index.Col.Deviation" xml:space="preserve"><value>Mức chênh lệch</value></data>
+  <data name="Anomalies.Index.Col.Severity" xml:space="preserve"><value>Mức cần ưu tiên</value></data>
+  <data name="Anomalies.Index.Col.Status" xml:space="preserve"><value>Trạng thái xử lý</value></data>
+  <data name="Anomalies.Index.Empty" xml:space="preserve"><value>Không có tín hiệu đang mở.</value></data>
+  <data name="Anomalies.Index.DateLabel" xml:space="preserve"><value>Ngày</value></data>
+  <data name="Anomalies.Index.Basis" xml:space="preserve"><value>Cơ sở phát hiện</value></data>
+  <data name="Anomalies.Index.BusinessDateLabel" xml:space="preserve"><value>Ngày nghiệp vụ:</value></data>
+  <data name="Anomalies.Index.RobustScoreLabel" xml:space="preserve"><value>mức chênh lệch chuẩn hóa:</value></data>
+  <data name="Anomalies.Index.Explain" xml:space="preserve"><value>Giải thích</value></data>
+  <data name="Anomalies.Index.Acknowledge" xml:space="preserve"><value>Tiếp nhận</value></data>
+  <data name="Anomalies.Index.Resolve" xml:space="preserve"><value>Đánh dấu đã xử lý</value></data>
+  <data name="Anomalies.Index.Feedback" xml:space="preserve"><value>Phản hồi</value></data>
+  <data name="Anomalies.Js.DataChanged" xml:space="preserve"><value>Dữ liệu đã thay đổi</value></data>
+  <data name="Anomalies.Js.SignalUpdated" xml:space="preserve"><value>Tín hiệu đã được cập nhật. Hãy tải lại dữ liệu trước khi thao tác tiếp.</value></data>
+  <data name="Anomalies.Js.UpdateFailed" xml:space="preserve"><value>Không thể cập nhật</value></data>
+  <data name="Anomalies.Js.UpdateFailedFallback" xml:space="preserve"><value>Dữ liệu đã thay đổi.</value></data>
+  <data name="Anomalies.Js.ConnectionError" xml:space="preserve"><value>Lỗi kết nối</value></data>
+  <data name="Anomalies.Js.ConnectionErrorText" xml:space="preserve"><value>Không thể lưu thao tác lúc này. Vui lòng thử lại.</value></data>
+  <data name="Anomalies.Js.ExplainFallback" xml:space="preserve"><value>Không thể giải thích tín hiệu.</value></data>
+  <data name="Anomalies.Js.ImpactLabel" xml:space="preserve"><value>Ảnh hưởng có thể xảy ra:</value></data>
+  <data name="Anomalies.Js.WhyLabel" xml:space="preserve"><value>Vì sao có thông báo:</value></data>
+  <data name="Anomalies.Js.ChecksLabel" xml:space="preserve"><value>Dữ liệu nên kiểm tra:</value></data>
+  <data name="Anomalies.Js.ImmediateLabel" xml:space="preserve"><value>Việc cần làm ngay:</value></data>
+  <data name="Anomalies.Js.PreparationLabel" xml:space="preserve"><value>Hồ sơ cần chuẩn bị:</value></data>
+  <data name="Anomalies.Js.Disclaimer" xml:space="preserve"><value>Đây chỉ là tín hiệu hỗ trợ kiểm tra, chưa đủ cơ sở kết luận nguyên nhân, sai phạm hoặc trách nhiệm cá nhân.</value></data>
+  <data name="Anomalies.Js.Analyzing" xml:space="preserve"><value>Đang phân tích...</value></data>
+  <data name="Anomalies.Js.AnalyzingText" xml:space="preserve"><value>Hệ thống AI đang phân tích dữ liệu tín hiệu vận hành, vui lòng đợi trong giây lát.</value></data>
+  <data name="Anomalies.Js.ExplainTitle" xml:space="preserve"><value>Giải thích tín hiệu</value></data>
+  <data name="Anomalies.Js.AiConnectionErrorText" xml:space="preserve"><value>Không thể kết nối đến hệ thống AI để giải thích tín hiệu lúc này.</value></data>
+  <data name="Anomalies.Js.ResolveTitle" xml:space="preserve"><value>Xác nhận đã xử lý</value></data>
+  <data name="Anomalies.Js.ResolveNote" xml:space="preserve"><value>Ghi chú xử lý</value></data>
+  <data name="Anomalies.Js.ResolveConfirm" xml:space="preserve"><value>Đánh dấu đã xử lý</value></data>
+  <data name="Anomalies.Js.CancelShort" xml:space="preserve"><value>Hủy</value></data>
+  <data name="Anomalies.Js.FeedbackTitle" xml:space="preserve"><value>Phản hồi tín hiệu</value></data>
+  <data name="Anomalies.Js.FeedbackUseful" xml:space="preserve"><value>Hữu ích</value></data>
+  <data name="Anomalies.Js.FeedbackNotUseful" xml:space="preserve"><value>Không hữu ích</value></data>
+  <data name="Anomalies.Js.FeedbackFalsePositive" xml:space="preserve"><value>Cảnh báo không phù hợp</value></data>
+  <data name="Anomalies.Js.FeedbackConfirm" xml:space="preserve"><value>Gửi phản hồi</value></data>
+  <data name="Anomalies.Js.FeedbackRecorded" xml:space="preserve"><value>Đã ghi nhận phản hồi</value></data>
+  <data name="Anomalies.Js.FeedbackSaved" xml:space="preserve"><value>Phản hồi đã được lưu.</value></data>
+  <data name="Ice.Index.Title" xml:space="preserve"><value>Quản lý đá theo ca</value></data>
+  <data name="Ice.Index.Eyebrow" xml:space="preserve"><value>Kho &amp; Cung ứng</value></data>
+  <data name="Ice.Index.Subtitle" xml:space="preserve"><value>Cấp đá bằng giữ chỗ, theo dõi tiêu hao POS và chốt chênh lệch mà không trừ kho hai lần.</value></data>
+  <data name="Ice.Index.FilterAria" xml:space="preserve"><value>Lọc ca vận hành đá</value></data>
+  <data name="Ice.Index.Store" xml:space="preserve"><value>Chi nhánh</value></data>
+  <data name="Ice.Index.BusinessDate" xml:space="preserve"><value>Ngày kinh doanh</value></data>
+  <data name="Ice.Index.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Ice.Index.AllStatuses" xml:space="preserve"><value>Tất cả trạng thái</value></data>
+  <data name="Ice.Index.Apply" xml:space="preserve"><value>Áp dụng</value></data>
+  <data name="Ice.Index.InventoryAria" xml:space="preserve"><value>Tồn kho nguyên liệu đá</value></data>
+  <data name="Ice.Index.Physical" xml:space="preserve"><value>Tồn vật lý</value></data>
+  <data name="Ice.Index.Reserved" xml:space="preserve"><value>Đang giữ chỗ</value></data>
+  <data name="Ice.Index.Available" xml:space="preserve"><value>Tồn khả dụng</value></data>
+  <data name="Ice.Index.AvailableAfterOpening" xml:space="preserve"><value>Khả dụng sau khi mở theo định mức</value></data>
+  <data name="Ice.Index.ShiftOverviewAria" xml:space="preserve"><value>Tổng quan ca vận hành đá</value></data>
+  <data name="Ice.Index.QuotaPerShift" xml:space="preserve"><value>Định mức mỗi ca</value></data>
+  <data name="Ice.Index.ShiftsToday" xml:space="preserve"><value>Ca trong ngày</value></data>
+  <data name="Ice.Index.Running" xml:space="preserve"><value>Đang vận hành</value></data>
+  <data name="Ice.Index.NeedsAction" xml:space="preserve"><value>Cần xử lý</value></data>
+  <data name="Ice.Index.PolicyTitle" xml:space="preserve"><value>Chính sách đá tại chi nhánh</value></data>
+  <data name="Ice.Index.Configured" xml:space="preserve"><value>Đã cấu hình</value></data>
+  <data name="Ice.Index.NotConfigured" xml:space="preserve"><value>Chưa cấu hình</value></data>
+  <data name="Ice.Index.PolicyIngredientLegend" xml:space="preserve"><value>Nguyên liệu và đơn vị</value></data>
+  <data name="Ice.Index.PolicyIngredientHint" xml:space="preserve"><value>Chỉ nguyên liệu được định danh cho nghiệp vụ quản lý đá, đang hoạt động, có tồn tại chi nhánh, base gram và đổi được g ↔ kg mới xuất hiện.</value></data>
+  <data name="Ice.Index.IceIngredient" xml:space="preserve"><value>Nguyên liệu đá</value></data>
+  <data name="Ice.Index.NoSuitableIngredient" xml:space="preserve"><value>Không có nguyên liệu phù hợp</value></data>
+  <data name="Ice.Index.DisplayUnit" xml:space="preserve"><value>Đơn vị hiển thị</value></data>
+  <data name="Ice.Index.MissingUnitPair" xml:space="preserve"><value>Thiếu cặp đơn vị g/kg</value></data>
+  <data name="Ice.Index.PolicyQuotaLegend" xml:space="preserve"><value>Định mức</value></data>
+  <data name="Ice.Index.PolicyQuotaHint" xml:space="preserve"><value>Định mức ca phải lớn hơn 0 và không vượt định mức ngày.</value></data>
+  <data name="Ice.Index.DailyQuota" xml:space="preserve"><value>Định mức ngày ({0})</value></data>
+  <data name="Ice.Index.ShiftQuota" xml:space="preserve"><value>Định mức mỗi ca ({0})</value></data>
+  <data name="Ice.Index.PolicyApprovalLegend" xml:space="preserve"><value>Quy tắc duyệt và bàn giao</value></data>
+  <data name="Ice.Index.PolicyApprovalHint" xml:space="preserve"><value>Mọi chênh lệch dương đều cần duyệt. Hai ngưỡng dưới đây xác định khi nào phải nâng cấp người duyệt.</value></data>
+  <data name="Ice.Index.VarianceThresholdFrom" xml:space="preserve"><value>Chênh lệch cần duyệt từ ({0})</value></data>
+  <data name="Ice.Index.VarianceThresholdPercent" xml:space="preserve"><value>Chênh lệch cần duyệt từ (%)</value></data>
+  <data name="Ice.Index.AllowSupplement" xml:space="preserve"><value>Cho phép cấp bổ sung trong ca</value></data>
+  <data name="Ice.Index.AllowCarryOver" xml:space="preserve"><value>Cho phép bàn giao giữa các ca trong cùng ngày</value></data>
+  <data name="Ice.Index.FixedSafetyRule" xml:space="preserve"><value>Quy tắc an toàn cố định</value></data>
+  <data name="Ice.Index.RequireVarianceApproval" xml:space="preserve"><value>Bắt buộc duyệt mọi chênh lệch dương</value></data>
+  <data name="Ice.Index.SavePolicy" xml:space="preserve"><value>Lưu chính sách</value></data>
+  <data name="Ice.Index.PlanKicker" xml:space="preserve"><value>Kế hoạch</value></data>
+  <data name="Ice.Index.CreateShiftTitle" xml:space="preserve"><value>Tạo ca vận hành</value></data>
+  <data name="Ice.Index.CreateShiftHint" xml:space="preserve"><value>Một ca đá có thể liên kết nhiều ca bán hàng POS.</value></data>
+  <data name="Ice.Index.NoShiftLead" xml:space="preserve"><value>Chi nhánh chưa có Ca trưởng hoặc Cửa hàng trưởng đang hoạt động để phụ trách ca.</value></data>
+  <data name="Ice.Index.CreateModeLegend" xml:space="preserve"><value>Cách tạo ca</value></data>
+  <data name="Ice.Index.CreateFromSchedule" xml:space="preserve"><value>Tạo từ lịch làm việc</value></data>
+  <data name="Ice.Index.CreateManual" xml:space="preserve"><value>Tạo thủ công</value></data>
+  <data name="Ice.Index.LoadingSchedule" xml:space="preserve"><value>Đang tải lịch làm việc…</value></data>
+  <data name="Ice.Index.CheckingSchedule" xml:space="preserve"><value>Đang kiểm tra lịch tại {0} ngày {1}.</value></data>
+  <data name="Ice.Index.ScheduleShift" xml:space="preserve"><value>Ca theo lịch</value></data>
+  <data name="Ice.Index.ScheduleShiftHelp" xml:space="preserve"><value>Chỉ các phân công có cùng giờ hiệu lực mới được gom thành một ca vận hành.</value></data>
+  <data name="Ice.Index.SourceLabel" xml:space="preserve"><value>Nguồn tạo</value></data>
+  <data name="Ice.Index.SourceWorkSchedule" xml:space="preserve"><value>Lịch làm việc</value></data>
+  <data name="Ice.Index.ExpectedStaff" xml:space="preserve"><value>Nhân viên dự kiến</value></data>
+  <data name="Ice.Index.ExpectedLead" xml:space="preserve"><value>Ca trưởng dự kiến</value></data>
+  <data name="Ice.Index.SuggestedQuota" xml:space="preserve"><value>Định mức đá đề xuất</value></data>
+  <data name="Ice.Index.NoMatchingSchedule" xml:space="preserve"><value>Không có lịch làm việc phù hợp.</value></data>
+  <data name="Ice.Index.NoShiftFound" xml:space="preserve"><value>Chưa tìm thấy ca làm việc tại {0} trong ngày {1}.</value></data>
+  <data name="Ice.Index.NoShiftFoundHint" xml:space="preserve"><value>Bạn có thể tạo lịch nhân sự trước hoặc chuyển sang tạo ca thủ công.</value></data>
+  <data name="Ice.Index.ViewSchedule" xml:space="preserve"><value>Xem lịch làm việc</value></data>
+  <data name="Ice.Index.SwitchToManual" xml:space="preserve"><value>Chuyển sang tạo thủ công</value></data>
+  <data name="Ice.Index.ScheduleLoadError" xml:space="preserve"><value>Không thể tải lịch làm việc. Vui lòng thử lại.</value></data>
+  <data name="Ice.Index.ScheduleLoadErrorHint" xml:space="preserve"><value>Kết nối hoặc dữ liệu lịch đang tạm thời không khả dụng.</value></data>
+  <data name="Ice.Index.Retry" xml:space="preserve"><value>Thử lại</value></data>
+  <data name="Ice.Index.PrefillNotice" xml:space="preserve"><value>Các trường bên dưới được lấy từ ca lịch đã chọn và không thể sửa trong chế độ này.</value></data>
+  <data name="Ice.Index.ShiftName" xml:space="preserve"><value>Tên ca</value></data>
+  <data name="Ice.Index.ShiftNamePlaceholder" xml:space="preserve"><value>Ví dụ: Ca sáng</value></data>
+  <data name="Ice.Index.Start" xml:space="preserve"><value>Bắt đầu</value></data>
+  <data name="Ice.Index.StartHint" xml:space="preserve"><value>Định dạng 24 giờ: dd/MM/yyyy HH:mm.</value></data>
+  <data name="Ice.Index.End" xml:space="preserve"><value>Kết thúc</value></data>
+  <data name="Ice.Index.EndHint" xml:space="preserve"><value>Định dạng 24 giờ: dd/MM/yyyy HH:mm.</value></data>
+  <data name="Ice.Index.ShiftLead" xml:space="preserve"><value>Ca trưởng</value></data>
+  <data name="Ice.Index.SelectLead" xml:space="preserve"><value>Chọn người phụ trách</value></data>
+  <data name="Ice.Index.LeadHint" xml:space="preserve"><value>Chỉ Ca trưởng hoặc Cửa hàng trưởng đang hoạt động tại chi nhánh.</value></data>
+  <data name="Ice.Index.CreateShift" xml:space="preserve"><value>Tạo ca</value></data>
+  <data name="Ice.Index.DateLabel" xml:space="preserve"><value>Ngày</value></data>
+  <data name="Ice.Index.ShiftListTitle" xml:space="preserve"><value>Ca vận hành đá</value></data>
+  <data name="Ice.Index.ShiftListHint" xml:space="preserve"><value>Đã cấp là lượng giữ chỗ; tồn vật lý chỉ giảm theo POS hoặc chênh lệch đã duyệt.</value></data>
+  <data name="Ice.Index.NoShiftsTitle" xml:space="preserve"><value>Chưa có ca vận hành</value></data>
+  <data name="Ice.Index.NoShiftsText" xml:space="preserve"><value>Tạo ca đầu tiên để xác nhận cấp đá và liên kết ca bán hàng POS.</value></data>
+  <data name="Ice.Index.Col.Shift" xml:space="preserve"><value>Ca vận hành</value></data>
+  <data name="Ice.Index.Col.TimeRange" xml:space="preserve"><value>Khung giờ</value></data>
+  <data name="Ice.Index.Col.Quota" xml:space="preserve"><value>Định mức</value></data>
+  <data name="Ice.Index.Col.Issued" xml:space="preserve"><value>Đã cấp</value></data>
+  <data name="Ice.Index.Col.Theoretical" xml:space="preserve"><value>Lý thuyết</value></data>
+  <data name="Ice.Index.Col.Variance" xml:space="preserve"><value>Chênh lệch</value></data>
+  <data name="Ice.Index.Col.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Ice.Index.Col.Actions" xml:space="preserve"><value>Thao tác</value></data>
+  <data name="Ice.Index.ShiftNumber" xml:space="preserve"><value>Ca #{0}</value></data>
+  <data name="Ice.Index.LinkedShifts" xml:space="preserve"><value>Đã liên kết {0} ca bán hàng POS</value></data>
+  <data name="Ice.Index.SourceScheduleCancelled" xml:space="preserve"><value>Ca lịch nguồn đã bị hủy</value></data>
+  <data name="Ice.Index.LeadAssignmentCancelled" xml:space="preserve"><value>Ca trưởng trong lịch đã bị hủy phân công</value></data>
+  <data name="Ice.Index.ScheduleChanged" xml:space="preserve"><value>Lịch làm việc đã thay đổi</value></data>
+  <data name="Ice.Index.SavedShift" xml:space="preserve"><value>Ca đang lưu:</value></data>
+  <data name="Ice.Index.CurrentSchedule" xml:space="preserve"><value>Lịch hiện tại:</value></data>
+  <data name="Ice.Index.StaffSuffix" xml:space="preserve"><value>nhân viên</value></data>
+  <data name="Ice.Index.CancelledAssignments" xml:space="preserve"><value>Có {0} phân công đã bị hủy. Hệ thống không tự hủy hoặc thay đổi ca vận hành.</value></data>
+  <data name="Ice.Index.SyncSchedule" xml:space="preserve"><value>Đồng bộ lịch</value></data>
+  <data name="Ice.Index.ManualReasonLabel" xml:space="preserve"><value>Lý do chuyển sang ca thủ công</value></data>
+  <data name="Ice.Index.ManualReasonPlaceholder" xml:space="preserve"><value>Ví dụ: Lịch nguồn đã hủy, tiếp tục vận hành thủ công</value></data>
+  <data name="Ice.Index.ConvertToManual" xml:space="preserve"><value>Chuyển sang thủ công</value></data>
+  <data name="Ice.Index.CancelDraftConfirm" xml:space="preserve"><value>Hủy ca vận hành nháp này? Lịch sử vẫn được giữ lại.</value></data>
+  <data name="Ice.Index.CancelDraftReasonLabel" xml:space="preserve"><value>Lý do hủy ca nháp</value></data>
+  <data name="Ice.Index.CancelDraftReasonPlaceholder" xml:space="preserve"><value>Nhập lý do hủy ca</value></data>
+  <data name="Ice.Index.CancelDraft" xml:space="preserve"><value>Hủy ca nháp</value></data>
+  <data name="Ice.Index.ReplacementLeadLabel" xml:space="preserve"><value>Chọn ca trưởng thay thế</value></data>
+  <data name="Ice.Index.SelectReplacementLead" xml:space="preserve"><value>Chọn ca trưởng</value></data>
+  <data name="Ice.Index.ReplacementReasonLabel" xml:space="preserve"><value>Lý do thay ca trưởng</value></data>
+  <data name="Ice.Index.ReplacementReasonPlaceholder" xml:space="preserve"><value>Nhập lý do thay ca trưởng</value></data>
+  <data name="Ice.Index.UpdateLead" xml:space="preserve"><value>Cập nhật ca trưởng</value></data>
+  <data name="Ice.Index.OpenOrClosedNote" xml:space="preserve"><value>Ca đã mở hoặc đã kết thúc nên hệ thống chỉ cảnh báo, không tự động thay đổi dữ liệu vận hành.</value></data>
+  <data name="Ice.Index.Details" xml:space="preserve"><value>Chi tiết</value></data>
+  <data name="Ice.Index.ViewReportTitle" xml:space="preserve"><value>Xem báo cáo ca</value></data>
+  <data name="Ice.Index.IssueLabel" xml:space="preserve"><value>Lượng cấp đầu ca</value></data>
+  <data name="Ice.Index.ConfirmIssue" xml:space="preserve"><value>Xác nhận cấp</value></data>
+  <data name="Ice.Index.ResolveScheduleFirst" xml:space="preserve"><value>Cần xử lý thay đổi lịch trước khi cấp đá</value></data>
+  <data name="Ice.Index.WaitingValidConfig" xml:space="preserve"><value>Chờ cấu hình hợp lệ</value></data>
+  <data name="Ice.Index.MissingLead" xml:space="preserve"><value>Thiếu ca trưởng</value></data>
+  <data name="Ice.Index.BranchFallback" xml:space="preserve"><value>Chi nhánh #{0}</value></data>
+  <data name="Ice.Index.Js.ShiftQuotaExceeded" xml:space="preserve"><value>Định mức mỗi ca không được vượt định mức ngày.</value></data>
+  <data name="Ice.Index.Js.StaffSuffix" xml:space="preserve"><value>nhân viên</value></data>
+  <data name="Ice.Index.Js.Undetermined" xml:space="preserve"><value>Chưa xác định</value></data>
+  <data name="Ice.Index.Js.DateTimeFormatMessage" xml:space="preserve"><value>Vui lòng nhập ngày giờ theo định dạng dd/MM/yyyy HH:mm (24 giờ).</value></data>
+  <data name="Ice.Index.Js.DateFormatMessage" xml:space="preserve"><value>Vui lòng nhập ngày theo định dạng dd/MM/yyyy.</value></data>
+  <data name="Ice.Index.Js.Processing" xml:space="preserve"><value>Đang xử lý...</value></data>
+  <data name="Ice.Details.Title" xml:space="preserve"><value>Ca đá {0}</value></data>
+  <data name="Ice.Details.BackToList" xml:space="preserve"><value>Danh sách ca đá</value></data>
+  <data name="Ice.Details.Report" xml:space="preserve"><value>Báo cáo ca</value></data>
+  <data name="Ice.Details.WorkflowAria" xml:space="preserve"><value>Tiến trình ca vận hành đá</value></data>
+  <data name="Ice.Details.Workflow.Plan" xml:space="preserve"><value>Kế hoạch</value></data>
+  <data name="Ice.Details.Workflow.ConfirmIssue" xml:space="preserve"><value>Xác nhận cấp</value></data>
+  <data name="Ice.Details.Workflow.Operate" xml:space="preserve"><value>Vận hành</value></data>
+  <data name="Ice.Details.Workflow.Close" xml:space="preserve"><value>Chốt ca</value></data>
+  <data name="Ice.Details.Workflow.Approve" xml:space="preserve"><value>Duyệt</value></data>
+  <data name="Ice.Details.Workflow.Lock" xml:space="preserve"><value>Đóng</value></data>
+  <data name="Ice.Details.SummaryAria" xml:space="preserve"><value>Số liệu ca đá</value></data>
+  <data name="Ice.Details.Available" xml:space="preserve"><value>Tồn khả dụng</value></data>
+  <data name="Ice.Details.PhysicalPrefix" xml:space="preserve"><value>Tồn vật lý:</value></data>
+  <data name="Ice.Details.Reserved" xml:space="preserve"><value>Đang giữ chỗ</value></data>
+  <data name="Ice.Details.ReservedStorePrefix" xml:space="preserve"><value>Toàn kho:</value></data>
+  <data name="Ice.Details.TotalIssued" xml:space="preserve"><value>Tổng đã cấp</value></data>
+  <data name="Ice.Details.IssuedBreakdown" xml:space="preserve"><value>Đầu ca {0} · Bổ sung {1}</value></data>
+  <data name="Ice.Details.TheoreticalUsage" xml:space="preserve"><value>Tiêu hao lý thuyết POS</value></data>
+  <data name="Ice.Details.ActualUsage" xml:space="preserve"><value>Tiêu hao thực tế</value></data>
+  <data name="Ice.Details.Variance" xml:space="preserve"><value>Chênh lệch</value></data>
+  <data name="Ice.Details.PosLinkKicker" xml:space="preserve"><value>Liên kết bán hàng</value></data>
+  <data name="Ice.Details.PosShiftsTitle" xml:space="preserve"><value>Ca bán hàng POS</value></data>
+  <data name="Ice.Details.NotLinked" xml:space="preserve"><value>Chưa liên kết</value></data>
+  <data name="Ice.Details.LinkedCount" xml:space="preserve"><value>Đã liên kết {0} ca</value></data>
+  <data name="Ice.Details.TheoreticalSourceNote" xml:space="preserve"><value>Nguồn tính tiêu hao lý thuyết</value></data>
+  <data name="Ice.Details.NoPosShifts" xml:space="preserve"><value>Chưa liên kết ca bán hàng POS.</value></data>
+  <data name="Ice.Details.Col.PosShift" xml:space="preserve"><value>Ca bán hàng POS</value></data>
+  <data name="Ice.Details.Col.Staff" xml:space="preserve"><value>Nhân viên</value></data>
+  <data name="Ice.Details.Col.Start" xml:space="preserve"><value>Bắt đầu</value></data>
+  <data name="Ice.Details.Col.End" xml:space="preserve"><value>Kết thúc</value></data>
+  <data name="Ice.Details.Col.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Ice.Details.Open" xml:space="preserve"><value>Đang mở</value></data>
+  <data name="Ice.Details.MatchingPosShifts" xml:space="preserve"><value>Đã tìm thấy {0} ca bán hàng POS phù hợp</value></data>
+  <data name="Ice.Details.ConfirmLink" xml:space="preserve"><value>Xác nhận liên kết</value></data>
+  <data name="Ice.Details.NoLinkableTitle" xml:space="preserve"><value>Chưa có ca bán hàng POS có thể liên kết.</value></data>
+  <data name="Ice.Details.SupplementKicker" xml:space="preserve"><value>Trong ca</value></data>
+  <data name="Ice.Details.SupplementTitle" xml:space="preserve"><value>Cấp bổ sung</value></data>
+  <data name="Ice.Details.SupplementHint" xml:space="preserve"><value>Chỉ lượng đã duyệt mới tăng giữ chỗ của ca.</value></data>
+  <data name="Ice.Details.NoSupplements" xml:space="preserve"><value>Chưa có yêu cầu cấp bổ sung.</value></data>
+  <data name="Ice.Details.Col.Time" xml:space="preserve"><value>Thời điểm</value></data>
+  <data name="Ice.Details.Col.RequestedBy" xml:space="preserve"><value>Người yêu cầu</value></data>
+  <data name="Ice.Details.Col.Quantity" xml:space="preserve"><value>Số lượng</value></data>
+  <data name="Ice.Details.Col.Reason" xml:space="preserve"><value>Lý do</value></data>
+  <data name="Ice.Details.Col.StatusApproval" xml:space="preserve"><value>Trạng thái / duyệt</value></data>
+  <data name="Ice.Details.ApproveSupplementTitle" xml:space="preserve"><value>Duyệt cấp bổ sung</value></data>
+  <data name="Ice.Details.RejectReasonPlaceholder" xml:space="preserve"><value>Lý do từ chối</value></data>
+  <data name="Ice.Details.RejectSupplementTitle" xml:space="preserve"><value>Từ chối cấp bổ sung</value></data>
+  <data name="Ice.Details.SupplementQuantityLabel" xml:space="preserve"><value>Lượng bổ sung ({0})</value></data>
+  <data name="Ice.Details.SupplementReasonLabel" xml:space="preserve"><value>Lý do</value></data>
+  <data name="Ice.Details.SendRequest" xml:space="preserve"><value>Gửi yêu cầu</value></data>
+  <data name="Ice.Details.HandoffKicker" xml:space="preserve"><value>Giao nhận</value></data>
+  <data name="Ice.Details.HandoffTitle" xml:space="preserve"><value>Bàn giao cùng ngày</value></data>
+  <data name="Ice.Details.HandoffHint" xml:space="preserve"><value>Lượng ca sau nhận luôn bằng lượng ca trước đã xác nhận giao.</value></data>
+  <data name="Ice.Details.NoHandoffs" xml:space="preserve"><value>Chưa có giao nhận giữa các ca.</value></data>
+  <data name="Ice.Details.Col.Direction" xml:space="preserve"><value>Hướng</value></data>
+  <data name="Ice.Details.Col.RelatedShift" xml:space="preserve"><value>Ca liên quan</value></data>
+  <data name="Ice.Details.Col.HandedOverBy" xml:space="preserve"><value>Người giao</value></data>
+  <data name="Ice.Details.Col.ReceivedBy" xml:space="preserve"><value>Người nhận</value></data>
+  <data name="Ice.Details.NotConfirmed" xml:space="preserve"><value>Chưa xác nhận</value></data>
+  <data name="Ice.Details.ReceivingShift" xml:space="preserve"><value>Ca nhận</value></data>
+  <data name="Ice.Details.HandoffQuantityLabel" xml:space="preserve"><value>Số lượng ({0})</value></data>
+  <data name="Ice.Details.Receiver" xml:space="preserve"><value>Người nhận</value></data>
+  <data name="Ice.Details.ConfirmHandoff" xml:space="preserve"><value>Xác nhận giao</value></data>
+  <data name="Ice.Details.AuditKicker" xml:space="preserve"><value>Kiểm toán</value></data>
+  <data name="Ice.Details.PostingTitle" xml:space="preserve"><value>Bút toán điều chỉnh tồn kho</value></data>
+  <data name="Ice.Details.PostingHint" xml:space="preserve"><value>Mỗi chênh lệch dương chỉ tạo một bút toán giảm kho.</value></data>
+  <data name="Ice.Details.NoPostings" xml:space="preserve"><value>Chưa phát sinh bút toán điều chỉnh.</value></data>
+  <data name="Ice.Details.Col.Type" xml:space="preserve"><value>Loại</value></data>
+  <data name="Ice.Details.Col.Cost" xml:space="preserve"><value>Chi phí</value></data>
+  <data name="Ice.Details.Col.Approver" xml:space="preserve"><value>Người duyệt</value></data>
+  <data name="Ice.Details.Col.IdempotencyKey" xml:space="preserve"><value>Mã chống trùng lặp</value></data>
+  <data name="Ice.Details.PostingType.OverTheoreticalLoss" xml:space="preserve"><value>Hao hụt vượt lý thuyết</value></data>
+  <data name="Ice.Details.NoPrice" xml:space="preserve"><value>Chưa có giá</value></data>
+  <data name="Ice.Details.ActionColumnAria" xml:space="preserve"><value>Thao tác ca đá</value></data>
+  <data name="Ice.Details.NextStepKicker" xml:space="preserve"><value>Bước tiếp theo</value></data>
+  <data name="Ice.Details.CloseShiftTitle" xml:space="preserve"><value>Chốt ca</value></data>
+  <data name="Ice.Details.CloseShiftHint" xml:space="preserve"><value>Hệ thống tự tính tiêu hao lý thuyết từ giao dịch bán hàng POS. Đá đã đưa ra sử dụng không được trả lại kho.</value></data>
+  <data name="Ice.Details.ReturnQuantityLabel" xml:space="preserve"><value>Đá nguyên bao trả kho ({0})</value></data>
+  <data name="Ice.Details.ReturnCondition" xml:space="preserve"><value>Tình trạng</value></data>
+  <data name="Ice.Details.SelectCondition" xml:space="preserve"><value>Chọn tình trạng</value></data>
+  <data name="Ice.Details.SealedIntact" xml:space="preserve"><value>Nguyên bao, chưa đưa ra sử dụng</value></data>
+  <data name="Ice.Details.ReturnReceiver" xml:space="preserve"><value>Người nhận trả kho</value></data>
+  <data name="Ice.Details.SelectReceiver" xml:space="preserve"><value>Chọn người nhận</value></data>
+  <data name="Ice.Details.CloseReasonLabel" xml:space="preserve"><value>Lý do chênh lệch (nếu có)</value></data>
+  <data name="Ice.Details.CloseReasonPlaceholder" xml:space="preserve"><value>Giải trình khi tiêu hao thực tế khác tiêu hao lý thuyết POS</value></data>
+  <data name="Ice.Details.SubmitClose" xml:space="preserve"><value>Gửi chốt ca</value></data>
+  <data name="Ice.Details.PendingKicker" xml:space="preserve"><value>Chờ phê duyệt</value></data>
+  <data name="Ice.Details.ApproveVarianceTitle" xml:space="preserve"><value>Duyệt chênh lệch</value></data>
+  <data name="Ice.Details.ApproveVarianceHint" xml:space="preserve"><value>Chênh lệch dương sẽ tạo đúng một bút toán giảm kho bổ sung.</value></data>
+  <data name="Ice.Details.ApprovalReasonLabel" xml:space="preserve"><value>Lý do phê duyệt</value></data>
+  <data name="Ice.Details.ApproveAndWriteOff" xml:space="preserve"><value>Duyệt và ghi giảm</value></data>
+  <data name="Ice.Details.ReconciliationKicker" xml:space="preserve"><value>Cần đối soát</value></data>
+  <data name="Ice.Details.ReconciliationTitle" xml:space="preserve"><value>Hoàn tất đối soát</value></data>
+  <data name="Ice.Details.ReconciliationHint" xml:space="preserve"><value>Chênh lệch âm không tự tăng tồn. Kiểm tra BOM, POS, hoàn tiền và giao nhận trước khi đóng.</value></data>
+  <data name="Ice.Details.ReconciliationResultLabel" xml:space="preserve"><value>Kết quả đối soát</value></data>
+  <data name="Ice.Details.ConfirmReconciliation" xml:space="preserve"><value>Xác nhận đối soát</value></data>
+  <data name="Ice.Details.StatusKicker" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Ice.Details.ClosedNote" xml:space="preserve"><value>Ca đã hoàn tất. Dữ liệu và bút toán được giữ để truy vết.</value></data>
+  <data name="Ice.Details.NoActionNote" xml:space="preserve"><value>Bạn không có thao tác cần xử lý ở trạng thái này.</value></data>
+  <data name="Ice.Details.AuditInfoTitle" xml:space="preserve"><value>Thông tin kiểm toán</value></data>
+  <data name="Ice.Details.AllocationIdLabel" xml:space="preserve"><value>Mã cấp đá</value></data>
+  <data name="Ice.Details.OpeningCarryLabel" xml:space="preserve"><value>Tồn chuyển đầu ca</value></data>
+  <data name="Ice.Details.ClosingCarryLabel" xml:space="preserve"><value>Tồn chuyển cuối ca</value></data>
+  <data name="Ice.Details.ValidReturnLabel" xml:space="preserve"><value>Đá trả hợp lệ</value></data>
+  <data name="Ice.Details.CostSnapshotLabel" xml:space="preserve"><value>Giá vốn tại thời điểm chốt</value></data>
+  <data name="Ice.Details.CostStatusLabel" xml:space="preserve"><value>Tình trạng giá vốn</value></data>
+  <data name="Ice.Details.CloseReasonTitle" xml:space="preserve"><value>Giải trình chốt ca</value></data>
+  <data name="Ice.Details.ReconciliationResultTitle" xml:space="preserve"><value>Kết quả đối soát</value></data>
+  <data name="Ice.Details.CancelAllocationSummary" xml:space="preserve"><value>Hủy phân bổ</value></data>
+  <data name="Ice.Details.CancelReasonLabel" xml:space="preserve"><value>Lý do hủy</value></data>
+  <data name="Ice.Details.CancelAndRelease" xml:space="preserve"><value>Hủy và giải phóng giữ chỗ</value></data>
+  <data name="Ice.Details.Js.Linking" xml:space="preserve"><value>Đang liên kết...</value></data>
+  <data name="Ice.Report.Title" xml:space="preserve"><value>Báo cáo đá {0}</value></data>
+  <data name="Ice.Report.BackToShift" xml:space="preserve"><value>Quay lại ca đá</value></data>
+  <data name="Ice.Report.Heading" xml:space="preserve"><value>Báo cáo {0}</value></data>
+  <data name="Ice.Report.CostSourceNote" xml:space="preserve"><value>Dữ liệu chi phí lấy từ các giao dịch kho đã ghi nhận.</value></data>
+  <data name="Ice.Report.DownloadPdf" xml:space="preserve"><value>Tải PDF</value></data>
+  <data name="Ice.Report.Print" xml:space="preserve"><value>In báo cáo</value></data>
+  <data name="Ice.Report.SnapshotMismatch" xml:space="preserve"><value>Tiêu hao lý thuyết đã lưu khi chốt là {0}, trong khi dữ liệu giao dịch hiện tại là {1}. Cần đối soát dữ liệu đơn hàng liên kết trước khi sử dụng báo cáo.</value></data>
+  <data name="Ice.Report.ShiftLabel" xml:space="preserve"><value>Ca vận hành</value></data>
+  <data name="Ice.Report.StatusLabel" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Ice.Report.AllocationIdPrefix" xml:space="preserve"><value>Mã cấp đá</value></data>
+  <data name="Ice.Report.PosShiftsLabel" xml:space="preserve"><value>Ca bán hàng POS</value></data>
+  <data name="Ice.Report.NotLinked" xml:space="preserve"><value>Chưa liên kết</value></data>
+  <data name="Ice.Report.TheoreticalSourceNote" xml:space="preserve"><value>Nguồn tính tiêu hao lý thuyết</value></data>
+  <data name="Ice.Report.CostStatusLabel" xml:space="preserve"><value>Tình trạng giá vốn</value></data>
+  <data name="Ice.Report.CostStatusNote" xml:space="preserve"><value>Dựa trên dữ liệu giao dịch kho đã ghi nhận</value></data>
+  <data name="Ice.Report.QuantityKicker" xml:space="preserve"><value>Số lượng</value></data>
+  <data name="Ice.Report.QuantityTitle" xml:space="preserve"><value>Đối chiếu ca/ngày</value></data>
+  <data name="Ice.Report.ActualUsageFormula" xml:space="preserve"><value>Tiêu hao thực tế = tổng lượng đã cấp + lượng nhận bàn giao đầu ca − lượng bàn giao cuối ca − lượng trả kho hợp lệ.</value></data>
+  <data name="Ice.Report.OpeningCarry" xml:space="preserve"><value>Tồn chuyển đầu ca</value></data>
+  <data name="Ice.Report.InitialIssued" xml:space="preserve"><value>Cấp đầu ca</value></data>
+  <data name="Ice.Report.SupplementalIssued" xml:space="preserve"><value>Cấp bổ sung</value></data>
+  <data name="Ice.Report.ReturnedQuantity" xml:space="preserve"><value>Trả kho hợp lệ</value></data>
+  <data name="Ice.Report.ClosingCarry" xml:space="preserve"><value>Tồn chuyển cuối ca</value></data>
+  <data name="Ice.Report.ActualUsage" xml:space="preserve"><value>Tiêu hao thực tế</value></data>
+  <data name="Ice.Report.TheoreticalUsage" xml:space="preserve"><value>Dùng theo POS</value></data>
+  <data name="Ice.Report.Variance" xml:space="preserve"><value>Chênh lệch</value></data>
+  <data name="Ice.Report.NotClosed" xml:space="preserve"><value>Chưa chốt</value></data>
+  <data name="Ice.Report.CostKicker" xml:space="preserve"><value>Dữ liệu giao dịch kho</value></data>
+  <data name="Ice.Report.CostTitle" xml:space="preserve"><value>Giá vốn vận hành</value></data>
+  <data name="Ice.Report.CostNote" xml:space="preserve"><value>Ô thiếu dữ liệu được giữ trống có chủ đích, không tự ước tính giá vốn.</value></data>
+  <data name="Ice.Report.TheoreticalCost" xml:space="preserve"><value>Giá vốn theo POS</value></data>
+  <data name="Ice.Report.VarianceCost" xml:space="preserve"><value>Giá vốn chênh lệch</value></data>
+  <data name="Ice.Report.ActualCost" xml:space="preserve"><value>Giá vốn thực tế</value></data>
+  <data name="Ice.Report.InsufficientData" xml:space="preserve"><value>Chưa đủ dữ liệu</value></data>
+  <data name="Ice.Report.InventoryUnitFallback" xml:space="preserve"><value>đơn vị tồn kho</value></data>
+  <data name="Ice.Report.ResponsibilityKicker" xml:space="preserve"><value>Trách nhiệm</value></data>
+  <data name="Ice.Report.ResponsibilityTitle" xml:space="preserve"><value>Người giao / nhận / duyệt</value></data>
+  <data name="Ice.Report.IssuedBy" xml:space="preserve"><value>Người cấp đầu ca</value></data>
+  <data name="Ice.Report.ShiftLead" xml:space="preserve"><value>Ca trưởng / người nhận</value></data>
+  <data name="Ice.Report.ReturnedBy" xml:space="preserve"><value>Người trả kho</value></data>
+  <data name="Ice.Report.ReturnReceivedBy" xml:space="preserve"><value>Người nhận trả kho</value></data>
+  <data name="Ice.Report.ClosedBy" xml:space="preserve"><value>Người chốt</value></data>
+  <data name="Ice.Report.ApprovedBy" xml:space="preserve"><value>Người duyệt điều chỉnh</value></data>
+  <data name="Ice.Report.HandoffKicker" xml:space="preserve"><value>Bàn giao</value></data>
+  <data name="Ice.Report.HandoffTitle" xml:space="preserve"><value>Bàn giao trong cùng ngày</value></data>
+  <data name="Ice.Report.NoHandoffs" xml:space="preserve"><value>Không phát sinh bàn giao giữa các ca.</value></data>
+  <data name="Ice.Report.AuditKicker" xml:space="preserve"><value>Kiểm toán</value></data>
+  <data name="Ice.Report.PostingTitle" xml:space="preserve"><value>Tham chiếu bút toán kho</value></data>
+  <data name="Ice.Report.PostingHint" xml:space="preserve"><value>Mỗi chênh lệch dương chỉ có một mã chống trùng lặp và một giao dịch kho.</value></data>
+  <data name="Ice.Report.NoPostingsTitle" xml:space="preserve"><value>Không có bút toán điều chỉnh</value></data>
+  <data name="Ice.Report.NoPostingsText" xml:space="preserve"><value>Ca không phát sinh chênh lệch dương đã duyệt.</value></data>
+  <data name="Ice.Report.Col.Posting" xml:space="preserve"><value>Bút toán</value></data>
+  <data name="Ice.Report.Col.IdempotencyKey" xml:space="preserve"><value>Mã chống trùng lặp</value></data>
+  <data name="Ice.Report.Col.InventoryTransaction" xml:space="preserve"><value>Giao dịch kho</value></data>
+  <data name="Ice.Report.Col.Quantity" xml:space="preserve"><value>Số lượng</value></data>
+  <data name="Ice.Report.Col.Value" xml:space="preserve"><value>Giá trị</value></data>
+  <data name="Ice.Report.Col.Approver" xml:space="preserve"><value>Người duyệt</value></data>
+  <data name="Ice.Report.ReconciliationKicker" xml:space="preserve"><value>Đối soát</value></data>
+  <data name="Ice.Report.ReconciliationTitle" xml:space="preserve"><value>Lý do và kết luận</value></data>
+  <data name="Ice.Report.VarianceReasonLabel" xml:space="preserve"><value>Lý do chênh lệch:</value></data>
+  <data name="Ice.Report.ReconciliationConclusionLabel" xml:space="preserve"><value>Kết luận đối soát:</value></data>
+  <data name="Permission.Index.Title" xml:space="preserve"><value>Bảng phân quyền</value></data>
+  <data name="Permission.Index.Eyebrow" xml:space="preserve"><value>Hệ thống / Bảng phân quyền</value></data>
+  <data name="Permission.Index.Subtitle" xml:space="preserve"><value>Kiểm soát vai trò, quyền thao tác và phạm vi dữ liệu của từng nhân viên.</value></data>
+  <data name="Permission.Index.Refresh" xml:space="preserve"><value>Tải lại</value></data>
+  <data name="Permission.Index.RefreshAria" xml:space="preserve"><value>Tải lại dữ liệu phân quyền</value></data>
+  <data name="Permission.Index.TabsAria" xml:space="preserve"><value>Nhóm chức năng phân quyền</value></data>
+  <data name="Permission.Index.Tab.Roles" xml:space="preserve"><value>Quản lý vai trò</value></data>
+  <data name="Permission.Index.Tab.Assign" xml:space="preserve"><value>Gán vai trò</value></data>
+  <data name="Permission.Index.Tab.Override" xml:space="preserve"><value>Ghi đè quyền người dùng</value></data>
+  <data name="Permission.Index.Tab.Scope" xml:space="preserve"><value>Phạm vi cửa hàng</value></data>
+  <data name="Permission.Index.RoleSearchPlaceholder" xml:space="preserve"><value>Tìm kiếm vai trò...</value></data>
+  <data name="Permission.Index.RoleCount" xml:space="preserve"><value>{0} vai trò</value></data>
+  <data name="Permission.Index.Col.Ordinal" xml:space="preserve"><value>STT</value></data>
+  <data name="Permission.Index.Col.RoleName" xml:space="preserve"><value>Tên vai trò</value></data>
+  <data name="Permission.Index.Col.Users" xml:space="preserve"><value>Người dùng</value></data>
+  <data name="Permission.Index.Col.Permissions" xml:space="preserve"><value>Quyền</value></data>
+  <data name="Permission.Index.Col.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Permission.Index.Col.Actions" xml:space="preserve"><value>Thao tác</value></data>
+  <data name="Permission.Index.StaffSearchPlaceholder" xml:space="preserve"><value>Tìm nhân viên...</value></data>
+  <data name="Permission.Index.StaffCount" xml:space="preserve"><value>{0} nhân viên</value></data>
+  <data name="Permission.Index.Col.Staff" xml:space="preserve"><value>Nhân viên</value></data>
+  <data name="Permission.Index.Col.Email" xml:space="preserve"><value>Email</value></data>
+  <data name="Permission.Index.Col.Store" xml:space="preserve"><value>Cửa hàng</value></data>
+  <data name="Permission.Index.Col.Roles" xml:space="preserve"><value>Vai trò</value></data>
+  <data name="Permission.Index.SelectedStaffLabel" xml:space="preserve"><value>Nhân viên</value></data>
+  <data name="Permission.Index.NotSelected" xml:space="preserve"><value>Chưa chọn</value></data>
+  <data name="Permission.Index.Save" xml:space="preserve"><value>Lưu</value></data>
+  <data name="Permission.Index.PermissionSearchPlaceholder" xml:space="preserve"><value>Tìm quyền...</value></data>
+  <data name="Permission.Index.OverrideEmpty" xml:space="preserve"><value>Chọn một nhân viên để chỉnh quyền ghi đè.</value></data>
+  <data name="Permission.Index.ScopeLabel" xml:space="preserve"><value>Phạm vi</value></data>
+  <data name="Permission.Index.ParentArea" xml:space="preserve"><value>Khu vực cha</value></data>
+  <data name="Permission.Index.StoreOrArea" xml:space="preserve"><value>Cửa hàng/khu vực</value></data>
+  <data name="Permission.Index.Add" xml:space="preserve"><value>Thêm</value></data>
+  <data name="Permission.Index.ScopeEmpty" xml:space="preserve"><value>Chọn một nhân viên để thiết lập phạm vi cửa hàng.</value></data>
+  <data name="Permission.RoleModal.Title" xml:space="preserve"><value>Phân quyền vai trò</value></data>
+  <data name="Permission.RoleModal.CloseTitle" xml:space="preserve"><value>Đóng</value></data>
+  <data name="Permission.RoleModal.SelectAll" xml:space="preserve"><value>Chọn tất cả</value></data>
+  <data name="Permission.RoleModal.Clear" xml:space="preserve"><value>Bỏ chọn</value></data>
+  <data name="Permission.RoleModal.ExpandAll" xml:space="preserve"><value>Mở tất cả</value></data>
+  <data name="Permission.RoleModal.SelectedCount" xml:space="preserve"><value>Đã chọn: {0} quyền</value></data>
+  <data name="Permission.RoleModal.Cancel" xml:space="preserve"><value>Hủy</value></data>
+  <data name="Permission.StaffRoleModal.Title" xml:space="preserve"><value>Gán vai trò cho nhân viên</value></data>
+  <data name="Permission.StaffRoleModal.Note" xml:space="preserve"><value>Chọn nhiều vai trò nếu nhân viên đảm nhận nhiều vị trí.</value></data>
+  <data name="Permission.StaffRoleModal.Cancel" xml:space="preserve"><value>Hủy</value></data>
+  <data name="Permission.Js.ScopeType.Country" xml:space="preserve"><value>Quốc gia</value></data>
+  <data name="Permission.Js.ScopeType.Province" xml:space="preserve"><value>Tỉnh/Thành phố</value></data>
+  <data name="Permission.Js.ScopeType.Ward" xml:space="preserve"><value>Xã/Phường/Đặc khu</value></data>
+  <data name="Permission.Js.ScopeType.Store" xml:space="preserve"><value>Cửa hàng</value></data>
+  <data name="Permission.Js.ScopeFallback" xml:space="preserve"><value>Phạm vi</value></data>
+  <data name="Permission.Js.RequestFailed" xml:space="preserve"><value>Không thể xử lý yêu cầu.</value></data>
+  <data name="Permission.Js.LoginRequired" xml:space="preserve"><value>Bạn cần đăng nhập để truy cập chức năng này.</value></data>
+  <data name="Permission.Js.AccessDenied" xml:space="preserve"><value>Bạn không có quyền truy cập chức năng này.</value></data>
+  <data name="Permission.Js.Saving" xml:space="preserve"><value>Đang lưu...</value></data>
+  <data name="Permission.Js.Saved" xml:space="preserve"><value>Đã lưu</value></data>
+  <data name="Permission.Js.LoginRequiredTitle" xml:space="preserve"><value>Bạn cần đăng nhập</value></data>
+  <data name="Permission.Js.LoginHint" xml:space="preserve"><value>Vui lòng đăng nhập để tiếp tục.</value></data>
+  <data name="Permission.Js.Login" xml:space="preserve"><value>Đăng nhập</value></data>
+  <data name="Permission.Js.Close" xml:space="preserve"><value>Đóng</value></data>
+  <data name="Permission.Js.AccessDeniedTitle" xml:space="preserve"><value>Bạn không có quyền truy cập</value></data>
+  <data name="Permission.Js.AccessDeniedHint" xml:space="preserve"><value>Vui lòng liên hệ cấp trên hoặc quản trị viên để được cấp quyền.</value></data>
+  <data name="Permission.Js.Failed" xml:space="preserve"><value>Không thành công</value></data>
+  <data name="Permission.Js.NoRolesYet" xml:space="preserve"><value>Chưa có vai trò</value></data>
+  <data name="Permission.Js.NoMatchingRoles" xml:space="preserve"><value>Không có vai trò phù hợp.</value></data>
+  <data name="Permission.Js.Active" xml:space="preserve"><value>Hoạt động</value></data>
+  <data name="Permission.Js.Inactive" xml:space="preserve"><value>Ngưng hoạt động</value></data>
+  <data name="Permission.Js.AssignPermissions" xml:space="preserve"><value>Phân quyền</value></data>
+  <data name="Permission.Js.NoMatchingStaff" xml:space="preserve"><value>Không có nhân viên phù hợp.</value></data>
+  <data name="Permission.Js.AssignRole" xml:space="preserve"><value>Gán vai trò</value></data>
+  <data name="Permission.Js.Loading" xml:space="preserve"><value>Đang tải...</value></data>
+  <data name="Permission.Js.RoleMeta" xml:space="preserve"><value>Vai trò: {role} | Người dùng: {users} | Quyền: {permissions}</value></data>
+  <data name="Permission.Js.NoMutableRolePermissions" xml:space="preserve"><value>Bạn không có permission nào có thể thay đổi trong vai trò này.</value></data>
+  <data name="Permission.Js.SelectedPermissions" xml:space="preserve"><value>Đã chọn: {count} quyền</value></data>
+  <data name="Permission.Js.RolePermissionsSaved" xml:space="preserve"><value>Đã lưu phân quyền vai trò</value></data>
+  <data name="Permission.Js.StaffRolesSaved" xml:space="preserve"><value>Đã lưu vai trò nhân viên</value></data>
+  <data name="Permission.Js.OverridesSaved" xml:space="preserve"><value>Đã lưu quyền ghi đè</value></data>
+  <data name="Permission.Js.ScopesSaved" xml:space="preserve"><value>Đã lưu phạm vi cửa hàng</value></data>
+  <data name="Permission.Js.NoMutableStaffPermissions" xml:space="preserve"><value>Bạn không có permission nào có thể thay đổi cho nhân viên này.</value></data>
+  <data name="Permission.Js.ByRole" xml:space="preserve"><value>Theo vai trò</value></data>
+  <data name="Permission.Js.NoRole" xml:space="preserve"><value>Chưa có vai trò</value></data>
+  <data name="Permission.Js.Inherit" xml:space="preserve"><value>Kế thừa</value></data>
+  <data name="Permission.Js.Allow" xml:space="preserve"><value>Cho phép</value></data>
+  <data name="Permission.Js.Deny" xml:space="preserve"><value>Từ chối</value></data>
+  <data name="Permission.Js.SelectScope" xml:space="preserve"><value>-- Chọn phạm vi --</value></data>
+  <data name="Permission.Js.SelectObject" xml:space="preserve"><value>-- Chọn đối tượng --</value></data>
+  <data name="Permission.Js.AllObjectsAssigned" xml:space="preserve"><value>-- Đã phân quyền tất cả đối tượng --</value></data>
+  <data name="Permission.Js.SelectParentArea" xml:space="preserve"><value>-- Chọn khu vực cha --</value></data>
+  <data name="Permission.Js.NoScopesYet" xml:space="preserve"><value>Chưa có phạm vi.</value></data>
+  <data name="Permission.Js.Remove" xml:space="preserve"><value>Xóa</value></data>
+</root>

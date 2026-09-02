@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Staff.Index.Title" xml:space="preserve"><value>Quản lý nhân sự</value></data>
+  <data name="Staff.Index.Eyebrow" xml:space="preserve"><value>Nhân sự &amp; Vận hành / Quản lý nhân viên</value></data>
+  <data name="Staff.Index.Subtitle" xml:space="preserve"><value>Quản lý thông tin, vai trò và quyền hạn của đội ngũ nhân viên CafeChain.</value></data>
+  <data name="Staff.Index.Add" xml:space="preserve"><value>Thêm nhân viên</value></data>
+  <data name="Staff.Index.Kpi.Total" xml:space="preserve"><value>Tổng nhân sự</value></data>
+  <data name="Staff.Index.Kpi.Working" xml:space="preserve"><value>Đang làm việc</value></data>
+  <data name="Staff.Index.Kpi.Locked" xml:space="preserve"><value>Đã khóa</value></data>
+  <data name="Staff.Index.SearchLabel" xml:space="preserve"><value>Tìm kiếm nhân viên</value></data>
+  <data name="Staff.Index.SearchPlaceholder" xml:space="preserve"><value>Tên hoặc email nhân viên...</value></data>
+  <data name="Staff.Index.Role" xml:space="preserve"><value>Vai trò</value></data>
+  <data name="Staff.Index.AllRoles" xml:space="preserve"><value>Tất cả vai trò</value></data>
+  <data name="Staff.Index.Filter" xml:space="preserve"><value>Lọc</value></data>
+  <data name="Staff.Index.Reset" xml:space="preserve"><value>Đặt lại</value></data>
+  <data name="Staff.Index.FoundPrefix" xml:space="preserve"><value>Tìm thấy</value></data>
+  <data name="Staff.Index.FoundSuffix" xml:space="preserve"><value>nhân viên</value></data>
+  <data name="Staff.Index.FoundFor" xml:space="preserve"><value>cho</value></data>
+  <data name="Staff.Index.Col.Staff" xml:space="preserve"><value>Nhân viên</value></data>
+  <data name="Staff.Index.Col.Email" xml:space="preserve"><value>Email</value></data>
+  <data name="Staff.Index.Col.Role" xml:space="preserve"><value>Vai trò</value></data>
+  <data name="Staff.Index.Col.Store" xml:space="preserve"><value>Cửa hàng</value></data>
+  <data name="Staff.Index.Col.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Staff.Index.Col.Actions" xml:space="preserve"><value>Thao tác</value></data>
+  <data name="Staff.Index.Empty" xml:space="preserve"><value>Chưa có nhân viên nào. Hãy thêm mới!</value></data>
+  <data name="Staff.Index.EditTitle" xml:space="preserve"><value>Chỉnh sửa</value></data>
+  <data name="Staff.Index.LockTitle" xml:space="preserve"><value>Khóa tài khoản</value></data>
+  <data name="Staff.Index.UnlockTitle" xml:space="preserve"><value>Mở khóa</value></data>
+  <data name="Staff.Index.ResetPasswordTitle" xml:space="preserve"><value>Đặt lại mật khẩu</value></data>
+  <data name="Staff.Index.NoEditTitle" xml:space="preserve"><value>Không có quyền chỉnh sửa</value></data>
+  <data name="Staff.Index.Superior" xml:space="preserve"><value>Thuộc cấp trên</value></data>
+  <data name="Staff.Index.Showing" xml:space="preserve"><value>Hiển thị {0} / {1} nhân viên</value></data>
+  <data name="Staff.Js.LockVerb" xml:space="preserve"><value>khóa</value></data>
+  <data name="Staff.Js.UnlockVerb" xml:space="preserve"><value>mở khóa</value></data>
+  <data name="Staff.Js.LockTitle" xml:space="preserve"><value>Khóa tài khoản</value></data>
+  <data name="Staff.Js.UnlockTitle" xml:space="preserve"><value>Mở khóa tài khoản</value></data>
+  <data name="Staff.Js.ToggleLead" xml:space="preserve"><value>Bạn đang yêu cầu</value></data>
+  <data name="Staff.Js.ToggleOf" xml:space="preserve"><value>tài khoản của</value></data>
+  <data name="Staff.Js.LockNote" xml:space="preserve"><value>Nhân viên sẽ không thể đăng nhập cho đến khi tài khoản được mở lại.</value></data>
+  <data name="Staff.Js.UnlockNote" xml:space="preserve"><value>Nhân viên sẽ có thể đăng nhập và tiếp tục làm việc.</value></data>
+  <data name="Staff.Js.LockConfirm" xml:space="preserve"><value>Khóa tài khoản</value></data>
+  <data name="Staff.Js.UnlockConfirm" xml:space="preserve"><value>Mở khóa tài khoản</value></data>
+  <data name="Staff.Js.Cancel" xml:space="preserve"><value>Hủy bỏ</value></data>
+  <data name="Staff.Js.Success" xml:space="preserve"><value>Thành công!</value></data>
+  <data name="Staff.Js.Error" xml:space="preserve"><value>Lỗi!</value></data>
+  <data name="Staff.Js.ServerError" xml:space="preserve"><value>Không thể kết nối server.</value></data>
+  <data name="Staff.Js.ResetTitle" xml:space="preserve"><value>Đặt lại mật khẩu</value></data>
+  <data name="Staff.Js.ResetLead" xml:space="preserve"><value>Tạo mật khẩu đăng nhập mới cho</value></data>
+  <data name="Staff.Js.ResetNote" xml:space="preserve"><value>Mật khẩu mới cần có ít nhất 6 ký tự. Hãy gửi mật khẩu cho nhân viên qua kênh an toàn.</value></data>
+  <data name="Staff.Js.NewPassword" xml:space="preserve"><value>Mật khẩu mới</value></data>
+  <data name="Staff.Js.NewPasswordPlaceholder" xml:space="preserve"><value>Nhập tối thiểu 6 ký tự</value></data>
+  <data name="Staff.Js.ResetConfirm" xml:space="preserve"><value>Đặt lại mật khẩu</value></data>
+  <data name="Staff.Js.CancelShort" xml:space="preserve"><value>Hủy</value></data>
+  <data name="Staff.Js.PasswordMin" xml:space="preserve"><value>Mật khẩu phải có ít nhất 6 ký tự.</value></data>
+  <data name="Staff.Js.SuccessShort" xml:space="preserve"><value>Thành công</value></data>
+  <data name="Staff.Js.FailedShort" xml:space="preserve"><value>Không thành công</value></data>
+  <data name="Staff.Js.ErrorShort" xml:space="preserve"><value>Lỗi</value></data>
+  <data name="Staff.Create.Title" xml:space="preserve"><value>Thêm nhân viên mới</value></data>
+  <data name="Staff.Create.Subtitle" xml:space="preserve"><value>Tạo hồ sơ, tài khoản và phạm vi làm việc trong một giao dịch.</value></data>
+  <data name="Staff.Create.Close" xml:space="preserve"><value>Đóng</value></data>
+  <data name="Staff.Create.Tab.General" xml:space="preserve"><value>Thông tin chung</value></data>
+  <data name="Staff.Create.Tab.Scope" xml:space="preserve"><value>Vai trò &amp; phạm vi</value></data>
+  <data name="Staff.Create.Tab.Account" xml:space="preserve"><value>Công việc &amp; tài khoản</value></data>
+  <data name="Staff.Create.Avatar" xml:space="preserve"><value>Ảnh đại diện</value></data>
+  <data name="Staff.Create.AvatarHint" xml:space="preserve"><value>Click để chọn ảnh</value></data>
+  <data name="Staff.Create.AvatarFormats" xml:space="preserve"><value>JPG, PNG, WebP · tối đa 2 MB</value></data>
+  <data name="Staff.Create.AvatarAlt" xml:space="preserve"><value>Ảnh đại diện xem trước</value></data>
+  <data name="Staff.Create.ChoosePhoto" xml:space="preserve"><value>Chọn ảnh</value></data>
+  <data name="Staff.Create.RemovePhoto" xml:space="preserve"><value>Bỏ ảnh</value></data>
+  <data name="Staff.Create.Personal" xml:space="preserve"><value>Thông tin cá nhân</value></data>
+  <data name="Staff.Create.FullName" xml:space="preserve"><value>Họ và tên</value></data>
+  <data name="Staff.Create.FullNamePlaceholder" xml:space="preserve"><value>Nguyễn Văn A</value></data>
+  <data name="Staff.Create.Cccd" xml:space="preserve"><value>Căn cước công dân</value></data>
+  <data name="Staff.Create.CccdPlaceholder" xml:space="preserve"><value>12 chữ số</value></data>
+  <data name="Staff.Create.Gender" xml:space="preserve"><value>Giới tính</value></data>
+  <data name="Staff.Create.Gender.Female" xml:space="preserve"><value>Nữ</value></data>
+  <data name="Staff.Create.Gender.Male" xml:space="preserve"><value>Nam</value></data>
+  <data name="Staff.Create.Gender.Other" xml:space="preserve"><value>Khác</value></data>
+  <data name="Staff.Create.Dob" xml:space="preserve"><value>Ngày sinh</value></data>
+  <data name="Staff.Create.Phone" xml:space="preserve"><value>Số điện thoại</value></data>
+  <data name="Staff.Create.AddressSection" xml:space="preserve"><value>Địa chỉ thường trú</value></data>
+  <data name="Staff.Create.Province" xml:space="preserve"><value>Tỉnh/Thành phố</value></data>
+  <data name="Staff.Create.SelectProvince" xml:space="preserve"><value>-- Chọn Tỉnh/Thành phố --</value></data>
+  <data name="Staff.Create.Ward" xml:space="preserve"><value>Xã/Phường/Đặc khu</value></data>
+  <data name="Staff.Create.SelectWard" xml:space="preserve"><value>-- Chọn Xã/Phường/Đặc khu --</value></data>
+  <data name="Staff.Create.Address" xml:space="preserve"><value>Địa chỉ chi tiết</value></data>
+  <data name="Staff.Create.AddressPlaceholder" xml:space="preserve"><value>Số nhà, tên đường...</value></data>
+  <data name="Staff.Create.ScopeSection" xml:space="preserve"><value>Vai trò và phạm vi dữ liệu</value></data>
+  <data name="Staff.Create.ScopeHelp" xml:space="preserve"><value>Chọn vai trò trước, sau đó cấp phạm vi dữ liệu. Cửa hàng chính là nơi làm việc hằng ngày và bắt buộc phải nằm trong phạm vi vừa cấp.</value></data>
+  <data name="Staff.Create.Role" xml:space="preserve"><value>Vai trò</value></data>
+  <data name="Staff.Create.SelectRole" xml:space="preserve"><value>-- Chọn vai trò --</value></data>
+  <data name="Staff.Create.ScopeType" xml:space="preserve"><value>Loại phạm vi</value></data>
+  <data name="Staff.Create.SelectRoleFirst" xml:space="preserve"><value>-- Chọn vai trò trước --</value></data>
+  <data name="Staff.Create.ScopeRef" xml:space="preserve"><value>Phạm vi được cấp</value></data>
+  <data name="Staff.Create.SelectScopeTypeFirst" xml:space="preserve"><value>-- Chọn loại phạm vi trước --</value></data>
+  <data name="Staff.Create.ScopeProvince" xml:space="preserve"><value>Tỉnh/Thành phố của phạm vi</value></data>
+  <data name="Staff.Create.PrimaryStore" xml:space="preserve"><value>Cửa hàng chính</value></data>
+  <data name="Staff.Create.SelectScopeFirst" xml:space="preserve"><value>-- Chọn phạm vi trước --</value></data>
+  <data name="Staff.Create.StoreHelp" xml:space="preserve"><value>Nơi công tác chính để xếp lịch và vận hành POS; không thay thế phạm vi dữ liệu.</value></data>
+  <data name="Staff.Create.AccountSection" xml:space="preserve"><value>Công việc và tài khoản đăng nhập</value></data>
+  <data name="Staff.Create.LoginEmail" xml:space="preserve"><value>Email đăng nhập</value></data>
+  <data name="Staff.Create.Password" xml:space="preserve"><value>Mật khẩu ban đầu</value></data>
+  <data name="Staff.Create.TogglePassword" xml:space="preserve"><value>Hiện hoặc ẩn mật khẩu</value></data>
+  <data name="Staff.Create.PasswordHelp" xml:space="preserve"><value>Nhân viên có thể chủ động đổi mật khẩu sau khi đăng nhập.</value></data>
+  <data name="Staff.Create.StartDate" xml:space="preserve"><value>Ngày bắt đầu</value></data>
+  <data name="Staff.Create.EmployeeStatus" xml:space="preserve"><value>Trạng thái nhân sự</value></data>
+  <data name="Staff.Create.Status.Probation" xml:space="preserve"><value>Thử việc</value></data>
+  <data name="Staff.Create.Status.Official" xml:space="preserve"><value>Chính thức</value></data>
+  <data name="Staff.Create.Status.Resigned" xml:space="preserve"><value>Đã nghỉ việc</value></data>
+  <data name="Staff.Create.Cancel" xml:space="preserve"><value>Hủy</value></data>
+  <data name="Staff.Create.Submit" xml:space="preserve"><value>Tạo nhân viên</value></data>
+  <data name="Staff.Create.Js.Loading" xml:space="preserve"><value>Đang tải...</value></data>
+  <data name="Staff.Create.Js.LoadFailed" xml:space="preserve"><value>Không tải được dữ liệu</value></data>
+  <data name="Staff.Create.Js.SelectPrimaryStore" xml:space="preserve"><value>-- Chọn cửa hàng chính --</value></data>
+  <data name="Staff.Create.Js.NoMatchingStore" xml:space="preserve"><value>-- Phạm vi không có cửa hàng phù hợp --</value></data>
+  <data name="Staff.Create.Js.SelectScopeType" xml:space="preserve"><value>-- Chọn loại phạm vi --</value></data>
+  <data name="Staff.Create.Js.SelectScope" xml:space="preserve"><value>-- Chọn phạm vi --</value></data>
+  <data name="Staff.Create.Js.SelectProvinceFirst" xml:space="preserve"><value>-- Chọn Tỉnh/Thành phố trước --</value></data>
+  <data name="Staff.Create.Js.AvatarInvalid" xml:space="preserve"><value>Ảnh phải là JPG, PNG hoặc WebP và không vượt quá 2 MB.</value></data>
+  <data name="Staff.Create.Js.NameRequired" xml:space="preserve"><value>Vui lòng nhập họ và tên.</value></data>
+  <data name="Staff.Create.Js.CccdRequired" xml:space="preserve"><value>Vui lòng nhập căn cước công dân.</value></data>
+  <data name="Staff.Create.Js.CccdInvalid" xml:space="preserve"><value>Căn cước công dân không hợp lệ (phải gồm đúng 12 chữ số).</value></data>
+  <data name="Staff.Create.Js.DobRequired" xml:space="preserve"><value>Vui lòng chọn ngày sinh.</value></data>
+  <data name="Staff.Create.Js.RoleRequired" xml:space="preserve"><value>Vui lòng chọn vai trò.</value></data>
+  <data name="Staff.Create.Js.ScopeTypeRequired" xml:space="preserve"><value>Vui lòng chọn loại phạm vi.</value></data>
+  <data name="Staff.Create.Js.ScopeRefRequired" xml:space="preserve"><value>Vui lòng chọn phạm vi được cấp.</value></data>
+  <data name="Staff.Create.Js.StoreRequired" xml:space="preserve"><value>Vui lòng chọn cửa hàng chính.</value></data>
+  <data name="Staff.Create.Js.EmailRequired" xml:space="preserve"><value>Vui lòng nhập email đăng nhập.</value></data>
+  <data name="Staff.Create.Js.EmailInvalid" xml:space="preserve"><value>Địa chỉ email không đúng định dạng (Ví dụ: example@domain.com).</value></data>
+  <data name="Staff.Create.Js.PasswordRequired" xml:space="preserve"><value>Vui lòng nhập mật khẩu ban đầu.</value></data>
+  <data name="Staff.Create.Js.PasswordMin" xml:space="preserve"><value>Mật khẩu phải chứa ít nhất 6 ký tự.</value></data>
+  <data name="Staff.Create.Js.StartDateRequired" xml:space="preserve"><value>Vui lòng chọn ngày bắt đầu làm việc.</value></data>
+  <data name="Staff.Create.Js.InvalidTitle" xml:space="preserve"><value>Thông tin chưa hợp lệ</value></data>
+  <data name="Staff.Create.Js.CheckFields" xml:space="preserve"><value>Vui lòng kiểm tra: {labels}.</value></data>
+  <data name="Staff.Create.Js.CheckRequired" xml:space="preserve"><value>Vui lòng kiểm tra và nhập đầy đủ các trường bắt buộc.</value></data>
+  <data name="Staff.Create.Js.BackToCheck" xml:space="preserve"><value>Quay lại kiểm tra</value></data>
+  <data name="Staff.Create.Js.Forbidden" xml:space="preserve"><value>Không có quyền</value></data>
+  <data name="Staff.Create.Js.CreateFailed" xml:space="preserve"><value>Không thể tạo nhân viên</value></data>
+  <data name="Staff.Create.Js.RequestFailed" xml:space="preserve"><value>Yêu cầu không thể xử lý.</value></data>
+  <data name="Staff.Create.Js.ConnectionTitle" xml:space="preserve"><value>Lỗi kết nối</value></data>
+  <data name="Staff.Create.Js.ConnectionText" xml:space="preserve"><value>Không thể kết nối máy chủ. Dữ liệu bạn đã nhập vẫn được giữ lại.</value></data>
+  <data name="Staff.Edit.Title" xml:space="preserve"><value>Cập nhật nhân viên</value></data>
+  <data name="Staff.Edit.Eyebrow" xml:space="preserve"><value>Nhân sự &amp; Vận hành / Quản lý nhân viên / Cập nhật</value></data>
+  <data name="Staff.Edit.Subtitle" xml:space="preserve"><value>Chỉnh sửa thông tin cá nhân; vai trò và phạm vi được quản lý ở màn hình phân quyền.</value></data>
+  <data name="Staff.Edit.Back" xml:space="preserve"><value>Quay lại</value></data>
+  <data name="Staff.Edit.InfoSection" xml:space="preserve"><value>Thông tin nhân viên</value></data>
+  <data name="Staff.Edit.InfoHint" xml:space="preserve"><value>Thông tin định danh và trạng thái làm việc hiện tại.</value></data>
+  <data name="Staff.Edit.FullName" xml:space="preserve"><value>Họ và tên *</value></data>
+  <data name="Staff.Edit.Email" xml:space="preserve"><value>Email *</value></data>
+  <data name="Staff.Edit.Cccd" xml:space="preserve"><value>CCCD *</value></data>
+  <data name="Staff.Edit.Gender" xml:space="preserve"><value>Giới tính</value></data>
+  <data name="Staff.Edit.Dob" xml:space="preserve"><value>Ngày sinh *</value></data>
+  <data name="Staff.Edit.StartDate" xml:space="preserve"><value>Ngày bắt đầu</value></data>
+  <data name="Staff.Edit.EmployeeStatus" xml:space="preserve"><value>Trạng thái nhân sự</value></data>
+  <data name="Staff.Edit.Status.Resigned" xml:space="preserve"><value>Nghỉ việc</value></data>
+  <data name="Staff.Edit.Phone" xml:space="preserve"><value>Số điện thoại</value></data>
+  <data name="Staff.Edit.Avatar" xml:space="preserve"><value>Ảnh đại diện</value></data>
+  <data name="Staff.Edit.ChoosePhoto" xml:space="preserve"><value>Chọn ảnh</value></data>
+  <data name="Staff.Edit.UnselectPhoto" xml:space="preserve"><value>Bỏ chọn</value></data>
+  <data name="Staff.Edit.AvatarHint" xml:space="preserve"><value>Định dạng JPG, PNG, WebP · tối đa 2 MB</value></data>
+  <data name="Staff.Edit.AddressSection" xml:space="preserve"><value>Địa chỉ thường trú</value></data>
+  <data name="Staff.Edit.AddressHint" xml:space="preserve"><value>Thông tin khu vực và địa chỉ liên hệ của nhân viên.</value></data>
+  <data name="Staff.Edit.Province" xml:space="preserve"><value>Tỉnh/Thành phố *</value></data>
+  <data name="Staff.Edit.Ward" xml:space="preserve"><value>Xã/Phường/Đặc khu *</value></data>
+  <data name="Staff.Edit.Address" xml:space="preserve"><value>Địa chỉ chi tiết *</value></data>
+  <data name="Staff.Edit.RequiredHint" xml:space="preserve"><value>Các trường có dấu * là bắt buộc.</value></data>
+  <data name="Staff.Edit.Cancel" xml:space="preserve"><value>Hủy</value></data>
+  <data name="Staff.Edit.Save" xml:space="preserve"><value>Lưu thay đổi</value></data>
+  <data name="Staff.Edit.Js.AvatarInvalid" xml:space="preserve"><value>Ảnh phải là JPG, PNG hoặc WebP và không vượt quá 2 MB.</value></data>
+  <data name="Staff.Edit.Js.Loading" xml:space="preserve"><value>Đang tải...</value></data>
+  <data name="Staff.Edit.Js.LoadFailed" xml:space="preserve"><value>Không tải được dữ liệu</value></data>
+  <data name="Staff.Edit.Js.SelectWard" xml:space="preserve"><value>-- Chọn Xã/Phường/Đặc khu --</value></data>
+  <data name="Staff.Edit.Js.CccdRequired" xml:space="preserve"><value>Vui lòng nhập căn cước công dân.</value></data>
+  <data name="Staff.Edit.Js.CccdInvalid" xml:space="preserve"><value>Căn cước công dân không hợp lệ (phải gồm đúng 12 chữ số).</value></data>
+  <data name="Staff.Edit.Js.DobRequired" xml:space="preserve"><value>Vui lòng chọn ngày sinh.</value></data>
+</root>

@@ -1,4 +1,6 @@
 ﻿@model CafeChain.ViewModels.Admin.InventoryDocuments.Detail.AdminInventoryDocumentDetailVM
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<InventoryResource> L
 <link rel="stylesheet"
       href="~/css/Admin/InventoryDocument/inventorydocument.css" />
 
@@ -14,7 +16,7 @@
 
         <div class="document-header-copy">
 
-            <span class="inventory-detail-eyebrow">Phiếu kho / Chi tiết chứng từ</span>
+            <span class="inventory-detail-eyebrow">@L["InvDoc.Detail.Eyebrow"]</span>
 
             <h4>@Model.Code</h4>
 
@@ -46,7 +48,7 @@
                     data-bs-toggle="tab"
                     data-bs-target="#general-tab">
 
-                Thông Tin Chung
+                @L["InvDoc.Detail.TabGeneral"]
 
             </button>
         </li>
@@ -56,7 +58,7 @@
                     data-bs-toggle="tab"
                     data-bs-target="#document-tab">
 
-                Phiếu Chứng Từ
+                @L["InvDoc.Detail.TabDocument"]
 
             </button>
         </li>
@@ -93,8 +95,8 @@
         <div class="inventory-negative-approval-summary">
             <i class="fas fa-shield-halved" aria-hidden="true"></i>
             <div>
-                <strong>Phê duyệt xuất âm #@Model.NegativeApproval.ApprovalId</strong>
-                <span>Trạng thái: @Model.NegativeApproval.Status</span>
+                <strong>@L["InvDoc.Detail.NegativeTitle", Model.NegativeApproval.ApprovalId]</strong>
+                <span>@L["InvDoc.Detail.Status", Model.NegativeApproval.Status]</span>
             </div>
         </div>
 
@@ -106,14 +108,14 @@
                         data-document-id="@Model.InventoryDocumentId"
                         data-url="@Url.Action("RejectNegative", "AdminInventoryDocument", new { area = "Admin", id = Model.InventoryDocumentId })">
                     <i class="fas fa-xmark"></i>
-                    Từ chối
+                    @L["InvDoc.Detail.Reject"]
                 </button>
                 <button type="button"
                         class="btn btn-success btn-approve-negative"
                         data-document-id="@Model.InventoryDocumentId"
                         data-url="@Url.Action("ApproveNegative", "AdminInventoryDocument", new { area = "Admin", id = Model.InventoryDocumentId })">
                     <i class="fas fa-check"></i>
-                    Duyệt xuất âm
+                    @L["InvDoc.Detail.ApproveNegative"]
                 </button>
             </div>
         }

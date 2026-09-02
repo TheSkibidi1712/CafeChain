@@ -7,8 +7,12 @@ namespace CafeChain.Extensions.Services
     {
         public static IServiceCollection AddCafeChainWeb(this IServiceCollection services)
         {
+            services.AddLocalization(options => options.ResourcesPath = "Resources");
+
             services
                 .AddControllersWithViews()
+                .AddViewLocalization()
+                .AddDataAnnotationsLocalization()
                 .AddJsonOptions(options =>
                 {
                     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;

@@ -161,6 +161,7 @@ namespace CafeChain.Application.Services.Admin.Recipes
                     RecipeId = recipe.RecipeId,
                     RecipeCode = recipe.RecipeCode ?? "",
                     Name = recipe.Name ?? "",
+                    TypeCode = typeKey,
                     TypeLabel = typeKey switch
                     {
                         "POS" => "Món bán",

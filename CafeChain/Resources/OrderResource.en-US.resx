@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Order.History.Title" xml:space="preserve"><value>Sales history</value></data>
+  <data name="Order.History.Eyebrow" xml:space="preserve"><value>Orders / Sales history</value></data>
+  <data name="Order.History.Subtitle" xml:space="preserve"><value>Shows only in-store POS transactions that are paid or refunded.</value></data>
+  <data name="Order.History.ExportCsv" xml:space="preserve"><value>Export CSV</value></data>
+  <data name="Order.History.KpiAria" xml:space="preserve"><value>Transaction overview</value></data>
+  <data name="Order.History.Kpi.PaidOrders" xml:space="preserve"><value>Paid orders</value></data>
+  <data name="Order.History.Kpi.Revenue" xml:space="preserve"><value>Revenue</value></data>
+  <data name="Order.History.Kpi.Refunded" xml:space="preserve"><value>Refunded</value></data>
+  <data name="Order.History.Kpi.RefundValue" xml:space="preserve"><value>Refund value</value></data>
+  <data name="Order.History.Filter.Store" xml:space="preserve"><value>Store</value></data>
+  <data name="Order.History.Filter.AllStores" xml:space="preserve"><value>All stores in scope</value></data>
+  <data name="Order.History.Filter.Search" xml:space="preserve"><value>Search</value></data>
+  <data name="Order.History.Filter.SearchPlaceholder" xml:space="preserve"><value>Search order code...</value></data>
+  <data name="Order.History.Filter.FromDate" xml:space="preserve"><value>From date</value></data>
+  <data name="Order.History.Filter.ToDate" xml:space="preserve"><value>To date</value></data>
+  <data name="Order.History.Filter.Finance" xml:space="preserve"><value>Finance</value></data>
+  <data name="Order.History.Filter.AllStatuses" xml:space="preserve"><value>All statuses</value></data>
+  <data name="Order.History.Filter.Paid" xml:space="preserve"><value>Paid</value></data>
+  <data name="Order.History.Filter.Refunded" xml:space="preserve"><value>Refunded</value></data>
+  <data name="Order.History.Filter.Payment" xml:space="preserve"><value>Payment</value></data>
+  <data name="Order.History.Filter.AllPayments" xml:space="preserve"><value>All methods</value></data>
+  <data name="Order.History.Filter.Cash" xml:space="preserve"><value>Cash</value></data>
+  <data name="Order.History.Filter.VietQR" xml:space="preserve"><value>VietQR</value></data>
+  <data name="Order.History.Filter.WalletLegacy" xml:space="preserve"><value>E-wallet — legacy data</value></data>
+  <data name="Order.History.Filter.ResetTitle" xml:space="preserve"><value>Clear filters</value></data>
+  <data name="Order.History.Filter.Reset" xml:space="preserve"><value>Reset</value></data>
+  <data name="Order.History.Col.Code" xml:space="preserve"><value>Order</value></data>
+  <data name="Order.History.Col.PaidAt" xml:space="preserve"><value>Paid at</value></data>
+  <data name="Order.History.Col.Store" xml:space="preserve"><value>Store</value></data>
+  <data name="Order.History.Col.Cashier" xml:space="preserve"><value>Cashier</value></data>
+  <data name="Order.History.Col.OrderType" xml:space="preserve"><value>Order type</value></data>
+  <data name="Order.History.Col.Total" xml:space="preserve"><value>Total</value></data>
+  <data name="Order.History.Col.Payment" xml:space="preserve"><value>Payment</value></data>
+  <data name="Order.History.Col.Finance" xml:space="preserve"><value>Finance</value></data>
+  <data name="Order.History.Col.Sync" xml:space="preserve"><value>Sync</value></data>
+  <data name="Order.History.Col.Receipt" xml:space="preserve"><value>Receipt</value></data>
+  <data name="Order.History.Col.Label" xml:space="preserve"><value>Label</value></data>
+  <data name="Order.History.Col.Inventory" xml:space="preserve"><value>Inventory</value></data>
+  <data name="Order.History.Col.Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Order.History.Loading" xml:space="preserve"><value>Loading...</value></data>
+  <data name="Order.History.Drawer.Kicker" xml:space="preserve"><value>TRANSACTION DETAIL</value></data>
+  <data name="Order.History.Drawer.Title" xml:space="preserve"><value>Order</value></data>
+  <data name="Order.History.Drawer.Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Order.History.Js.Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="Order.History.Js.Loading" xml:space="preserve"><value>Loading history...</value></data>
+  <data name="Order.History.Js.LoadFailed" xml:space="preserve"><value>Unable to load sales history.</value></data>
+  <data name="Order.History.Js.Retry" xml:space="preserve"><value>Retry</value></data>
+  <data name="Order.History.Js.LoadFailedShort" xml:space="preserve"><value>Failed to load data</value></data>
+  <data name="Order.History.Js.Empty" xml:space="preserve"><value>No POS transactions match the current filters.</value></data>
+  <data name="Order.History.Js.ViewDetail" xml:space="preserve"><value>View details</value></data>
+  <data name="Order.History.Js.ZeroTransactions" xml:space="preserve"><value>0 transactions</value></data>
+  <data name="Order.History.Js.PageRange" xml:space="preserve"><value>{start}-{end} of {total} transactions</value></data>
+  <data name="Order.History.Js.PrevPage" xml:space="preserve"><value>Previous page</value></data>
+  <data name="Order.History.Js.NextPage" xml:space="preserve"><value>Next page</value></data>
+  <data name="Order.History.Js.OrderTitle" xml:space="preserve"><value>Order {code}</value></data>
+  <data name="Order.History.Js.DetailFailed" xml:space="preserve"><value>Unable to load transaction details. Please try again.</value></data>
+  <data name="Order.History.Js.TxnCode" xml:space="preserve"><value>Transaction code: {code}</value></data>
+  <data name="Order.History.Js.Received" xml:space="preserve"><value>Received: {received} · Change: {change}</value></data>
+  <data name="Order.History.Js.Note" xml:space="preserve"><value>Note: {note}</value></data>
+  <data name="Order.History.Js.Refund" xml:space="preserve"><value>Refund</value></data>
+  <data name="Order.History.Js.RefundId" xml:space="preserve"><value>Refund ID</value></data>
+  <data name="Order.History.Js.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Order.History.Js.Amount" xml:space="preserve"><value>Amount</value></data>
+  <data name="Order.History.Js.CompletedAt" xml:space="preserve"><value>Completed at</value></data>
+  <data name="Order.History.Js.Reason" xml:space="preserve"><value>Reason</value></data>
+  <data name="Order.History.Js.TxnInfo" xml:space="preserve"><value>Transaction info</value></data>
+  <data name="Order.History.Js.Store" xml:space="preserve"><value>Store</value></data>
+  <data name="Order.History.Js.Cashier" xml:space="preserve"><value>Cashier</value></data>
+  <data name="Order.History.Js.WorkShift" xml:space="preserve"><value>WorkShift</value></data>
+  <data name="Order.History.Js.OrderType" xml:space="preserve"><value>Order type</value></data>
+  <data name="Order.History.Js.PaidAt" xml:space="preserve"><value>Paid at</value></data>
+  <data name="Order.History.Js.ClientOrderId" xml:space="preserve"><value>ClientOrderId</value></data>
+  <data name="Order.History.Js.None" xml:space="preserve"><value>None</value></data>
+  <data name="Order.History.Js.State" xml:space="preserve"><value>Status</value></data>
+  <data name="Order.History.Js.Finance" xml:space="preserve"><value>Finance</value></data>
+  <data name="Order.History.Js.Sync" xml:space="preserve"><value>Sync</value></data>
+  <data name="Order.History.Js.Receipt" xml:space="preserve"><value>Receipt</value></data>
+  <data name="Order.History.Js.Label" xml:space="preserve"><value>Label</value></data>
+  <data name="Order.History.Js.Inventory" xml:space="preserve"><value>Inventory posting</value></data>
+  <data name="Order.History.Js.Payment" xml:space="preserve"><value>Payment</value></data>
+  <data name="Order.History.Js.NoPayment" xml:space="preserve"><value>No payment data.</value></data>
+  <data name="Order.History.Js.SoldItems" xml:space="preserve"><value>Sold items</value></data>
+  <data name="Order.History.Js.NoItems" xml:space="preserve"><value>No item data.</value></data>
+  <data name="Order.History.Js.Subtotal" xml:space="preserve"><value>Subtotal</value></data>
+  <data name="Order.History.Js.Discount" xml:space="preserve"><value>Discount</value></data>
+  <data name="Order.History.Js.Tax" xml:space="preserve"><value>Tax</value></data>
+  <data name="Order.History.Js.VatIncluded" xml:space="preserve"><value>VAT included in price</value></data>
+  <data name="Order.History.Js.GrandTotal" xml:space="preserve"><value>Total</value></data>
+  <data name="Order.History.Js.RefundRequested" xml:space="preserve"><value>Requested</value></data>
+  <data name="Order.History.Js.RefundProcessing" xml:space="preserve"><value>Processing</value></data>
+  <data name="Order.History.Js.RefundCompleted" xml:space="preserve"><value>Completed</value></data>
+  <data name="Order.History.Js.RefundFailed" xml:space="preserve"><value>Failed</value></data>
+</root>

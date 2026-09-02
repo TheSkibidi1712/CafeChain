@@ -1,7 +1,9 @@
 @model CafeChain.Application.DTOs.Admin.Categories.AdminUpdateCategoryDto
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<CafeChain.SharedResource> SharedText
 
 @{
-    ViewData["Title"] = "Chỉnh sửa danh mục";
+    ViewData["Title"] = SharedText["Category.Form.Edit.Title"];
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 }
 
@@ -10,12 +12,12 @@
 <main class="category-page category-form-page">
 <header class="category-page-header category-form-header">
     <div>
-        <p class="category-eyebrow">Cấu trúc thực đơn</p>
-        <h1 class="category-page-title">Chỉnh sửa danh mục</h1>
-        <p class="category-page-subtitle">Cập nhật thông tin danh mục đồ uống.</p>
+        <p class="category-eyebrow">@SharedText["Category.Eyebrow"]</p>
+        <h1 class="category-page-title">@SharedText["Category.Form.Edit.Title"]</h1>
+        <p class="category-page-subtitle">@SharedText["Category.Form.Edit.Description"]</p>
     </div>
     <a asp-action="Index" class="btn btn-light border">
-        <i class="fas fa-arrow-left"></i> Quay lại danh sách
+        <i class="fas fa-arrow-left"></i> @SharedText["Category.Form.Back"]
     </a>
 </header>
 
@@ -25,18 +27,18 @@
             <input type="hidden" asp-for="CategoryId" />
             
             <div class="mb-3">
-                <label asp-for="Name" class="form-label fw-semibold">Tên danh mục <span class="text-danger">*</span></label>
-                <input asp-for="Name" class="form-control" placeholder="Nhập tên danh mục..." />
+                <label asp-for="Name" class="form-label fw-semibold">@SharedText["Category.Form.Name.Label"] <span class="text-danger">*</span></label>
+                <input asp-for="Name" class="form-control" placeholder="@SharedText["Category.Form.Name.Placeholder"]" />
                 <span asp-validation-for="Name" class="text-danger category-validation"></span>
             </div>
 
             <div class="mb-4 form-check form-switch">
                 <input asp-for="Active" class="form-check-input" type="checkbox" id="flexSwitchCheckChecked">
-                <label class="form-check-label" for="flexSwitchCheckChecked">Hoạt động</label>
+                <label class="form-check-label" for="flexSwitchCheckChecked">@SharedText["Category.Form.Active"]</label>
             </div>
 
             <button type="submit" class="btn category-primary-btn px-4 py-2">
-                <i class="fas fa-save"></i> Cập nhật thay đổi
+                <i class="fas fa-save"></i> @SharedText["Category.Form.Edit.Save"]
             </button>
         </form>
     </div>

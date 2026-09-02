@@ -3,9 +3,11 @@
 @using CafeChain.Application.DTOs.Admin.Replenishment
 @using CafeChain.Application.Interfaces.Systems
 @using CafeChain.ViewModels.Admin.Shared
+@using Microsoft.Extensions.Localization
 @inject IBusinessDateService BusinessDateService
+@inject IStringLocalizer<InventoryResource> L
 @{
-    ViewData["Title"] = "Chi tiết cảnh báo kho";
+    ViewData["Title"] = L["StockAlert.Details.Title"];
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var isOpen = Model.Status == "OPEN";
     var isConfirmed = Model.Status == "CONFIRMED";
@@ -36,16 +38,16 @@
 <main class="ops-shell cc-warehouse-page">
 <header class="ops-header cc-warehouse-header cc-warehouse-header--compact cc-warehouse-header--detail">
         <div>
-            <div class="ops-eyebrow">Cảnh báo #@Model.StockAlertId · @Model.ItemTypeLabel</div>
+            <div class="ops-eyebrow">@L["StockAlert.Details.Eyebrow", Model.StockAlertId, Model.ItemTypeLabel]</div>
             <h1 class="ops-title">@Model.ItemName</h1>
-            <p class="ops-subtitle">Cảnh báo ghi nhận lúc @AdminStatusDisplay.DateTime(BusinessDateService.ToBusinessTime(Model.CreatedAt)). Số liệu hiện tại được tách riêng khỏi dữ liệu tại thời điểm cảnh báo để tránh nhầm lẫn khi kho đã thay đổi.</p>
+            <p class="ops-subtitle">@L["StockAlert.Details.Subtitle", AdminStatusDisplay.DateTime(BusinessDateService.ToBusinessTime(Model.CreatedAt))]</p>
         </div>
         <div class="ops-actions">
             <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-storeId="@Model.StoreId">
-                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách
+                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> @L["StockAlert.Details.ButtonList"]
             </a>
             <a class="ops-btn" asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index">
-                <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i> Tồn kho
+                <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i> @L["StockAlert.Details.ButtonInventory"]
             </a>
         </div>
     </header>
@@ -60,20 +62,20 @@
     }
     @if (Model.Status == "RESOLVED" && openRestock != null)
     {
-        <div class="ops-notice ops-notice-info"><strong>Tồn kho đã phục hồi nhưng yêu cầu nhập vẫn đang mở.</strong> Người phụ trách cần kiểm tra và quyết định tiếp tục hoặc hủy yêu cầu.</div>
+        <div class="ops-notice ops-notice-info">@Html.Raw(L["StockAlert.Details.ResolvedButOpen"].Value)</div>
     }
 
-    <section class="ops-metrics cc-warehouse-summary-grid" aria-label="Số liệu tồn kho">
-        <div class="ops-metric"><span class="ops-metric-label">Tồn vật lý hiện tại</span><strong class="ops-metric-value">@(Model.OnHandQty.HasValue ? AdminStatusDisplay.Quantity(Model.OnHandQty.Value) : "—")</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Đang giữ chỗ</span><strong class="ops-metric-value warning">@(Model.ReservedQty.HasValue ? AdminStatusDisplay.Quantity(Model.ReservedQty.Value) : "—")</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Khả dụng hiện tại</span><strong class="ops-metric-value @(Model.AvailableQty.HasValue && Model.AvailableQty.Value <= 0 ? "danger" : "success")">@(Model.AvailableQty.HasValue ? AdminStatusDisplay.Quantity(Model.AvailableQty.Value) : "—")</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Ngưỡng cảnh báo tồn thấp</span><strong class="ops-metric-value">@(Model.CurrentMinimumThresholdBaseQuantity.HasValue ? $"{AdminStatusDisplay.Quantity(Model.CurrentMinimumThresholdBaseQuantity.Value)}{unitSuffix}" : "Chưa đặt")</strong></div>
+    <section class="ops-metrics cc-warehouse-summary-grid" aria-label="@L["StockAlert.Details.MetricsAria"]">
+        <div class="ops-metric"><span class="ops-metric-label">@L["StockAlert.Details.PhysicalNow"]</span><strong class="ops-metric-value">@(Model.OnHandQty.HasValue ? AdminStatusDisplay.Quantity(Model.OnHandQty.Value) : "—")</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">@L["StockAlert.Details.ReservedNow"]</span><strong class="ops-metric-value warning">@(Model.ReservedQty.HasValue ? AdminStatusDisplay.Quantity(Model.ReservedQty.Value) : "—")</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">@L["StockAlert.Details.AvailableNow"]</span><strong class="ops-metric-value @(Model.AvailableQty.HasValue && Model.AvailableQty.Value <= 0 ? "danger" : "success")">@(Model.AvailableQty.HasValue ? AdminStatusDisplay.Quantity(Model.AvailableQty.Value) : "—")</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">@L["StockAlert.Details.Threshold"]</span><strong class="ops-metric-value">@(Model.CurrentMinimumThresholdBaseQuantity.HasValue ? $"{AdminStatusDisplay.Quantity(Model.CurrentMinimumThresholdBaseQuantity.Value)}{unitSuffix}" : L["Common.NotSet"].Value)</strong></div>
     </section>
 
     <div class="ops-detail-grid">
         <div>
             <section class="ops-panel">
-                <div class="ops-panel-header"><h2 class="ops-panel-title">Tóm tắt cảnh báo</h2></div>
+                <div class="ops-panel-header"><h2 class="ops-panel-title">@L["StockAlert.Details.SummaryTitle"]</h2></div>
                 <div class="ops-panel-body">
                     <div class="ops-inline-actions mb-3">
                         <span class="ops-badge @(Model.AlertType == "OUT_OF_STOCK" ? "ops-badge-danger" : "ops-badge-warning")">
@@ -83,72 +85,72 @@
                         <span class="ops-badge @AdminStatusDisplay.StockAlert(Model.Status).CssClass">@AdminStatusDisplay.StockAlert(Model.Status).Label</span>
                     </div>
                     <div class="ops-data-grid">
-                        <div><span class="ops-data-label">Khả dụng lúc cảnh báo</span><span class="ops-data-value">@AdminStatusDisplay.Quantity(Model.CurrentQtySnapshot)</span></div>
+                        <div><span class="ops-data-label">@L["StockAlert.Details.AvailableAtAlert"]</span><span class="ops-data-value">@AdminStatusDisplay.Quantity(Model.CurrentQtySnapshot)</span></div>
                         @if (Model.IsOutOfThresholdManualDemand)
                         {
-                            <div><span class="ops-data-label">Mục tiêu thủ công</span><span class="ops-data-value">@(Model.DecisionTargetBaseQuantity.HasValue ? $"{AdminStatusDisplay.Quantity(Model.DecisionTargetBaseQuantity.Value)}{unitSuffix}" : "Chưa xác định")</span></div>
+                            <div><span class="ops-data-label">@L["StockAlert.Details.ManualTarget"]</span><span class="ops-data-value">@(Model.DecisionTargetBaseQuantity.HasValue ? $"{AdminStatusDisplay.Quantity(Model.DecisionTargetBaseQuantity.Value)}{unitSuffix}" : L["Common.Unknown"].Value)</span></div>
                         }
                         else
                         {
-                            <div><span class="ops-data-label">Ngưỡng lúc cảnh báo</span><span class="ops-data-value">@(Model.ThresholdSnapshot.HasValue ? $"{AdminStatusDisplay.Quantity(Model.ThresholdSnapshot.Value)}{unitSuffix}" : "Chưa cấu hình")</span></div>
+                            <div><span class="ops-data-label">@L["StockAlert.Details.ThresholdAtAlert"]</span><span class="ops-data-value">@(Model.ThresholdSnapshot.HasValue ? $"{AdminStatusDisplay.Quantity(Model.ThresholdSnapshot.Value)}{unitSuffix}" : L["Common.NotConfigured"].Value)</span></div>
                         }
-                        <div><span class="ops-data-label">Nguồn phát hiện</span><span class="ops-data-value">@AdminStatusDisplay.StockAlertSource(Model.Source)</span></div>
-                        <div><span class="ops-data-label">Cập nhật gần nhất</span><span class="ops-data-value">@BusinessDateService.ToBusinessTime(Model.UpdatedAt).ToString("dd/MM/yyyy HH:mm")</span></div>
-                        <div><span class="ops-data-label">Người báo</span><span class="ops-data-value">@(Model.ReporterName ?? "Hệ thống")</span></div>
-                        <div><span class="ops-data-label">Loại mặt hàng</span><span class="ops-data-value">@Model.ItemTypeLabel</span></div>
+                        <div><span class="ops-data-label">@L["StockAlert.Details.DetectionSource"]</span><span class="ops-data-value">@AdminStatusDisplay.StockAlertSource(Model.Source)</span></div>
+                        <div><span class="ops-data-label">@L["StockAlert.Details.LastUpdated"]</span><span class="ops-data-value">@BusinessDateService.ToBusinessTime(Model.UpdatedAt).ToString("g")</span></div>
+                        <div><span class="ops-data-label">@L["StockAlert.Details.Reporter"]</span><span class="ops-data-value">@(Model.ReporterName ?? L["Common.System"].Value)</span></div>
+                        <div><span class="ops-data-label">@L["StockAlert.Details.ItemType"]</span><span class="ops-data-value">@Model.ItemTypeLabel</span></div>
                     </div>
                     @if (!string.IsNullOrWhiteSpace(Model.ReporterNote))
                     {
-                        <div class="mt-3"><span class="ops-data-label">Ghi chú báo cáo</span><div class="ops-notice mt-1 mb-0">@Model.ReporterNote</div></div>
+                        <div class="mt-3"><span class="ops-data-label">@L["StockAlert.Details.NoteTitle"]</span><div class="ops-notice mt-1 mb-0">@Model.ReporterNote</div></div>
                     }
                 </div>
             </section>
 
             <section class="ops-panel">
-                <div class="ops-panel-header"><h2 class="ops-panel-title">Dòng thời gian xử lý</h2></div>
+                <div class="ops-panel-header"><h2 class="ops-panel-title">@L["StockAlert.Details.TimelineTitle"]</h2></div>
                 <div class="ops-panel-body">
                     <ol class="ops-timeline">
                         @if (Model.Transitions.Count == 0)
                         {
-                            <li><strong>Phát hiện cảnh báo</strong><div class="ops-secondary">@AdminStatusDisplay.DateTime(BusinessDateService.ToBusinessTime(Model.CreatedAt)) · Khả dụng @AdminStatusDisplay.Quantity(Model.CurrentQtySnapshot)</div></li>
+                            <li><strong>@L["StockAlert.Details.Timeline.Detection"]</strong><div class="ops-secondary">@AdminStatusDisplay.DateTime(BusinessDateService.ToBusinessTime(Model.CreatedAt)) · @L["StockAlert.Details.Timeline.AvailablePrefix"] @AdminStatusDisplay.Quantity(Model.CurrentQtySnapshot)</div></li>
                         }
                         @foreach (var transition in Model.Transitions)
                         {
                             <li>
                                 <strong>@AdminStatusDisplay.StockAlert(transition.NewStatus).Label · @AdminStatusDisplay.StockAlertType(transition.NewAlertType)</strong>
-                                <div class="ops-secondary">@BusinessDateService.ToBusinessTime(transition.CreatedAtUtc).ToString("dd/MM/yyyy HH:mm") · @(transition.ActorName ?? (transition.ActorStaffId.HasValue ? $"Nhân viên #{transition.ActorStaffId}" : "Hệ thống"))</div>
-                                <div>Tồn vật lý @AdminStatusDisplay.Quantity(transition.OnHandSnapshot) · Giữ chỗ @AdminStatusDisplay.Quantity(transition.ReservedSnapshot) · Khả dụng @AdminStatusDisplay.Quantity(transition.AvailableSnapshot)</div>
+                                <div class="ops-secondary">@BusinessDateService.ToBusinessTime(transition.CreatedAtUtc).ToString("g") · @(transition.ActorName ?? (transition.ActorStaffId.HasValue ? L["Common.StaffNumber", transition.ActorStaffId].Value : L["Common.System"].Value))</div>
+                                <div>@L["StockAlert.Details.Timeline.Snapshot", AdminStatusDisplay.Quantity(transition.OnHandSnapshot), AdminStatusDisplay.Quantity(transition.ReservedSnapshot), AdminStatusDisplay.Quantity(transition.AvailableSnapshot)]</div>
                                 @if (!string.IsNullOrWhiteSpace(transition.Reason)) { <div>@AdminStatusDisplay.SystemGeneratedMessage(transition.Reason)</div> }
                             </li>
                         }
                         @if (openRestock != null)
                         {
-                            <li><strong>Đã tạo @(isPreparedItemDemand ? "nhu cầu bổ sung" : "yêu cầu nhập hàng") #@openRestock.RestockRequestId</strong><div class="ops-secondary">@AdminStatusDisplay.DateTime(BusinessDateService.ToBusinessTime(openRestock.CreatedAt)) · @AdminStatusDisplay.RestockRequest(openRestock.Status).Label</div></li>
+                            <li><strong>@L["StockAlert.Details.Timeline.CreatedRequest", isPreparedItemDemand ? L["StockAlert.Details.CreateReplenishment"].Value : L["StockAlert.Details.CreateRestockRequest"].Value, openRestock.RestockRequestId]</strong><div class="ops-secondary">@AdminStatusDisplay.DateTime(BusinessDateService.ToBusinessTime(openRestock.CreatedAt)) · @AdminStatusDisplay.RestockRequest(openRestock.Status).Label</div></li>
                         }
                         @if (Model.ResolvedAt.HasValue)
                         {
-                            <li><strong>Tồn kho đã phục hồi</strong><div class="ops-secondary">@BusinessDateService.ToBusinessTime(Model.ResolvedAt.Value).ToString("dd/MM/yyyy HH:mm")</div><div>@AdminStatusDisplay.SystemGeneratedMessage(Model.ResolvedReason)</div></li>
+                            <li><strong>@L["StockAlert.Details.Timeline.StockRecovered"]</strong><div class="ops-secondary">@BusinessDateService.ToBusinessTime(Model.ResolvedAt.Value).ToString("g")</div><div>@AdminStatusDisplay.SystemGeneratedMessage(Model.ResolvedReason)</div></li>
                         }
                     </ol>
                 </div>
             </section>
 
             <section class="ops-panel">
-                <div class="ops-panel-header"><h2 class="ops-panel-title">Biến động kho gần nhất</h2></div>
+                <div class="ops-panel-header"><h2 class="ops-panel-title">@L["StockAlert.Details.MovementsTitle"]</h2></div>
                 <div class="ops-panel-body p-0">
                     @if (Model.RecentMovements.Count == 0)
                     {
-                        <div class="p-3 ops-secondary">Chưa có biến động kho để đối chiếu.</div>
+                        <div class="p-3 ops-secondary">@L["StockAlert.Details.MovementsEmpty"]</div>
                     }
                     else
                     {
                         <div class="ops-table-scroll">
 <table class="ops-table ops-table-min-680">
-                                <thead><tr><th>Thời gian</th><th>Loại biến động</th><th class="number">Thay đổi</th><th class="number">Trước</th><th class="number">Sau</th><th>Chứng từ</th></tr></thead>
+                                <thead><tr><th>@L["StockAlert.Details.Movements.Time"]</th><th>@L["StockAlert.Details.Movements.Type"]</th><th class="number">@L["StockAlert.Details.Movements.Change"]</th><th class="number">@L["StockAlert.Details.Movements.Before"]</th><th class="number">@L["StockAlert.Details.Movements.After"]</th><th>@L["StockAlert.Details.Movements.Reference"]</th></tr></thead>
                                 <tbody>
                                 @foreach (var movement in Model.RecentMovements)
                                 {
-                                    var reference = movement.BranchReceiptLineId.HasValue ? $"Phiếu nhận · dòng #{movement.BranchReceiptLineId}" : movement.InventoryTransferId.HasValue ? $"Điều chuyển #{movement.InventoryTransferId}" : movement.ReferenceOrderId.HasValue ? $"Đơn hàng #{movement.ReferenceOrderId}" : movement.ProductionRunId.HasValue ? $"Lệnh sơ chế #{movement.ProductionRunId}" : movement.InventoryDocumentId.HasValue ? $"Chứng từ kho #{movement.InventoryDocumentId}" : "Biến động trực tiếp";
+                                    var reference = movement.BranchReceiptLineId.HasValue ? L["StockAlert.Details.Movements.Reference.Import", movement.BranchReceiptLineId].Value : movement.InventoryTransferId.HasValue ? L["StockAlert.Details.Movements.Reference.Transfer", movement.InventoryTransferId].Value : movement.ReferenceOrderId.HasValue ? L["StockAlert.Details.Movements.Reference.Order", movement.ReferenceOrderId].Value : movement.ProductionRunId.HasValue ? L["StockAlert.Details.Movements.Reference.Preparation", movement.ProductionRunId].Value : movement.InventoryDocumentId.HasValue ? L["StockAlert.Details.Movements.Reference.Document", movement.InventoryDocumentId].Value : L["StockAlert.Details.Movements.Reference.Direct"].Value;
                                     <tr>
                                         <td class="text-nowrap">@AdminStatusDisplay.DateTime(BusinessDateService.ToBusinessTime(movement.CreatedAt))</td>
                                         <td>@AdminStatusDisplay.InventoryTransactionType(movement.Type)</td>
@@ -170,7 +172,7 @@
             @if (isOpen)
             {
                 <section class="ops-panel">
-                    <div class="ops-panel-header"><h2 class="ops-panel-title">Quyết định của quản lý</h2></div>
+                    <div class="ops-panel-header"><h2 class="ops-panel-title">@L["StockAlert.Details.ManagerTitle"]</h2></div>
                     <div class="ops-panel-body">
                         <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Confirm" method="post" class="mb-4">
                             @Html.AntiForgeryToken()
@@ -178,13 +180,13 @@
                             <input type="hidden" name="storeId" value="@Model.StoreId" />
                             <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
                             <div class="ops-form-group">
-                                <label class="ops-form-label" for="managerNote">Ghi chú xác nhận <span class="ops-required">*</span></label>
-                                <textarea id="managerNote" name="managerNote" class="ops-textarea" maxlength="500" required placeholder="Nêu kết quả kiểm tra và hướng xử lý..."></textarea>
+                                <label class="ops-form-label" for="managerNote">@L["StockAlert.Details.ConfirmNoteLabel"] <span class="ops-required">*</span></label>
+                                <textarea id="managerNote" name="managerNote" class="ops-textarea" maxlength="500" required placeholder="@L["StockAlert.Details.ConfirmNotePlaceholder"]"></textarea>
                             </div>
-                            <button type="submit" class="ops-btn ops-btn-primary w-100"><i class="fa-solid fa-check" aria-hidden="true"></i> Xác nhận cảnh báo</button>
+                            <button type="submit" class="ops-btn ops-btn-primary w-100"><i class="fa-solid fa-check" aria-hidden="true"></i> @L["StockAlert.Details.ConfirmButton"]</button>
                         </form>
                         <details class="ops-danger-disclosure">
-                            <summary>Đánh dấu báo sai hoặc đóng cảnh báo</summary>
+                            <summary>@L["StockAlert.Details.FalseReportDisclosure"]</summary>
                             <div class="ops-danger-content">
                                 <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Reject" method="post">
                                     @Html.AntiForgeryToken()
@@ -192,19 +194,19 @@
                                     <input type="hidden" name="storeId" value="@Model.StoreId" />
                                     <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
                                     <div class="ops-form-group">
-                                        <label class="ops-form-label" for="rejectReason">Lý do báo sai <span class="ops-required">*</span></label>
-                                        <textarea id="rejectReason" name="rejectReason" class="ops-textarea" maxlength="500" required placeholder="Nêu lý do số liệu hoặc báo cáo không chính xác..."></textarea>
+                                        <label class="ops-form-label" for="rejectReason">@L["StockAlert.Details.FalseReasonLabel"] <span class="ops-required">*</span></label>
+                                        <textarea id="rejectReason" name="rejectReason" class="ops-textarea" maxlength="500" required placeholder="@L["StockAlert.Details.FalseReasonPlaceholder"]"></textarea>
                                     </div>
-                                    <button type="submit" class="ops-btn ops-btn-danger w-100"><i class="fa-solid fa-xmark" aria-hidden="true"></i> Đánh dấu báo sai</button>
+                                    <button type="submit" class="ops-btn ops-btn-danger w-100"><i class="fa-solid fa-xmark" aria-hidden="true"></i> @L["StockAlert.Details.FalseReportButton"]</button>
                                 </form>
                                 <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Close" method="post" class="mt-4">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@Model.StockAlertId" />
                                     <input type="hidden" name="storeId" value="@Model.StoreId" />
                                     <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
-                                    <label class="ops-form-label" for="closeReason">Lý do đóng thủ công <span class="ops-required">*</span></label>
-                                    <textarea id="closeReason" name="closeReason" class="ops-textarea" maxlength="500" required placeholder="Lý do đóng cảnh báo..."></textarea>
-                                    <button type="submit" class="ops-btn w-100 mt-2">Đóng cảnh báo</button>
+                                    <label class="ops-form-label" for="closeReason">@L["StockAlert.Details.CloseReasonLabel"] <span class="ops-required">*</span></label>
+                                    <textarea id="closeReason" name="closeReason" class="ops-textarea" maxlength="500" required placeholder="@L["StockAlert.Details.CloseReasonPlaceholder"]"></textarea>
+                                    <button type="submit" class="ops-btn w-100 mt-2">@L["StockAlert.Details.CloseButton"]</button>
                                 </form>
                             </div>
                         </details>
@@ -215,22 +217,22 @@
             @if (openRestock != null)
             {
                 <section class="ops-panel">
-                    <div class="ops-panel-header"><h2 class="ops-panel-title">Nhu cầu bổ sung đang mở</h2></div>
+                    <div class="ops-panel-header"><h2 class="ops-panel-title">@L["StockAlert.Details.OpenRestockTitle"]</h2></div>
                     <div class="ops-panel-body">
                         <div class="ops-data-grid">
-                            <div><span class="ops-data-label">Mã yêu cầu</span><span class="ops-data-value">#@openRestock.RestockRequestId</span></div>
-                            <div><span class="ops-data-label">Trạng thái</span><span class="ops-data-value">@AdminStatusDisplay.RestockRequest(openRestock.Status).Label</span></div>
-                            <div><span class="ops-data-label">Số lượng</span><span class="ops-data-value">@AdminStatusDisplay.Quantity(openRestock.RequestedQuantity)</span></div>
-                            <div><span class="ops-data-label">Ưu tiên</span><span class="ops-data-value">@AdminStatusDisplay.RestockRequestPriority(openRestock.Priority).Label</span></div>
+                            <div><span class="ops-data-label">@L["StockAlert.Details.OpenRestock.Code"]</span><span class="ops-data-value">#@openRestock.RestockRequestId</span></div>
+                            <div><span class="ops-data-label">@L["Common.Status"]</span><span class="ops-data-value">@AdminStatusDisplay.RestockRequest(openRestock.Status).Label</span></div>
+                            <div><span class="ops-data-label">@L["StockAlert.Details.OpenRestock.Quantity"]</span><span class="ops-data-value">@AdminStatusDisplay.Quantity(openRestock.RequestedQuantity)</span></div>
+                            <div><span class="ops-data-label">@L["Common.Priority"]</span><span class="ops-data-value">@AdminStatusDisplay.RestockRequestPriority(openRestock.Priority).Label</span></div>
                         </div>
-                        <a class="ops-btn ops-btn-primary w-100 text-center mt-3" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@openRestock.RestockRequestId" asp-route-storeId="@Model.StoreId">Mở nhu cầu bổ sung</a>
+                        <a class="ops-btn ops-btn-primary w-100 text-center mt-3" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@openRestock.RestockRequestId" asp-route-storeId="@Model.StoreId">@L["StockAlert.Details.OpenRestock.Link"]</a>
                     </div>
                 </section>
             }
             else if (isConfirmed)
             {
                 <section class="ops-panel">
-                    <div class="ops-panel-header"><h2 class="ops-panel-title">@(isPreparedItemDemand ? "Tạo nhu cầu bổ sung" : "Tạo yêu cầu nhập hàng")</h2></div>
+                    <div class="ops-panel-header"><h2 class="ops-panel-title">@(isPreparedItemDemand ? L["StockAlert.Details.CreateReplenishment"] : L["StockAlert.Details.CreateRestockRequest"])</h2></div>
                     <div class="ops-panel-body">
                         <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="CreateRestockRequest" method="post">
                             @Html.AntiForgeryToken()
@@ -245,11 +247,11 @@
                                 @if (isPreparedItemDemand)
                                 {
                                     <div class="ops-data-grid">
-                                        <div><span class="ops-data-label">Tồn khả dụng</span><span class="ops-data-value">@replenishment!.UsableBase.ToString("N3") @replenishment.BaseUnitCode</span></div>
-                                        <div><span class="ops-data-label">Ngưỡng cảnh báo tồn thấp</span><span class="ops-data-value">@(replenishment.LowThresholdBase?.ToString("N3") ?? "Chưa cấu hình")</span></div>
-                                        <div><span class="ops-data-label">Mức tồn mục tiêu</span><span class="ops-data-value">@(replenishment.TargetStockBase?.ToString("N3") ?? "Chưa cấu hình")</span></div>
-                                        <div><span class="ops-data-label">Nguồn sản xuất đang mở</span><span class="ops-data-value">@(replenishment.OpenProductionCoverageBase?.ToString("N3") ?? "Chưa xác định")</span></div>
-                                        <div><span class="ops-data-label">Còn cần bổ sung</span><span class="ops-data-value">@(preparedItemDemandBase?.ToString("N3") ?? "Chưa thể tính") @replenishment.BaseUnitCode</span></div>
+                                        <div><span class="ops-data-label">@L["StockAlert.Details.Create.Available"]</span><span class="ops-data-value">@replenishment!.UsableBase.ToString("N3") @replenishment.BaseUnitCode</span></div>
+                                        <div><span class="ops-data-label">@L["StockAlert.Details.Threshold"]</span><span class="ops-data-value">@(replenishment.LowThresholdBase?.ToString("N3") ?? L["Common.NotConfigured"].Value)</span></div>
+                                        <div><span class="ops-data-label">@L["StockAlert.Details.Create.ManualTarget"]</span><span class="ops-data-value">@(replenishment.TargetStockBase?.ToString("N3") ?? L["Common.NotConfigured"].Value)</span></div>
+                                        <div><span class="ops-data-label">@L["StockAlert.Details.Create.OpenProductionSource"]</span><span class="ops-data-value">@(replenishment.OpenProductionCoverageBase?.ToString("N3") ?? L["Common.Unknown"].Value)</span></div>
+                                        <div><span class="ops-data-label">@L["StockAlert.Details.Create.StillNeeded"]</span><span class="ops-data-value">@(preparedItemDemandBase?.ToString("N3") ?? L["StockAlert.Details.Create.CannotCompute"].Value) @replenishment.BaseUnitCode</span></div>
                                     </div>
                                     @if (!replenishment.NetNeedBase.HasValue)
                                     {
@@ -258,50 +260,50 @@
                                 }
                                 else
                                 {
-                                    <label class="ops-form-label" for="requestedProcurementQuantity">Số lượng yêu cầu theo đơn vị mua hàng@(string.IsNullOrWhiteSpace(Model.ProcurementUnitName) ? "" : $" ({Model.ProcurementUnitName})") <span class="text-danger">*</span></label>
+                                    <label class="ops-form-label" for="requestedProcurementQuantity">@L["StockAlert.Details.Create.QuantityLabel"]@(string.IsNullOrWhiteSpace(Model.ProcurementUnitName) ? "" : $" ({Model.ProcurementUnitName})") <span class="text-danger">*</span></label>
                                     <input id="requestedProcurementQuantity" type="number" name="requestedProcurementQuantity" class="ops-input w-100" step="0.001" min="0.001" max="@(suggestedProcurement is > 0 ? suggestedProcurement.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" required disabled="@(suggestedProcurement is not > 0 || !Model.ProcurementUnitId.HasValue ? "disabled" : null)" value="@(suggestedProcurement is > 0 ? suggestedProcurement.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" />
                                 }
                                 <div class="ops-help">
                                     @if (isPreparedItemDemand)
                                     {
-                                        <span>Số lượng được tính lại trên máy chủ khi xác nhận; dữ liệu trên màn hình không phải quyền lực ghi nhận.</span>
+                                        <span>@L["StockAlert.Details.Create.ServerRecalcHelp"]</span>
                                     }
                                     else if (Model.IsOutOfThresholdManualDemand)
                                     {
-                                        <span>Nhu cầu đã xác minh: mục tiêu thủ công − khả dụng = @(suggestedProcurement.HasValue ? $"{AdminStatusDisplay.Quantity(suggestedProcurement.Value)}{procurementUnitSuffix}" : "chưa đủ dữ liệu đơn vị mua hàng").</span>
+                                        <span>@L["StockAlert.Details.Create.VerifiedDemand", suggestedProcurement.HasValue ? $"{AdminStatusDisplay.Quantity(suggestedProcurement.Value)}{procurementUnitSuffix}" : L["StockAlert.Details.Create.InsufficientPurchaseUnit"].Value]</span>
                                     }
                                     else
                                     {
-                                        <span>Bù đến ngưỡng tối thiểu: max(0, ngưỡng − khả dụng) = @(suggestedProcurement.HasValue ? $"{AdminStatusDisplay.Quantity(suggestedProcurement.Value)}{procurementUnitSuffix}" : "chưa đủ dữ liệu đơn vị mua hàng").</span>
+                                        <span>@L["StockAlert.Details.Create.ThresholdTopUp", suggestedProcurement.HasValue ? $"{AdminStatusDisplay.Quantity(suggestedProcurement.Value)}{procurementUnitSuffix}" : L["StockAlert.Details.Create.InsufficientPurchaseUnit"].Value]</span>
                                     }
-                                    <span class="d-block mt-1">Dữ liệu tồn kho tại thời điểm ghi nhận: @(suggestedBase.HasValue ? $"{AdminStatusDisplay.Quantity(suggestedBase.Value)}{unitSuffix}" : "chưa đủ dữ liệu").</span>
+                                    <span class="d-block mt-1">@L["StockAlert.Details.Create.SnapshotNote", suggestedBase.HasValue ? $"{AdminStatusDisplay.Quantity(suggestedBase.Value)}{unitSuffix}" : L["StockAlert.Details.Create.InsufficientData"].Value]</span>
                                 </div>
                             </div>
                             <div class="ops-form-group">
-                                <label class="ops-form-label" for="priority">Mức ưu tiên</label>
+                                <label class="ops-form-label" for="priority">@L["StockAlert.Details.Create.PriorityLabel"]</label>
                                 <select id="priority" name="priority" class="ops-select w-100">
-                                    <option value="NORMAL">Bình thường</option>
-                                    <option value="HIGH" selected="@(defaultPriority == "HIGH")">Cao</option>
-                                    <option value="URGENT" selected="@(defaultPriority == "URGENT")">Khẩn cấp</option>
+                                    <option value="NORMAL">@L["Common.Priority.Normal"]</option>
+                                    <option value="HIGH" selected="@(defaultPriority == "HIGH")">@L["Common.Priority.High"]</option>
+                                    <option value="URGENT" selected="@(defaultPriority == "URGENT")">@L["Common.Priority.Urgent"]</option>
                                 </select>
                             </div>
                             <div class="ops-form-group">
-                                <label class="ops-form-label" for="note">Ghi chú</label>
-                                <textarea id="note" name="note" class="ops-textarea" maxlength="500" placeholder="Thông tin cần lưu ý cho bộ phận kho..."></textarea>
+                                <label class="ops-form-label" for="note">@L["Common.Note"]</label>
+                                <textarea id="note" name="note" class="ops-textarea" maxlength="500" placeholder="@L["StockAlert.Details.Create.NotesPlaceholder"]"></textarea>
                             </div>
-                            <button type="submit" class="ops-btn ops-btn-primary w-100" disabled="@(isPreparedItemDemand ? preparedItemDemandBase is not > 0 : suggestedProcurement is not > 0 || !Model.ProcurementUnitId.HasValue ? "disabled" : null)"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> @(isPreparedItemDemand ? "Xác nhận nhu cầu bổ sung" : "Gửi yêu cầu nhập")</button>
+                            <button type="submit" class="ops-btn ops-btn-primary w-100" disabled="@(isPreparedItemDemand ? preparedItemDemandBase is not > 0 : suggestedProcurement is not > 0 || !Model.ProcurementUnitId.HasValue ? "disabled" : null)"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> @(isPreparedItemDemand ? L["StockAlert.Details.Create.SubmitReplenishment"] : L["StockAlert.Details.Create.SubmitRestockRequest"])</button>
                         </form>
                         <details class="ops-danger-disclosure">
-                            <summary>Đóng cảnh báo mà không tạo yêu cầu</summary>
+                            <summary>@L["StockAlert.Details.CloseDisclosure"]</summary>
                             <div class="ops-danger-content">
                                 <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Close" method="post">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@Model.StockAlertId" />
                                     <input type="hidden" name="storeId" value="@Model.StoreId" />
                                     <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
-                                    <label class="ops-form-label" for="confirmedCloseReason">Lý do đóng <span class="ops-required">*</span></label>
-                                    <textarea id="confirmedCloseReason" name="closeReason" class="ops-textarea" maxlength="500" required placeholder="Lý do đóng cảnh báo..."></textarea>
-                                    <button type="submit" class="ops-btn w-100 mt-2">Xác nhận đóng</button>
+                                    <label class="ops-form-label" for="confirmedCloseReason">@L["StockAlert.Details.CloseReason"] <span class="ops-required">*</span></label>
+                                    <textarea id="confirmedCloseReason" name="closeReason" class="ops-textarea" maxlength="500" required placeholder="@L["StockAlert.Details.CloseReasonPlaceholder"]"></textarea>
+                                    <button type="submit" class="ops-btn w-100 mt-2">@L["StockAlert.Details.ConfirmClose"]</button>
                                 </form>
                             </div>
                         </details>

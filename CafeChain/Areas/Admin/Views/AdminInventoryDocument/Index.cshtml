@@ -1,7 +1,9 @@
 @model CafeChain.ViewModels.Admin.InventoryDocuments.Index.AdminInventoryDocumentIndexVM
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<InventoryResource> L
 
 @{
-    ViewData["Title"] = "Quản lý phiếu kho";
+    ViewData["Title"] = L["InvDoc.Title"];
 }
 
 @section Styles {
@@ -31,20 +33,20 @@
 
     <header class="inventory-header ops-header cc-warehouse-header">
         <div>
-            <div class="inventory-eyebrow">Kho &amp; Cung ứng / Phiếu kho</div>
-            <h1><i class="fa-solid fa-file-lines me-2 text-warning" aria-hidden="true"></i>Quản lý phiếu kho</h1>
-            <p class="inventory-subtitle">Theo dõi xuất, kiểm kê và hủy kho trong một không gian rõ ràng, ưu tiên chứng từ cần xử lý.</p>
+            <div class="inventory-eyebrow">@L["InvDoc.Eyebrow"]</div>
+            <h1><i class="fa-solid fa-file-lines me-2 text-warning" aria-hidden="true"></i>@L["InvDoc.Title"]</h1>
+            <p class="inventory-subtitle">@L["InvDoc.Subtitle"]</p>
         </div>
 
         <div class="inventory-actions ops-actions">
             <button class="btn btn-primary inventory-action-primary" id="btnCreateInventory">
                 <i class="fa-solid fa-plus" aria-hidden="true"></i>
-                Tạo phiếu mới
+                @L["InvDoc.CreateNew"]
             </button>
 
-            <button type="button" class="btn btn-outline-secondary inventory-action-secondary" id="btnExportExcel" title="Xuất Excel" aria-label="Xuất Excel">
+            <button type="button" class="btn btn-outline-secondary inventory-action-secondary" id="btnExportExcel" title="@L["InvDoc.ExportExcel"]" aria-label="@L["InvDoc.ExportExcel"]">
                 <i class="fa-solid fa-file-excel" aria-hidden="true"></i>
-                Xuất Excel
+                @L["InvDoc.ExportExcel"]
             </button>
         </div>
     </header>
@@ -56,7 +58,7 @@
         <partial name="Partials/Detail/_FilterSection"
                  model="Model" />
 
-        <section class="inventory-results-panel" aria-label="Danh sách phiếu kho">
+        <section class="inventory-results-panel" aria-label="@L["InvDoc.ListAria"]">
             <partial name="Partials/Detail/_DocumentTabs"
                      model="Model.Filter" />
 

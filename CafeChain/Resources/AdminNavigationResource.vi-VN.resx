@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="Products.Category" xml:space="preserve"><value>Danh mục</value></data>
+  <data name="Products.Drink" xml:space="preserve"><value>Đồ uống</value></data>
+  <data name="Products.Size" xml:space="preserve"><value>Size</value></data>
+  <data name="Products.Topping" xml:space="preserve"><value>Topping</value></data>
+  <data name="Products.Profitability" xml:space="preserve"><value>Vốn &amp; lợi nhuận dự kiến</value></data>
+  <data name="Products.StoreMenu" xml:space="preserve"><value>Menu cửa hàng</value></data>
+  <data name="Production.PreparedItem" xml:space="preserve"><value>Bán thành phẩm</value></data>
+  <data name="Production.Recipe" xml:space="preserve"><value>Công thức &amp; BOM</value></data>
+  <data name="Production.Order" xml:space="preserve"><value>Lệnh sản xuất</value></data>
+  <data name="Inventory.StoreInventory" xml:space="preserve"><value>Tồn kho cửa hàng</value></data>
+  <data name="Inventory.Threshold" xml:space="preserve"><value>Ngưỡng tồn kho</value></data>
+  <data name="Inventory.Alert" xml:space="preserve"><value>Cảnh báo kho</value></data>
+  <data name="Inventory.Restock" xml:space="preserve"><value>Yêu cầu nhập hàng</value></data>
+  <data name="Inventory.Reorder" xml:space="preserve"><value>Gợi ý nhập hàng</value></data>
+  <data name="Procurement.Advice" xml:space="preserve"><value>Đề nghị mua hàng</value></data>
+  <data name="Procurement.Consolidation" xml:space="preserve"><value>Tổng hợp đề nghị mua</value></data>
+  <data name="Procurement.OrderBatch" xml:space="preserve"><value>Đơn đặt hàng gộp</value></data>
+  <data name="Procurement.Order" xml:space="preserve"><value>Đơn đặt hàng</value></data>
+  <data name="Procurement.Receipt" xml:space="preserve"><value>Phiếu nhận hàng</value></data>
+  <data name="Procurement.SupplierQuality" xml:space="preserve"><value>Chất lượng nhà cung cấp</value></data>
+  <data name="Inventory.History" xml:space="preserve"><value>Lịch sử giao dịch kho</value></data>
+  <data name="Inventory.OperationalIce" xml:space="preserve"><value>Quản lý đá theo ca</value></data>
+  <data name="Inventory.Ingredient" xml:space="preserve"><value>Nguyên liệu</value></data>
+  <data name="Inventory.UnitConversion" xml:space="preserve"><value>Đơn vị và quy đổi</value></data>
+  <data name="Procurement.Supplier" xml:space="preserve"><value>Nhà cung cấp</value></data>
+  <data name="Inventory.Document" xml:space="preserve"><value>Phiếu kho</value></data>
+  <data name="Inventory.Transfer" xml:space="preserve"><value>Phiếu chuyển kho</value></data>
+  <data name="Orders.History" xml:space="preserve"><value>Lịch sử bán hàng</value></data>
+  <data name="Staff.Permission" xml:space="preserve"><value>Bảng phân quyền</value></data>
+  <data name="Staff.Employee" xml:space="preserve"><value>Quản lý nhân viên</value></data>
+  <data name="Staff.Schedule" xml:space="preserve"><value>Lịch làm việc</value></data>
+  <data name="Staff.Store" xml:space="preserve"><value>Quản lý cửa hàng</value></data>
+  <data name="Staff.Anomaly" xml:space="preserve"><value>Tín hiệu vận hành</value></data>
+  <data name="Staff.LateOpenApproval" xml:space="preserve"><value>Duyệt mở ca trễ</value></data>
+  <data name="Profile.Open" xml:space="preserve"><value>Mở hồ sơ của {0}</value></data>
+  <data name="Profile.Avatar" xml:space="preserve"><value>Ảnh đại diện của {0}</value></data>
+  <data name="Profile.UnknownStaff" xml:space="preserve"><value>Nhân viên</value></data>
+</root>

@@ -39,16 +39,19 @@ namespace CafeChain.Extensions.Pipeline
 
         private static IApplicationBuilder UseCafeChainLocalization(this IApplicationBuilder app)
         {
-            var cultureInfo = new CultureInfo("vi-VN")
-            {
-                NumberFormat = CultureInfo.InvariantCulture.NumberFormat
-            };
+            var vietnamese = new CultureInfo("vi-VN");
+            var english = new CultureInfo("en-US");
 
             var localizationOptions = new RequestLocalizationOptions
             {
-                DefaultRequestCulture = new RequestCulture(cultureInfo),
-                SupportedCultures = new[] { cultureInfo },
-                SupportedUICultures = new[] { cultureInfo }
+                DefaultRequestCulture = new RequestCulture(vietnamese),
+                SupportedCultures = new[] { vietnamese, english },
+                SupportedUICultures = new[] { vietnamese, english }
+            };
+
+            localizationOptions.RequestCultureProviders = new IRequestCultureProvider[]
+            {
+                new CookieRequestCultureProvider()
             };
 
             app.UseRequestLocalization(localizationOptions);

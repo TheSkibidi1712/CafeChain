@@ -1,4 +1,6 @@
 @model CafeChain.ViewModels.Accounts.VerifyOtpViewModel
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<CafeChain.SharedResource> SharedText
 @{
     ViewData["Title"] = "Xác minh OTP";
     Layout = null;
@@ -10,10 +12,12 @@
 }
 
 <!DOCTYPE html>
-<html lang="vi" data-theme="dark">
+<html lang="@System.Globalization.CultureInfo.CurrentUICulture.Name" data-culture="@System.Globalization.CultureInfo.CurrentUICulture.Name">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="~/js/shared/appearance.js" asp-append-version="true"></script>
+    <link rel="stylesheet" href="~/css/shared/appearance.css" asp-append-version="true" />
     <title>@ViewData["Title"] - CafeChain Enterprise Platform</title>
 
     <!-- Google Fonts: Plus Jakarta Sans & Playfair Display -->
@@ -833,9 +837,12 @@
     <div id="cc-toast-container"></div>
 
     <!-- Theme Toggle Floating Button -->
-    <button type="button" class="theme-toggle-btn" id="themeToggleBtn" title="Chuyển chế độ giao diện (Milk / Espresso)">
-        <i class="fas fa-sun" id="themeIcon"></i>
-    </button>
+    <div class="auth-preference-controls" aria-label="@SharedText["Common.DisplayPreferences"]">
+        <select class="cc-appearance-select" data-culture-selector aria-label="@SharedText["Language.Label"]">
+            <option value="vi-VN">Tiếng Việt</option>
+            <option value="en-US">English</option>
+        </select>
+    </div>
 
     <div class="app-viewport">
         <!-- Left Hero Showcase Panel -->
@@ -898,8 +905,8 @@
                 <div class="logo-mark">
                     <i class="fas fa-shield-cat"></i>
                 </div>
-                <h2>Xác Minh OTP</h2>
-                <p>Nhập mã 6 ký tự đã gửi đến email của bạn</p>
+                <h2>@SharedText["Auth.Otp.Title"]</h2>
+                <p>@SharedText["Auth.Otp.Subtitle"]</p>
                 
                 <div class="email-badge-pill">
                     <i class="far fa-envelope"></i>
@@ -935,7 +942,7 @@
                 <div class="resend-section">
                     <div class="timer-badge">
                         <i class="far fa-clock"></i>
-                        <span>Thời hạn mã:</span>
+                        <span>@SharedText["Auth.Otp.Expires"]</span>
                         <span class="timer-count" id="countdown">05:00</span>
                     </div>
 
@@ -945,7 +952,7 @@
                 </div>
 
                 <button type="submit" id="btnSubmit" class="btn-submit">
-                    <span>Xác nhận mã OTP</span>
+                    <span>@SharedText["Auth.Otp.Submit"]</span>
                     <i class="fas fa-arrow-right" id="btnIcon"></i>
                 </button>
             </form>
@@ -1042,26 +1049,6 @@
                     requestAnimationFrame(animateParticles);
                 }
                 animateParticles();
-            }
-
-            // ===== 5. THEME SWITCHER (Dark / Light) =====
-            const savedTheme = localStorage.getItem('cafechain_theme') || 'dark';
-            setTheme(savedTheme);
-
-            $('#themeToggleBtn').click(function () {
-                const currentTheme = $('html').attr('data-theme');
-                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                setTheme(newTheme);
-            });
-
-            function setTheme(theme) {
-                $('html').attr('data-theme', theme);
-                localStorage.setItem('cafechain_theme', theme);
-                if (theme === 'dark') {
-                    $('#themeIcon').removeClass('fa-moon').addClass('fa-sun');
-                } else {
-                    $('#themeIcon').removeClass('fa-sun').addClass('fa-moon');
-                }
             }
 
             // ===== 6. OTP INPUTS CONTROLLER (KEYBOARD & PASTE) =====

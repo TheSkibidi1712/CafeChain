@@ -1,5 +1,6 @@
 import type { CartQueueItemSnapshot, CartSyncQueueItem } from '../db/CafeChainPOSDB'
-import { formatIceLevel } from '../utils/iceLevel'
+import { usePreferences } from '../contexts/PreferencesContext'
+import { useLocaleFormatters } from '../hooks/useLocaleFormatters'
 
 interface TemporaryDrinkLabelTemplateProps {
   order: CartSyncQueueItem
@@ -11,25 +12,14 @@ interface DrinkLabel {
   cupCount: number
 }
 
-const formatDateTime = (value: string): string => {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-
-  const hour = date.getHours().toString().padStart(2, '0')
-  const minute = date.getMinutes().toString().padStart(2, '0')
-  const day = date.getDate().toString().padStart(2, '0')
-  const month = (date.getMonth() + 1).toString().padStart(2, '0')
-  return `${hour}:${minute} ${day}/${month}`
-}
-
-const getItemModifiers = (item: CartQueueItemSnapshot): string[] => {
+const getItemModifiers = (item: CartQueueItemSnapshot, labels: { size: string; topping: string; ice: (value: number) => string }): string[] => {
   const modifiers: string[] = []
 
-  if (item.sizeName) modifiers.push(`Size ${item.sizeName}`)
-  const iceLabel = formatIceLevel(item.iceLevelPercent)
+  if (item.sizeName) modifiers.push(`${labels.size} ${item.sizeName}`)
+  const iceLabel = item.iceLevelPercent === null || item.iceLevelPercent === undefined ? '' : labels.ice(item.iceLevelPercent)
   if (iceLabel) modifiers.push(iceLabel)
   if (item.toppings?.length) {
-    modifiers.push(`Topping: ${item.toppings.map((topping) => topping.name ?? `#${topping.toppingId}`).join(', ')}`)
+    modifiers.push(`${labels.topping}: ${item.toppings.map((topping) => topping.name ?? `#${topping.toppingId}`).join(', ')}`)
   }
   if (item.note) modifiers.push(item.note)
   if (!modifiers.length && item.detailText) modifiers.push(item.detailText)
@@ -47,6 +37,13 @@ const getLabels = (order: CartSyncQueueItem): DrinkLabel[] =>
   )
 
 export default function TemporaryDrinkLabelTemplate({ order }: TemporaryDrinkLabelTemplateProps) {
+  const { t } = usePreferences()
+  const { formatDateTime } = useLocaleFormatters()
+  const modifierLabels = {
+    size: t('print.size'),
+    topping: t('print.topping'),
+    ice: (value: number) => value === 0 ? t('modifier.ice.none') : value === 50 ? t('modifier.ice.less') : value === 100 ? t('modifier.ice.normal') : '',
+  }
   const labels = getLabels(order)
 
   return (
@@ -58,17 +55,17 @@ export default function TemporaryDrinkLabelTemplate({ order }: TemporaryDrinkLab
         >
           <header className="border-b border-dashed border-black pb-1">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-black">TẠM - CHƯA ĐỒNG BỘ</span>
+              <span className="text-[10px] font-black">{t('temporary.pendingSync')}</span>
               <span className="text-[10px] font-bold tabular-nums">
                 {cupNo}/{cupCount}
               </span>
             </div>
-            <p className="mt-1 break-all text-[9px]">ClientOrderId: {order.clientOrderId}</p>
+            <p className="mt-1 break-all text-[9px]">{t('temporary.clientOrderId')}: {order.clientOrderId}</p>
           </header>
 
           <section className="py-2 space-y-1">
             <p className="text-[15px] font-black break-words">{item.name}</p>
-            {getItemModifiers(item).map((modifier) => (
+            {getItemModifiers(item, modifierLabels).map((modifier) => (
               <p key={modifier} className="break-words">
                 {modifier}
               </p>
@@ -76,7 +73,7 @@ export default function TemporaryDrinkLabelTemplate({ order }: TemporaryDrinkLab
           </section>
 
           <footer className="border-t border-dashed border-black pt-1 flex items-center justify-between gap-2 text-[9px]">
-            <span>Ca #{order.workShiftId}</span>
+            <span>{t('temporary.shift')} #{order.workShiftId}</span>
             <span>{formatDateTime(order.soldAt)}</span>
           </footer>
         </article>

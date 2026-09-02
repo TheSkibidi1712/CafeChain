@@ -1,8 +1,11 @@
 @model CafeChain.ViewModels.Admin.Staffs.StaffShiftManagementVM
 @using System.Globalization
+@using System.Text.Json
 @using CafeChain.Application.Constants.Cloudinaries
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<OperationsResource> L
 @{
-    ViewData["Title"] = "Quản lý lịch làm việc";
+    ViewData["Title"] = L["Shift.Index.Title"].Value;
     var days = Enumerable.Range(0, 7).Select(i => Model.StartDate.AddDays(i)).ToList();
     var schedules = Model.StaffRows.SelectMany(x => x.Schedules).ToList();
     var scheduledCount = schedules.Count(x => x.StatusCode == "SCHEDULED");
@@ -35,17 +38,17 @@
 
     <header class="shift-page-header ops-header cc-warehouse-header">
         <div>
-            <div class="shift-eyebrow">Nhân sự &amp; Vận hành / Lịch &amp; ca làm việc</div>
-            <h1><i class="fa-solid fa-calendar-days me-2 text-warning" aria-hidden="true"></i> Quản lý lịch &amp; ca làm việc</h1>
+            <div class="shift-eyebrow">@L["Shift.Index.Eyebrow"]</div>
+            <h1><i class="fa-solid fa-calendar-days me-2 text-warning" aria-hidden="true"></i> @L["Shift.Index.Title"]</h1>
             <p class="shift-subtitle-text text-muted mb-0" style="font-size: 13.5px; margin-top: 6px;">
-                Điều phối ca trực, phân lịch tuần từ ngày <strong>@Model.StartDate.ToString("dd/MM/yyyy")</strong> đến ngày <strong>@Model.StartDate.AddDays(6).ToString("dd/MM/yyyy")</strong>.
+                @L["Shift.Index.Subtitle", Model.StartDate.ToString("dd/MM/yyyy"), Model.StartDate.AddDays(6).ToString("dd/MM/yyyy")]
             </p>
         </div>
 
         <div class="shift-header-actions d-flex align-items-center gap-3 flex-wrap">
             @if (Model.Stores.Count > 1)
             {
-                <select id="storeSelector" class="form-select form-select-sm shift-store-selector" aria-label="Chọn cửa hàng" style="margin-top: 0 !important; height: 38px !important; min-width: 220px !important;">
+                <select id="storeSelector" class="form-select form-select-sm shift-store-selector" aria-label="@L["Shift.Index.StoreSelectorAria"]" style="margin-top: 0 !important; height: 38px !important; min-width: 220px !important;">
                     @foreach (var store in Model.Stores)
                     {
                         <option value="@store.StoreId" selected="@(store.StoreId == Model.StoreId ? "selected" : null)">@store.StoreName</option>
@@ -53,9 +56,9 @@
                 </select>
             }
 
-            <nav class="week-nav" aria-label="Điều hướng tuần" style="display: inline-flex !important; align-items: center !important;">
+            <nav class="week-nav" aria-label="@L["Shift.Index.WeekNavAria"]" style="display: inline-flex !important; align-items: center !important;">
                 <a class="btn-nav" asp-action="Index" asp-route-targetStoreId="@Model.StoreId" asp-route-startDate="@Model.StartDate.AddDays(-7).ToString("yyyy-MM-dd")">
-                    <i class="fa-solid fa-chevron-left"></i><span>Tuần trước</span>
+                    <i class="fa-solid fa-chevron-left"></i><span>@L["Shift.Index.PrevWeek"]</span>
                 </a>
                 <div class="week-label">@Model.StartDate.ToString("dd/MM") — @Model.StartDate.AddDays(6).ToString("dd/MM/yyyy")</div>
                 <a class="btn-nav btn-today @(Model.StartDate == currentWeekStart ? "is-current" : "")"
@@ -63,42 +66,42 @@
                    asp-route-targetStoreId="@Model.StoreId"
                    asp-route-startDate="@currentWeekStart.ToString("yyyy-MM-dd")"
                    aria-current="@(Model.StartDate == currentWeekStart ? "date" : null)">
-                    <i class="fa-solid fa-calendar-day" aria-hidden="true"></i><span>Tuần hiện tại</span>
+                    <i class="fa-solid fa-calendar-day" aria-hidden="true"></i><span>@L["Shift.Index.CurrentWeek"]</span>
                 </a>
                 <a class="btn-nav" asp-action="Index" asp-route-targetStoreId="@Model.StoreId" asp-route-startDate="@Model.StartDate.AddDays(7).ToString("yyyy-MM-dd")">
-                    <span>Tuần sau</span><i class="fa-solid fa-chevron-right"></i>
+                    <span>@L["Shift.Index.NextWeek"]</span><i class="fa-solid fa-chevron-right"></i>
                 </a>
             </nav>
         </div>
     </header>
 
-    <section class="shift-summary" aria-label="Tổng quan lịch làm việc trong tuần">
+    <section class="shift-summary" aria-label="@L["Shift.Index.SummaryAria"]">
         <article class="summary-card summary-card-staff">
             <span class="summary-icon"><i class="fa-solid fa-users" aria-hidden="true"></i></span>
-            <span><strong>@Model.StaffRows.Count</strong><small>Nhân viên</small></span>
+            <span><strong>@Model.StaffRows.Count</strong><small>@L["Shift.Index.Staff"]</small></span>
         </article>
         <article class="summary-card summary-card-scheduled">
             <span class="summary-icon"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i></span>
-            <span><strong>@scheduledCount</strong><small>Lịch đang hoạt động</small></span>
+            <span><strong>@scheduledCount</strong><small>@L["Shift.Index.ScheduledCount"]</small></span>
         </article>
         <article class="summary-card summary-card-cancelled">
             <span class="summary-icon"><i class="fa-solid fa-calendar-xmark" aria-hidden="true"></i></span>
-            <span><strong>@cancelledCount</strong><small>Lịch đã hủy</small></span>
+            <span><strong>@cancelledCount</strong><small>@L["Shift.Index.CancelledCount"]</small></span>
         </article>
         <article class="summary-card summary-card-template">
             <span class="summary-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></span>
-            <span><strong>@activeTemplateCount</strong><small>Mẫu ca đang dùng</small></span>
+            <span><strong>@activeTemplateCount</strong><small>@L["Shift.Index.TemplateCount"]</small></span>
         </article>
     </section>
 
     <section class="template-library mb-4" aria-labelledby="templateLibraryTitle">
         <div class="template-library-header">
             <button class="template-library-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#templateLibraryBody" aria-expanded="true" aria-controls="templateLibraryBody">
-                <span><i class="fa-solid fa-layer-group"></i> <strong id="templateLibraryTitle">Thư viện mẫu ca</strong></span>
+                <span><i class="fa-solid fa-layer-group"></i> <strong id="templateLibraryTitle">@L["Shift.Index.TemplateLibrary"]</strong></span>
                 <span class="template-library-hint">
                     @if (Model.CanCreate)
                     {
-                        <span>Kéo mẫu ca vào ô lịch hoặc click “Phân ca”</span>
+                        <span>@L["Shift.Index.TemplateLibraryHint"]</span>
                     }
                     <i class="fa-solid fa-chevron-down"></i>
                 </span>
@@ -106,14 +109,14 @@
             @if (Model.CanCreate)
             {
                 <button class="btn btn-primary btn-sm" type="button" data-template-mode="create">
-                    <i class="fa-solid fa-plus me-1"></i>Tạo mẫu ca
+                    <i class="fa-solid fa-plus me-1"></i>@L["Shift.Index.CreateTemplate"]
                 </button>
             }
         </div>
 
         <div id="templateLibraryBody" class="collapse show">
             <div class="template-library-body">
-                <div class="template-palette" aria-label="Các mẫu ca đang hoạt động">
+                <div class="template-palette" aria-label="@L["Shift.Index.ActiveTemplatesAria"]">
                     @foreach (var template in Model.Templates.Where(x => x.Active))
                     {
                         <article class="template-chip @(Model.CanCreate ? "draggable-template" : "")"
@@ -123,33 +126,33 @@
                                  data-template-name="@template.Name"
                                  data-template-start="@template.StartTime.ToString(@"hh\:mm")"
                                  data-template-end="@template.EndTime.ToString(@"hh\:mm")"
-                                 aria-label="Mẫu ca @template.Name, @template.StartTime.ToString(@"hh\:mm") đến @template.EndTime.ToString(@"hh\:mm")">
+                                 aria-label="@L["Shift.Index.TemplateAria", template.Name, template.StartTime.ToString(@"hh\:mm"), template.EndTime.ToString(@"hh\:mm")]">
                             <span class="template-chip-handle"><i class="fa-solid fa-grip-vertical"></i></span>
                             <span>
                                 <strong>@template.Name</strong>
-                                <small>@template.StartTime.ToString(@"hh\:mm") – @template.EndTime.ToString(@"hh\:mm") @(template.IsOvernight ? "(+1 ngày)" : "")</small>
+                                <small>@template.StartTime.ToString(@"hh\:mm") – @template.EndTime.ToString(@"hh\:mm") @(template.IsOvernight ? L["Shift.Index.PlusOneDay"].Value : "")</small>
                             </span>
                         </article>
                     }
                     @if (!Model.Templates.Any(x => x.Active))
                     {
-                        <div class="template-empty">Chưa có mẫu ca đang hoạt động để phân lịch.</div>
+                        <div class="template-empty">@L["Shift.Index.NoActiveTemplates"]</div>
                     }
                 </div>
 
                 <div class="table-responsive template-management">
                     <table class="table table-sm align-middle mb-0">
                         <thead>
-                            <tr><th class="text-center">Tên ca</th><th class="text-center">Thời gian</th><th class="text-center">Ghi chú</th><th class="text-center">Trạng thái</th><th class="text-center">Thao tác</th></tr>
+                            <tr><th class="text-center">@L["Shift.Index.Col.Name"]</th><th class="text-center">@L["Shift.Index.Col.Time"]</th><th class="text-center">@L["Shift.Index.Col.Notes"]</th><th class="text-center">@L["Shift.Index.Col.Status"]</th><th class="text-center">@L["Shift.Index.Col.Actions"]</th></tr>
                         </thead>
                         <tbody>
                         @foreach (var template in Model.Templates)
                         {
                             <tr class="@(template.Active ? "" : "template-inactive")">
                                 <td class="fw-semibold text-center">@template.Name</td>
-                                <td class="text-center">@template.StartTime.ToString(@"hh\:mm") – @template.EndTime.ToString(@"hh\:mm") @(template.IsOvernight ? "(+1 ngày)" : "")</td>
+                                <td class="text-center">@template.StartTime.ToString(@"hh\:mm") – @template.EndTime.ToString(@"hh\:mm") @(template.IsOvernight ? L["Shift.Index.PlusOneDay"].Value : "")</td>
                                 <td class="text-center">@template.Notes</td>
-                                <td class="text-center"><span class="badge @(template.Active ? "bg-success" : "bg-secondary")">@(template.Active ? "Đang dùng" : "Đã ngưng")</span></td>
+                                <td class="text-center"><span class="badge @(template.Active ? "bg-success" : "bg-secondary")">@(template.Active ? L["Shift.Index.Using"].Value : L["Shift.Index.Stopped"].Value)</span></td>
                                 <td class="text-center">
                                     @if (Model.CanUpdate)
                                     {
@@ -158,15 +161,15 @@
                                                     data-id="@template.ShiftId" data-name="@template.Name"
                                                     data-start="@template.StartTime.ToString(@"hh\:mm")" data-end="@template.EndTime.ToString(@"hh\:mm")"
                                                     data-notes="@template.Notes" data-version="@template.RowVersion"
-                                                    title="Chỉnh sửa thông tin mẫu ca">
+                                                    title="@L["Shift.Index.EditTemplateTitle"]">
                                                 <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
-                                                <span>Sửa</span>
+                                                <span>@L["Shift.Index.Edit"]</span>
                                             </button>
                                             <button type="button" class="shift-action-btn @(template.Active ? "shift-action-toggle-active" : "shift-action-toggle-inactive") toggle-template"
                                                     data-id="@template.ShiftId" data-version="@template.RowVersion"
-                                                    title="@(template.Active ? "Ngưng sử dụng mẫu ca này" : "Kích hoạt lại mẫu ca này")">
+                                                    title="@(template.Active ? L["Shift.Index.StopTemplateTitle"].Value : L["Shift.Index.ActivateTemplateTitle"].Value)">
                                                 <i class="fa-solid @(template.Active ? "fa-ban" : "fa-circle-check")" aria-hidden="true"></i>
-                                                <span>@(template.Active ? "Ngưng" : "Kích hoạt")</span>
+                                                <span>@(template.Active ? L["Shift.Index.Stop"].Value : L["Shift.Index.Activate"].Value)</span>
                                             </button>
                                         </div>
                                     }
@@ -175,7 +178,7 @@
                         }
                         @if (!Model.Templates.Any())
                         {
-                            <tr><td colspan="5" class="text-center text-muted py-3">Chưa có mẫu ca.</td></tr>
+                            <tr><td colspan="5" class="text-center text-muted py-3">@L["Shift.Index.NoTemplates"]</td></tr>
                         }
                         </tbody>
                     </table>
@@ -188,49 +191,49 @@
         <div class="roster-toolbar">
             <div class="roster-toolbar-heading">
                 <div>
-                    <span class="section-eyebrow">LỊCH TUẦN</span>
-                    <h3 id="weeklyRosterTitle">Lịch làm việc nhân viên</h3>
+                    <span class="section-eyebrow">@L["Shift.Index.RosterEyebrow"]</span>
+                    <h3 id="weeklyRosterTitle">@L["Shift.Index.RosterTitle"]</h3>
                 </div>
-                <div class="schedule-legend" aria-label="Chú thích trạng thái">
-                    <span><i class="legend-dot legend-scheduled"></i> Đang hoạt động</span>
-                    <span><i class="legend-dot legend-cancelled"></i> Đã hủy</span>
+                <div class="schedule-legend" aria-label="@L["Shift.Index.LegendAria"]">
+                    <span><i class="legend-dot legend-scheduled"></i> @L["Shift.Index.LegendScheduled"]</span>
+                    <span><i class="legend-dot legend-cancelled"></i> @L["Shift.Index.LegendCancelled"]</span>
                 </div>
             </div>
             <div class="roster-filters" role="search">
                 <div class="roster-filter-field roster-filter-field--search">
-                    <label class="filter-label" for="staffSearch">Tìm kiếm nhân viên</label>
+                    <label class="filter-label" for="staffSearch">@L["Shift.Index.SearchStaff"]</label>
                     <div class="filter-control filter-search">
                         <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                        <input id="staffSearch" type="search" autocomplete="off" placeholder="Tìm tên hoặc vai trò..." />
+                        <input id="staffSearch" type="search" autocomplete="off" placeholder="@L["Shift.Index.SearchStaffPlaceholder"]" />
                     </div>
                 </div>
                 <div class="roster-filter-field">
-                    <label class="filter-label" for="scheduleStatusFilter">Trạng thái lịch</label>
+                    <label class="filter-label" for="scheduleStatusFilter">@L["Shift.Index.ScheduleStatus"]</label>
                     <div class="filter-control filter-select">
                         <select id="scheduleStatusFilter">
-                            <option value="all">Tất cả trạng thái</option>
-                            <option value="scheduled">Có lịch</option>
-                            <option value="unscheduled">Chưa có lịch</option>
-                            <option value="cancelled">Có lịch đã hủy</option>
+                            <option value="all">@L["Shift.Index.AllStatuses"]</option>
+                            <option value="scheduled">@L["Shift.Index.HasSchedule"]</option>
+                            <option value="unscheduled">@L["Shift.Index.NoSchedule"]</option>
+                            <option value="cancelled">@L["Shift.Index.HasCancelledSchedule"]</option>
                         </select>
                     </div>
                 </div>
                 <button id="resetRosterFilters" class="filter-reset" type="button" hidden>
-                    <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Đặt lại
+                    <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> @L["Shift.Index.Reset"]
                 </button>
             </div>
         </div>
 
         <div class="roster-meta">
-            <span id="visibleStaffCount">Hiển thị @Model.StaffRows.Count/@Model.StaffRows.Count nhân viên</span>
-            <span class="roster-scroll-hint"><i class="fa-solid fa-arrows-left-right" aria-hidden="true"></i> Cuộn ngang để xem đủ 7 ngày</span>
+            <span id="visibleStaffCount">@L["Shift.Index.Showing", Model.StaffRows.Count, Model.StaffRows.Count]</span>
+            <span class="roster-scroll-hint"><i class="fa-solid fa-arrows-left-right" aria-hidden="true"></i> @L["Shift.Index.ScrollHint"]</span>
         </div>
 
         <div class="roster-container">
         <table class="roster-table">
             <thead>
                 <tr>
-                    <th class="staff-col">Nhân viên</th>
+                    <th class="staff-col">@L["Shift.Index.Col.Staff"]</th>
                     @foreach (var day in days)
                     {
                         var isToday = day.Date == DateTime.Today;
@@ -253,11 +256,11 @@
                     <td class="staff-col">
                         <div class="staff-info">
                             <img src="@(string.IsNullOrWhiteSpace(staff.AvatarUrl) ? DefaultImages.StaffAvatarUrl : staff.AvatarUrl)"
-                                 alt="Ảnh của @staff.StaffName" onerror="this.src='@DefaultImages.StaffAvatarUrl'" />
+                                 alt="@L["Shift.Index.StaffAvatar", staff.StaffName]" onerror="this.src='@DefaultImages.StaffAvatarUrl'" />
                             <div>
                                 <div class="staff-name">@staff.StaffName</div>
                                 <div class="staff-role">@staff.RoleNames</div>
-                                <div class="staff-hours"><i class="fa-regular fa-clock" aria-hidden="true"></i> @staffScheduledCount ca trong tuần</div>
+                                <div class="staff-hours"><i class="fa-regular fa-clock" aria-hidden="true"></i> @L["Shift.Index.ShiftsInWeek", staffScheduledCount]</div>
                             </div>
                         </div>
                     </td>
@@ -267,40 +270,40 @@
                             data-staff-id="@staff.StaffId"
                             data-staff-name="@staff.StaffName"
                             data-work-date="@day.ToString("yyyy-MM-dd")">
-                            <div class="drop-indicator"><i class="fa-solid fa-arrow-down"></i> Thả mẫu ca tại đây</div>
+                            <div class="drop-indicator"><i class="fa-solid fa-arrow-down"></i> @L["Shift.Index.DropTemplateHere"]</div>
                             @foreach (var schedule in staff.Schedules.Where(x => x.WorkDate.Date == day.Date))
                             {
                                 var cancelled = schedule.StatusCode == "CANCELLED";
                                 <article class="schedule-card @(cancelled ? "cancelled" : "scheduled")">
                                     <div class="schedule-card-header">
                                         <div class="schedule-card-title">@schedule.ShiftName</div>
-                                        <span class="schedule-status-dot" title="@(cancelled ? "Đã hủy" : "Đang hoạt động")"></span>
+                                        <span class="schedule-status-dot" title="@(cancelled ? L["Shift.Index.LegendCancelled"].Value : L["Shift.Index.LegendScheduled"].Value)"></span>
                                     </div>
                                     <div class="schedule-card-time">
                                         <i class="fa-regular fa-clock" aria-hidden="true"></i>
                                         @schedule.EffectiveStart.ToString(@"hh\:mm") – @schedule.EffectiveEnd.ToString(@"hh\:mm")
-                                        @if (schedule.IsOvernight) { <span class="overnight-badge">+1 ngày</span> }
+                                        @if (schedule.IsOvernight) { <span class="overnight-badge">@L["Shift.Index.PlusOneDayBadge"]</span> }
                                     </div>
                                     @if (cancelled)
                                     {
-                                        <span class="badge bg-secondary mt-1">Đã hủy</span>
+                                        <span class="badge bg-secondary mt-1">@L["Shift.Index.LegendCancelled"]</span>
                                     }
                                     else
                                     {
                                         <div class="schedule-actions">
                                             @if (Model.CanUpdate)
                                             {
-                                                <button type="button" class="edit-schedule" title="Sửa lịch của @staff.StaffName" aria-label="Sửa lịch @schedule.ShiftName của @staff.StaffName"
+                                                <button type="button" class="edit-schedule" title="@L["Shift.Index.EditScheduleTitle", staff.StaffName]" aria-label="@L["Shift.Index.EditScheduleAria", schedule.ShiftName, staff.StaffName]"
                                                         data-id="@schedule.StaffShiftId" data-staff="@staff.StaffId" data-name="@staff.StaffName"
                                                         data-shift="@schedule.ShiftId" data-date="@day.ToString("yyyy-MM-dd")"
                                                         data-custom-start="@schedule.CustomStartTime?.ToString(@"hh\:mm")"
                                                         data-custom-end="@schedule.CustomEndTime?.ToString(@"hh\:mm")"
-                                                        data-version="@schedule.RowVersion"><i class="fa-solid fa-pen" aria-hidden="true"></i><span>Sửa</span></button>
+                                                        data-version="@schedule.RowVersion"><i class="fa-solid fa-pen" aria-hidden="true"></i><span>@L["Shift.Index.Edit"]</span></button>
                                             }
                                             @if (Model.CanCancel)
                                             {
-                                                <button type="button" class="cancel-schedule" title="Hủy lịch của @staff.StaffName" aria-label="Hủy lịch @schedule.ShiftName của @staff.StaffName"
-                                                        data-id="@schedule.StaffShiftId" data-version="@schedule.RowVersion"><i class="fa-solid fa-xmark" aria-hidden="true"></i><span>Hủy</span></button>
+                                                <button type="button" class="cancel-schedule" title="@L["Shift.Index.CancelScheduleTitle", staff.StaffName]" aria-label="@L["Shift.Index.CancelScheduleAria", schedule.ShiftName, staff.StaffName]"
+                                                        data-id="@schedule.StaffShiftId" data-version="@schedule.RowVersion"><i class="fa-solid fa-xmark" aria-hidden="true"></i><span>@L["Shift.Index.Cancel"]</span></button>
                                             }
                                         </div>
                                     }
@@ -310,7 +313,7 @@
                             {
                                 <button type="button" class="empty-slot assign-schedule"
                                         data-staff="@staff.StaffId" data-name="@staff.StaffName" data-date="@day.ToString("yyyy-MM-dd")">
-                                    <span><i class="fa-solid fa-plus"></i> Phân ca</span>
+                                    <span><i class="fa-solid fa-plus"></i> @L["Shift.Index.Assign"]</span>
                                 </button>
                             }
                         </td>
@@ -319,15 +322,15 @@
             }
             @if (!Model.StaffRows.Any())
             {
-                <tr><td colspan="8"><div class="empty-state"><i class="fa-solid fa-folder-open"></i><strong>Không có nhân viên trong cửa hàng này.</strong></div></td></tr>
+                <tr><td colspan="8"><div class="empty-state"><i class="fa-solid fa-folder-open"></i><strong>@L["Shift.Index.NoStaffInStore"]</strong></div></td></tr>
             }
             </tbody>
         </table>
         </div>
         <div id="rosterFilterEmpty" class="filter-empty" role="status" hidden>
             <span><i class="fa-solid fa-user-clock" aria-hidden="true"></i></span>
-            <strong>Không tìm thấy nhân viên phù hợp</strong>
-            <p>Hãy thử từ khóa khác hoặc đặt lại bộ lọc.</p>
+            <strong>@L["Shift.Index.FilterEmptyTitle"]</strong>
+            <p>@L["Shift.Index.FilterEmptyText"]</p>
         </div>
     </section>
 </main>
@@ -337,8 +340,8 @@
         <div class="modal-content">
             <form id="scheduleForm">
                 <div class="modal-header accent">
-                    <div><span class="modal-kicker">LỊCH NHÂN VIÊN</span><h5 class="modal-title" id="scheduleModalTitle">Phân lịch làm việc</h5></div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                    <div><span class="modal-kicker">@L["Shift.ScheduleModal.Kicker"]</span><h5 class="modal-title" id="scheduleModalTitle">@L["Shift.ScheduleModal.AssignTitle"]</h5></div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="@L["Shift.ScheduleModal.CloseAria"]"></button>
                 </div>
                 <div class="modal-body p-4">
                     <input type="hidden" name="StaffShiftId" id="staffShiftId" />
@@ -351,9 +354,9 @@
                         <span id="scheduleContext"></span>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="scheduleShift">Mẫu ca <span class="text-danger">*</span></label>
+                        <label class="form-label" for="scheduleShift">@L["Shift.ScheduleModal.ShiftTemplate"] <span class="text-danger">*</span></label>
                         <select class="form-select" name="ShiftId" id="scheduleShift" required>
-                            <option value="">-- Chọn mẫu ca --</option>
+                            <option value="">@L["Shift.ScheduleModal.SelectTemplate"]</option>
                             @foreach (var template in Model.Templates.Where(x => x.Active))
                             {
                                 <option value="@template.ShiftId">@template.Name (@template.StartTime.ToString(@"hh\:mm")–@template.EndTime.ToString(@"hh\:mm"))</option>
@@ -362,17 +365,17 @@
                     </div>
                     <div class="form-check form-switch mb-3">
                         <input class="form-check-input" type="checkbox" name="UseCustomTime" value="true" id="useCustomTime" />
-                        <label class="form-check-label" for="useCustomTime">Dùng giờ riêng cho lịch này</label>
+                        <label class="form-check-label" for="useCustomTime">@L["Shift.ScheduleModal.UseCustomTime"]</label>
                     </div>
                     <div class="row g-3">
-                        <div class="col-6"><label class="form-label" for="customStart">Bắt đầu</label><input type="time" class="form-control custom-time" name="CustomStartTime" id="customStart" disabled /></div>
-                        <div class="col-6"><label class="form-label" for="customEnd">Kết thúc</label><input type="time" class="form-control custom-time" name="CustomEndTime" id="customEnd" disabled /></div>
+                        <div class="col-6"><label class="form-label" for="customStart">@L["Shift.ScheduleModal.Start"]</label><input type="time" class="form-control custom-time" name="CustomStartTime" id="customStart" disabled /></div>
+                        <div class="col-6"><label class="form-label" for="customEnd">@L["Shift.ScheduleModal.End"]</label><input type="time" class="form-control custom-time" name="CustomEndTime" id="customEnd" disabled /></div>
                     </div>
-                    <div class="form-text mt-2">Nếu không dùng giờ riêng, lịch sẽ tự động theo giờ của mẫu ca.</div>
+                    <div class="form-text mt-2">@L["Shift.ScheduleModal.CustomTimeHint"]</div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
-                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i>Lưu lịch</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["Shift.ScheduleModal.Close"]</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i>@L["Shift.ScheduleModal.Save"]</button>
                 </div>
             </form>
         </div>
@@ -383,23 +386,24 @@
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down">
         <div class="modal-content">
             <form id="templateForm">
-                <div class="modal-header accent"><div><span class="modal-kicker">THƯ VIỆN CA</span><h5 class="modal-title" id="templateModalTitle">Mẫu ca</h5></div><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+                <div class="modal-header accent"><div><span class="modal-kicker">@L["Shift.TemplateModal.Kicker"]</span><h5 class="modal-title" id="templateModalTitle">@L["Shift.TemplateModal.Title"]</h5></div><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="@L["Shift.TemplateModal.CloseAria"]"></button></div>
                 <div class="modal-body p-4">
                     <input type="hidden" name="ShiftId" id="templateId" />
                     <input type="hidden" name="RowVersion" id="templateVersion" />
-                    <div class="mb-3"><label class="form-label" for="templateName">Tên mẫu ca <span class="text-danger">*</span></label><input class="form-control" name="Name" id="templateName" maxlength="100" required /></div>
+                    <div class="mb-3"><label class="form-label" for="templateName">@L["Shift.TemplateModal.Name"] <span class="text-danger">*</span></label><input class="form-control" name="Name" id="templateName" maxlength="100" required /></div>
                     <div class="row g-3">
-                        <div class="col-6"><label class="form-label" for="templateStart">Bắt đầu <span class="text-danger">*</span></label><input type="time" class="form-control" name="StartTime" id="templateStart" required /></div>
-                        <div class="col-6"><label class="form-label" for="templateEnd">Kết thúc <span class="text-danger">*</span></label><input type="time" class="form-control" name="EndTime" id="templateEnd" required /></div>
+                        <div class="col-6"><label class="form-label" for="templateStart">@L["Shift.TemplateModal.Start"] <span class="text-danger">*</span></label><input type="time" class="form-control" name="StartTime" id="templateStart" required /></div>
+                        <div class="col-6"><label class="form-label" for="templateEnd">@L["Shift.TemplateModal.End"] <span class="text-danger">*</span></label><input type="time" class="form-control" name="EndTime" id="templateEnd" required /></div>
                     </div>
-                    <div class="mt-3"><label class="form-label" for="templateNotes">Ghi chú</label><textarea class="form-control" name="Notes" id="templateNotes" maxlength="500"></textarea></div>
+                    <div class="mt-3"><label class="form-label" for="templateNotes">@L["Shift.TemplateModal.Notes"]</label><textarea class="form-control" name="Notes" id="templateNotes" maxlength="500"></textarea></div>
                 </div>
-                <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="submit" class="btn btn-primary">Lưu mẫu ca</button></div>
+                <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["Shift.TemplateModal.Close"]</button><button type="submit" class="btn btn-primary">@L["Shift.TemplateModal.Save"]</button></div>
             </form>
         </div>
     </div>
 </div>
 
 @section Scripts {
+    <script type="application/json" id="staff-shift-ui-catalog">@Html.Raw(JsonSerializer.Serialize(L.GetAllStrings().Where(x => x.Name.StartsWith("Shift.Js.")).ToDictionary(x => x.Name, x => x.Value)))</script>
     <script src="~/js/Admin/StaffShift/admin-staff-shift.js" asp-append-version="true"></script>
 }

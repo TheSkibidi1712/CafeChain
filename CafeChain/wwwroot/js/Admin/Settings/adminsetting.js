@@ -1,6 +1,10 @@
 (() => {
     "use strict";
 
+    const settingsCatalog = window.CafeChainUiCatalog.read("settingsUiCatalog");
+    const settingsText = (key, values) => window.CafeChainUiCatalog.text(settingsCatalog, key, values);
+    const locale = document.documentElement.dataset.culture || "vi-VN";
+
     document.addEventListener("DOMContentLoaded", () => {
         const form = document.getElementById("negativeInventorySettingsForm");
         const negativeTabButton = document.getElementById("negative-inventory-tab");
@@ -55,11 +59,11 @@
 
             if (label) {
                 if (value === "BLOCKED") {
-                    label.innerHTML = '<i class="fas fa-lock me-1 text-danger"></i><span>Chặn</span>';
+                    label.innerHTML = `<i class="fas fa-lock me-1 text-danger"></i><span>${settingsText("Settings.Js.Mode.Blocked")}</span>`;
                 } else if (value === "CUSTOM") {
-                    label.innerHTML = '<i class="fas fa-sliders me-1 text-amber"></i><span>Hạn mức riêng</span>';
+                    label.innerHTML = `<i class="fas fa-sliders me-1 text-amber"></i><span>${settingsText("Settings.Js.Mode.Custom")}</span>`;
                 } else {
-                    label.innerHTML = '<i class="fas fa-circle-check me-1 text-success"></i><span>Theo mặc định</span>';
+                    label.innerHTML = `<i class="fas fa-circle-check me-1 text-success"></i><span>${settingsText("Settings.Js.Mode.Default")}</span>`;
                 }
             }
         };
@@ -93,7 +97,7 @@
             }
         });
 
-        const formatQuantity = (value) => Number(value || 0).toLocaleString("vi-VN", {
+        const formatQuantity = (value) => Number(value || 0).toLocaleString(locale, {
             maximumFractionDigits: 3
         });
 
@@ -134,7 +138,7 @@
         });
 
         const getFilteredRows = () => {
-            const query = (itemSearch?.value ?? "").trim().toLocaleLowerCase("vi");
+            const query = (itemSearch?.value ?? "").trim().toLocaleLowerCase(locale);
             return itemRows.filter((row) => {
                 const storeMatches = row.dataset.storeId === activeStoreId;
                 const itemMatches = !query || (row.dataset.search ?? "").includes(query);
@@ -195,7 +199,7 @@
             pagination.replaceChildren();
             pagination.appendChild(createPageItem("‹", currentPage - 1, {
                 disabled: currentPage <= 1,
-                label: "Trang trước"
+                label: settingsText("Settings.Js.PreviousPage")
             }));
 
             getPageNumbers(totalPages).forEach((page) => {
@@ -208,7 +212,7 @@
 
             pagination.appendChild(createPageItem("›", currentPage + 1, {
                 disabled: currentPage >= totalPages,
-                label: "Trang sau"
+                label: settingsText("Settings.Js.NextPage")
             }));
         };
 
@@ -227,7 +231,7 @@
             if (rangeStart) rangeStart.textContent = String(firstItem);
             if (rangeEnd) rangeEnd.textContent = String(lastItem);
             if (filteredCount) filteredCount.textContent = String(totalItems);
-            if (pageStatus) pageStatus.textContent = `Trang ${currentPage} / ${totalPages}`;
+            if (pageStatus) pageStatus.textContent = settingsText("Settings.Js.PageStatus", { page: currentPage, total: totalPages });
             emptyRow?.classList.toggle("d-none", totalItems !== 0);
             renderPagination(totalPages);
         };
@@ -292,12 +296,12 @@
                     const payload = await response.json().catch(() => ({}));
                     const providerReady = payload.data?.providerReady === true && payload.data?.healthStatus === "READY";
                     await showMessage(
-                        response.ok ? (providerReady ? "OCR sẵn sàng" : "Đã lưu cấu hình") : "Không thể lưu OCR",
+                        response.ok ? (providerReady ? settingsText("Settings.Js.OcrReady") : settingsText("Settings.Js.SettingsSaved")) : settingsText("Settings.Js.OcrSaveFailed"),
                         payload.message ?? `HTTP ${response.status}`,
                         response.ok ? (providerReady ? "success" : "warning") : "error");
                     if (response.ok) window.location.assign(`${location.pathname}?tab=ocr`);
                 } catch {
-                    await showMessage("Lỗi kết nối", "Không thể gửi cấu hình OCR.", "error");
+                    await showMessage(settingsText("Settings.Js.ConnectionError"), settingsText("Settings.Js.OcrSendFailed"), "error");
                 } finally { if (button) button.disabled = false; }
             });
             document.getElementById("checkOcrButton")?.addEventListener("click", async (event) => {
@@ -306,10 +310,10 @@
                 try {
                     const response = await fetch(button.dataset.url, { method: "POST", body: new FormData(ocrForm), headers: { "X-Requested-With": "XMLHttpRequest" } });
                     const payload = await response.json().catch(() => ({}));
-                    await showMessage(response.ok ? "OCR sẵn sàng" : "OCR không khả dụng", payload.message ?? `HTTP ${response.status}`, response.ok ? "success" : "error");
+                    await showMessage(response.ok ? settingsText("Settings.Js.OcrReady") : settingsText("Settings.Js.OcrUnavailable"), payload.message ?? `HTTP ${response.status}`, response.ok ? "success" : "error");
                     window.location.assign(`${location.pathname}?tab=ocr`);
                 } catch {
-                    await showMessage("Lỗi kết nối", "Không thể kiểm tra OCR provider.", "error");
+                    await showMessage(settingsText("Settings.Js.ConnectionError"), settingsText("Settings.Js.OcrCheckFailed"), "error");
                 } finally { button.disabled = false; }
             });
         }
@@ -330,7 +334,7 @@
             if (invalidCustomLimit) {
                 const invalidRow = invalidCustomLimit.closest("tr");
                 if (invalidRow) revealRow(invalidRow);
-                await showMessage("Dữ liệu chưa hợp lệ", "Hạn mức riêng phải lớn hơn 0.", "error");
+                await showMessage(settingsText("Settings.Js.InvalidData"), settingsText("Settings.Js.CustomLimitInvalid"), "error");
                 invalidRow?.querySelector(".negative-custom-limit")?.focus();
                 return;
             }
@@ -352,19 +356,19 @@
                 const payload = await response.json().catch(() => ({}));
                 if (!response.ok) {
                     const prefix = response.status === 409
-                        ? "Cấu hình đã thay đổi"
+                        ? settingsText("Settings.Js.ConfigurationChanged")
                         : response.status === 403
-                            ? "Không có quyền"
-                            : "Không thể lưu cấu hình";
+                            ? settingsText("Settings.Js.Forbidden")
+                            : settingsText("Settings.Js.SaveFailed");
                     await showMessage(prefix, payload.message ?? `HTTP ${response.status}`, "error");
                     return;
                 }
 
-                await showMessage("Đã lưu", payload.message ?? "Đã cập nhật cấu hình âm kho.", "success");
+                await showMessage(settingsText("Settings.Js.Saved"), payload.message ?? settingsText("Settings.Js.NegativeSaved"), "success");
                 window.location.hash = "negative-inventory";
                 window.location.reload();
             } catch {
-                await showMessage("Lỗi kết nối", "Không thể gửi yêu cầu cập nhật cấu hình.", "error");
+                await showMessage(settingsText("Settings.Js.ConnectionError"), settingsText("Settings.Js.UpdateSendFailed"), "error");
             } finally {
                 if (submitButton) submitButton.disabled = false;
             }
@@ -372,13 +376,13 @@
     });
 
     async function confirmSave(enabled, pendingApprovalCount) {
-        const title = enabled ? "Bật xuất âm có kiểm soát?" : "Tắt xuất âm thủ công?";
+        const title = enabled ? settingsText("Settings.Js.EnableTitle") : settingsText("Settings.Js.DisableTitle");
         const pendingText = pendingApprovalCount > 0
-            ? ` Hiện có ${pendingApprovalCount} yêu cầu đang chờ và có thể cần được tạo lại nếu policy thay đổi.`
+            ? settingsText("Settings.Js.PendingText", { count: pendingApprovalCount })
             : "";
         const text = enabled
-            ? `Tính năng vẫn bắt buộc phê duyệt và không tự xác nhận phiếu.${pendingText}`
-            : `Đây là kill switch và sẽ chặn yêu cầu xuất âm mới từ request kế tiếp.${pendingText}`;
+            ? `${settingsText("Settings.Js.EnableText")}${pendingText}`
+            : `${settingsText("Settings.Js.DisableText")}${pendingText}`;
 
         if (window.Swal) {
             const result = await window.Swal.fire({
@@ -386,8 +390,8 @@
                 text,
                 icon: "warning",
                 showCancelButton: true,
-                confirmButtonText: enabled ? "Xác nhận bật/lưu" : "Xác nhận tắt/lưu",
-                cancelButtonText: "Quay lại",
+                confirmButtonText: enabled ? settingsText("Settings.Js.ConfirmEnable") : settingsText("Settings.Js.ConfirmDisable"),
+                cancelButtonText: settingsText("Settings.Js.Cancel"),
                 confirmButtonColor: "#6f4e37"
             });
             return result.isConfirmed;

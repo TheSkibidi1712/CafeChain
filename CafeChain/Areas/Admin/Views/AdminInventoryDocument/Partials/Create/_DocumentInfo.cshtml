@@ -1,5 +1,7 @@
 @model CafeChain.ViewModels.Admin.InventoryDocuments.Create.AdminInventoryDocumentCreateVM
 @using CafeChain.Models.Enums.Inventory;
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<InventoryResource> L
 
 @{
     var documentDate = Model.DocumentDate == default ? DateTime.Today : Model.DocumentDate;
@@ -10,38 +12,38 @@
         && Model.NegativeInventoryPolicyEnabled;
     var purposeTitle = Model.Type switch
     {
-        InventoryDocumentType.IMPORT => "Mục đích nhập kho",
-        InventoryDocumentType.EXPORT => "Mục đích xuất kho",
-        InventoryDocumentType.STOCK_TAKE => "Mục đích kiểm kê",
-        InventoryDocumentType.WASTE => "Lý do hủy kho",
-        _ => "Mục đích nghiệp vụ"
+        InventoryDocumentType.IMPORT => L["InvDoc.Info.PurposeImport"].Value,
+        InventoryDocumentType.EXPORT => L["InvDoc.Info.PurposeExport"].Value,
+        InventoryDocumentType.STOCK_TAKE => L["InvDoc.Info.PurposeStockTake"].Value,
+        InventoryDocumentType.WASTE => L["InvDoc.Info.PurposeWaste"].Value,
+        _ => L["InvDoc.Info.PurposeDefault"].Value
     };
 
     var purposeOptions = Model.Type switch
     {
         InventoryDocumentType.IMPORT => new[]
         {
-            new { Value = (int)InventoryDocumentPurpose.IMPORT_PURCHASE, Label = "Nhập từ nhà cung cấp", Description = "Tăng tồn kho từ đơn mua hàng" }
+            new { Value = (int)InventoryDocumentPurpose.IMPORT_PURCHASE, Label = L["InvDoc.Info.Purchase"].Value, Description = L["InvDoc.Info.PurchaseDesc"].Value }
         },
         InventoryDocumentType.EXPORT => new[]
         {
-            new { Value = (int)InventoryDocumentPurpose.SALE, Label = "Xuất bán hàng", Description = "Giảm tồn kho phục vụ bán hàng" }
+            new { Value = (int)InventoryDocumentPurpose.SALE, Label = L["InvDoc.Info.Sale"].Value, Description = L["InvDoc.Info.SaleDesc"].Value }
         },
         InventoryDocumentType.STOCK_TAKE => new[]
         {
-            new { Value = (int)InventoryDocumentPurpose.STOCK_TAKE, Label = "Kiểm kê", Description = "Ghi nhận số lượng thực tế" }
+            new { Value = (int)InventoryDocumentPurpose.STOCK_TAKE, Label = L["InvDoc.Info.StockTake"].Value, Description = L["InvDoc.Info.StockTakeDesc"].Value }
         },
         InventoryDocumentType.WASTE => new[]
         {
-            new { Value = (int)InventoryDocumentPurpose.DAMAGED, Label = "Hàng hỏng", Description = "Hủy do hư hỏng" },
-            new { Value = (int)InventoryDocumentPurpose.EXPIRED, Label = "Hết hạn", Description = "Hủy do quá hạn sử dụng" },
-            new { Value = (int)InventoryDocumentPurpose.BROKEN, Label = "Bị vỡ", Description = "Hủy do bị vỡ trong bảo quản hoặc vận hành" },
-            new { Value = (int)InventoryDocumentPurpose.CONTAMINATED, Label = "Nhiễm bẩn", Description = "Hủy do không còn đảm bảo vệ sinh" },
-            new { Value = (int)InventoryDocumentPurpose.LOST, Label = "Thất thoát", Description = "Ghi nhận mất mát" }
+            new { Value = (int)InventoryDocumentPurpose.DAMAGED, Label = L["InvDoc.Info.Damaged"].Value, Description = L["InvDoc.Info.DamagedDesc"].Value },
+            new { Value = (int)InventoryDocumentPurpose.EXPIRED, Label = L["InvDoc.Info.Expired"].Value, Description = L["InvDoc.Info.ExpiredDesc"].Value },
+            new { Value = (int)InventoryDocumentPurpose.BROKEN, Label = L["InvDoc.Info.Broken"].Value, Description = L["InvDoc.Info.BrokenDesc"].Value },
+            new { Value = (int)InventoryDocumentPurpose.CONTAMINATED, Label = L["InvDoc.Info.Contaminated"].Value, Description = L["InvDoc.Info.ContaminatedDesc"].Value },
+            new { Value = (int)InventoryDocumentPurpose.LOST, Label = L["InvDoc.Info.Lost"].Value, Description = L["InvDoc.Info.LostDesc"].Value }
         },
         _ => new[]
         {
-            new { Value = (int)InventoryDocumentPurpose.NONE, Label = "Không xác định", Description = "Chọn mục đích phù hợp" }
+            new { Value = (int)InventoryDocumentPurpose.NONE, Label = L["InvDoc.Info.None"].Value, Description = L["InvDoc.Info.NoneDesc"].Value }
         }
     };
 
@@ -59,31 +61,31 @@
             </span>
             <div>
                 <span class="create-section-eyebrow">
-                    Bước 1 · Thông tin chung
+                    @L["InvDoc.Info.Step1"]
                 </span>
-                <h5>Thông tin phiếu</h5>
+                <h5>@L["InvDoc.Info.Title"]</h5>
             </div>
         </div>
 
         <span class="create-section-badge">
-            Mã phiếu tự động
+            @L["InvDoc.Info.AutoBadge"]
         </span>
     </div>
 
     <div class="create-field-grid">
 
         <div class="create-field">
-            <label for="Code">Mã phiếu</label>
+            <label for="Code">@L["InvDoc.Col.Code"]</label>
             <input id="Code"
                    name="Code"
                    class="form-control create-control"
                    value="@Model.Code"
-                   placeholder="Tự động sinh khi lưu"
+                   placeholder="@L["InvDoc.Create.AutoCode"]"
                    readonly />
         </div>
 
         <div class="create-field">
-            <label for="DocumentDateDisplay">Ngày chứng từ</label>
+            <label for="DocumentDateDisplay">@L["InvDoc.General.Date"]</label>
             <input id="DocumentDateDisplay"
                    type="text"
                    class="form-control create-control create-control-readonly"
@@ -97,12 +99,12 @@
         </div>
 
         <div class="create-field">
-            <label for="storeSelect">Cửa hàng</label>
+            <label for="storeSelect">@L["InvDoc.Filter.Store"]</label>
             <select id="storeSelect"
                     name="StoreId"
                     class="form-select create-control"
                     required>
-                <option value="">Chọn cửa hàng</option>
+                <option value="">@L["InvDoc.Info.SelectStore"]</option>
                 @foreach (var item in Model.Stores)
                 {
                     <option value="@item.StoreId"
@@ -117,11 +119,11 @@
         {
             <div class="create-field"
                  id="supplierField">
-                <label for="supplierSelect">Nhà cung cấp</label>
+                <label for="supplierSelect">@L["InvDoc.General.Supplier"]</label>
                 <select id="supplierSelect"
                         name="SupplierId"
                         class="form-select create-control">
-                    <option value="">Chọn nhà cung cấp</option>
+                    <option value="">@L["InvDoc.Info.SelectSupplier"]</option>
                     @foreach (var item in Model.Suppliers)
                     {
                         <option value="@item.SupplierId"
@@ -131,7 +133,7 @@
                     }
                 </select>
                 <small>
-                    Chỉ dùng khi mục đích là nhập từ nhà cung cấp.
+                    @L["InvDoc.Info.SupplierHelp"]
                 </small>
             </div>
 
@@ -182,27 +184,27 @@
         <div class="create-field"
              id="partnerField">
             <label id="partnerNameLabel"
-                   for="PartnerName">Đối tác</label>
+                   for="PartnerName">@L["InvDoc.General.Partner"]</label>
             <input id="PartnerName"
                    name="PartnerName"
                    class="form-control create-control partner-name-input"
                    value="@Model.SupplierName"
-                   placeholder="Nhập tên đối tác nếu cần" />
+                   placeholder="@L["InvDoc.Info.PartnerPlaceholder"]" />
             <small id="partnerHint">
-                Hệ thống tự xác định loại đối tác theo mục đích nghiệp vụ.
+                @L["InvDoc.Info.PartnerHint"]
             </small>
         </div>
 
         <div class="create-field create-field-wide">
-            <label for="Note">Ghi chú</label>
+            <label for="Note">@L["InvDoc.Info.Note"]</label>
             <textarea id="Note"
                       name="Note"
                       rows="3"
                       class="form-control create-control"
-                      placeholder="Nhập ghi chú cho phiếu kho">@Model.Note</textarea>
+                      placeholder="@L["InvDoc.Info.NotePlaceholder"]">@Model.Note</textarea>
             <small id="notePurposeHint"
                    class="d-none">
-                Phiếu điều chỉnh bắt buộc ghi rõ lý do điều chỉnh.
+                @L["InvDoc.Info.NoteHint"]
             </small>
         </div>
 
@@ -214,10 +216,10 @@
                  data-policy-enabled="@Model.NegativeInventoryPolicyEnabled.ToString().ToLowerInvariant()">
                 <div class="create-section-subtitle negative-stock-mode-title">
                     <i class="fas fa-scale-balanced"></i>
-                    Cách xử lý khi không đủ tồn
+                    @L["InvDoc.Info.NegTitle"]
                 </div>
 
-                <div class="negative-stock-mode-list" role="radiogroup" aria-label="Cách xử lý khi không đủ tồn">
+                <div class="negative-stock-mode-list" role="radiogroup" aria-label="@L["InvDoc.Info.NegTitle"]">
                     <label class="negative-stock-mode-card" for="negativeStockModeNormal">
                         <input id="negativeStockModeNormal"
                                class="negative-stock-mode-input"
@@ -227,8 +229,8 @@
                                checked />
                         <span class="negative-stock-mode-dot"></span>
                         <span>
-                            <strong>Xuất trong tồn khả dụng</strong>
-                            <small>Mặc định. Không dòng nào được làm tồn sau xuất nhỏ hơn 0.</small>
+                            <strong>@L["InvDoc.Info.NegNormal"]</strong>
+                            <small>@L["InvDoc.Info.NegNormalDesc"]</small>
                         </span>
                     </label>
 
@@ -242,8 +244,8 @@
                                disabled="@(!negativeInventoryAvailable)" />
                         <span class="negative-stock-mode-dot"></span>
                         <span>
-                            <strong>Yêu cầu xuất vượt tồn</strong>
-                            <small>Chỉ áp dụng khi số lượng xuất lớn hơn tồn khả dụng; cần lý do và phê duyệt.</small>
+                            <strong>@L["InvDoc.Info.NegRequest"]</strong>
+                            <small>@L["InvDoc.Info.NegRequestDesc"]</small>
                         </span>
                     </label>
                 </div>
@@ -252,21 +254,21 @@
                 {
                     <div class="negative-stock-policy-note is-error" role="status">
                         <i class="fas fa-triangle-exclamation"></i>
-                        Cấu hình xuất vượt tồn chưa hợp lệ. Vui lòng liên hệ quản trị hệ thống.
+                        @L["InvDoc.Info.PolicyInvalid"]
                     </div>
                 }
                 else if (!Model.NegativeInventoryPolicyEnabled)
                 {
                     <div class="negative-stock-policy-note" role="status">
                         <i class="fas fa-lock"></i>
-                        Cài đặt hệ thống đang tắt xuất vượt tồn.
+                        @L["InvDoc.Info.PolicyOff"]
                     </div>
                 }
                 else
                 {
                     <div class="negative-stock-policy-note is-enabled" role="status">
                         <i class="fas fa-shield-halved"></i>
-                        Chính sách xuất vượt tồn đang bật@(Model.NegativeInventoryApprovalRequired ? " và bắt buộc phê duyệt" : null).
+                        @L["InvDoc.Info.PolicyOn"]@(Model.NegativeInventoryApprovalRequired ? L["InvDoc.Info.PolicyOnApproval"].Value : null).
                     </div>
                 }
 
@@ -274,25 +276,25 @@
                      id="negativeStockProjection"
                      aria-live="polite">
                     <div class="negative-stock-projection-head">
-                        <span>Trạng thái dự kiến</span>
+                        <span>@L["InvDoc.Info.ProjectionHead"]</span>
                         <strong class="negative-stock-projection-badge" id="negativeStockProjectionBadge">
-                            Chưa thể xác định
+                            @L["InvDoc.Info.ProjectionUnknown"]
                         </strong>
                     </div>
                     <p id="negativeStockProjectionMessage">
-                        Chọn cửa hàng, nguyên liệu và nhập số lượng để hệ thống xác định cách xuất.
+                        @L["InvDoc.Info.ProjectionMsg"]
                     </p>
                     <ul class="negative-stock-projection-lines d-none" id="negativeStockProjectionLines"></ul>
                 </div>
             </div>
             <div class="create-field create-field-wide d-none" id="negativeReasonField">
-                <label for="NegativeReason">Lý do cần xuất vượt tồn</label>
+                <label for="NegativeReason">@L["InvDoc.Info.NegReason"]</label>
                 <textarea id="NegativeReason"
                           name="NegativeReason"
                           rows="2"
                           class="form-control create-control"
-                          placeholder="Mô tả giao dịch thực tế và lý do cần xuất nhiều hơn tồn khả dụng"></textarea>
-                <small>Lý do phục vụ kiểm soát và phê duyệt; trạng thái xuất được xác định từ tồn khả dụng và số lượng xuất.</small>
+                          placeholder="@L["InvDoc.Info.NegReasonPlaceholder"]"></textarea>
+                <small>@L["InvDoc.Info.NegReasonHelp"]</small>
             </div>
             <div class="create-field create-field-wide d-none" id="negativePreflightPanel" aria-live="polite"></div>
         }

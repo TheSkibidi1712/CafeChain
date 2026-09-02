@@ -1,5 +1,7 @@
 ﻿@model CafeChain.ViewModels.Admin.InventoryDocuments.Detail.AdminInventoryDocumentDetailVM
 @using CafeChain.Models.Enums.Inventory
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<InventoryResource> L
 
 @{
     var isSupplierPurchase = Model.Type == InventoryDocumentType.IMPORT
@@ -11,33 +13,33 @@
         || Model.Type == InventoryDocumentType.WASTE;
     var quantityLabel =
         Model.Type == InventoryDocumentType.STOCK_TAKE
-            ? "Số Lượng Thực Tế"
+            ? L["InvDoc.Qty.Actual"].Value
             : Model.Type == InventoryDocumentType.WASTE
-                ? "Số Lượng Hủy"
-                : "Số Lượng";
+                ? L["InvDoc.Qty.Waste"].Value
+                : L["InvDoc.Qty.Default"].Value;
 }
 
 <div class="detail-card">
 
     <div class="detail-card-heading">
         <span><i class="fas fa-circle-info"></i></span>
-        <div><small>Thông tin chứng từ</small><h6>Thông Tin Chung</h6></div>
+        <div><small>@L["InvDoc.General.InfoKicker"]</small><h6>@L["InvDoc.General.InfoTitle"]</h6></div>
     </div>
 
     <div class="detail-grid">
 
         <div>
-            <span class="detail-label">Mã Phiếu</span>
+            <span class="detail-label">@L["InvDoc.General.Code"]</span>
             <strong>@Model.Code</strong>
         </div>
 
         <div>
-            <span class="detail-label">Loại Phiếu</span>
+            <span class="detail-label">@L["InvDoc.General.Type"]</span>
             <strong>@Model.Type.ToVietnamese()</strong>
         </div>  
 
         <div>
-            <span class="detail-label">Trạng Thái</span>
+            <span class="detail-label">@L["InvDoc.General.Status"]</span>
 
             <span class="status-badge @Model.Status.ToString().ToLower()">
                 @Model.Status.ToVietnamese()
@@ -45,19 +47,19 @@
         </div>
 
         <div>
-            <span class="detail-label">Mục Đích</span>
+            <span class="detail-label">@L["InvDoc.General.Purpose"]</span>
             <strong>@Model.Purpose.ToVietnamese()</strong>
         </div>
 
         <div>
-            <span class="detail-label">Ngày Chứng Từ</span>
+            <span class="detail-label">@L["InvDoc.General.Date"]</span>
             <strong>
                 @Model.DocumentDate.ToString("dd/MM/yyyy")
             </strong>
         </div>
 
         <div>
-            <span class="detail-label">Request Key</span>
+            <span class="detail-label">@L["InvDoc.General.RequestKey"]</span>
             <strong>
                 @Model.RequestKey
             </strong>
@@ -71,27 +73,27 @@
 
     <div class="detail-card-heading">
         <span><i class="fas fa-warehouse"></i></span>
-        <div><small>Phạm vi xử lý</small><h6>Kho Và Nhân Sự</h6></div>
+        <div><small>@L["InvDoc.General.ScopeKicker"]</small><h6>@L["InvDoc.General.ScopeTitle"]</h6></div>
     </div>
 
     <div class="detail-grid">
 
         <div>
-            <span class="detail-label">Cửa Hàng</span>
+            <span class="detail-label">@L["InvDoc.General.Store"]</span>
             <strong>@Model.StoreName</strong>
         </div>
 
         <div>
-            <span class="detail-label">Người Lập</span>
+            <span class="detail-label">@L["InvDoc.General.Staff"]</span>
             <strong>@Model.StaffName</strong>
         </div>
 
 
         <div>
-            <span class="detail-label">Đang Xử Lý</span>
+            <span class="detail-label">@L["InvDoc.General.Processing"]</span>
 
             <strong>
-                @(Model.IsProcessing ? "Có" : "Không")
+                @(Model.IsProcessing ? L["InvDoc.Yes"].Value : L["InvDoc.No"].Value)
             </strong>
         </div>
 
@@ -103,7 +105,7 @@
 
     <div class="detail-card-heading">
         <span><i class="fas fa-users"></i></span>
-        <div><small>Đối soát</small><h6>Đối Tượng Liên Quan</h6></div>
+        <div><small>@L["InvDoc.General.RelatedKicker"]</small><h6>@L["InvDoc.General.RelatedTitle"]</h6></div>
     </div>
 
     <div class="detail-grid">
@@ -111,7 +113,7 @@
         @if (showSupplier)
         {
             <div>
-                <span class="detail-label">Nhà Cung Cấp</span>
+                <span class="detail-label">@L["InvDoc.General.Supplier"]</span>
                 <strong>@Model.SupplierName</strong>
             </div>
         }
@@ -119,7 +121,7 @@
         @if (showPartner)
         {
             <div>
-                <span class="detail-label">Đối Tác</span>
+                <span class="detail-label">@L["InvDoc.General.Partner"]</span>
                 <strong>@Model.PartnerName</strong>
             </div>
         }
@@ -127,7 +129,7 @@
         @if (!isSupplierPurchase && Model.PartnerType != InventoryPartnerType.NONE)
         {
             <div>
-                <span class="detail-label">Loại Đối Tượng</span>
+                <span class="detail-label">@L["InvDoc.General.PartnerType"]</span>
                 <strong>@Model.PartnerType</strong>
             </div>
         }
@@ -135,7 +137,7 @@
         @if (!showSupplier && !showPartner && Model.PartnerType == InventoryPartnerType.NONE)
         {
             <div>
-                <span class="detail-label">Đối Tượng</span>
+                <span class="detail-label">@L["InvDoc.General.Subject"]</span>
                 <strong>-</strong>
             </div>
         }
@@ -148,7 +150,7 @@
 
     <div class="detail-card-heading">
         <span><i class="fas fa-boxes-stacked"></i></span>
-        <div><small>Dữ liệu chứng từ</small><h6>Chi Tiết Nguyên Liệu</h6></div>
+        <div><small>@L["InvDoc.General.LinesKicker"]</small><h6>@L["InvDoc.General.LinesTitle"]</h6></div>
     </div>
 
     <div class="table-responsive">
@@ -158,14 +160,14 @@
             <thead>
                 <tr>
 
-                    <th>Tên Nguyên Liệu</th>
-                    <th>ĐVT</th>
+                    <th>@L["InvDoc.General.IngredientName"]</th>
+                    <th>@L["InvDoc.General.Unit"]</th>
                     <th class="text-end">@quantityLabel</th>
-                    <th class="text-end">Quy Đổi</th>
+                    <th class="text-end">@L["InvDoc.General.Conversion"]</th>
                     @if (!hideMoneyColumns)
                     {
-                        <th class="text-end">Đơn Giá</th>
-                        <th class="text-end">Thành Tiền</th>
+                        <th class="text-end">@L["InvDoc.General.UnitPrice"]</th>
+                        <th class="text-end">@L["InvDoc.General.LineTotal"]</th>
                     }
 
                 </tr>
@@ -235,7 +237,7 @@
 
     <div class="summary-item">
 
-        <span>Tổng Tiền</span>
+        <span>@L["InvDoc.Summary.Total"]</span>
 
         <h4 id="totalAmount">
             @(Model.TotalAmount?.ToString("N0") ?? "0")
@@ -245,7 +247,7 @@
 
     <div class="summary-item">
 
-        <span>VAT</span>
+        <span>@L["InvDoc.Summary.Vat"]</span>
 
         <h4 id="vatAmount">
             @(Model.VatAmount?.ToString("N0") ?? "0")
@@ -255,7 +257,7 @@
 
     <div class="summary-item final">
 
-        <span>Thành Tiền</span>
+        <span>@L["InvDoc.Summary.Final"]</span>
 
         <h3 id="finalAmount">
             @(Model.FinalAmount?.ToString("N0") ?? "0")

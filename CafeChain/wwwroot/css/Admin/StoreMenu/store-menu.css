@@ -901,3 +901,27 @@ textarea.sm-control {
         filter: drop-shadow(0 0 8px rgba(255, 215, 157, 0.9));
     }
 }
+
+:root[data-theme="dark"] .sm-page {
+    background: var(--cc-canvas) !important;
+    color: var(--cc-text);
+}
+
+:root[data-theme="dark"] :is(.sm-toolbar, .sm-summary > div, .sm-content, .sm-table-wrap,
+    .sm-table th, .sm-table td, .sm-drawer, .sm-drawer-header, .sm-drawer-body,
+    .sm-drawer-footer, .sm-drawer-summary, .sm-state, .sm-sparkle-note) {
+    background: var(--cc-surface-raised) !important;
+    color: var(--cc-text) !important;
+    border-color: var(--cc-border) !important;
+    box-shadow: var(--cc-shadow-sm) !important;
+}
+
+:root[data-theme="dark"] :is(.sm-control, .sm-search-box, .sm-secondary-button, .sm-icon-button, .sm-row-button) {
+    background: var(--cc-surface-muted) !important;
+    color: var(--cc-text) !important;
+    border-color: var(--cc-border-strong) !important;
+}
+
+:root[data-theme="dark"] .sm-table tbody tr:hover {
+    background: var(--cc-surface-active) !important;
+}

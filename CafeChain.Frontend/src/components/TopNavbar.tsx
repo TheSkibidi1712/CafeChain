@@ -8,10 +8,13 @@ import {
   startNotificationRealtime,
   stopNotificationRealtime,
 } from '../services/notificationRealtime'
+import PreferenceControls from './PreferenceControls'
+import { usePreferences } from '../contexts/PreferencesContext'
 
 const POLL_MS = 60_000
 
 export default function TopNavbar() {
+  const { t } = usePreferences()
   const location = useLocation()
   const currentPath = location.pathname
   const [session, setSession] = useState<PosSession>(() => getPosSession())
@@ -94,22 +97,22 @@ export default function TopNavbar() {
         </div>
         <div className="hidden xl:block">
           <h1 className="font-extrabold text-sm text-text-primary leading-tight">CafeChain POS</h1>
-          <p className="text-[11px] text-text-muted">Chi nhánh #{session.storeId ?? '-'}</p>
+          <p className="text-[11px] text-text-muted">{t('common.branch', { id: session.storeId ?? '-' })}</p>
         </div>
       </div>
 
-      <nav aria-label="Điều hướng POS" className="min-w-0 flex flex-1 justify-center gap-1 overflow-x-auto">
+      <nav aria-label={t('nav.label')} className="min-w-0 flex flex-1 justify-center gap-1 overflow-x-auto">
         <Link to="/order" className={tabClass('/order')} aria-current={isTabActive('/order') ? 'page' : undefined}>
-          <span aria-hidden="true">☕</span><span className="hidden lg:inline">Bán hàng</span>
+          <span aria-hidden="true">☕</span><span className="hidden lg:inline">{t('nav.sales')}</span>
         </Link>
         <Link to="/history" className={tabClass('/history')} aria-current={isTabActive('/history') ? 'page' : undefined}>
-          <span aria-hidden="true">▤</span><span className="hidden lg:inline">Lịch sử đơn</span>
+          <span aria-hidden="true">▤</span><span className="hidden lg:inline">{t('nav.history')}</span>
         </Link>
         <Link to="/inventory" className={tabClass('/inventory')} aria-current={isTabActive('/inventory') ? 'page' : undefined}>
-          <span aria-hidden="true">▣</span><span className="hidden xl:inline">Kho chi nhánh</span>
+          <span aria-hidden="true">▣</span><span className="hidden xl:inline">{t('nav.inventory')}</span>
         </Link>
         <Link to="/notifications" className={tabClass('/notifications')} aria-current={isTabActive('/notifications') ? 'page' : undefined}>
-          <span aria-hidden="true">●</span><span className="hidden xl:inline">Thông báo</span>
+          <span aria-hidden="true">●</span><span className="hidden xl:inline">{t('nav.notifications')}</span>
           {unreadCount > 0 && (
             <span
               className={`ml-0.5 min-w-[1.1rem] h-4 px-1 rounded-full text-[10px] font-extrabold flex items-center justify-center ${
@@ -123,11 +126,12 @@ export default function TopNavbar() {
           )}
         </Link>
         <Link to="/shift" className={tabClass('/shift')} aria-current={isTabActive('/shift') ? 'page' : undefined}>
-          <span aria-hidden="true">◷</span><span className="hidden lg:inline">Két tiền</span>
+          <span aria-hidden="true">◷</span><span className="hidden lg:inline">{t('nav.shift')}</span>
         </Link>
       </nav>
 
       <div className="flex shrink-0 items-center gap-2">
+        <PreferenceControls />
         <NetworkStatusIndicator />
         <div className="hidden sm:block"><PrinterStatusBadge storeId={session.storeId ?? 1} /></div>
         <div className="flex items-center gap-2 border-l border-border pl-2 md:pl-3">

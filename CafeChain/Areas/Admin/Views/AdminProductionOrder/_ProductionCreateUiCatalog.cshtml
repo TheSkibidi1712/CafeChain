@@ -1,0 +1,8 @@
+@using System.Text.Json
+@inject Microsoft.Extensions.Localization.IStringLocalizer<CafeChain.ProductionResource> ProductionText
+@{
+    var catalog = JsonSerializer.Serialize(ProductionText.GetAllStrings(includeParentCultures: false)
+        .Where(message => message.Name.StartsWith("Create.Js.", StringComparison.Ordinal))
+        .ToDictionary(message => message.Name, message => message.Value));
+}
+<script id="productionCreateUiCatalog" type="application/json">@Html.Raw(catalog)</script>

@@ -1,37 +1,38 @@
 ﻿@model CafeChain.ViewModels.Admin.InventoryDocuments.Index.AdminInventoryDocumentIndexVM
-
 @using CafeChain.Models.Enums.Inventory
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<InventoryResource> L
 
 <div class="inventory-table-wrapper">
 
     <div class="inventory-table-heading">
         <div>
-            <span class="inventory-section-kicker">Kết quả</span>
-            <h4>@Model.Documents.TotalCount phiếu kho</h4>
-            <p>Phiếu mới nhất được hiển thị trước.</p>
+            <span class="inventory-section-kicker">@L["InvDoc.Table.Kicker"]</span>
+            <h4>@L["InvDoc.Table.Count", Model.Documents.TotalCount]</h4>
+            <p>@L["InvDoc.Table.NewestFirst"]</p>
         </div>
         <span class="inventory-scroll-hint">
             <i class="fas fa-arrows-left-right" aria-hidden="true"></i>
-            Cuộn trong vùng bảng
+            @L["InvDoc.Table.ScrollHint"]
         </span>
     </div>
 
     <div class="inventory-table-scroll"
          tabindex="0"
-         aria-label="Danh sách phiếu kho có thể cuộn ngang">
+         aria-label="@L["InvDoc.Table.ScrollAria"]">
 
     <table class="table inventory-table">
         <thead>
             <tr>
-                <th>Mã phiếu</th>
-                <th>Loại</th>
-                <th>Mục đích</th>
-                <th>Cửa hàng</th>
-                <th>Đối tác</th>
-                <th>Ngày</th>
-                <th>Giá trị chứng từ</th>
-                <th>Trạng thái</th>
-                <th>Thao tác</th>
+                <th>@L["InvDoc.Col.Code"]</th>
+                <th>@L["InvDoc.Col.Type"]</th>
+                <th>@L["InvDoc.Col.Purpose"]</th>
+                <th>@L["InvDoc.Col.Store"]</th>
+                <th>@L["InvDoc.Col.Partner"]</th>
+                <th>@L["InvDoc.Col.Date"]</th>
+                <th>@L["InvDoc.Col.Value"]</th>
+                <th>@L["InvDoc.Col.Status"]</th>
+                <th>@L["InvDoc.Col.Actions"]</th>
             </tr>
         </thead>
 
@@ -42,8 +43,8 @@
                 <tr>
                     <td colspan="9" class="text-center">
                         <div class="inventory-empty-state">
-                            <strong>Chưa có phiếu kho</strong>
-                            <span>Tạo phiếu đầu tiên hoặc thay đổi bộ lọc để xem dữ liệu.</span>
+                            <strong>@L["InvDoc.Empty.Title"]</strong>
+                            <span>@L["InvDoc.Empty.Copy"]</span>
                         </div>
                     </td>
                 </tr>
@@ -85,7 +86,7 @@
                             {
                                 <span class="negative-approval-list-badge">
                                     <i class="fas fa-user-check" aria-hidden="true"></i>
-                                    Chờ duyệt xuất âm
+                                    @L["InvDoc.PendingNegative"]
                                 </span>
 
                                 @if (!item.CanReviewNegativeApproval
@@ -106,7 +107,7 @@
 
                                 <button type="button"
                                         class="table-action btn-detail"
-                                        title="Xem chi tiết"
+                                        title="@L["InvDoc.ViewDetail"]"
                                         data-id="@item.InventoryDocumentId">
 
                                     <i class="fas fa-eye"></i>
@@ -117,10 +118,10 @@
                                 {
                                     <button type="button"
                                             class="btn btn-sm btn-success btn-detail btn-open-negative-review"
-                                            title="Mở chi tiết để duyệt xuất âm"
+                                            title="@L["InvDoc.OpenToReviewTitle"]"
                                             data-id="@item.InventoryDocumentId">
                                         <i class="fas fa-user-check" aria-hidden="true"></i>
-                                        Mở để duyệt
+                                        @L["InvDoc.OpenToReview"]
                                     </button>
                                 }
 
@@ -128,7 +129,7 @@
                                 {
                                     <button type="button"
                                             class="table-action btn-draft-confirm"
-                                            title="Xác nhận phiếu nháp"
+                                            title="@L["InvDoc.ConfirmDraft"]"
                                             data-id="@item.InventoryDocumentId">
 
                                         <i class="fas fa-check"></i>
@@ -138,7 +139,7 @@
 
                                 <button type="button"
                                         class="table-action btn-export"
-                                        title="Xuất file"
+                                        title="@L["InvDoc.ExportFile"]"
                                         data-id="@item.InventoryDocumentId">
 
                                     <i class="fas fa-print"></i>
@@ -166,13 +167,10 @@
         @if (Model.Documents.TotalCount > 0)
         {
             <span>
-                Hiển thị
-                @((Model.Documents.PageIndex - 1) * Model.Filter.PageSize + 1)
-                -
-                @(Math.Min(Model.Documents.PageIndex * Model.Filter.PageSize,
-                    Model.Documents.TotalCount))
-                trong
-                @Model.Documents.TotalCount phiếu
+                @L["InvDoc.Showing",
+                    (Model.Documents.PageIndex - 1) * Model.Filter.PageSize + 1,
+                    Math.Min(Model.Documents.PageIndex * Model.Filter.PageSize, Model.Documents.TotalCount),
+                    Model.Documents.TotalCount]
             </span>
         }
     </div>
@@ -195,8 +193,8 @@
                 <div class="inventory-export-title">
                     <span><i class="fas fa-file-export" aria-hidden="true"></i></span>
                     <div>
-                        <small>Phiếu kho / Xuất chứng từ</small>
-                        <h5 class="modal-title">Chọn định dạng xuất</h5>
+                        <small>@L["InvDoc.Export.Eyebrow"]</small>
+                        <h5 class="modal-title">@L["InvDoc.Export.Title"]</h5>
                     </div>
                 </div>
 
@@ -212,7 +210,7 @@
                 <input type="hidden"
                        id="exportDocumentId" />
 
-                <p class="inventory-export-lead">Tải chứng từ rõ ràng để lưu trữ, in hoặc gửi đối tác.</p>
+                <p class="inventory-export-lead">@L["InvDoc.Export.Lead"]</p>
 
                 <div class="inventory-export-options">
                 <label class="inventory-export-option" for="pdfExport">
@@ -228,9 +226,9 @@
                     <span class="inventory-export-option-copy">
                         <span class="inventory-export-option-heading">
                             <strong>PDF</strong>
-                            <em>Khuyên dùng</em>
+                            <em>@L["InvDoc.Export.Recommended"]</em>
                         </span>
-                        <small>Tối ưu để in, ký xác nhận và lưu trữ chính thức</small>
+                        <small>@L["InvDoc.Export.PdfHint"]</small>
                     </span>
                     <span class="inventory-export-option-check" aria-hidden="true">
                         <i class="fas fa-check"></i>
@@ -249,9 +247,9 @@
                     <span class="inventory-export-option-copy">
                         <span class="inventory-export-option-heading">
                             <strong>Word (.docx)</strong>
-                            <em>Có thể chỉnh sửa</em>
+                            <em>@L["InvDoc.Export.Editable"]</em>
                         </span>
-                        <small>Phù hợp khi cần bổ sung hoặc hiệu chỉnh nội dung</small>
+                        <small>@L["InvDoc.Export.WordHint"]</small>
                     </span>
                     <span class="inventory-export-option-check" aria-hidden="true">
                         <i class="fas fa-check"></i>
@@ -261,7 +259,7 @@
 
                 <div class="inventory-export-note" role="note">
                     <i class="fas fa-circle-info" aria-hidden="true"></i>
-                    File xuất chỉ chứa dữ liệu chứng từ, không thay đổi tồn kho hệ thống.
+                    @L["InvDoc.Export.Note"]
                 </div>
 
             </div>
@@ -273,7 +271,7 @@
                         data-bs-dismiss="modal">
 
                     <i class="fas fa-xmark" aria-hidden="true"></i>
-                    Hủy
+                    @L["InvDoc.Create.Cancel"]
 
                 </button>
 
@@ -282,7 +280,7 @@
                         id="btnConfirmExport">
 
                     <i class="fas fa-download" aria-hidden="true"></i>
-                    Xuất file
+                    @L["InvDoc.ExportFile"]
 
                 </button>
 

@@ -1,21 +1,23 @@
 @model CafeChain.Application.DTOs.Admin.Production.PreparedItemProductionCapabilityPageDto
 @using CafeChain.Application.DTOs.Admin.StoreInventories
 @using CafeChain.ViewModels.Admin.Shared
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<ProductionResource> ProductionText
 @{
-    ViewData["Title"] = "Năng lực sản xuất bán thành phẩm";
+    ViewData["Title"] = ProductionText["Capabilities.Title"];
     var stores = ViewBag.Stores as IReadOnlyCollection<InventoryStoreDTO> ?? [];
     var search = Model.Search ?? string.Empty;
     var totalPages = Math.Max(1, (int)Math.Ceiling(Model.TotalCount / (double)Math.Max(Model.PageSize, 1)));
     var hero = new AdminPageHeroVM
     {
-        Eyebrow = "Sản xuất / Định mức nguyên liệu",
-        Title = "Năng lực sản xuất bán thành phẩm",
-        Description = "Quyết định bán thành phẩm nào được sản xuất nội bộ và cửa hàng nào có năng lực thực hiện.",
+        Eyebrow = ProductionText["Production.Breadcrumb"],
+        Title = ProductionText["Capabilities.Title"],
+        Description = ProductionText["Capabilities.Description"],
         IconClass = "fas fa-sliders",
         Breadcrumbs =
         [
-            new() { Label = "Lệnh sản xuất", Url = Url.Action("Index", new { storeId = Model.StoreId }) },
-            new() { Label = "Năng lực sản xuất" }
+            new() { Label = ProductionText["ProductionOrder.Title"], Url = Url.Action("Index", new { storeId = Model.StoreId }) },
+            new() { Label = ProductionText["ProductionOrder.Capabilities"] }
         ]
     };
 }
@@ -40,12 +42,12 @@
 
     <section class="production-filter-card" aria-labelledby="capability-filter-title">
         <header class="production-filter-card__heading">
-            <h2 id="capability-filter-title">Cửa hàng và bán thành phẩm</h2>
-            <p>Bật cấp toàn chuỗi trước, sau đó bật riêng tại cửa hàng thực sự có năng lực sản xuất.</p>
+            <h2 id="capability-filter-title">@ProductionText["Capabilities.Filter.Title"]</h2>
+            <p>@ProductionText["Capabilities.Filter.Description"]</p>
         </header>
         <form method="get" class="production-filter-grid">
             <div class="production-filter-field">
-                <label for="storeId" class="form-label">Cửa hàng</label>
+                <label for="storeId" class="form-label">@ProductionText["Common.Store"]</label>
                 <select id="storeId" name="storeId" class="form-select">
                     @foreach (var store in stores)
                     {
@@ -54,12 +56,12 @@
                 </select>
             </div>
             <div class="production-filter-field">
-                <label for="search" class="form-label">Bán thành phẩm</label>
-                <input id="search" name="search" value="@search" class="form-control" placeholder="Tìm theo tên hoặc mã" />
+                <label for="search" class="form-label">@ProductionText["Capabilities.PreparedItem"]</label>
+                <input id="search" name="search" value="@search" class="form-control" placeholder="@ProductionText["Capabilities.SearchPlaceholder"]" />
             </div>
             <div class="production-filter-actions">
-                <button class="btn btn-primary-action" type="submit"><i class="fas fa-filter" aria-hidden="true"></i> Áp dụng</button>
-                <a class="btn btn-ghost" asp-action="Capabilities" asp-route-storeId="@Model.StoreId" aria-label="Đặt lại bộ lọc" title="Đặt lại bộ lọc"><i class="fas fa-rotate-left" aria-hidden="true"></i></a>
+                <button class="btn btn-primary-action" type="submit"><i class="fas fa-filter" aria-hidden="true"></i> @ProductionText["Common.Apply"]</button>
+                <a class="btn btn-ghost" asp-action="Capabilities" asp-route-storeId="@Model.StoreId" aria-label="@ProductionText["Common.ResetFilters"]" title="@ProductionText["Common.ResetFilters"]"><i class="fas fa-rotate-left" aria-hidden="true"></i></a>
             </div>
         </form>
     </section>
@@ -67,30 +69,30 @@
     <section class="production-list-section" aria-labelledby="capability-list-title">
         <header class="production-section-header">
             <div>
-                <h2 id="capability-list-title">Cấu hình tại @Model.StoreName</h2>
-                <p>Bật năng lực cửa hàng chỉ tạo danh tính tồn kho bằng 0; không nhập tồn và không tạo giá vốn.</p>
+                <h2 id="capability-list-title">@ProductionText["Capabilities.ConfigurationTitle", Model.StoreName]</h2>
+                <p>@ProductionText["Capabilities.ConfigurationDescription"]</p>
             </div>
-            <span class="production-section-header__count"><strong>@Model.TotalCount</strong> bán thành phẩm</span>
+            <span class="production-section-header__count">@ProductionText["Capabilities.Count", Model.TotalCount]</span>
         </header>
         <div class="history-card production-table-panel p-0">
             <div class="table-responsive">
                 <table class="table po-table production-data-table align-middle">
                     <thead>
-                        <tr><th>Bán thành phẩm</th><th>Toàn chuỗi</th><th>Tại cửa hàng</th><th>Danh tính tồn kho</th></tr>
+                        <tr><th>@ProductionText["Capabilities.PreparedItem"]</th><th>@ProductionText["Capabilities.ChainWide"]</th><th>@ProductionText["Capabilities.AtStore"]</th><th>@ProductionText["Capabilities.InventoryIdentity"]</th></tr>
                     </thead>
                     <tbody>
                     @if (Model.Items.Count == 0)
                     {
-                        <tr><td colspan="4" class="text-center text-muted py-5">Không tìm thấy bán thành phẩm phù hợp.</td></tr>
+                        <tr><td colspan="4" class="text-center text-muted py-5">@ProductionText["Capabilities.Empty"]</td></tr>
                     }
                     else
                     {
                         @foreach (var item in Model.Items)
                         {
                             <tr>
-                                <td><strong>@item.Name</strong><div class="small text-muted">Mã: @item.Code · Đơn vị cơ sở: @item.BaseUnitCode</div></td>
+                                <td><strong>@item.Name</strong><div class="small text-muted">@ProductionText["Capabilities.ItemMetadata", item.Code, item.BaseUnitCode]</div></td>
                                 <td>
-                                    <span class="production-status @(item.CanProduceGlobally ? "is-complete" : "is-neutral")">@(item.CanProduceGlobally ? "Được phép sản xuất" : "Chưa cho phép")</span>
+                                    <span class="production-status @(item.CanProduceGlobally ? "is-complete" : "is-neutral")">@(item.CanProduceGlobally ? ProductionText["Capabilities.Allowed"] : ProductionText["Capabilities.NotAllowed"])</span>
                                     @if (Model.CanManageGlobalCapability)
                                     {
                                         <form method="post" asp-action="SetGlobalCapability" class="mt-2">
@@ -101,12 +103,12 @@
                                             <input type="hidden" name="storeId" value="@Model.StoreId" />
                                             <input type="hidden" name="search" value="@search" />
                                             <input type="hidden" name="page" value="@Model.Page" />
-                                            <button type="submit" class="btn btn-sm @(item.CanProduceGlobally ? "btn-outline-danger" : "btn-primary-action")">@(item.CanProduceGlobally ? "Ngừng cho phép" : "Cho phép sản xuất")</button>
+                                            <button type="submit" class="btn btn-sm @(item.CanProduceGlobally ? "btn-outline-danger" : "btn-primary-action")">@(item.CanProduceGlobally ? ProductionText["Capabilities.DisableGlobal"] : ProductionText["Capabilities.EnableGlobal"])</button>
                                         </form>
                                     }
                                 </td>
                                 <td>
-                                    <span class="production-status @(item.CanProduceAtStore ? "is-progress" : "is-neutral")">@(item.CanProduceAtStore ? "Đã bật" : "Chưa bật")</span>
+                                    <span class="production-status @(item.CanProduceAtStore ? "is-progress" : "is-neutral")">@(item.CanProduceAtStore ? ProductionText["Capabilities.StoreEnabled"] : ProductionText["Capabilities.StoreDisabled"])</span>
                                     @if (Model.CanManageStoreCapability && (item.CanProduceGlobally || item.CanProduceAtStore))
                                     {
                                         <form method="post" asp-action="SetStoreCapability" class="mt-2">
@@ -117,15 +119,15 @@
                                             <input type="hidden" name="storeId" value="@Model.StoreId" />
                                             <input type="hidden" name="search" value="@search" />
                                             <input type="hidden" name="page" value="@Model.Page" />
-                                            <button type="submit" class="btn btn-sm @(item.CanProduceAtStore ? "btn-outline-danger" : "btn-primary-action")">@(item.CanProduceAtStore ? "Tắt tại cửa hàng" : "Bật tại cửa hàng")</button>
+                                            <button type="submit" class="btn btn-sm @(item.CanProduceAtStore ? "btn-outline-danger" : "btn-primary-action")">@(item.CanProduceAtStore ? ProductionText["Capabilities.DisableStore"] : ProductionText["Capabilities.EnableStore"])</button>
                                         </form>
                                     }
                                     else if (!item.CanProduceGlobally)
                                     {
-                                        <div class="small text-muted mt-2">Cần được cho phép ở cấp toàn chuỗi trước.</div>
+                                        <div class="small text-muted mt-2">@ProductionText["Capabilities.GlobalRequired"]</div>
                                     }
                                 </td>
-                                <td><span class="production-status @(item.HasCanonicalInventory ? "is-complete" : "is-neutral")">@(item.HasCanonicalInventory ? "Đã sẵn sàng" : "Chưa khởi tạo")</span></td>
+                                <td><span class="production-status @(item.HasCanonicalInventory ? "is-complete" : "is-neutral")">@(item.HasCanonicalInventory ? ProductionText["Capabilities.InventoryReady"] : ProductionText["Capabilities.InventoryMissing"])</span></td>
                             </tr>
                         }
                     }
@@ -135,16 +137,16 @@
         </div>
     </section>
 
-    <nav class="d-flex justify-content-between align-items-center" aria-label="Phân trang">
-        <span>Trang @Model.Page / @totalPages</span>
+    <nav class="d-flex justify-content-between align-items-center" aria-label="@ProductionText["Common.Pagination"]">
+        <span>@ProductionText["Common.PageOf", Model.Page, totalPages]</span>
         <div class="d-flex gap-2">
             @if (Model.Page > 1)
             {
-                <a class="btn btn-ghost" asp-action="Capabilities" asp-route-storeId="@Model.StoreId" asp-route-search="@search" asp-route-page="@(Model.Page - 1)">Trước</a>
+                <a class="btn btn-ghost" asp-action="Capabilities" asp-route-storeId="@Model.StoreId" asp-route-search="@search" asp-route-page="@(Model.Page - 1)">@ProductionText["Common.Previous"]</a>
             }
             @if (Model.Page < totalPages)
             {
-                <a class="btn btn-ghost" asp-action="Capabilities" asp-route-storeId="@Model.StoreId" asp-route-search="@search" asp-route-page="@(Model.Page + 1)">Sau</a>
+                <a class="btn btn-ghost" asp-action="Capabilities" asp-route-storeId="@Model.StoreId" asp-route-search="@search" asp-route-page="@(Model.Page + 1)">@ProductionText["Common.Next"]</a>
             }
         </div>
     </nav>

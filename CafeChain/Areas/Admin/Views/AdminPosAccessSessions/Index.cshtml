@@ -1,22 +1,24 @@
 @model IReadOnlyList<CafeChain.Application.DTOs.POS.PosAccessSessionDto>
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<CafeChain.SharedResource> SharedText
 @{
-    ViewData["Title"] = "POS access sessions";
+    ViewData["Title"] = SharedText["PosSessions.Title"];
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 }
 <main class="cc-page">
-    <header class="cc-page-header"><div><h1 class="cc-page-title">POS access sessions</h1><p class="cc-page-description">Một session Active cho mỗi Terminal.</p></div></header>
+    <header class="cc-page-header"><div><h1 class="cc-page-title">@SharedText["PosSessions.Title"]</h1><p class="cc-page-description">@SharedText["PosSessions.Description"]</p></div></header>
     @if (TempData["SuccessMessage"] != null) { <div class="ops-notice ops-notice-success">@TempData["SuccessMessage"]</div> }
     @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error">@TempData["ErrorMessage"]</div> }
     <section class="cc-warehouse-panel">
         @foreach (var item in Model)
         {
             <article class="notification-item">
-                <div><strong>@item.TerminalId</strong><p>Staff #@item.StaffId · WorkShift #@(item.WorkShiftId?.ToString() ?? "—")</p><p>Hết hạn: @item.ExpiresAtUtc.ToLocalTime().ToString("HH:mm:ss dd/MM/yyyy")</p></div>
+                <div><strong>@item.TerminalId</strong><p>@SharedText["PosSessions.Staff"] #@item.StaffId · @SharedText["PosSessions.WorkShift"] #@(item.WorkShiftId?.ToString() ?? "—")</p><p>@SharedText["PosSessions.Expires"]: @item.ExpiresAtUtc.ToLocalTime().ToString("g")</p></div>
                 <form asp-action="End" method="post">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="id" value="@item.SessionId" />
-                    <input name="reason" maxlength="500" placeholder="Lý do kết thúc" />
-                    <button class="cc-button" type="submit">Kết thúc session</button>
+                    <input name="reason" maxlength="500" placeholder="@SharedText["PosSessions.EndReason"]" />
+                    <button class="cc-button" type="submit">@SharedText["PosSessions.End"]</button>
                 </form>
             </article>
         }

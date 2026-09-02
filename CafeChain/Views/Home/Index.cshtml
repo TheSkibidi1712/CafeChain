@@ -304,6 +304,62 @@
             background: rgba(255, 255, 255, .08);
         }
 
+        /* ── Language Switcher ── */
+        .cc-lang-switcher {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1.5px solid rgba(198, 122, 69, .45);
+            border-radius: 100px;
+            padding: 6px 14px 6px 10px;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: .04em;
+            color: rgba(255,255,255,.82);
+            background: rgba(198,122,69,.08);
+            cursor: pointer;
+            transition: background .22s ease, border-color .22s ease, color .22s ease, transform .18s ease;
+            text-decoration: none;
+            white-space: nowrap;
+            position: relative;
+            overflow: hidden;
+        }
+        .cc-lang-switcher::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(198,122,69,.15), rgba(111,78,55,.1));
+            opacity: 0;
+            transition: opacity .22s ease;
+            border-radius: inherit;
+        }
+        .cc-lang-switcher:hover {
+            border-color: rgba(198,122,69,.8);
+            color: #fff;
+            transform: translateY(-1px);
+            background: rgba(198,122,69,.16);
+        }
+        .cc-lang-switcher:hover::before { opacity: 1; }
+        .cc-lang-switcher svg {
+            width: 15px;
+            height: 15px;
+            flex-shrink: 0;
+            opacity: .85;
+            transition: opacity .2s, transform .4s ease;
+        }
+        .cc-lang-switcher:hover svg {
+            opacity: 1;
+            transform: rotate(20deg);
+        }
+        .cc-lang-switcher .cc-lang-active {
+            color: var(--cc-accent);
+            font-weight: 900;
+        }
+        .cc-lang-divider {
+            opacity: .35;
+            margin: 0 1px;
+        }
+
         .cc-icon {
             display: block;
             fill: none;
@@ -2189,6 +2245,24 @@
                     </nav>
 
                     <div class="cc-header-actions">
+                        @{
+                            var currentCulture = System.Globalization.CultureInfo.CurrentUICulture.Name;
+                            var isEn = currentCulture == "en-US";
+                        }
+                        <a href="/ui-preferences/culture?culture=@(isEn ? "vi-VN" : "en-US")&returnUrl=/"
+                           class="cc-lang-switcher"
+                           title="@(isEn ? "Chuyển sang Tiếng Việt" : "Switch to English")">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M2 12h20"/>
+                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                            </svg>
+                            @if (isEn) {
+                                <span class="cc-lang-active">EN</span><span class="cc-lang-divider">/</span><span>VI</span>
+                            } else {
+                                <span class="cc-lang-active">VI</span><span class="cc-lang-divider">/</span><span>EN</span>
+                            }
+                        </a>
                         <a asp-controller="@accessController" asp-action="@accessAction" class="cc-btn cc-btn-ghost">@accessText</a>
                         <button class="cc-menu-toggle" type="button" aria-controls="cc-main-nav" aria-expanded="false" aria-label="Mở menu">
                             <svg class="cc-icon" viewBox="0 0 24 24">

@@ -1,20 +1,90 @@
 @model CafeChain.ViewModels.Admin.Recipes.AdminRecipeVisualizePageVM
 @using CafeChain.ViewModels.Admin.Shared
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<CafeChain.ProductResource> ProductText
 @inject CafeChain.Application.Interfaces.Systems.IBusinessDateService BusinessDateService
 @{
-    ViewData["Title"] = "Không gian công thức - " + Model.BusinessName;
+    ViewData["Title"] = ProductText["Recipe.Visualize.PageTitle", Model.BusinessName];
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+
+    var targetLabel = Model.RecipeTypeKey switch
+    {
+        "POS" => ProductText["Recipe.Visualize.Target.Pos", Model.SizeName ?? ""],
+        "TOPPING" => ProductText["Recipe.Visualize.Target.Topping"],
+        "SUBRECIPE" => ProductText["Recipe.Visualize.Target.PreparedItem"],
+        _ => ProductText["Recipe.Visualize.Target.Recipe"]
+    };
+    var appliedStateLabel = Model.IsCurrentVersion
+        ? ProductText["Recipe.Visualize.State.Current"]
+        : ProductText["Recipe.Visualize.State.Historical"];
+    var outputHeading = Model.RecipeTypeKey switch
+    {
+        "TOPPING" => ProductText["Recipe.Visualize.Output.Scope"],
+        "SUBRECIPE" => ProductText["Recipe.Visualize.Output.StandardBatch"],
+        _ => ProductText["Recipe.Visualize.Output.Title"]
+    };
+    var outputDisplay = Model.RecipeTypeKey switch
+    {
+        "POS" => ProductText["Recipe.Visualize.Output.PosDisplay", Model.BusinessName, Model.SizeName ?? ProductText["Recipe.Visualize.Unknown"]],
+        "TOPPING" => ProductText["Recipe.Visualize.Output.ToppingDisplay", Model.BusinessName],
+        "SUBRECIPE" => ProductText["Recipe.Visualize.Output.BatchDisplay", Model.OutputQuantity?.ToString("0.####") ?? ProductText["Recipe.Visualize.NotConfigured"], Model.OutputUnitCode ?? Model.OutputUnitName ?? ProductText["Recipe.Visualize.Unit"]],
+        _ => ProductText["Recipe.Visualize.Unknown"]
+    };
+    var outputContext = Model.RecipeTypeKey switch
+    {
+        "POS" => ProductText["Recipe.Visualize.Output.PosContext"],
+        "TOPPING" => ProductText["Recipe.Visualize.Output.ToppingContext"],
+        "SUBRECIPE" => ProductText["Recipe.Visualize.Output.BatchContext"],
+        _ => ProductText["Recipe.Visualize.Output.UnknownContext"]
+    };
+    string RelationTypeLabel(string code) => code switch
+    {
+        "MENU_ITEM_SIZE" => ProductText["Recipe.Visualize.Relation.MenuItemSize"],
+        "TOPPING" => ProductText["Recipe.Visualize.Relation.Topping"],
+        "PREPARED_ITEM" => ProductText["Recipe.Visualize.Relation.PreparedItem"],
+        "POINT_OF_SALE" => ProductText["Recipe.Visualize.Relation.PointOfSale"],
+        _ => ProductText["Recipe.Visualize.Relation.Recipe"]
+    };
+    string EvidenceStateLabel(string state) => state switch
+    {
+        "AVAILABLE" => ProductText["Recipe.Visualize.Evidence.Available"],
+        "INCOMPLETE" => ProductText["Recipe.Visualize.Evidence.Incomplete"],
+        "NOT_APPLICABLE" => ProductText["Recipe.Visualize.Evidence.NotApplicable"],
+        _ => ProductText["Recipe.Visualize.Evidence.Unavailable"]
+    };
+    string FacetLabel(string code) => ProductText[$"Recipe.Visualize.Facet.{code}"];
+    string FacetMessage(string code, string state) => (code, state) switch
+    {
+        ("CONFIGURATION", "AVAILABLE") => ProductText["Recipe.Visualize.Facet.CONFIGURATION.AVAILABLE"],
+        ("CONFIGURATION", "INCOMPLETE") => ProductText["Recipe.Visualize.Facet.CONFIGURATION.INCOMPLETE"],
+        ("CONFIGURATION", "UNAVAILABLE") => ProductText["Recipe.Visualize.Facet.CONFIGURATION.UNAVAILABLE"],
+        ("PRICING", "AVAILABLE") => ProductText["Recipe.Visualize.Facet.PRICING.AVAILABLE"],
+        ("PRICING", "INCOMPLETE") => ProductText["Recipe.Visualize.Facet.PRICING.INCOMPLETE"],
+        ("PRICING", "UNAVAILABLE") => ProductText["Recipe.Visualize.Facet.PRICING.UNAVAILABLE"],
+        ("POINT_OF_SALE", "AVAILABLE") => ProductText["Recipe.Visualize.Facet.POINT_OF_SALE.AVAILABLE"],
+        ("POINT_OF_SALE", "INCOMPLETE") => ProductText["Recipe.Visualize.Facet.POINT_OF_SALE.INCOMPLETE"],
+        ("POINT_OF_SALE", "NOT_APPLICABLE") => ProductText["Recipe.Visualize.Facet.POINT_OF_SALE.NOT_APPLICABLE"],
+        ("PREPARED_INPUTS", "AVAILABLE") => ProductText["Recipe.Visualize.Facet.PREPARED_INPUTS.AVAILABLE"],
+        ("PREPARED_INPUTS", "INCOMPLETE") => ProductText["Recipe.Visualize.Facet.PREPARED_INPUTS.INCOMPLETE"],
+        ("PREPARED_INPUTS", "NOT_APPLICABLE") => ProductText["Recipe.Visualize.Facet.PREPARED_INPUTS.NOT_APPLICABLE"],
+        ("STORE_FIFO_EVIDENCE", "AVAILABLE") => ProductText["Recipe.Visualize.Facet.STORE_FIFO_EVIDENCE.AVAILABLE"],
+        ("STORE_FIFO_EVIDENCE", "UNAVAILABLE") => ProductText["Recipe.Visualize.Facet.STORE_FIFO_EVIDENCE.UNAVAILABLE"],
+        ("STORE_OPERATIONS", "AVAILABLE") => ProductText["Recipe.Visualize.Facet.STORE_OPERATIONS.AVAILABLE"],
+        ("STORE_OPERATIONS", "INCOMPLETE") => ProductText["Recipe.Visualize.Facet.STORE_OPERATIONS.INCOMPLETE"],
+        ("STORE_OPERATIONS", "UNAVAILABLE") => ProductText["Recipe.Visualize.Facet.STORE_OPERATIONS.UNAVAILABLE"],
+        _ => EvidenceStateLabel(state)
+    };
 
     var heroActions = new List<AdminPageHeroActionVM>
     {
-        new() { Label = "Quay lại danh sách", Url = Model.BackUrl, IconClass = "fas fa-arrow-left" },
-        new() { Label = "Kiểm tra dữ liệu", Url = Url.Action("DataHealth") ?? "#", IconClass = "fas fa-clipboard-check" }
+        new() { Label = ProductText["Recipe.Visualize.Back"], Url = Model.BackUrl, IconClass = "fas fa-arrow-left" },
+        new() { Label = ProductText["Recipe.Visualize.CheckData"], Url = Url.Action("DataHealth") ?? "#", IconClass = "fas fa-clipboard-check" }
     };
     if (Model.CanWrite)
     {
         heroActions.Add(new AdminPageHeroActionVM
         {
-            Label = "Tạo phiên bản mới",
+            Label = ProductText["Recipe.Visualize.NewVersion"],
             Url = Url.Action("Edit", new { id = Model.RecipeId }) ?? "#",
             IconClass = "fas fa-code-branch",
             IsPrimary = true
@@ -23,15 +93,15 @@
 
     var hero = new AdminPageHeroVM
     {
-        Eyebrow = "Sản xuất / Công thức và định mức",
+        Eyebrow = ProductText["Recipe.Eyebrow"],
         Title = Model.BusinessName,
-        Description = $"{Model.TargetLabel}. Xem đầu ra, định mức đầu vào và bằng chứng phiên bản trong một bố cục thống nhất.",
+        Description = ProductText["Recipe.Visualize.Description", targetLabel],
         IconClass = "fas fa-diagram-project",
-        StatusLabel = Model.AppliedStateLabel,
+        StatusLabel = appliedStateLabel,
         StatusCssClass = Model.AppliedStateCssClass,
         Breadcrumbs =
         [
-            new() { Label = "Công thức và định mức", Url = Model.BackUrl },
+            new() { Label = ProductText["Recipe.Index.Title"], Url = Model.BackUrl },
             new() { Label = Model.BusinessName }
         ],
         Actions = heroActions
@@ -63,56 +133,56 @@
 
         <section class="recipe-workspace__identity bom-overview-grid" aria-labelledby="recipe-identity-title">
             <div class="recipe-workspace__identity-main">
-                <span class="recipe-workspace__eyebrow">@Model.TargetLabel</span>
+                <span class="recipe-workspace__eyebrow">@targetLabel</span>
                 <h2 id="recipe-identity-title">@Model.BusinessName</h2>
                 <p class="recipe-workspace__technical-code">
-                    Mã công thức: @Model.RecipeCode
+                    @ProductText["Recipe.Visualize.RecipeCode"]: @Model.RecipeCode
                     @if (!string.IsNullOrWhiteSpace(Model.BusinessCode))
                     {
-                        <span>· Mã đối tượng: @Model.BusinessCode</span>
+                        <span>· @ProductText["Recipe.Visualize.TargetCode"]: @Model.BusinessCode</span>
                     }
                 </p>
             </div>
             <div class="recipe-workspace__version">
-                <span class="rb-status-badge @Model.AppliedStateCssClass">@Model.AppliedStateLabel</span>
-                <strong>@Model.VersionLabel</strong>
-                <small>@(Model.ParentVersionId.HasValue ? "Kế thừa phiên bản trước" : "Phiên bản gốc")</small>
+                <span class="rb-status-badge @Model.AppliedStateCssClass">@appliedStateLabel</span>
+                <strong>@ProductText["Recipe.Visualize.VersionNumber", Model.RecipeId]</strong>
+                <small>@ProductText[Model.ParentVersionId.HasValue ? "Recipe.Visualize.InheritedVersion" : "Recipe.Visualize.OriginalVersion"]</small>
             </div>
             <div class="recipe-workspace__output-summary">
-                <span><i class="fas fa-box-open" aria-hidden="true"></i> @Model.OutputHeading</span>
-                <strong>@Model.OutputDisplay</strong>
-                <small>@Model.OutputContext</small>
+                <span><i class="fas fa-box-open" aria-hidden="true"></i> @outputHeading</span>
+                <strong>@outputDisplay</strong>
+                <small>@outputContext</small>
             </div>
         </section>
 
-        <nav class="production-section-nav" aria-label="Các phần của công thức">
-            <a href="#bom-components">Đầu ra và định mức</a>
-            <a href="#recipe-where-used">Được sử dụng ở đâu</a>
-            <a href="#recipe-history">Lịch sử phiên bản</a>
-            <a href="#recipe-context">Ngữ cảnh phiên bản</a>
-            @if (Model.IsPreparedItemRecipe) { <a href="#recipe-operations">Sản xuất gần đây</a> }
+        <nav class="production-section-nav" aria-label="@ProductText["Recipe.Visualize.SectionsAria"]">
+            <a href="#bom-components">@ProductText["Recipe.Visualize.OutputAndBom"]</a>
+            <a href="#recipe-where-used">@ProductText["Recipe.Visualize.WhereUsed"]</a>
+            <a href="#recipe-history">@ProductText["Recipe.Visualize.History"]</a>
+            <a href="#recipe-context">@ProductText["Recipe.Visualize.Context"]</a>
+            @if (Model.IsPreparedItemRecipe) { <a href="#recipe-operations">@ProductText["Recipe.Visualize.RecentProduction"]</a> }
         </nav>
 
-        <section class="recipe-workspace__summary bom-health-board" aria-label="Tóm tắt công thức">
+        <section class="recipe-workspace__summary bom-health-board" aria-label="@ProductText["Recipe.Visualize.SummaryAria"]">
             <article>
-                <span>Dòng định mức</span>
+                <span>@ProductText["Recipe.Visualize.BomLines"]</span>
                 <strong>@Model.Components.Count</strong>
-                <small>Tổng số đầu vào của phiên bản này</small>
+                <small>@ProductText["Recipe.Visualize.BomLinesHint"]</small>
             </article>
             <article>
-                <span>Giá vốn thiết kế</span>
-                <strong>@(Model.DesignCost.IsAvailable ? $"{Model.DesignCost.Amount:N0} đ" : "Chưa đủ dữ liệu")</strong>
+                <span>@ProductText["Recipe.Compare.DesignCost"]</span>
+                <strong>@(Model.DesignCost.IsAvailable ? $"{Model.DesignCost.Amount:N0} ₫" : ProductText["Recipe.Compare.InsufficientData"])</strong>
                 <small>@Model.DesignCost.UnitLabel</small>
             </article>
             <article>
-                <span>Giá vốn theo nhập trước - xuất trước (FIFO) tại chi nhánh</span>
-                <strong>@(Model.StoreFifoCost.IsAvailable ? $"{Model.StoreFifoCost.Amount:N0} đ" : "Chưa có dữ liệu")</strong>
-                <small>@(Model.StoreFifoCost.ContextLabel ?? "Chưa chọn chi nhánh")</small>
+                <span>@ProductText["Recipe.Visualize.StoreFifoCost"]</span>
+                <strong>@(Model.StoreFifoCost.IsAvailable ? $"{Model.StoreFifoCost.Amount:N0} ₫" : ProductText["Recipe.Compare.NoData"])</strong>
+                <small>@(Model.StoreFifoCost.ContextLabel ?? ProductText["Recipe.Visualize.NoStore"])</small>
             </article>
             <article>
-                <span>Mức sẵn sàng</span>
-                <strong>@Model.GlobalReadiness.SummaryLabel</strong>
-                <small>@Model.GlobalReadiness.ScopeLabel</small>
+                <span>@ProductText["Recipe.Visualize.Readiness"]</span>
+                <strong>@ProductText["Recipe.Visualize.ReadinessSummary", Model.GlobalReadiness.PassedCount, Model.GlobalReadiness.ApplicableCount]</strong>
+                <small>@ProductText["Recipe.Visualize.Scope.Global"]</small>
             </article>
         </section>
 
@@ -122,15 +192,15 @@
                     <header class="recipe-workspace__section-heading bom-section-heading">
                         <span class="recipe-workspace__section-icon"><i class="fas fa-route" aria-hidden="true"></i></span>
                         <div>
-                            <h2 id="recipe-flow-title">Đầu ra và định mức đầu vào</h2>
-                            <p>Đọc từ kết quả cần tạo xuống từng thành phần được sử dụng.</p>
+                            <h2 id="recipe-flow-title">@ProductText["Recipe.Visualize.FlowTitle"]</h2>
+                            <p>@ProductText["Recipe.Visualize.FlowHint"]</p>
                         </div>
                     </header>
 
                     <div class="recipe-workspace__output-node">
-                        <span>@Model.OutputHeading</span>
-                        <strong>@Model.OutputDisplay</strong>
-                        <small>@Model.OutputContext</small>
+                        <span>@outputHeading</span>
+                        <strong>@outputDisplay</strong>
+                        <small>@outputContext</small>
                     </div>
                     <div class="recipe-workspace__flow-arrow" aria-hidden="true">
                         <i class="fas fa-arrow-down"></i>
@@ -139,15 +209,15 @@
                     <div class="recipe-workspace__input-groups">
                         <section class="recipe-workspace__input-group is-prepared" aria-labelledby="prepared-inputs-title">
                             <header>
-                                <span class="recipe-workspace__type-badge is-prepared">Bán thành phẩm</span>
+                                <span class="recipe-workspace__type-badge is-prepared">@ProductText["PreparedItem.Title"]</span>
                                 <div>
-                                    <h3 id="prepared-inputs-title">Bán thành phẩm đầu vào</h3>
-                                    <p>Được tạo từ một phiên bản công thức nguồn đã chọn.</p>
+                                    <h3 id="prepared-inputs-title">@ProductText["Recipe.Visualize.PreparedInputs"]</h3>
+                                    <p>@ProductText["Recipe.Visualize.PreparedInputsHint"]</p>
                                 </div>
                             </header>
                             @if (Model.PreparedInputs.Count == 0)
                             {
-                                <div class="recipe-workspace__empty">Phiên bản này không sử dụng bán thành phẩm đầu vào.</div>
+                                <div class="recipe-workspace__empty">@ProductText["Recipe.Visualize.NoPreparedInputs"]</div>
                             }
                             else
                             {
@@ -156,35 +226,35 @@
                                     {
                                         <article>
                                             <div class="recipe-workspace__input-identity">
-                                                <span>@component.InputTypeLabel</span>
+                                                <span>@ProductText[component.IsPreparedInput ? "Recipe.Visualize.Input.Prepared" : "Recipe.Visualize.Input.Direct"]</span>
                                                 <strong>@component.ItemName</strong>
-                                                <small>Mã: @component.ItemCode</small>
+                                                <small>@ProductText["Recipe.Compare.Code"]: @component.ItemCode</small>
                                             </div>
                                             <div class="recipe-workspace__measure">
-                                                <span>Định lượng</span>
+                                                <span>@ProductText["Recipe.Visualize.Quantity"]</span>
                                                 <strong>@component.Quantity.ToString("0.####") @component.UnitCode</strong>
                                                 @if (component.NormalizedQuantity.HasValue)
                                                 {
-                                                    <small>Chuẩn hóa: @component.NormalizedQuantity.Value.ToString("0.####") @component.BaseUnitCode</small>
+                                                    <small>@ProductText["Recipe.Visualize.Normalized"]: @component.NormalizedQuantity.Value.ToString("0.####") @component.BaseUnitCode</small>
                                                 }
                                                 else
                                                 {
-                                                    <small>Chưa có quy đổi về đơn vị tồn kho</small>
+                                                    <small>@ProductText["Recipe.Visualize.NoConversion"]</small>
                                                 }
                                                 <small class="recipe-workspace__line-cost">
-                                                    Giá vốn thiết kế:
-                                                    @(component.EstimatedLineCost.HasValue ? $"{component.EstimatedLineCost:N0} đ" : "chưa đủ dữ liệu")
+                                                    @ProductText["Recipe.Compare.DesignCost"]:
+                                                    @(component.EstimatedLineCost.HasValue ? $"{component.EstimatedLineCost:N0} ₫" : ProductText["Recipe.Compare.InsufficientData"])
                                                     @if (component.CostContributionPercent.HasValue)
                                                     {
-                                                        <span>· Tỷ trọng giá vốn: @component.CostContributionPercent.Value.ToString("0.#")%</span>
+                                                        <span>· @ProductText["Recipe.Visualize.CostContribution"]: @component.CostContributionPercent.Value.ToString("0.#")%</span>
                                                     }
                                                 </small>
                                             </div>
                                             <a class="recipe-workspace__source-link bom-source-link" asp-action="Visualize"
                                                asp-route-recipeId="@component.ChildRecipeId"
                                                asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)">
-                                                <span>Công thức nguồn</span>
-                                                <strong>@component.SourceVersionLabel</strong>
+                                                <span>@ProductText["Recipe.Visualize.SourceRecipe"]</span>
+                                                <strong>@ProductText["Recipe.Visualize.VersionNumber", component.ChildRecipeId!.Value]</strong>
                                                 <small>@component.ChildRecipeCode</small>
                                                 <i class="fas fa-arrow-right" aria-hidden="true"></i>
                                             </a>
@@ -196,15 +266,15 @@
 
                         <section class="recipe-workspace__input-group is-direct" aria-labelledby="direct-inputs-title">
                             <header>
-                                <span class="recipe-workspace__type-badge is-direct">Nguyên liệu</span>
+                                <span class="recipe-workspace__type-badge is-direct">@ProductText["Recipe.Visualize.Ingredients"]</span>
                                 <div>
-                                    <h3 id="direct-inputs-title">Nguyên liệu trực tiếp</h3>
-                                    <p>Được lấy trực tiếp từ tồn kho khi thực hiện công thức.</p>
+                                    <h3 id="direct-inputs-title">@ProductText["Recipe.Visualize.DirectIngredients"]</h3>
+                                    <p>@ProductText["Recipe.Visualize.DirectIngredientsHint"]</p>
                                 </div>
                             </header>
                             @if (Model.DirectIngredients.Count == 0)
                             {
-                                <div class="recipe-workspace__empty">Phiên bản này không có nguyên liệu trực tiếp.</div>
+                                <div class="recipe-workspace__empty">@ProductText["Recipe.Visualize.NoDirectIngredients"]</div>
                             }
                             else
                             {
@@ -213,27 +283,27 @@
                                     {
                                         <article>
                                             <div class="recipe-workspace__input-identity">
-                                                <span>@component.InputTypeLabel</span>
+                                                <span>@ProductText[component.IsPreparedInput ? "Recipe.Visualize.Input.Prepared" : "Recipe.Visualize.Input.Direct"]</span>
                                                 <strong>@component.ItemName</strong>
-                                                <small>Mã: @component.ItemCode</small>
+                                                <small>@ProductText["Recipe.Compare.Code"]: @component.ItemCode</small>
                                             </div>
                                             <div class="recipe-workspace__measure">
-                                                <span>Định lượng</span>
+                                                <span>@ProductText["Recipe.Visualize.Quantity"]</span>
                                                 <strong>@component.Quantity.ToString("0.####") @component.UnitCode</strong>
                                                 @if (component.NormalizedQuantity.HasValue)
                                                 {
-                                                    <small>Chuẩn hóa: @component.NormalizedQuantity.Value.ToString("0.####") @component.BaseUnitCode</small>
+                                                    <small>@ProductText["Recipe.Visualize.Normalized"]: @component.NormalizedQuantity.Value.ToString("0.####") @component.BaseUnitCode</small>
                                                 }
                                                 else
                                                 {
-                                                    <small>Chưa có quy đổi về đơn vị tồn kho</small>
+                                                    <small>@ProductText["Recipe.Visualize.NoConversion"]</small>
                                                 }
                                                 <small class="recipe-workspace__line-cost">
-                                                    Giá vốn thiết kế:
-                                                    @(component.EstimatedLineCost.HasValue ? $"{component.EstimatedLineCost:N0} đ" : "chưa đủ dữ liệu")
+                                                    @ProductText["Recipe.Compare.DesignCost"]:
+                                                    @(component.EstimatedLineCost.HasValue ? $"{component.EstimatedLineCost:N0} ₫" : ProductText["Recipe.Compare.InsufficientData"])
                                                     @if (component.CostContributionPercent.HasValue)
                                                     {
-                                                        <span>· Tỷ trọng giá vốn: @component.CostContributionPercent.Value.ToString("0.#")%</span>
+                                                        <span>· @ProductText["Recipe.Visualize.CostContribution"]: @component.CostContributionPercent.Value.ToString("0.#")%</span>
                                                     }
                                                 </small>
                                             </div>
@@ -249,15 +319,15 @@
                     <header class="recipe-workspace__section-heading bom-section-heading">
                         <span class="recipe-workspace__section-icon"><i class="fas fa-share-nodes" aria-hidden="true"></i></span>
                         <div>
-                            <h2 id="where-used-title">Được sử dụng ở đâu</h2>
-                            <p>Các công thức cha hiện hành và điểm bán đang sử dụng đúng đối tượng công thức này.</p>
+                            <h2 id="where-used-title">@ProductText["Recipe.Visualize.WhereUsedTitle"]</h2>
+                            <p>@ProductText["Recipe.Visualize.WhereUsedHint"]</p>
                         </div>
                     </header>
                     @if (Model.WhereUsed.IsEmpty)
                     {
                         <div class="recipe-workspace__where-used-empty">
                             <i class="fas fa-circle-info" aria-hidden="true"></i>
-                            <span>Chưa ghi nhận nơi sử dụng hiện hành.</span>
+                            <span>@ProductText["Recipe.Visualize.NoWhereUsed"]</span>
                         </div>
                     }
                     else
@@ -266,8 +336,8 @@
                         {
                             <div class="recipe-workspace__where-used-group">
                                 <div class="recipe-workspace__where-used-group-heading">
-                                    <strong>Công thức cha hiện hành</strong>
-                                    <span>@Model.WhereUsed.CurrentParents.Count kết quả</span>
+                                    <strong>@ProductText["Recipe.Visualize.CurrentParents"]</strong>
+                                    <span>@ProductText["Recipe.Visualize.ResultCount", Model.WhereUsed.CurrentParents.Count]</span>
                                 </div>
                                 <div class="recipe-workspace__where-used-list">
                                     @foreach (var usage in Model.WhereUsed.CurrentParents)
@@ -277,7 +347,7 @@
                                            asp-route-recipeId="@usage.ParentRecipeId"
                                            asp-route-storeId="@Model.SelectedStoreId"
                                            asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)">
-                                            <span class="recipe-workspace__type-badge">@usage.TypeLabel</span>
+                                            <span class="recipe-workspace__type-badge">@RelationTypeLabel(usage.RelationType)</span>
                                             <span class="recipe-workspace__where-used-identity">
                                                 <strong>@usage.BusinessName</strong>
                                                 @if (!string.IsNullOrWhiteSpace(usage.ContextLabel))
@@ -287,11 +357,11 @@
                                                 <small class="recipe-workspace__where-used-technical">
                                                     @if (!string.IsNullOrWhiteSpace(usage.TechnicalCode))
                                                     {
-                                                        <span>Mã công thức: @usage.TechnicalCode</span>
+                                                        <span>@ProductText["Recipe.Visualize.RecipeCodeValue", usage.TechnicalCode]</span>
                                                     }
                                                     @if (!string.IsNullOrWhiteSpace(usage.PinnedVersionLabel))
                                                     {
-                                                        <span>@usage.PinnedVersionLabel</span>
+                                                        <span>@ProductText["Recipe.Visualize.PinnedVersion", usage.PinnedChildRecipeId!.Value]</span>
                                                     }
                                                 </small>
                                             </span>
@@ -302,7 +372,7 @@
                                 @if (Model.WhereUsed.ParentResultsTruncated)
                                 {
                                     <p class="recipe-workspace__where-used-limit">
-                                        Đang hiển thị @Model.WhereUsed.CurrentParents.Count kết quả đầu tiên; còn nơi sử dụng khác chưa hiển thị.
+                                        @ProductText["Recipe.Visualize.ParentResultsTruncated", Model.WhereUsed.CurrentParents.Count]
                                     </p>
                                 }
                             </div>
@@ -312,14 +382,14 @@
                         {
                             <div class="recipe-workspace__where-used-group">
                                 <div class="recipe-workspace__where-used-group-heading">
-                                    <strong>Điểm bán hiện hành trong phạm vi được phép xem</strong>
-                                    <span>@Model.WhereUsed.PointOfSaleLocations.Count chi nhánh</span>
+                                    <strong>@ProductText["Recipe.Visualize.CurrentLocations"]</strong>
+                                    <span>@ProductText["Recipe.Visualize.BranchCount", Model.WhereUsed.PointOfSaleLocations.Count]</span>
                                 </div>
                                 <div class="recipe-workspace__where-used-list">
                                     @foreach (var usage in Model.WhereUsed.PointOfSaleLocations)
                                     {
                                         <article class="recipe-workspace__where-used-item is-location">
-                                            <span class="recipe-workspace__type-badge is-direct">@usage.TypeLabel</span>
+                                            <span class="recipe-workspace__type-badge is-direct">@RelationTypeLabel(usage.RelationType)</span>
                                             <span class="recipe-workspace__where-used-identity">
                                                 <strong>@usage.BusinessName</strong>
                                                 <small>@usage.ContextLabel</small>
@@ -331,7 +401,7 @@
                                 @if (Model.WhereUsed.PointOfSaleResultsTruncated)
                                 {
                                     <p class="recipe-workspace__where-used-limit">
-                                        Đang hiển thị @Model.WhereUsed.PointOfSaleLocations.Count chi nhánh đầu tiên; còn chi nhánh khác chưa hiển thị.
+                                        @ProductText["Recipe.Visualize.LocationResultsTruncated", Model.WhereUsed.PointOfSaleLocations.Count]
                                     </p>
                                 }
                             </div>
@@ -343,13 +413,13 @@
                     <header class="recipe-workspace__section-heading bom-section-heading">
                         <span class="recipe-workspace__section-icon"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i></span>
                         <div>
-                            <h2 id="recipe-history-title">Lịch sử phiên bản</h2>
-                            <p>Các phiên bản của cùng đối tượng công thức; không trộn với lịch sử tồn kho hay nhật ký kỹ thuật.</p>
+                            <h2 id="recipe-history-title">@ProductText["Recipe.Visualize.HistoryTitle"]</h2>
+                            <p>@ProductText["Recipe.Visualize.HistoryHint"]</p>
                         </div>
                     </header>
                     @if (Model.VersionHistory.Items.Count == 0)
                     {
-                        <div class="recipe-workspace__history-empty">Chưa ghi nhận phiên bản liên quan.</div>
+                        <div class="recipe-workspace__history-empty">@ProductText["Recipe.Visualize.NoHistory"]</div>
                     }
                     else
                     {
@@ -358,10 +428,10 @@
                             {
                                 <article class="@(version.IsCurrent ? "is-current" : null)">
                                     <div>
-                                        <span class="rb-status-badge @(version.IsCurrent ? "rb-status-active" : "rb-status-inactive")">@version.StateLabel</span>
-                                        <strong>@version.VersionLabel</strong>
-                                        <small>@version.RelationshipLabel</small>
-                                        <small>Áp dụng: @(version.AppliedAt.HasValue ? BusinessDateService.ToBusinessTime(version.AppliedAt.Value).ToString("dd/MM/yyyy HH:mm") : "ngay khi phát hành")</small>
+                                        <span class="rb-status-badge @(version.IsCurrent ? "rb-status-active" : "rb-status-inactive")">@(version.IsCurrent ? ProductText["Recipe.Visualize.State.Current"] : ProductText["Recipe.Visualize.State.Historical"])</span>
+                                        <strong>@ProductText["Recipe.Visualize.VersionNumber", version.RecipeId]</strong>
+                                        <small>@(version.IsCurrent ? ProductText["Recipe.Visualize.Relationship.Current"] : version.ParentVersionId.HasValue ? ProductText["Recipe.Visualize.Relationship.Derived"] : ProductText["Recipe.Visualize.Relationship.Original"])</small>
+                                        <small>@ProductText["Recipe.Visualize.AppliedAt", version.AppliedAt.HasValue ? BusinessDateService.ToBusinessTime(version.AppliedAt.Value).ToString("g") : ProductText["Recipe.Visualize.OnRelease"]]</small>
                                     </div>
                                     <div class="recipe-workspace__history-actions">
                                         @if (version.RecipeId != Model.RecipeId)
@@ -370,11 +440,11 @@
                                                asp-route-fromRecipeId="@version.RecipeId"
                                                asp-route-toRecipeId="@Model.RecipeId">
                                                 <i class="fas fa-code-compare" aria-hidden="true"></i>
-                                                So sánh với phiên bản đang xem
+                                                @ProductText["Recipe.Visualize.CompareCurrent"]
                                             </a>
                                         }
                                         <a asp-action="Visualize" asp-route-recipeId="@version.RecipeId" asp-route-storeId="@Model.SelectedStoreId">
-                                            Xem phiên bản
+                                            @ProductText["Recipe.Visualize.ViewVersion"]
                                             <i class="fas fa-arrow-right" aria-hidden="true"></i>
                                         </a>
                                     </div>
@@ -383,7 +453,7 @@
                         </div>
                         @if (Model.VersionHistory.IsTruncated)
                         {
-                            <p class="recipe-workspace__history-limit">Hiển thị @Model.VersionHistory.Items.Count/@Model.VersionHistory.TotalCount phiên bản gần nhất.</p>
+                            <p class="recipe-workspace__history-limit">@ProductText["Recipe.Visualize.HistoryTruncated", Model.VersionHistory.Items.Count, Model.VersionHistory.TotalCount]</p>
                         }
                     }
                 </section>
@@ -394,17 +464,17 @@
                         <header class="recipe-workspace__section-heading bom-section-heading">
                             <span class="recipe-workspace__section-icon"><i class="fas fa-store" aria-hidden="true"></i></span>
                             <div>
-                                <h2 id="operations-title">Tồn và sản xuất tại chi nhánh</h2>
-                                <p>Tín hiệu bổ sung theo bán thành phẩm; tồn thực tế và nguồn sản xuất đang mở luôn được trình bày riêng.</p>
+                                <h2 id="operations-title">@ProductText["Recipe.Visualize.OperationsTitle"]</h2>
+                                <p>@ProductText["Recipe.Visualize.OperationsHint"]</p>
                             </div>
                         </header>
                         @if (!Model.SelectedStoreId.HasValue)
                         {
-                            <p class="recipe-workspace__notice">Chọn chi nhánh trong phần cơ sở tính giá vốn để xem dữ liệu vận hành.</p>
+                            <p class="recipe-workspace__notice">@ProductText["Recipe.Visualize.SelectStoreForOperations"]</p>
                         }
                         else if (Model.Operational == null)
                         {
-                            <p class="recipe-workspace__notice">@(!string.IsNullOrWhiteSpace(Model.OperationalError) ? Model.OperationalError : "Chưa tải được dữ liệu của chi nhánh đã chọn.")</p>
+                            <p class="recipe-workspace__notice">@(!string.IsNullOrWhiteSpace(Model.OperationalError) ? Model.OperationalError : ProductText["Recipe.Visualize.OperationsUnavailable"])</p>
                         }
                         else if (Model.Operational != null)
                         {
@@ -412,50 +482,50 @@
                             @if (Model.Replenishment != null)
                             {
                                 var replenishment = Model.Replenishment;
-                                <div class="recipe-workspace__replenishment-grid" aria-label="Tín hiệu nhu cầu bổ sung tại chi nhánh">
+                                <div class="recipe-workspace__replenishment-grid" aria-label="@ProductText["Recipe.Visualize.ReplenishmentAria"]">
                                     <article>
-                                        <span>Tồn khả dụng</span>
+                                        <span>@ProductText["Recipe.Visualize.UsableStock"]</span>
                                         <strong>@replenishment.UsableBase.ToString("0.###") @replenishment.BaseUnitCode</strong>
-                                        <small>Hiện có @replenishment.OnHandBase.ToString("0.###") · Đã giữ @replenishment.ReservedBase.ToString("0.###")</small>
+                                        <small>@ProductText["Recipe.Visualize.StockBreakdown", replenishment.OnHandBase.ToString("0.###"), replenishment.ReservedBase.ToString("0.###")]</small>
                                     </article>
                                     <article>
-                                        <span>Ngưỡng cảnh báo tồn thấp</span>
-                                        <strong>@(replenishment.LowThresholdBase.HasValue ? $"{replenishment.LowThresholdBase.Value:0.###} {replenishment.BaseUnitCode}" : "Chưa cấu hình")</strong>
+                                        <span>@ProductText["Recipe.Visualize.LowStockThreshold"]</span>
+                                        <strong>@(replenishment.LowThresholdBase.HasValue ? $"{replenishment.LowThresholdBase.Value:0.###} {replenishment.BaseUnitCode}" : ProductText["Recipe.Visualize.NotConfigured"])</strong>
                                         <small>@(!replenishment.LowThresholdBase.HasValue
-                                            ? "Cần cấu hình ngưỡng trước khi đánh giá."
+                                            ? ProductText["Recipe.Visualize.ConfigureThreshold"]
                                             : replenishment.IsLow
-                                                ? "Tồn khả dụng đang dưới ngưỡng."
-                                                : "Tồn khả dụng chưa xuống dưới ngưỡng.")</small>
+                                                ? ProductText["Recipe.Visualize.BelowThreshold"]
+                                                : ProductText["Recipe.Visualize.AboveThreshold"])</small>
                                     </article>
                                     <article>
-                                        <span>Mức tồn mục tiêu</span>
-                                        <strong>@(replenishment.TargetStockBase.HasValue ? $"{replenishment.TargetStockBase.Value:0.###} {replenishment.BaseUnitCode}" : "Chưa cấu hình")</strong>
+                                        <span>@ProductText["Recipe.Visualize.TargetStock"]</span>
+                                        <strong>@(replenishment.TargetStockBase.HasValue ? $"{replenishment.TargetStockBase.Value:0.###} {replenishment.BaseUnitCode}" : ProductText["Recipe.Visualize.NotConfigured"])</strong>
                                         <small>@replenishment.BusinessMessageVi</small>
                                     </article>
                                     <article>
-                                        <span>Nguồn sản xuất đang mở</span>
-                                        <strong>@(replenishment.OpenProductionCoverageBase.HasValue ? $"{replenishment.OpenProductionCoverageBase.Value:0.###} {replenishment.BaseUnitCode}" : "Chưa quy đổi được")</strong>
-                                        <small>Chỉ giảm nhu cầu lập kế hoạch, không làm tăng tồn kho.</small>
+                                        <span>@ProductText["Recipe.Visualize.OpenProduction"]</span>
+                                        <strong>@(replenishment.OpenProductionCoverageBase.HasValue ? $"{replenishment.OpenProductionCoverageBase.Value:0.###} {replenishment.BaseUnitCode}" : ProductText["Recipe.Visualize.NotConvertible"])</strong>
+                                        <small>@ProductText["Recipe.Visualize.OpenProductionHint"]</small>
                                     </article>
                                     <article>
-                                        <span>Còn cần bổ sung</span>
-                                        <strong>@(replenishment.NetNeedBase.HasValue ? $"{replenishment.NetNeedBase.Value:0.###} {replenishment.BaseUnitCode}" : "Chưa tính được")</strong>
-                                        <small>@(replenishment.NetNeedBase.HasValue ? "Đã trừ nguồn sản xuất đang mở." : "Cần đủ chính sách tồn và dữ liệu quy đổi.")</small>
+                                        <span>@ProductText["Recipe.Visualize.NetNeed"]</span>
+                                        <strong>@(replenishment.NetNeedBase.HasValue ? $"{replenishment.NetNeedBase.Value:0.###} {replenishment.BaseUnitCode}" : ProductText["Recipe.Visualize.NotCalculated"])</strong>
+                                        <small>@(replenishment.NetNeedBase.HasValue ? ProductText["Recipe.Visualize.NetNeedReady"] : ProductText["Recipe.Visualize.NetNeedUnavailable"])</small>
                                     </article>
                                 </div>
-                                <div class="recipe-workspace__replenishment-links" aria-label="Liên kết truy vết nhu cầu bổ sung">
+                                <div class="recipe-workspace__replenishment-links" aria-label="@ProductText["Recipe.Visualize.ReplenishmentLinksAria"]">
                                     @if (Model.CanViewStockAlerts && replenishment.ActiveAlert != null)
                                     {
                                         <a asp-controller="AdminStockAlerts" asp-action="Details" asp-route-id="@replenishment.ActiveAlert.StockAlertId" asp-route-storeId="@replenishment.StoreId">
                                             <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
-                                            Cảnh báo tồn kho · @AdminStatusDisplay.StockAlert(replenishment.ActiveAlert.StatusCode).Label
+                                            @ProductText["Recipe.Visualize.StockAlert"] · @AdminStatusDisplay.StockAlert(replenishment.ActiveAlert.StatusCode).Label
                                         </a>
                                     }
                                     @if (Model.CanViewRestockRequests && replenishment.ActiveRestockRequest != null)
                                     {
                                         <a asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@replenishment.ActiveRestockRequest.RestockRequestId">
                                             <i class="fas fa-clipboard-list" aria-hidden="true"></i>
-                                            Nhu cầu bổ sung · @AdminStatusDisplay.RestockRequest(replenishment.ActiveRestockRequest.StatusCode).Label
+                                            @ProductText["Recipe.Visualize.RestockRequest"] · @AdminStatusDisplay.RestockRequest(replenishment.ActiveRestockRequest.StatusCode).Label
                                         </a>
                                     }
                                     @if (Model.CanViewProduction && replenishment.OpenProductionRuns.Count > 0)
@@ -464,61 +534,61 @@
                                         {
                                             <a asp-controller="AdminProductionOrder" asp-action="Details" asp-route-id="@openRun.ProductionRunId">
                                                 <i class="fas fa-industry" aria-hidden="true"></i>
-                                                Lệnh sản xuất #@openRun.ProductionRunId · @openRun.StatusLabel
+                                                @ProductText["Recipe.Visualize.ProductionOrderNumber", openRun.ProductionRunId] · @openRun.StatusLabel
                                             </a>
                                         }
                                     }
                                 </div>
                                 @if (replenishment.HasMoreOpenProductionRuns)
                                 {
-                                    <p class="recipe-workspace__replenishment-limit">Hiển thị @replenishment.OpenProductionRuns.Count/@replenishment.OpenProductionRunTotal nguồn sản xuất đang mở gần nhất.</p>
+                                    <p class="recipe-workspace__replenishment-limit">@ProductText["Recipe.Visualize.OpenProductionTruncated", replenishment.OpenProductionRuns.Count, replenishment.OpenProductionRunTotal]</p>
                                 }
                             }
                             else
                             {
-                                <p class="recipe-workspace__notice">@(!string.IsNullOrWhiteSpace(Model.ReplenishmentError) ? Model.ReplenishmentError : "Chưa có tín hiệu nhu cầu bổ sung được phép xem tại chi nhánh này.")</p>
+                                <p class="recipe-workspace__notice">@(!string.IsNullOrWhiteSpace(Model.ReplenishmentError) ? Model.ReplenishmentError : ProductText["Recipe.Visualize.NoReplenishment"])</p>
                             }
                             <div class="recipe-workspace__operations-grid">
                                 <article>
-                                    <span>Sản xuất gần đây</span>
-                                    <strong>@operational.RecentRuns.Count lệnh</strong>
-                                    <small>@(operational.RecentRuns.Count == 0 ? "Chưa có bằng chứng cho đúng phiên bản này." : "Tối đa 5 lệnh gần nhất của phiên bản đang xem.")</small>
+                                    <span>@ProductText["Recipe.Visualize.RecentProduction"]</span>
+                                    <strong>@ProductText["Recipe.Visualize.OrderCount", operational.RecentRuns.Count]</strong>
+                                    <small>@(operational.RecentRuns.Count == 0 ? ProductText["Recipe.Visualize.NoProductionEvidence"] : ProductText["Recipe.Visualize.RecentProductionHint"])</small>
                                 </article>
                                 <article>
-                                    <span>Phiên bản bằng chứng</span>
-                                    <strong>@Model.VersionLabel</strong>
-                                    <small>Mỗi lệnh tiếp tục dùng đúng phiên bản đã ghim khi lập kế hoạch.</small>
+                                    <span>@ProductText["Recipe.Visualize.EvidenceVersion"]</span>
+                                    <strong>@ProductText["Recipe.Visualize.VersionNumber", Model.RecipeId]</strong>
+                                    <small>@ProductText["Recipe.Visualize.EvidenceVersionHint"]</small>
                                 </article>
                             </div>
                             @if (operational.RecentRuns.Count > 0)
                             {
-                                <div class="recipe-workspace__production-list" aria-label="Danh sách sản xuất gần đây">
+                                <div class="recipe-workspace__production-list" aria-label="@ProductText["Recipe.Visualize.RecentProductionAria"]">
                                     @foreach (var run in operational.RecentRuns)
                                     {
                                         <article>
                                             <div>
-                                                <span class="recipe-workspace__eyebrow">Lệnh @run.BusinessCode</span>
+                                                <span class="recipe-workspace__eyebrow">@ProductText["Recipe.Visualize.OrderCode", run.BusinessCode]</span>
                                                 <strong>@(Model.PreparedItemName ?? Model.BusinessName)</strong>
                                                 <small>@run.Status</small>
                                             </div>
                                             <dl>
                                                 <div>
-                                                    <dt>Đầu ra được chấp nhận</dt>
+                                                    <dt>@ProductText["Recipe.Visualize.AcceptedOutput"]</dt>
                                                     <dd>
                                                         @(run.AcceptedOutputQuantity.HasValue
                                                             ? $"{run.AcceptedOutputQuantity.Value:0.####} {run.OutputUnitCode}"
-                                                            : "Chưa có bằng chứng nghiệm thu")
+                                                            : ProductText["Recipe.Visualize.NoAcceptanceEvidence"])
                                                     </dd>
                                                 </div>
                                                 <div>
-                                                    <dt>Hoàn tất</dt>
-                                                    <dd>@(run.CompletedAt.HasValue ? BusinessDateService.ToBusinessTime(run.CompletedAt.Value).ToString("dd/MM/yyyy HH:mm") : "Chưa hoàn tất")</dd>
+                                                    <dt>@ProductText["Recipe.Visualize.Completed"]</dt>
+                                                    <dd>@(run.CompletedAt.HasValue ? BusinessDateService.ToBusinessTime(run.CompletedAt.Value).ToString("g") : ProductText["Recipe.Visualize.NotCompleted"])</dd>
                                                 </div>
                                             </dl>
                                             @if (Model.CanViewProduction)
                                             {
                                                 <a asp-controller="AdminProductionOrder" asp-action="Details" asp-route-id="@run.ProductionRunId">
-                                                    Xem lệnh sản xuất
+                                                    @ProductText["Recipe.Visualize.ViewProductionOrder"]
                                                     <i class="fas fa-arrow-right" aria-hidden="true"></i>
                                                 </a>
                                             }
@@ -531,43 +601,43 @@
                 }
             </div>
 
-            <aside id="recipe-context" class="recipe-workspace__rail" aria-label="Ngữ cảnh công thức">
+            <aside id="recipe-context" class="recipe-workspace__rail" aria-label="@ProductText["Recipe.Visualize.ContextAria"]">
                 <header>
                     <i class="fas fa-table-columns" aria-hidden="true"></i>
                     <div>
-                        <strong>Ngữ cảnh công thức</strong>
-                        <small>Phiên bản, trạng thái và đối tượng đang xem.</small>
+                        <strong>@ProductText["Recipe.Visualize.ContextTitle"]</strong>
+                        <small>@ProductText["Recipe.Visualize.ContextHint"]</small>
                     </div>
                 </header>
                 <section>
-                    <span class="recipe-workspace__eyebrow">Phiên bản công thức</span>
-                    <h2>@Model.VersionLabel</h2>
-                    <span class="rb-status-badge @Model.AppliedStateCssClass">@Model.AppliedStateLabel</span>
+                    <span class="recipe-workspace__eyebrow">@ProductText["Recipe.Visualize.RecipeVersion"]</span>
+                    <h2>@ProductText["Recipe.Visualize.VersionNumber", Model.RecipeId]</h2>
+                    <span class="rb-status-badge @Model.AppliedStateCssClass">@appliedStateLabel</span>
                     <dl>
-                        <div><dt>Đối tượng</dt><dd>@Model.TargetLabel</dd></div>
-                        <div><dt>Ngày áp dụng</dt><dd>@(Model.EffectiveDate?.ToString("dd/MM/yyyy") ?? "Áp dụng ngay")</dd></div>
-                        <div><dt>Nguồn phiên bản</dt><dd>@(Model.ParentVersionId.HasValue ? $"Phiên bản {Model.ParentVersionId.Value}" : "Phiên bản gốc")</dd></div>
+                        <div><dt>@ProductText["Recipe.Visualize.Target"]</dt><dd>@targetLabel</dd></div>
+                        <div><dt>@ProductText["Recipe.Visualize.EffectiveDate"]</dt><dd>@(Model.EffectiveDate?.ToString("d") ?? ProductText["Recipe.Visualize.EffectiveImmediately"])</dd></div>
+                        <div><dt>@ProductText["Recipe.Visualize.VersionSource"]</dt><dd>@(Model.ParentVersionId.HasValue ? ProductText["Recipe.Visualize.VersionNumber", Model.ParentVersionId.Value] : ProductText["Recipe.Visualize.OriginalVersion"])</dd></div>
                     </dl>
                 </section>
                 <section>
-                    <span class="recipe-workspace__eyebrow">Cơ sở tính giá vốn</span>
+                    <span class="recipe-workspace__eyebrow">@ProductText["Recipe.Visualize.CostBasis"]</span>
                     <div class="recipe-workspace__evidence-list">
                         <article class="@(Model.DesignCost.IsAvailable ? "is-ready" : "is-warning")">
-                            <span>Giá vốn ước tính theo thiết kế</span>
-                            <strong>@(Model.DesignCost.IsAvailable ? $"{Model.DesignCost.Amount:N0} đ" : "Chưa đủ dữ liệu")</strong>
+                            <span>@ProductText["Recipe.Visualize.DesignCost"]</span>
+                            <strong>@(Model.DesignCost.IsAvailable ? $"{Model.DesignCost.Amount:N0} ₫" : ProductText["Recipe.Visualize.InsufficientData"])</strong>
                             <small>@Model.DesignCost.Message</small>
                         </article>
                         <article class="@(Model.StoreFifoCost.IsAvailable ? "is-ready" : "is-muted")">
-                            <span>Giá vốn theo nhập trước - xuất trước (FIFO) tại chi nhánh</span>
-                            <strong>@(Model.StoreFifoCost.IsAvailable ? $"{Model.StoreFifoCost.Amount:N0} đ" : "Chưa có dữ liệu")</strong>
+                            <span>@ProductText["Recipe.Visualize.StoreFifoCostFull"]</span>
+                            <strong>@(Model.StoreFifoCost.IsAvailable ? $"{Model.StoreFifoCost.Amount:N0} ₫" : ProductText["Recipe.Visualize.NoData"])</strong>
                             <small>@Model.StoreFifoCost.Message</small>
                             @if (!string.IsNullOrWhiteSpace(Model.StoreFifoCost.ContextLabel))
                             {
-                                <small>Chi nhánh: @Model.StoreFifoCost.ContextLabel</small>
+                                <small>@ProductText["Recipe.Visualize.BranchValue", Model.StoreFifoCost.ContextLabel]</small>
                             }
                             @if (Model.StoreFifoCost.EvidenceAtUtc.HasValue)
                             {
-                                <small>Bằng chứng cập nhật: @BusinessDateService.ToBusinessTime(Model.StoreFifoCost.EvidenceAtUtc.Value).ToString("dd/MM/yyyy HH:mm")</small>
+                                <small>@ProductText["Recipe.Visualize.EvidenceUpdated", BusinessDateService.ToBusinessTime(Model.StoreFifoCost.EvidenceAtUtc.Value).ToString("g")]</small>
                             }
                         </article>
                     </div>
@@ -575,59 +645,59 @@
                         <input type="hidden" name="recipeId" value="@Model.RecipeId" />
                         <input type="hidden" name="returnUrl" value="@Model.BackUrl" />
                         <div>
-                            <label for="storeId">Chi nhánh được phép xem</label>
+                            <label for="storeId">@ProductText["Recipe.Visualize.AllowedStore"]</label>
                             <select id="storeId" name="storeId">
-                                <option value="">Chọn chi nhánh</option>
+                                <option value="">@ProductText["Recipe.Visualize.SelectStore"]</option>
                                 @foreach (var store in Model.Stores)
                                 {
                                     <option value="@store.StoreId" selected="@(Model.SelectedStoreId == store.StoreId ? "selected" : null)">@store.StoreName</option>
                                 }
                             </select>
                         </div>
-                        <button type="submit" class="btn btn-rb-save"><i class="fas fa-eye" aria-hidden="true"></i> Xem</button>
+                        <button type="submit" class="btn btn-rb-save"><i class="fas fa-eye" aria-hidden="true"></i> @ProductText["Recipe.Visualize.View"]</button>
                     </form>
                 </section>
                 <section>
-                    <span class="recipe-workspace__eyebrow">Mức sẵn sàng</span>
-                    <h2>@Model.GlobalReadiness.SummaryLabel</h2>
-                    <small>@Model.GlobalReadiness.ScopeLabel</small>
+                    <span class="recipe-workspace__eyebrow">@ProductText["Recipe.Visualize.Readiness"]</span>
+                    <h2>@ProductText["Recipe.Visualize.ReadinessSummary", Model.GlobalReadiness.PassedCount, Model.GlobalReadiness.ApplicableCount]</h2>
+                    <small>@ProductText["Recipe.Visualize.Scope.Global"]</small>
                     <div class="recipe-workspace__facet-list">
                         @foreach (var facet in Model.GlobalReadiness.Facets)
                         {
                             <article class="@(facet.IsPassed ? "is-ready" : facet.IsApplicable ? "is-warning" : "is-muted")">
-                                <div><strong>@facet.Label</strong><span>@facet.StateLabel</span></div>
-                                <small>@facet.Message</small>
+                                <div><strong>@FacetLabel(facet.Code)</strong><span>@EvidenceStateLabel(facet.State)</span></div>
+                                <small>@FacetMessage(facet.Code, facet.State)</small>
                             </article>
                         }
                     </div>
                     @if (Model.SelectedStoreId.HasValue)
                     {
-                        <h2 class="recipe-workspace__store-readiness-title">@Model.StoreReadiness.SummaryLabel</h2>
-                        <small>@Model.StoreReadiness.ScopeLabel</small>
+                        <h2 class="recipe-workspace__store-readiness-title">@ProductText["Recipe.Visualize.ReadinessSummary", Model.StoreReadiness.PassedCount, Model.StoreReadiness.ApplicableCount]</h2>
+                        <small>@ProductText["Recipe.Visualize.Scope.Store"]</small>
                         <div class="recipe-workspace__facet-list">
                             @foreach (var facet in Model.StoreReadiness.Facets)
                             {
                                 <article class="@(facet.IsPassed ? "is-ready" : facet.IsApplicable ? "is-warning" : "is-muted")">
-                                    <div><strong>@facet.Label</strong><span>@facet.StateLabel</span></div>
-                                    <small>@facet.Message</small>
+                                    <div><strong>@FacetLabel(facet.Code)</strong><span>@EvidenceStateLabel(facet.State)</span></div>
+                                    <small>@FacetMessage(facet.Code, facet.State)</small>
                                 </article>
                             }
                         </div>
                     }
                 </section>
                 <section>
-                    <span class="recipe-workspace__eyebrow">Định nghĩa đầu ra</span>
-                    <h2>@Model.OutputHeading</h2>
-                    <p>@Model.OutputDisplay</p>
-                    <small>@Model.OutputContext</small>
+                    <span class="recipe-workspace__eyebrow">@ProductText["Recipe.Visualize.OutputDefinition"]</span>
+                    <h2>@outputHeading</h2>
+                    <p>@outputDisplay</p>
+                    <small>@outputContext</small>
                 </section>
                 <section>
-                    <span class="recipe-workspace__eyebrow">Dấu vết kỹ thuật</span>
+                    <span class="recipe-workspace__eyebrow">@ProductText["Recipe.Visualize.TechnicalTrace"]</span>
                     <dl>
-                        <div><dt>Mã công thức</dt><dd>@Model.RecipeCode</dd></div>
+                        <div><dt>@ProductText["Recipe.Visualize.RecipeCode"]</dt><dd>@Model.RecipeCode</dd></div>
                         @if (!string.IsNullOrWhiteSpace(Model.BusinessCode))
                         {
-                            <div><dt>Mã đối tượng</dt><dd>@Model.BusinessCode</dd></div>
+                            <div><dt>@ProductText["Recipe.Visualize.TargetCode"]</dt><dd>@Model.BusinessCode</dd></div>
                         }
                     </dl>
                 </section>

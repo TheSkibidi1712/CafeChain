@@ -1,6 +1,8 @@
 @model CafeChain.Application.DTOs.Admin.Procurement.PurchaseOrderDetailDto
 @using CafeChain.ViewModels.Admin.Shared
+@using Microsoft.Extensions.Localization
 @using System.Globalization
+@inject IStringLocalizer<ProcurementResource> L
 @{
     Layout = null;
     var viCulture = CultureInfo.GetCultureInfo("vi-VN");
@@ -11,7 +13,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>In đơn đặt hàng @Model.Code - CafeChain Admin</title>
+    <title>@L["PurchaseOrder.Print.Title", Model.Code]</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
@@ -240,15 +242,15 @@
 <body class="purchase-order-page purchase-order-print-page">
     <div class="po-print-topbar no-print">
         <div>
-            <strong class="fs-5" style="color: #6F4E37;"><i class="fa-solid fa-file-pdf text-danger me-2"></i>Xem trước chứng từ Đơn đặt hàng @Model.Code</strong>
-            <div class="text-muted small">Bấm nút In / Tải PDF và chọn <strong>Lưu dưới dạng PDF</strong> (Save as PDF).</div>
+            <strong class="fs-5" style="color: #6F4E37;"><i class="fa-solid fa-file-pdf text-danger me-2"></i>@L["PurchaseOrder.Print.Preview", Model.Code]</strong>
+            <div class="text-muted small">@L["PurchaseOrder.Print.PreviewHelp"]</div>
         </div>
         <div class="d-flex gap-2 flex-shrink-0 text-nowrap">
             <button type="button" class="btn text-white fw-bold px-4 text-nowrap" style="background-color: #70482F; border-radius: 8px; white-space: nowrap;" onclick="window.print()">
-                <i class="fa-solid fa-print me-2"></i>In / Tải PDF
+                <i class="fa-solid fa-print me-2"></i>@L["PurchaseOrder.Print.PrintPdf"]
             </button>
             <a class="btn btn-outline-secondary fw-bold px-3 text-nowrap" style="border-radius: 8px; white-space: nowrap;" href="/Admin/AdminPurchaseOrders/Details/@Model.PurchaseOrderId">
-                <i class="fa-solid fa-arrow-left me-2"></i>Quay lại chi tiết
+                <i class="fa-solid fa-arrow-left me-2"></i>@L["PurchaseOrder.Print.BackDetails"]
             </a>
         </div>
     </div>
@@ -258,71 +260,71 @@
         <div class="po-doc-header">
             <div>
                 <h1 class="po-brand-title"><i class="fa-solid fa-mug-hot" aria-hidden="true"></i> CafeChain</h1>
-                <div class="po-doc-type">ĐƠN ĐẶT HÀNG</div>
-                <div class="po-doc-code">Mã đơn: <strong>@Model.Code</strong></div>
+                <div class="po-doc-type">@L["PurchaseOrder.Print.DocType"]</div>
+                <div class="po-doc-code">@L["PurchaseOrder.Print.Code"] <strong>@Model.Code</strong></div>
             </div>
             <div class="text-end">
                 <div class="mb-2"><span class="ops-badge @orderStatus.CssClass fs-6">@orderStatus.Label</span></div>
-                <div class="po-info-line">Ngày lập: <strong>@AdminStatusDisplay.Date(Model.OrderDate.ToLocalTime())</strong></div>
-                <div class="po-info-line">Chi nhánh: <strong>@Model.StoreName</strong></div>
+                <div class="po-info-line">@L["PurchaseOrder.Print.IssueDate"] <strong>@AdminStatusDisplay.Date(Model.OrderDate.ToLocalTime())</strong></div>
+                <div class="po-info-line">@L["Common.Branch"]: <strong>@Model.StoreName</strong></div>
             </div>
         </div>
 
         <!-- 2 Columns Info -->
         <div class="po-doc-grid">
             <div class="po-info-box">
-                <h3>Bên Đặt Hàng (Cửa Hàng Nhận)</h3>
-                <div class="po-info-line"><strong>Đơn vị:</strong> Chuỗi Cửa Hàng Cà Phê CafeChain</div>
-                <div class="po-info-line"><strong>Cửa hàng nhận:</strong> @Model.StoreName</div>
+                <h3>@L["PurchaseOrder.Print.BuyerTitle"]</h3>
+                <div class="po-info-line"><strong>@L["PurchaseOrder.Print.Org"]</strong> @L["PurchaseOrder.Print.OrgName"]</div>
+                <div class="po-info-line"><strong>@L["PurchaseOrder.Print.ReceivingStore"]</strong> @Model.StoreName</div>
                 @if (!string.IsNullOrWhiteSpace(Model.StoreAddress))
                 {
-                    <div class="po-info-line"><strong>Địa chỉ:</strong> @Model.StoreAddress</div>
+                    <div class="po-info-line"><strong>@L["PurchaseOrder.Print.Address"]</strong> @Model.StoreAddress</div>
                 }
                 @if (!string.IsNullOrWhiteSpace(Model.StorePhone))
                 {
-                    <div class="po-info-line"><strong>Liên hệ:</strong> @Model.StorePhone</div>
+                    <div class="po-info-line"><strong>@L["PurchaseOrder.Print.Contact"]</strong> @Model.StorePhone</div>
                 }
-                <div class="po-info-line"><strong>Người tạo đơn:</strong> @Model.CreatedByStaffName</div>
+                <div class="po-info-line"><strong>@L["PurchaseOrder.Print.CreatedBy"]</strong> @Model.CreatedByStaffName</div>
             </div>
             <div class="po-info-box">
-                <h3>Nhà Cung Cấp (Đối Tác)</h3>
-                <div class="po-info-line"><strong>Tên NCC:</strong> @Model.SupplierName</div>
+                <h3>@L["PurchaseOrder.Print.SupplierTitle"]</h3>
+                <div class="po-info-line"><strong>@L["PurchaseOrder.Print.SupplierName"]</strong> @Model.SupplierName</div>
                 @if (!string.IsNullOrWhiteSpace(Model.SupplierTaxCode))
                 {
-                    <div class="po-info-line"><strong>MST:</strong> @Model.SupplierTaxCode</div>
+                    <div class="po-info-line"><strong>@L["PurchaseOrder.Print.TaxCode"]</strong> @Model.SupplierTaxCode</div>
                 }
                 @if (!string.IsNullOrWhiteSpace(Model.SupplierAddress))
                 {
-                    <div class="po-info-line"><strong>Địa chỉ:</strong> @Model.SupplierAddress</div>
+                    <div class="po-info-line"><strong>@L["PurchaseOrder.Print.Address"]</strong> @Model.SupplierAddress</div>
                 }
                 @if (!string.IsNullOrWhiteSpace(Model.SupplierContactInfo))
                 {
-                    <div class="po-info-line"><strong>Liên hệ:</strong> @Model.SupplierContactInfo</div>
+                    <div class="po-info-line"><strong>@L["PurchaseOrder.Print.Contact"]</strong> @Model.SupplierContactInfo</div>
                 }
                 @if (!string.IsNullOrWhiteSpace(Model.SupplierEmail))
                 {
                     <div class="po-info-line"><strong>Email:</strong> @Model.SupplierEmail</div>
                 }
-                <div class="po-info-line"><strong>Ngày giao dự kiến:</strong> @(Model.ExpectedDeliveryAtUtc.HasValue ? Model.ExpectedDeliveryAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy") : "Theo thỏa thuận")</div>
+                <div class="po-info-line"><strong>@L["PurchaseOrder.Print.ExpectedDelivery"]</strong> @(Model.ExpectedDeliveryAtUtc.HasValue ? Model.ExpectedDeliveryAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy") : L["PurchaseOrder.Print.ByAgreement"].Value)</div>
             </div>
         </div>
 
         <!-- Delivery Destination Banner (GIAO TẠI...) -->
         <div class="po-delivery-box">
-            <h2 class="po-delivery-title">GIAO TẠI @Model.StoreName.ToUpper() · @Model.Code</h2>
+            <h2 class="po-delivery-title">@L["PurchaseOrder.Print.DeliverAt", Model.StoreName.ToUpper(), Model.Code]</h2>
             @if (!string.IsNullOrWhiteSpace(Model.StoreAddress))
             {
-                <div class="po-info-line"><strong>Địa chỉ:</strong> @Model.StoreAddress</div>
+                <div class="po-info-line"><strong>@L["PurchaseOrder.Print.Address"]</strong> @Model.StoreAddress</div>
             }
             <div class="po-info-line">
-                <strong>Người nhận:</strong> Quản lý chi nhánh @Model.StoreName @(!string.IsNullOrWhiteSpace(Model.StorePhone) ? $"· {Model.StorePhone}" : "")
+                <strong>@L["PurchaseOrder.Print.Receiver"]</strong> @L["PurchaseOrder.Print.BranchManager", Model.StoreName] @(!string.IsNullOrWhiteSpace(Model.StorePhone) ? $"· {Model.StorePhone}" : "")
             </div>
             <div class="po-info-line">
-                <strong>Cần trước:</strong> @(Model.ExpectedDeliveryAtUtc.HasValue ? Model.ExpectedDeliveryAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy") : "Theo thỏa thuận")
+                <strong>@L["PurchaseOrder.Print.NeedBy"]</strong> @(Model.ExpectedDeliveryAtUtc.HasValue ? Model.ExpectedDeliveryAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy") : L["PurchaseOrder.Print.ByAgreement"].Value)
             </div>
             @if (!string.IsNullOrWhiteSpace(Model.Note))
             {
-                <div class="po-info-line"><strong>Ghi chú:</strong> @Model.Note</div>
+                <div class="po-info-line"><strong>@L["Common.Notes"]:</strong> @Model.Note</div>
             }
         </div>
 
@@ -330,12 +332,12 @@
         <table class="po-print-table">
             <thead>
                 <tr>
-                    <th class="text-center" style="width: 45px; white-space: nowrap;">STT</th>
-                    <th style="white-space: nowrap;">Tên nguyên liệu</th>
-                    <th class="text-center" style="white-space: nowrap;">Phương thức</th>
-                    <th class="text-center" style="white-space: nowrap;">Số lượng</th>
-                    <th class="text-end" style="white-space: nowrap;">Đơn giá</th>
-                    <th class="text-end" style="white-space: nowrap;">Thành tiền</th>
+                    <th class="text-center" style="width: 45px; white-space: nowrap;">@L["PurchaseOrder.Print.Seq"]</th>
+                    <th style="white-space: nowrap;">@L["PurchaseOrder.Print.IngredientName"]</th>
+                    <th class="text-center" style="white-space: nowrap;">@L["PurchaseOrder.Print.Method"]</th>
+                    <th class="text-center" style="white-space: nowrap;">@L["PurchaseOrder.Print.Quantity"]</th>
+                    <th class="text-end" style="white-space: nowrap;">@L["PurchaseOrder.Print.UnitPrice"]</th>
+                    <th class="text-end" style="white-space: nowrap;">@L["PurchaseOrder.Print.Amount"]</th>
                 </tr>
             </thead>
             <tbody>
@@ -354,17 +356,17 @@
                             <strong class="d-block" style="white-space: nowrap;">@line.IngredientName</strong>
                             @if (line.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Packaged)
                             {
-                                <div class="ops-secondary small text-muted" style="white-space: nowrap;">1 gói = @AdminStatusDisplay.Quantity(line.PackageQuantitySnapshot.GetValueOrDefault()) @AdminStatusDisplay.Unit(line.PackageUnitName)</div>
+                                <div class="ops-secondary small text-muted" style="white-space: nowrap;">@L["PurchaseOrder.Print.PackEq", AdminStatusDisplay.Quantity(line.PackageQuantitySnapshot.GetValueOrDefault()), AdminStatusDisplay.Unit(line.PackageUnitName)]</div>
                             }
                         </td>
                         <td class="text-center align-middle" style="white-space: nowrap;">
                             @if (line.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Loose)
                             {
-                                <span>Mua rời</span>
+                                <span>@L["PurchaseOrder.Print.Loose"]</span>
                             }
                             else
                             {
-                                <span>Theo gói/thùng</span>
+                                <span>@L["PurchaseOrder.Print.ByPack"]</span>
                             }
                         </td>
                         <td class="text-center align-middle" style="white-space: nowrap;">
@@ -374,8 +376,8 @@
                             }
                             else
                             {
-                                <span><strong>@AdminStatusDisplay.Quantity(line.PackageCount.GetValueOrDefault())</strong> gói</span>
-                                <small class="d-block text-muted">Tương đương @AdminStatusDisplay.Quantity(line.PackageEquivalentQuantity.GetValueOrDefault()) @AdminStatusDisplay.Unit(line.PackageUnitName)</small>
+                                <span><strong>@AdminStatusDisplay.Quantity(line.PackageCount.GetValueOrDefault())</strong> @L["PurchaseOrder.Print.Packs"]</span>
+                                <small class="d-block text-muted">@L["PurchaseOrder.Print.Equivalent", AdminStatusDisplay.Quantity(line.PackageEquivalentQuantity.GetValueOrDefault()), AdminStatusDisplay.Unit(line.PackageUnitName)]</small>
                             }
                         </td>
                         <td class="text-end align-middle" style="white-space: nowrap;">
@@ -385,7 +387,7 @@
                             }
                             else
                             {
-                                <span>@AdminStatusDisplay.Currency(line.PackagePriceSnapshot.GetValueOrDefault())/gói</span>
+                                <span>@AdminStatusDisplay.Currency(line.PackagePriceSnapshot.GetValueOrDefault())@L["PurchaseOrder.Print.PerPack"]</span>
                             }
                         </td>
                         <td class="text-end align-middle fw-bold" style="white-space: nowrap;">@AdminStatusDisplay.Currency(lineAmount)</td>
@@ -398,15 +400,15 @@
         <div class="po-totals-box">
             <table class="po-totals-table">
                 <tr>
-                    <td>Tạm tính:</td>
+                    <td>@L["PurchaseOrder.Print.Subtotal"]</td>
                     <td class="text-end fw-bold">@AdminStatusDisplay.Currency(Model.TotalAmount)</td>
                 </tr>
                 <tr>
-                    <td>Thuế (VAT):</td>
+                    <td>@L["PurchaseOrder.Print.Vat"]</td>
                     <td class="text-end">0 đ</td>
                 </tr>
                 <tr class="grand-total">
-                    <td>Tổng thanh toán:</td>
+                    <td>@L["PurchaseOrder.Print.GrandTotal"]</td>
                     <td class="text-end">@AdminStatusDisplay.Currency(Model.TotalAmount)</td>
                 </tr>
             </table>

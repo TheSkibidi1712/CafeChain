@@ -2,7 +2,9 @@
 
 @using CafeChain.Application.Interfaces.Systems
 @using CafeChain.ViewModels.Admin.StoreInventories
+@using Microsoft.Extensions.Localization
 @inject IBusinessDateService BusinessDateService
+@inject IStringLocalizer<InventoryResource> L
 
 @{
     var currentStoreId = ViewBag.StoreId != null
@@ -30,16 +32,7 @@
 <table class="transaction-table">
     <thead>
         <tr>
-            <th>Kho</th>
-            <th>Mặt hàng</th>
-            <th>Loại</th>
-            <th>Nguồn</th>
-            <th>Số lượng</th>
-            <th>Đơn giá</th>
-            <th>Tổng tiền</th>
-            <th>Trước</th>
-            <th>Sau</th>
-            <th>Ngày</th>
+            <th>@L["StoreInventory.Transaction.Col.Store"]</th><th>@L["StoreInventory.Transaction.Col.Item"]</th><th>@L["StoreInventory.Transaction.Col.Type"]</th><th>@L["StoreInventory.Transaction.Col.Source"]</th><th>@L["StoreInventory.Transaction.Col.Quantity"]</th><th>@L["StoreInventory.Transaction.Col.UnitPrice"]</th><th>@L["StoreInventory.Transaction.Col.Total"]</th><th>@L["StoreInventory.Transaction.Col.Before"]</th><th>@L["StoreInventory.Transaction.Col.After"]</th><th>@L["StoreInventory.Transaction.Col.DateShort"]</th>
         </tr>
     </thead>
 
@@ -59,7 +52,7 @@
                         }
                         @if (item.QuantitySemanticsStatus == "QUANTITY_SEMANTICS_UNKNOWN")
                         {
-                            <small class="text-warning d-block">Chưa xác nhận đơn vị tồn</small>
+                            <small class="text-warning d-block">@L["StoreInventory.Transaction.UnitUnconfirmed"]</small>
                         }
                     </td>
 
@@ -131,8 +124,8 @@
             <tr>
                 <td colspan="10" class="empty-data">
                     <div class="cc-empty-state cc-warehouse-empty" role="status">
-                        <h2>Chưa có giao dịch tồn kho</h2>
-                        <p>Chưa phát sinh nhập, xuất hoặc điều chỉnh kho trong phạm vi đang chọn.</p>
+                        <h2>@L["StoreInventory.Transaction.EmptyTitle"]</h2>
+                        <p>@L["StoreInventory.Transaction.EmptyCopyPartial"]</p>
                     </div>
                 </td>
             </tr>

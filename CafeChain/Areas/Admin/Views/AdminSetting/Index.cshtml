@@ -1,20 +1,26 @@
 @model CafeChain.ViewModels.Admin.Settings.AdminSettingIndexVM
+@using Microsoft.Extensions.Localization
+@using System.Text.Json
+@inject IStringLocalizer<CafeChain.SharedResource> SharedText
 @{
-    ViewData["Title"] = "Cài đặt hệ thống";
+    ViewData["Title"] = SharedText["Settings.Title"];
     var ocrActive = Model.ActiveTab == "ocr";
+    var settingsJsCatalog = JsonSerializer.Serialize(SharedText.GetAllStrings()
+        .Where(message => message.Name.StartsWith("Settings.Js.", StringComparison.Ordinal))
+        .ToDictionary(message => message.Name, message => message.Value));
 }
 
 <link rel="stylesheet" href="~/css/Admin/Settings/negative-inventory.css" asp-append-version="true" />
 
 <div class="container-fluid py-4 negative-inventory-page system-setting-page">
     <div class="ni-page-header mb-4">
-        <div class="ni-eyebrow">Quản trị</div>
-        <h1 class="h3 fw-bold mb-2 ni-page-title"><i class="fa-solid fa-gears me-2 text-warning" aria-hidden="true"></i>Cài đặt hệ thống</h1>
-        <p class="text-muted mb-0">Cấu hình các chính sách vận hành và khả năng nhận dạng tài liệu.</p>
+        <div class="ni-eyebrow">@SharedText["Settings.Eyebrow"]</div>
+        <h1 class="h3 fw-bold mb-2 ni-page-title"><i class="fa-solid fa-gears me-2 text-warning" aria-hidden="true"></i>@SharedText["Settings.Title"]</h1>
+        <p class="text-muted mb-0">@SharedText["Settings.Description"]</p>
     </div>
     <ul class="nav nav-tabs mb-3" role="tablist">
-        <li class="nav-item"><a class="nav-link @(!ocrActive ? "active" : "")" href="?tab=negative-stock">Cấu hình âm kho</a></li>
-        <li class="nav-item"><a class="nav-link @(ocrActive ? "active" : "")" href="?tab=ocr">OCR &amp; nhận dạng tài liệu</a></li>
+        <li class="nav-item"><a class="nav-link @(!ocrActive ? "active" : "")" href="?tab=negative-stock">@SharedText["Settings.Tab.NegativeInventory"]</a></li>
+        <li class="nav-item"><a class="nav-link @(ocrActive ? "active" : "")" href="?tab=ocr">@SharedText["Settings.Tab.Ocr"]</a></li>
     </ul>
     <div class="card border-0 shadow-sm ni-settings-card"><div class="card-body p-4">
         @if (ocrActive && Model.Ocr != null)
@@ -30,5 +36,6 @@
 </div>
 
 @section Scripts {
+    <script id="settingsUiCatalog" type="application/json">@Html.Raw(settingsJsCatalog)</script>
     <script src="~/js/Admin/Settings/adminsetting.js" asp-append-version="true"></script>
 }

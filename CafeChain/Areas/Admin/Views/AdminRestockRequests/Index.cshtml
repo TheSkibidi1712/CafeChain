@@ -1,8 +1,10 @@
 @model CafeChain.Application.DTOs.Admin.RestockRequests.RestockRequestListResultDto
 @using CafeChain.Application.DTOs.Admin.StoreScope
 @using CafeChain.ViewModels.Admin.Shared
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<ProcurementResource> L
 @{
-    ViewData["Title"] = "Yêu cầu nhập hàng";
+    ViewData["Title"] = L["Restock.Title"];
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var statusFilter = ViewBag.StatusFilter as string ?? "SUBMITTED";
     var currentPage = Model.Page;
@@ -11,7 +13,7 @@
     var high = Model.Items.Count(x => x.Priority == "HIGH");
     var stores = ViewBag.StoreOptions as IReadOnlyList<AdminStoreOptionDto>
         ?? Array.Empty<AdminStoreOptionDto>();
-    var selectedStoreName = stores.FirstOrDefault(x => x.StoreId == Model.StoreId)?.StoreName ?? "cửa hàng đang chọn";
+    var selectedStoreName = stores.FirstOrDefault(x => x.StoreId == Model.StoreId)?.StoreName ?? L["Restock.SelectedStore"].Value;
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
@@ -19,18 +21,18 @@
 <main class="restock-page restock-index-page ops-shell cc-warehouse-page">
     <header class="ops-header cc-warehouse-header">
         <div>
-            <div class="ops-eyebrow">Kho &amp; Cung ứng</div>
-            <h1 class="ops-title"><i class="fa-solid fa-truck-ramp-box me-2 text-warning" aria-hidden="true"></i> Yêu cầu nhập hàng</h1>
-            <p class="ops-subtitle">Theo dõi yêu cầu bổ sung hàng cho @selectedStoreName. Yêu cầu chỉ ghi nhận nhu cầu; tồn kho chỉ thay đổi từ phiếu nhận hoặc điều chuyển đã xác nhận.</p>
+            <div class="ops-eyebrow">@L["Restock.Eyebrow"]</div>
+            <h1 class="ops-title"><i class="fa-solid fa-truck-ramp-box me-2 text-warning" aria-hidden="true"></i> @L["Restock.Title"]</h1>
+            <p class="ops-subtitle">@L["Restock.Subtitle", selectedStoreName]</p>
         </div>
         <div class="ops-actions restock-header-actions">
             @if (ViewBag.CanCreateDemand is true)
             {
-                <a class="ops-btn ops-btn-primary" asp-action="CreateManual" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-plus" aria-hidden="true"></i> Tạo thủ công</a>
-                <a class="ops-btn" asp-action="CreateCentralPlanner" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> Kế hoạch trung tâm</a>
+                <a class="ops-btn ops-btn-primary" asp-action="CreateManual" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-plus" aria-hidden="true"></i> @L["Restock.CreateManual"]</a>
+                <a class="ops-btn" asp-action="CreateCentralPlanner" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> @L["Restock.CentralPlan"]</a>
             }
-            <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Cảnh báo kho</a>
-            <a class="ops-btn" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Phiếu nhận hàng</a>
+            <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> @L["Restock.StockAlerts"]</a>
+            <a class="ops-btn" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> @L["Restock.Receipts"]</a>
         </div>
     </header>
 
@@ -40,10 +42,10 @@
 
     @if (stores.Count > 1)
     {
-        <form method="get" class="ops-filterbar cc-warehouse-filter" aria-label="Chọn chi nhánh">
+        <form method="get" class="ops-filterbar cc-warehouse-filter" aria-label="@L["Restock.SelectBranch"]">
             <input type="hidden" name="status" value="@statusFilter" />
             <div class="ops-filter-group">
-                <label class="ops-form-label mb-0" for="restockStoreId">Chi nhánh</label>
+                <label class="ops-form-label mb-0" for="restockStoreId">@L["Common.Branch"]</label>
                 <select id="restockStoreId" name="storeId" class="ops-select" onchange="this.form.submit()">
                     @foreach (var store in stores)
                     {
@@ -51,21 +53,21 @@
                     }
                 </select>
             </div>
-            <noscript><button type="submit" class="ops-btn">Áp dụng</button></noscript>
+            <noscript><button type="submit" class="ops-btn">@L["Common.Apply"]</button></noscript>
         </form>
     }
 
-    <section class="ops-metrics" aria-label="Tóm tắt yêu cầu trên trang">
-        <div class="ops-metric"><span class="ops-metric-label">Kết quả theo bộ lọc</span><strong class="ops-metric-value">@Model.Total</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Khẩn cấp trên trang</span><strong class="ops-metric-value danger">@urgent</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Ưu tiên cao trên trang</span><strong class="ops-metric-value warning">@high</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Số yêu cầu trên trang</span><strong class="ops-metric-value">@Model.Items.Count</strong></div>
+    <section class="ops-metrics" aria-label="@L["Restock.SummaryAria"]">
+        <div class="ops-metric"><span class="ops-metric-label">@L["Restock.FilteredResults"]</span><strong class="ops-metric-value">@Model.Total</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">@L["Restock.UrgentOnPage"]</span><strong class="ops-metric-value danger">@urgent</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">@L["Restock.HighOnPage"]</span><strong class="ops-metric-value warning">@high</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">@L["Restock.CountOnPage"]</span><strong class="ops-metric-value">@Model.Items.Count</strong></div>
     </section>
 
-    <nav class="ops-status-tabs" aria-label="Lọc trạng thái yêu cầu nhập">
+    <nav class="ops-status-tabs" aria-label="@L["Restock.FilterStatus"]">
         @foreach (var status in new[] { "SUBMITTED", "PROCESSING", "PARTIALLY_RECEIVED", "COMPLETED", "REJECTED", "CANCELLED", "" })
         {
-            <a class="ops-tab @(statusFilter == status ? "active" : "")" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-status="@status" asp-route-storeId="@Model.StoreId">@(string.IsNullOrEmpty(status) ? "Tất cả" : AdminStatusDisplay.RestockRequest(status).Label)</a>
+            <a class="ops-tab @(statusFilter == status ? "active" : "")" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-status="@status" asp-route-storeId="@Model.StoreId">@(string.IsNullOrEmpty(status) ? L["Common.All"] : L[$"Status.{status}"])</a>
         }
     </nav>
 
@@ -73,11 +75,11 @@
     {
         <section class="ops-empty cc-warehouse-empty" aria-labelledby="restockEmptyTitle" role="status">
             <span class="ops-empty-icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></span>
-            <h2 id="restockEmptyTitle" class="ops-empty-title">Không có yêu cầu bổ sung phù hợp</h2>
-            <p class="ops-empty-copy">Đổi trạng thái lọc, tạo yêu cầu thủ công hoặc mở một cảnh báo đã xác nhận để ghi nhận nhu cầu mới.</p>
+            <h2 id="restockEmptyTitle" class="ops-empty-title">@L["Restock.EmptyTitle"]</h2>
+            <p class="ops-empty-copy">@L["Restock.EmptyCopy"]</p>
             <div class="ops-empty-actions">
-                <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-storeId="@Model.StoreId">Xem cảnh báo kho</a>
-                <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="CreateManual" asp-route-storeId="@Model.StoreId">Tạo yêu cầu thủ công</a>
+                <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-storeId="@Model.StoreId">@L["Restock.StockAlerts"]</a>
+                <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="CreateManual" asp-route-storeId="@Model.StoreId">@L["Restock.CreateManual"]</a>
             </div>
         </section>
     }
@@ -86,7 +88,7 @@
         <section class="ops-table-wrap cc-warehouse-table-shell">
             <div class="ops-table-scroll">
                 <table class="ops-table">
-                    <thead><tr><th>Mã</th><th>Mặt hàng</th><th class="number">Số lượng</th><th>Ưu tiên</th><th>Trạng thái xử lý</th><th>Người tạo</th><th>Thời gian</th><th></th></tr></thead>
+                    <thead><tr><th>@L["Restock.Code"]</th><th>@L["Restock.Item"]</th><th class="number">@L["Restock.Quantity"]</th><th>@L["Common.Priority"]</th><th>@L["Restock.WorkflowStatus"]</th><th>@L["Restock.CreatedBy"]</th><th>@L["Restock.Time"]</th><th></th></tr></thead>
                     <tbody>
                     @foreach (var item in Model.Items)
                     {
@@ -96,7 +98,7 @@
                             <td class="number">
                                 @if (item.RequestedProcurementQuantity.HasValue)
                                 {
-                                    <strong>@AdminStatusDisplay.Quantity(item.RequestedProcurementQuantity.Value) @(item.ProcurementUnitName ?? "đơn vị nhu cầu")</strong>
+                                    <strong>@AdminStatusDisplay.Quantity(item.RequestedProcurementQuantity.Value) @(item.ProcurementUnitName ?? L["Restock.DemandUnit"].Value)</strong>
                                     <div class="ops-secondary">@AdminStatusDisplay.SourcingDecision(item.SourcingDecision)</div>
                                 }
                                 else
@@ -104,11 +106,11 @@
                                     <strong>@AdminStatusDisplay.Quantity(item.RequestedQuantity) @item.BaseUnitName</strong>
                                 }
                             </td>
-                            <td><span class="ops-badge @AdminStatusDisplay.RestockRequestPriority(item.Priority).CssClass">@AdminStatusDisplay.RestockRequestPriority(item.Priority).Label</span></td>
-                            <td><span class="ops-badge @AdminStatusDisplay.RestockRequest(item.Status).CssClass">@AdminStatusDisplay.RestockRequest(item.Status).Label</span></td>
+                            <td><span class="ops-badge @AdminStatusDisplay.RestockRequestPriority(item.Priority).CssClass">@L[$"Priority.{item.Priority}"]</span></td>
+                            <td><span class="ops-badge @AdminStatusDisplay.RestockRequest(item.Status).CssClass">@L[$"Status.{item.Status}"]</span></td>
                             <td>@(item.CreatedByName ?? "—")</td>
                             <td class="text-nowrap"><span class="ops-secondary">@item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span></td>
-                            <td class="text-end"><a class="ops-btn" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@item.RestockRequestId" asp-route-storeId="@item.StoreId">Chi tiết <i class="fa-solid fa-chevron-right ms-1" aria-hidden="true"></i></a></td>
+                            <td class="text-end"><a class="ops-btn" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@item.RestockRequestId" asp-route-storeId="@item.StoreId">@L["Common.Details"] <i class="fa-solid fa-chevron-right ms-1" aria-hidden="true"></i></a></td>
                         </tr>
                     }
                     </tbody>
@@ -116,10 +118,10 @@
             </div>
         </section>
         <div class="ops-pagination">
-            <span>Trang @currentPage / @totalPages · Tổng @Model.Total yêu cầu</span>
+            <span>@L["Restock.PageSummary", currentPage, totalPages, Model.Total]</span>
             <div class="ops-page-links">
-                @if (currentPage > 1) { <a class="ops-btn" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-status="@statusFilter" asp-route-storeId="@Model.StoreId" asp-route-page="@(currentPage - 1)">Trước</a> }
-                @if (currentPage < totalPages) { <a class="ops-btn" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-status="@statusFilter" asp-route-storeId="@Model.StoreId" asp-route-page="@(currentPage + 1)">Sau</a> }
+                @if (currentPage > 1) { <a class="ops-btn" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-status="@statusFilter" asp-route-storeId="@Model.StoreId" asp-route-page="@(currentPage - 1)">@L["Common.Previous"]</a> }
+                @if (currentPage < totalPages) { <a class="ops-btn" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-status="@statusFilter" asp-route-storeId="@Model.StoreId" asp-route-page="@(currentPage + 1)">@L["Common.Next"]</a> }
             </div>
         </div>
     }

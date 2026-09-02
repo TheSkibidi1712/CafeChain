@@ -1,7 +1,8 @@
 @model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferCreateVM
+@inject Microsoft.Extensions.Localization.IStringLocalizer<CafeChain.InventoryResource> InventoryText
 
 @{
-    ViewData["Title"] = "Điều chuyển kho";
+    ViewData["Title"] = InventoryText["Transfer.Create.Title"];
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryTransfer/inventorytransfer.css" />
@@ -29,4 +30,5 @@
     @await Html.PartialAsync("Partials/Create/_ActionBar", Model)
 </div>
 
+<partial name="_InventoryTransferUiCatalog" />
 <script src="~/js/Admin/InventoryTransfer/inventorytransfercreate.js"></script>

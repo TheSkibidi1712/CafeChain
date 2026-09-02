@@ -1,6 +1,15 @@
 @model CafeChain.ViewModels.Admin.StoreMenu.StoreMenuPageVM
+@using Microsoft.Extensions.Localization
+@using System.Text.Json
+@inject IStringLocalizer<CafeChain.ProductResource> ProductText
 @{
-    ViewData["Title"] = "Menu cửa hàng";
+    ViewData["Title"] = ProductText["StoreMenu.Title"];
+    var storeMenuJsCatalog = JsonSerializer.Serialize(ProductText.GetAllStrings()
+        .Where(message => message.Name.StartsWith("StoreMenu.", StringComparison.Ordinal)
+            || message.Name.StartsWith("Profit.Status.", StringComparison.Ordinal)
+            || message.Name == "Common.Cancel"
+            || message.Name == "Common.Close")
+        .ToDictionary(message => message.Name, message => message.Value));
 }
 
 @section Styles {
@@ -17,21 +26,21 @@
 
     <header class="sm-header ops-header cc-warehouse-header">
         <div class="sm-heading">
-            <div class="sm-eyebrow ops-eyebrow">Vận hành thực đơn</div>
-            <h1 class="ops-title"><i class="fa-solid fa-list-check me-2 text-warning" aria-hidden="true"></i>Menu cửa hàng</h1>
-            <p class="ops-subtitle">Kiểm soát SKU, giá hiệu lực và khả năng phục vụ tại từng chi nhánh CafeChain.</p>
+            <div class="sm-eyebrow ops-eyebrow">@ProductText["StoreMenu.Eyebrow"]</div>
+            <h1 class="ops-title"><i class="fa-solid fa-list-check me-2 text-warning" aria-hidden="true"></i>@ProductText["StoreMenu.Title"]</h1>
+            <p class="ops-subtitle">@ProductText["StoreMenu.Description"]</p>
         </div>
         <div class="ops-actions">
             @if (Model.CanProvision)
             {
-                <button type="button" id="provisionStoreMenu" class="sm-link-button" title="Chuẩn bị các SKU mới ở trạng thái bản nháp">
+                <button type="button" id="provisionStoreMenu" class="sm-link-button" title="@ProductText["StoreMenu.SyncTitle"]">
                     <i class="fas fa-arrows-rotate" aria-hidden="true"></i>
-                    Đồng bộ SKU mới
+                    @ProductText["StoreMenu.Sync"]
                 </button>
             }
             <a class="sm-link-button" asp-area="Admin" asp-controller="AdminDrinkProfitability" asp-action="Index">
                 <i class="fas fa-chart-line" aria-hidden="true"></i>
-                Xem vốn &amp; lợi nhuận
+                @ProductText["StoreMenu.Profitability"]
             </a>
         </div>
     </header>
@@ -39,13 +48,13 @@
     <div class="sm-section-heading">
         <div>
             <span class="sm-section-icon"><i class="fas fa-filter"></i></span>
-            <div><h2>Bộ lọc vận hành</h2><p>Thu hẹp menu theo cửa hàng, SKU và trạng thái bán.</p></div>
+            <div><h2>@ProductText["StoreMenu.Filter.Title"]</h2><p>@ProductText["StoreMenu.Filter.Hint"]</p></div>
         </div>
-        <span class="sm-section-note"><i class="fas fa-circle-check"></i> Theo dõi theo thời gian thực</span>
+        <span class="sm-section-note"><i class="fas fa-circle-check"></i> @ProductText["StoreMenu.Realtime"]</span>
     </div>
-    <section class="sm-toolbar" aria-label="Bộ lọc menu cửa hàng">
+    <section class="sm-toolbar" aria-label="@ProductText["StoreMenu.Filter.Aria"]">
         <label class="sm-store-filter">
-            <span>Cửa hàng</span>
+            <span>@ProductText["StoreMenu.Store"]</span>
             <select id="storeMenuStore" class="sm-control">
                 @foreach (var store in Model.Stores)
                 {
@@ -54,79 +63,79 @@
             </select>
         </label>
         <label class="sm-search-filter">
-            <span>Tìm SKU</span>
+            <span>@ProductText["StoreMenu.Search"]</span>
             <span class="sm-search-box">
                 <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
-                <input id="storeMenuSearch" class="sm-control" type="search" placeholder="Tên, mã đồ uống hoặc size" autocomplete="off" />
+                <input id="storeMenuSearch" class="sm-control" type="search" placeholder="@ProductText["StoreMenu.SearchPlaceholder"]" autocomplete="off" />
             </span>
         </label>
         <label>
-            <span>Trạng thái cấu hình</span>
+            <span>@ProductText["StoreMenu.ConfigurationStatus"]</span>
             <select id="configuredStatusFilter" class="sm-control">
-                <option value="">Tất cả</option>
-                <option value="DRAFT">Bản nháp</option>
-                <option value="SCHEDULED">Đã lên lịch</option>
-                <option value="ACTIVE">Đang bán</option>
-                <option value="PAUSED">Tạm dừng</option>
-                <option value="ENDED">Đã kết thúc</option>
+                <option value="">@ProductText["StoreMenu.All"]</option>
+                <option value="DRAFT">@ProductText["StoreMenu.Status.Draft"]</option>
+                <option value="SCHEDULED">@ProductText["StoreMenu.Status.Scheduled"]</option>
+                <option value="ACTIVE">@ProductText["StoreMenu.Status.Active"]</option>
+                <option value="PAUSED">@ProductText["StoreMenu.Status.Paused"]</option>
+                <option value="ENDED">@ProductText["StoreMenu.Status.Ended"]</option>
             </select>
         </label>
         <label>
-            <span>Khả năng bán</span>
+            <span>@ProductText["StoreMenu.Availability"]</span>
             <select id="operationalStatusFilter" class="sm-control">
-                <option value="">Tất cả</option>
-                <option value="AVAILABLE">Sẵn sàng</option>
-                <option value="LOW_STOCK">Sắp hết</option>
-                <option value="OUT_OF_STOCK">Hết nguyên liệu</option>
-                <option value="RECIPE_INVALID">BOM chưa hợp lệ</option>
-                <option value="TOPPING_UNAVAILABLE">Thiếu topping bắt buộc</option>
-                <option value="STORE_NOT_READY">Cửa hàng chưa sẵn sàng</option>
+                <option value="">@ProductText["StoreMenu.All"]</option>
+                <option value="AVAILABLE">@ProductText["StoreMenu.Availability.Available"]</option>
+                <option value="LOW_STOCK">@ProductText["StoreMenu.Availability.LowStock"]</option>
+                <option value="OUT_OF_STOCK">@ProductText["StoreMenu.Availability.OutOfStock"]</option>
+                <option value="RECIPE_INVALID">@ProductText["StoreMenu.Availability.InvalidRecipe"]</option>
+                <option value="TOPPING_UNAVAILABLE">@ProductText["StoreMenu.Availability.Topping"]</option>
+                <option value="STORE_NOT_READY">@ProductText["StoreMenu.Availability.Store"]</option>
             </select>
         </label>
-        <div id="refreshStoreMenu" class="sm-icon-button sm-refresh" title="Tải lại menu" tabindex="0">
+        <div id="refreshStoreMenu" class="sm-icon-button sm-refresh" title="@ProductText["StoreMenu.Reload"]" tabindex="0">
             <i class="fas fa-rotate" aria-hidden="true"></i>
         </div>
     </section>
 
     <section class="sm-summary" id="storeMenuSummary" hidden>
-        <div><span>Tổng SKU</span><strong id="totalSkuCount">0</strong></div>
-        <div><span>Đang bán</span><strong id="activeSkuCount">0</strong></div>
-        <div><span>Không khả dụng</span><strong id="unavailableSkuCount">0</strong></div>
-        <div><span>Dùng giá riêng</span><strong id="overrideSkuCount">0</strong></div>
+        <div><span>@ProductText["StoreMenu.Total"]</span><strong id="totalSkuCount">0</strong></div>
+        <div><span>@ProductText["StoreMenu.Active"]</span><strong id="activeSkuCount">0</strong></div>
+        <div><span>@ProductText["StoreMenu.Unavailable"]</span><strong id="unavailableSkuCount">0</strong></div>
+        <div><span>@ProductText["StoreMenu.Override"]</span><strong id="overrideSkuCount">0</strong></div>
     </section>
 
     <section class="sm-content" aria-live="polite">
         <div class="sm-content-heading">
-            <div><span class="sm-section-icon"><i class="fas fa-list-check"></i></span><div><h2>Danh sách SKU cửa hàng</h2><p>Ưu tiên xử lý các món tạm dừng hoặc thiếu nguyên liệu.</p></div></div>
+            <div><span class="sm-section-icon"><i class="fas fa-list-check"></i></span><div><h2>@ProductText["StoreMenu.List"]</h2><p>@ProductText["StoreMenu.ListHint"]</p></div></div>
         </div>
         <div id="storeMenuLoading" class="sm-state">
             <div class="sm-skeleton-grid" aria-hidden="true">
                 <span></span><span></span><span></span><span></span>
             </div>
-            <strong>Đang tải menu cửa hàng...</strong>
+            <strong>@ProductText["StoreMenu.Loading"]</strong>
         </div>
         <div id="storeMenuError" class="sm-state sm-state-error" hidden>
             <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
-            <div><strong>Không tải được menu cửa hàng</strong><p id="storeMenuErrorMessage"></p></div>
-            <button type="button" id="retryStoreMenu" class="sm-secondary-button">Thử lại</button>
+            <div><strong>@ProductText["StoreMenu.LoadError"]</strong><p id="storeMenuErrorMessage"></p></div>
+            <button type="button" id="retryStoreMenu" class="sm-secondary-button">@ProductText["Common.Retry"]</button>
         </div>
         <div id="storeMenuEmpty" class="sm-state" hidden>
             <i class="fas fa-list-check" aria-hidden="true"></i>
-            <strong id="storeMenuEmptyTitle">Chưa có món/size trong menu cửa hàng.</strong>
-            <p id="storeMenuEmptyMessage">Hãy kiểm tra dữ liệu menu hoặc thay đổi bộ lọc.</p>
+            <strong id="storeMenuEmptyTitle">@ProductText["StoreMenu.Empty"]</strong>
+            <p id="storeMenuEmptyMessage">@ProductText["StoreMenu.EmptyHint"]</p>
         </div>
 
         <div class="sm-table-wrap" id="storeMenuTableWrap" hidden>
             <table class="sm-table">
                 <thead>
                     <tr>
-                        <th class="sm-order-column">Thứ tự</th>
-                        <th>Món / size</th>
-                        <th>Trạng thái</th>
-                        <th class="sm-number">Giá bán</th>
-                        <th class="sm-number">FIFO / Biên lợi nhuận</th>
-                        <th>Thời gian hiệu lực</th>
-                        <th class="sm-actions-column">Thao tác</th>
+                        <th class="sm-order-column">@ProductText["StoreMenu.Table.Order"]</th>
+                        <th>@ProductText["StoreMenu.Table.Item"]</th>
+                        <th>@ProductText["Common.Status"]</th>
+                        <th class="sm-number">@ProductText["StoreMenu.Table.Price"]</th>
+                        <th class="sm-number">@ProductText["StoreMenu.Table.Margin"]</th>
+                        <th>@ProductText["StoreMenu.Table.Effective"]</th>
+                        <th class="sm-actions-column">@ProductText["Common.Actions"]</th>
                     </tr>
                 </thead>
                 <tbody id="storeMenuRows"></tbody>
@@ -136,34 +145,34 @@
 
     <aside class="offcanvas offcanvas-end sm-drawer" id="storeMenuDrawer" tabindex="-1" aria-labelledby="storeMenuDrawerTitle">
         <header class="sm-drawer-header">
-            <div><span id="storeMenuDrawerEyebrow">Menu cửa hàng</span><h2 id="storeMenuDrawerTitle">Cập nhật món</h2></div>
-            <button type="button" class="sm-icon-button" data-bs-dismiss="offcanvas" title="Đóng"><i class="fas fa-xmark"></i></button>
+            <div><span id="storeMenuDrawerEyebrow">@ProductText["StoreMenu.Drawer.Eyebrow"]</span><h2 id="storeMenuDrawerTitle">@ProductText["StoreMenu.Drawer.Title"]</h2></div>
+            <button type="button" class="sm-icon-button" data-bs-dismiss="offcanvas" title="@ProductText["Common.Close"]"><i class="fas fa-xmark"></i></button>
         </header>
         <div class="sm-drawer-body">
             <section class="sm-drawer-summary" id="storeMenuDrawerSummary"></section>
             <form id="storeMenuActionForm">
                 <input type="hidden" id="storeMenuActionType" />
                 <div id="storeMenuPriceFields" hidden>
-                    <label><span>Giá riêng tại cửa hàng (VND)</span><input id="storeMenuOverridePrice" class="sm-control" type="number" min="1" step="500" /></label>
+                    <label><span>@ProductText["StoreMenu.Drawer.OverridePrice"]</span><input id="storeMenuOverridePrice" class="sm-control" type="number" min="1" step="500" /></label>
                     <div class="sm-sparkle-note">
                         <div class="sm-sparkle-badge">
                             <i class="fas fa-wand-magic-sparkles sm-sparkle-icon" aria-hidden="true"></i>
                         </div>
                         <div class="sm-sparkle-text">
-                            <span>Để trống khi chọn <strong class="sm-sparkle-tag">“Dùng giá toàn hệ thống”</strong>.</span>
+                            <span>@ProductText["StoreMenu.Drawer.GlobalHint"]</span>
                         </div>
                     </div>
                 </div>
                 <div id="storeMenuOrderFields" hidden>
-                    <label><span>Thứ tự hiển thị</span><input id="storeMenuDisplayOrder" class="sm-control" type="number" min="0" step="1" /></label>
+                    <label><span>@ProductText["StoreMenu.Drawer.DisplayOrder"]</span><input id="storeMenuDisplayOrder" class="sm-control" type="number" min="0" step="1" /></label>
                 </div>
-                <label><span>Lý do thay đổi</span><textarea id="storeMenuReason" class="sm-control" rows="3" maxlength="500" required></textarea></label>
+                <label><span>@ProductText["StoreMenu.Drawer.Reason"]</span><textarea id="storeMenuReason" class="sm-control" rows="3" maxlength="500" required></textarea></label>
                 <div id="storeMenuActionError" class="sm-inline-error" hidden></div>
             </form>
         </div>
         <footer class="sm-drawer-footer">
-            <button type="button" class="sm-secondary-button" data-bs-dismiss="offcanvas">Hủy</button>
-            <button type="submit" form="storeMenuActionForm" id="storeMenuSubmitAction" class="sm-primary-button">Xác nhận</button>
+            <button type="button" class="sm-secondary-button" data-bs-dismiss="offcanvas">@ProductText["Common.Cancel"]</button>
+            <button type="submit" form="storeMenuActionForm" id="storeMenuSubmitAction" class="sm-primary-button">@ProductText["StoreMenu.Js.Confirm"]</button>
         </footer>
     </aside>
 
@@ -171,5 +180,6 @@
 </main>
 
 @section Scripts {
+    <script id="storeMenuUiCatalog" type="application/json">@Html.Raw(storeMenuJsCatalog)</script>
     <script src="~/js/Admin/StoreMenu/store-menu.js" asp-append-version="true"></script>
 }

@@ -1,15 +1,19 @@
 @model CafeChain.ViewModels.Accounts.LoginViewModel
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<CafeChain.SharedResource> SharedText
 @{
-    ViewData["Title"] = "Đăng nhập";
+    ViewData["Title"] = SharedText["Auth.Login.Title"];
     Layout = null;
     var isLocked = ViewBag.IsLocked ?? false;
 }
 
 <!DOCTYPE html>
-<html lang="vi" data-theme="dark">
+<html lang="@System.Globalization.CultureInfo.CurrentUICulture.Name" data-culture="@System.Globalization.CultureInfo.CurrentUICulture.Name">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="~/js/shared/appearance.js" asp-append-version="true"></script>
+    <link rel="stylesheet" href="~/css/shared/appearance.css" asp-append-version="true" />
     <title>@ViewData["Title"] - CafeChain Enterprise Platform</title>
     
     <!-- Google Fonts: Plus Jakarta Sans & Playfair Display -->
@@ -22,8 +26,8 @@
     <style>
         :root {
             /* Coffee Master Color System - Dark Espresso Theme Default */
-            --espresso-dark: #0e0805;
-            --espresso-deep: #180f0a;
+            --espresso-dark: #2D160A;
+            --espresso-deep: #3D1F0E;
             --espresso-surface: rgba(30, 20, 14, 0.88);
             --primary-brown: #8d6243;
             --primary-brown-dark: #5c3b24;
@@ -57,16 +61,16 @@
 
         /* Light Milk Theme Variables */
         [data-theme="light"] {
-            --espresso-dark: #24160e;
-            --espresso-deep: #321c12;
+            --espresso-dark: #2D160A;
+            --espresso-deep: #3D1F0E;
             --latte-cream: #fdfbf7;
-            --latte-soft: #f5ede3;
+            --latte-soft: #f0e6d8;
             --text-primary: #1c1917;
             --text-secondary: #57534e;
             --text-muted: #8c857b;
             --border-color: rgba(111, 78, 55, 0.16);
             --border-hover: rgba(198, 138, 76, 0.6);
-            --card-bg: rgba(255, 255, 255, 0.94);
+            --card-bg: rgba(255, 252, 248, 0.96);
             --card-glass-border: rgba(255, 255, 255, 0.7);
             --input-bg: #fcfbf9;
             --shadow-elevation: 0 30px 60px -12px rgba(31, 20, 14, 0.3);
@@ -386,6 +390,7 @@
             position: relative;
             overflow: hidden;
             transition: var(--transition-smooth);
+            min-width: 0;
         }
 
         .auth-wrapper::before {
@@ -454,6 +459,7 @@
             padding: 1.25rem;
             margin-bottom: 2rem;
             position: relative;
+            min-width: 0;
         }
 
         .demo-header {
@@ -492,8 +498,9 @@
 
         .account-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 0.6rem;
+            min-width: 0;
         }
 
         .account-card {
@@ -506,6 +513,7 @@
             transition: var(--transition-bounce);
             position: relative;
             user-select: none;
+            min-width: 0;
         }
 
         .account-card:hover {
@@ -541,9 +549,7 @@
             font-weight: 700;
             color: var(--text-primary);
             line-height: 1.25;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            overflow-wrap: anywhere;
         }
 
         .account-card small {
@@ -774,7 +780,7 @@
             }
 
             .account-grid {
-                grid-template-columns: repeat(4, 1fr);
+                grid-template-columns: repeat(4, minmax(0, 1fr));
             }
         }
 
@@ -789,7 +795,7 @@
             }
 
             .account-grid {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(2, minmax(0, 1fr));
                 gap: 0.5rem;
             }
         }
@@ -815,9 +821,12 @@
     </div>
 
     <!-- Theme Toggle Floating Button -->
-    <button type="button" class="theme-toggle-btn" id="themeToggleBtn" title="Chuyển chế độ giao diện (Milk / Espresso)">
-        <i class="fas fa-sun" id="themeIcon"></i>
-    </button>
+    <div class="auth-preference-controls" aria-label="@SharedText["Common.DisplayPreferences"]">
+        <select class="cc-appearance-select" data-culture-selector aria-label="@SharedText["Language.Label"]">
+            <option value="vi-VN">Tiếng Việt</option>
+            <option value="en-US">English</option>
+        </select>
+    </div>
 
     <div class="app-viewport">
         <!-- Left Hero Showcase Panel -->
@@ -828,39 +837,39 @@
                 </div>
 
                 <div class="hero-title-group">
-                    <h1>Hệ Thống Quản Lý Chuỗi Cà Phê</h1>
-                    <p>Giải pháp quản trị toàn diện dành cho chủ doanh nghiệp, quản lý và nhân viên vận hành chuỗi cà phê chuyên nghiệp.</p>
+                    <h1>@SharedText["Auth.Login.PlatformHeading"]</h1>
+                    <p>@SharedText["Auth.Login.PlatformDetail"]</p>
                 </div>
 
                 <div class="feature-pills">
                     <div class="pill-card">
                         <div class="pill-icon"><i class="fas fa-store"></i></div>
-                        <h4>Đa Chi Nhánh</h4>
-                        <span>Đồng bộ thời gian thực</span>
+                        <h4>@SharedText["Auth.Login.Feature.MultiStore"]</h4>
+                        <span>@SharedText["Auth.Login.Feature.Realtime"]</span>
                     </div>
 
                     <div class="pill-card">
                         <div class="pill-icon"><i class="fas fa-chart-pie"></i></div>
-                        <h4>Báo Cáo POS</h4>
-                        <span>Doanh thu & Lợi nhuận</span>
+                        <h4>@SharedText["Auth.Login.Feature.PosReport"]</h4>
+                        <span>@SharedText["Auth.Login.Feature.Revenue"]</span>
                     </div>
 
                     <div class="pill-card">
                         <div class="pill-icon"><i class="fas fa-cubes"></i></div>
-                        <h4>Quản Lý Kho</h4>
-                        <span>BOM & Định lượng chuẩn</span>
+                        <h4>@SharedText["Auth.Login.Feature.Inventory"]</h4>
+                        <span>@SharedText["Auth.Login.Feature.Bom"]</span>
                     </div>
 
                     <div class="pill-card">
                         <div class="pill-icon"><i class="fas fa-users-gear"></i></div>
-                        <h4>Tối Ưu Ca</h4>
-                        <span>Phân lịch tự động</span>
+                        <h4>@SharedText["Auth.Login.Feature.Shift"]</h4>
+                        <span>@SharedText["Auth.Login.Feature.Schedule"]</span>
                     </div>
                 </div>
             </div>
 
             <div class="hero-quote">
-                "Cà phê đậm đà, quản lý mượt mà — Nâng tầm chuỗi thương hiệu của bạn."
+                “@SharedText["Auth.Login.Quote"]”
             </div>
         </div>
 
@@ -870,14 +879,14 @@
                 <div class="logo-mark">
                     <i class="fas fa-coffee"></i>
                 </div>
-                <h2>Đăng Nhập CafeChain</h2>
-                <p>Nhập thông tin tài khoản của bạn để tiếp tục</p>
+                <h2>@SharedText["Auth.Login.Title"]</h2>
+                <p>@SharedText["Auth.Login.Subtitle"]</p>
             </div>
 
             <!-- Quick Demo Accounts Grid -->
             <div class="demo-section">
                 <div class="demo-header">
-                    <h3><i class="fas fa-bolt" style="color: var(--crema-gold);"></i> Tài khoản đăng nhập nhanh</h3>
+                    <h3><i class="fas fa-bolt" style="color: var(--crema-gold);"></i> @SharedText["Auth.Login.QuickAccounts"]</h3>
                     <span class="selected-account-indicator" id="selectedAccountBadge">
                         <i class="fas fa-check-circle"></i> <span id="selectedRoleText"></span>
                     </span>
@@ -887,79 +896,79 @@
                     <div class="account-card"
                          data-email="owner@cafechain.vn"
                          data-password="The@1712"
-                         data-role="Chủ doanh nghiệp">
+                         data-role="@SharedText["Auth.Login.Role.Owner"]">
                         <i class="fas fa-crown"></i>
-                        <strong>Chủ doanh nghiệp</strong>
+                        <strong>@SharedText["Auth.Login.Role.Owner"]</strong>
                         <small>owner@cafechain.vn</small>
                     </div>
 
                     <div class="account-card"
                          data-email="areamanager@cafechain.vn"
                          data-password="The@1712"
-                         data-role="Quản lý vùng">
+                         data-role="@SharedText["Auth.Login.Role.AreaManager"]">
                         <i class="fas fa-user-tie"></i>
-                        <strong>Quản lý vùng</strong>
+                        <strong>@SharedText["Auth.Login.Role.AreaManager"]</strong>
                         <small>areamanager@cafechain.vn</small>
                     </div>
 
                     <div class="account-card"
                          data-email="storemanager@cafechain.vn"
                          data-password="The@1712"
-                         data-role="Quản lý chi nhánh">
+                         data-role="@SharedText["Auth.Login.Role.StoreManager"]">
                         <i class="fas fa-store"></i>
-                        <strong>Quản lý CH</strong>
+                        <strong>@SharedText["Auth.Login.Role.StoreManager"]</strong>
                         <small>storemanager@cafechain.vn</small>
                     </div>
 
                     <div class="account-card"
                          data-email="salesstaff@cafechain.vn"
                          data-password="The@1712"
-                         data-role="Nhân viên bán hàng">
+                         data-role="@SharedText["Auth.Login.Role.Sales"]">
                         <i class="fas fa-cash-register"></i>
-                        <strong>Bán hàng</strong>
+                        <strong>@SharedText["Auth.Login.Role.Sales"]</strong>
                         <small>salesstaff@cafechain.vn</small>
                     </div>
 
                     <div class="account-card"
                          data-email="salesstaff2@cafechain.vn"
                          data-password="The@1712"
-                         data-role="Nhân viên bán hàng · Store 1">
+                         data-role="@SharedText["Auth.Login.Role.Sales"] · Store 1">
                         <i class="fas fa-cash-register"></i>
-                        <strong>Bán hàng 2 – Store 1</strong>
+                        <strong>@SharedText["Auth.Login.Role.Sales"] 2 – Store 1</strong>
                         <small>salesstaff2@cafechain.vn</small>
                     </div>
 
                     <div class="account-card"
                          data-email="salesstaff3@cafechain.vn"
                          data-password="The@1712"
-                         data-role="Nhân viên bán hàng · Store 3">
+                         data-role="@SharedText["Auth.Login.Role.Sales"] · Store 3">
                         <i class="fas fa-cash-register"></i>
-                        <strong>Bán hàng 3 – Store 3</strong>
+                        <strong>@SharedText["Auth.Login.Role.Sales"] 3 – Store 3</strong>
                         <small>salesstaff3@cafechain.vn</small>
                     </div>
 
                     <div class="account-card"
                          data-email="accountantwarehouse@cafechain.vn"
                          data-password="The@1712"
-                         data-role="Kế toán / Kho">
+                         data-role="@SharedText["Auth.Login.Role.Accountant"]">
                         <i class="fas fa-boxes-stacked"></i>
-                        <strong>Kế toán / Kho</strong>
+                        <strong>@SharedText["Auth.Login.Role.Accountant"]</strong>
                         <small>accountantwarehouse@cafechain.vn</small>
                     </div>
 
                     <div class="account-card"
                          data-email="shiftsupervisor@cafechain.vn"
                          data-password="The@1712"
-                         data-role="Ca trưởng">
+                         data-role="@SharedText["Auth.Login.Role.ShiftSupervisor"]">
                         <i class="fas fa-user-clock"></i>
-                        <strong>Ca trưởng</strong>
+                        <strong>@SharedText["Auth.Login.Role.ShiftSupervisor"]</strong>
                         <small>shiftsupervisor@cafechain.vn</small>
                     </div>
 
                     <div class="account-card"
                          data-email="systemadmin@cafechain.vn"
                          data-password="The@1712"
-                         data-role="Quản trị hệ thống">
+                         data-role="@SharedText["AppLauncher.App.SystemAdministration.Title"]">
                         <i class="fas fa-shield-halved"></i>
                         <strong>Admin</strong>
                         <small>systemadmin@cafechain.vn</small>
@@ -988,7 +997,7 @@
                 }
 
                 <div class="form-group">
-                    <label class="form-label" asp-for="Email">Email hoặc Tên đăng nhập</label>
+                    <label class="form-label" asp-for="Email">@SharedText["Auth.Login.Email"]</label>
                     <div class="input-wrapper">
                         <input asp-for="Email" class="form-input" id="Email" placeholder="username@cafechain.vn" readonly="@(isLocked ? "readonly" : null)" />
                         <i class="far fa-envelope input-icon"></i>
@@ -997,11 +1006,11 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" asp-for="Password">Mật khẩu</label>
+                    <label class="form-label" asp-for="Password">@SharedText["Auth.Login.Password"]</label>
                     <div class="input-wrapper">
                         <input asp-for="Password" type="password" class="form-input" id="passwordInput" placeholder="••••••••" readonly="@(isLocked ? "readonly" : null)" />
                         <i class="fas fa-lock input-icon"></i>
-                        <i class="far fa-eye toggle-password" id="togglePassword" title="Hiện/Ẩn mật khẩu"></i>
+                        <i class="far fa-eye toggle-password" id="togglePassword" title="@SharedText["Auth.Login.ShowPassword"]"></i>
                     </div>
                     <span asp-validation-for="Password" class="text-danger" style="font-size: 0.8rem; color: #fc8181; margin-top: 0.3rem; display: block;"></span>
                 </div>
@@ -1009,19 +1018,19 @@
                 <div class="action-row">
                     <label class="custom-checkbox" for="rememberMe">
                         <input type="checkbox" asp-for="RememberMe" id="rememberMe" disabled="@(isLocked ? "disabled" : null)" />
-                        <span>Ghi nhớ đăng nhập</span>
+                        <span>@SharedText["Auth.Login.Remember"]</span>
                     </label>
-                    <a asp-controller="Password" asp-action="ForgotPassword" class="forgot-password">Quên mật khẩu?</a>
+                    <a asp-controller="Password" asp-action="ForgotPassword" class="forgot-password">@SharedText["Auth.Login.Forgot"]</a>
                 </div>
 
                 <button type="submit" class="submit-btn" id="btnSubmit" disabled="@(isLocked ? "disabled" : null)">
-                    <span>@(isLocked ? "Đang bị khóa..." : "Truy cập hệ thống")</span>
+                    <span>@(isLocked ? SharedText["Auth.Login.Locked"] : SharedText["Auth.Login.Submit"])</span>
                     <i class="fas fa-arrow-right" id="btnIcon"></i>
                 </button>
             </form>
 
             <div class="card-footer">
-                © 2026 CafeChain Enterprise • Powered by Modern Frontend Design
+                @SharedText["Auth.Login.Footer"]
             </div>
         </div>
     </div>
@@ -1030,6 +1039,11 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
 
     <script>
+        const loginText = {
+            retryAfter: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(SharedText["Auth.Login.RetryAfter"].Value)),
+            submit: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(SharedText["Auth.Login.Submit"].Value)),
+            authenticating: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(SharedText["Auth.Login.Authenticating"].Value))
+        };
         $(document).ready(function () {
             // ===== 1. CANVAS GOLDEN CREMA BOKEH PARTICLES =====
             const canvas = document.getElementById('particleCanvas');
@@ -1089,26 +1103,6 @@
                 animateParticles();
             }
 
-            // ===== 3. THEME SWITCHER (Dark Espresso / Light Latte) =====
-            const savedTheme = localStorage.getItem('cafechain_theme') || 'dark';
-            setTheme(savedTheme);
-
-            $('#themeToggleBtn').click(function () {
-                const currentTheme = $('html').attr('data-theme');
-                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                setTheme(newTheme);
-            });
-
-            function setTheme(theme) {
-                $('html').attr('data-theme', theme);
-                localStorage.setItem('cafechain_theme', theme);
-                if (theme === 'dark') {
-                    $('#themeIcon').removeClass('fa-moon').addClass('fa-sun');
-                } else {
-                    $('#themeIcon').removeClass('fa-sun').addClass('fa-moon');
-                }
-            }
-
             // ===== 4. TOGGLE PASSWORD VISIBILITY =====
             $('#togglePassword').click(function () {
                 const input = $('#passwordInput');
@@ -1150,12 +1144,12 @@
                 const btn = $('#btnSubmit');
 
                 if (isLocked) {
-                    $('input, button:not(#themeToggleBtn)').prop('disabled', true);
-                    btn.find('span').text(`Thử lại sau ${remainingMinutes} phút`);
+                    $('input, button').prop('disabled', true);
+                    btn.find('span').text(loginText.retryAfter.replace('{0}', remainingMinutes));
                     $('#btnIcon').attr('class', 'fas fa-lock');
                 } else {
                     $('input, button').prop('disabled', false);
-                    btn.find('span').text('Truy cập hệ thống');
+                    btn.find('span').text(loginText.submit);
                     $('#btnIcon').attr('class', 'fas fa-arrow-right');
                 }
             }
@@ -1188,7 +1182,7 @@
 
                 const btn = $('#btnSubmit');
                 btn.prop('disabled', true);
-                btn.find('span').text('Đang xác thực...');
+                btn.find('span').text(loginText.authenticating);
                 $('#btnIcon').attr('class', 'fas fa-spinner fa-spin');
             });
         });

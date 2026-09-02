@@ -1,10 +1,14 @@
 @model CafeChain.Application.DTOs.Admin.RestockRequests.CreateBranchReceiptRequest
 @using CafeChain.Application.DTOs.Admin.RestockRequests
+@using Microsoft.Extensions.Localization
+@using System.Text.Json
+@inject IStringLocalizer<ProcurementResource> L
 @{
-    ViewData["Title"] = "Tạo phiếu nhận hàng";
+    ViewData["Title"] = L["BranchReceipt.Create.Title"];
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var supplierOptions = ViewBag.SupplierOptions as IReadOnlyList<BranchReceiptSupplierOptionDto>
         ?? Array.Empty<BranchReceiptSupplierOptionDto>();
+    string J(string key) => JsonSerializer.Serialize(L[key].Value);
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
@@ -12,12 +16,12 @@
 <main class="ops-shell ops-shell-narrow branch-receipt-page branch-receipt-create-page cc-warehouse-page">
 <header class="ops-header cc-warehouse-header cc-warehouse-header--compact">
         <div>
-            <div class="ops-eyebrow">Phiếu nhận mới · Chi nhánh #@Model.StoreId</div>
-            <h1 class="ops-title">Ghi nhận hàng thực nhận</h1>
-            <p class="ops-subtitle">Lưu bản nháp để kiểm tra số lượng và chi phí. Tồn kho chỉ thay đổi sau bước xác nhận riêng.</p>
+            <div class="ops-eyebrow">@L["BranchReceipt.Create.Eyebrow", Model.StoreId]</div>
+            <h1 class="ops-title">@L["BranchReceipt.Create.Heading"]</h1>
+            <p class="ops-subtitle">@L["BranchReceipt.Create.Subtitle"]</p>
         </div>
         <div class="ops-actions">
-            <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-xmark" aria-hidden="true"></i> Hủy</a>
+            <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-xmark" aria-hidden="true"></i> @L["Common.Cancel"]</a>
         </div>
     </header>
 
@@ -33,27 +37,27 @@
         <input type="hidden" asp-for="ReceiptKey" />
 
         <section class="ops-panel">
-            <div class="ops-panel-header"><h2 class="ops-panel-title">Thông tin chứng từ</h2></div>
+            <div class="ops-panel-header"><h2 class="ops-panel-title">@L["BranchReceipt.Details.DocumentInfo"]</h2></div>
             <div class="ops-panel-body">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="ops-form-label" asp-for="SupplierId">Nhà cung cấp</label>
+                        <label class="ops-form-label" asp-for="SupplierId">@L["Common.Supplier"]</label>
                         <select class="ops-select w-100" asp-for="SupplierId" id="receiptSupplier" required>
-                            <option value="">Chọn nhà cung cấp</option>
+                            <option value="">@L["BranchReceipt.Create.SelectSupplier"]</option>
                             @foreach (var supplier in supplierOptions)
                             {
                                 <option value="@supplier.SupplierId">@supplier.SupplierCode · @supplier.SupplierName</option>
                             }
                         </select>
-                        <div class="ops-help">Chỉ hiển thị Nhà cung cấp đang phục vụ chi nhánh.</div>
+                        <div class="ops-help">@L["BranchReceipt.Create.SupplierHelp"]</div>
                     </div>
                     <div class="col-md-6">
-                        <label class="ops-form-label" asp-for="ReferenceNumber">Số tham chiếu</label>
-                        <input class="ops-input w-100" asp-for="ReferenceNumber" maxlength="100" placeholder="Hóa đơn / vận đơn" />
+                        <label class="ops-form-label" asp-for="ReferenceNumber">@L["BranchReceipt.Details.Reference"]</label>
+                        <input class="ops-input w-100" asp-for="ReferenceNumber" maxlength="100" placeholder="@L["BranchReceipt.Create.ReferencePlaceholder"]" />
                     </div>
                     <div class="col-12">
-                        <label class="ops-form-label" asp-for="Notes">Ghi chú nhận hàng</label>
-                        <textarea class="ops-textarea" asp-for="Notes" maxlength="1000" placeholder="Sai lệch bao bì, tình trạng hàng hoặc thông tin cần đối chiếu..."></textarea>
+                        <label class="ops-form-label" asp-for="Notes">@L["BranchReceipt.Create.ReceiptNotes"]</label>
+                        <textarea class="ops-textarea" asp-for="Notes" maxlength="1000" placeholder="@L["BranchReceipt.Create.NotesPlaceholder"]"></textarea>
                     </div>
                 </div>
             </div>
@@ -61,55 +65,55 @@
 
         <section class="ops-panel">
             <div class="ops-panel-header">
-                <div><h2 class="ops-panel-title">Các dòng nhận</h2><div class="ops-secondary">Nhập đúng số lượng thực tế và giá gói đã xác nhận.</div></div>
+                <div><h2 class="ops-panel-title">@L["BranchReceipt.Create.LinesTitle"]</h2><div class="ops-secondary">@L["BranchReceipt.Create.LinesHelp"]</div></div>
             </div>
             <div class="ops-panel-body">
                 @for (var i = 0; i < Model.Lines.Count; i++)
                 {
                     <div class="ops-line-editor mb-3">
-                        <div class="ops-eyebrow mb-2">Dòng @(i + 1)</div>
+                        <div class="ops-eyebrow mb-2">@L["BranchReceipt.Create.LineNumber", i + 1]</div>
                         <div class="row g-3">
                             <div class="col-lg-3 col-md-6">
-                                <label class="ops-form-label">Yêu cầu nhập <span class="text-danger">*</span></label>
+                                <label class="ops-form-label">@L["BranchReceipt.Create.RestockRequired"] <span class="text-danger">*</span></label>
                                 <input class="ops-input w-100" asp-for="Lines[i].RestockRequestId" type="number" min="1" required />
                                 <input asp-for="Lines[i].PurchaseOrderLineId" type="hidden" />
                             </div>
                             <div class="col-lg-2 col-md-6">
-                                <label class="ops-form-label">Số gói thực nhận <span class="text-danger">*</span></label>
+                                <label class="ops-form-label">@L["BranchReceipt.Create.ActualPackages"] <span class="text-danger">*</span></label>
                                 <input class="ops-input w-100 receipt-actual" asp-for="Lines[i].ActualReceivedQuantity" data-line-index="@i" type="number" step="0.001" min="0.001" required />
                                 <span asp-validation-for="Lines[i].ActualReceivedQuantity" class="text-danger"></span>
                             </div>
                             <div class="col-lg-2 col-md-6">
-                                <label class="ops-form-label">Số gói bị loại</label>
+                                <label class="ops-form-label">@L["BranchReceipt.Create.RejectedPackages"]</label>
                                 <input class="ops-input w-100 receipt-rejected" asp-for="Lines[i].RejectedQuantity" data-line-index="@i" type="number" step="0.001" min="0" />
                                 <span asp-validation-for="Lines[i].RejectedQuantity" class="text-danger"></span>
                             </div>
                             <div class="col-md-6">
-                                <label class="ops-form-label">Loại sự cố khi có hàng bị loại</label>
+                                <label class="ops-form-label">@L["BranchReceipt.Create.IssueType"]</label>
                                 <select class="ops-select w-100 receipt-rejection-type" asp-for="Lines[i].RejectionIssueType" data-line-index="@i">
-                                    <option value="">Không có hàng bị loại</option>
-                                    <option value="QUALITY_FAILURE">Không đạt chất lượng</option>
-                                    <option value="DAMAGED">Hư hỏng</option>
-                                    <option value="EXPIRED">Hết hạn</option>
-                                    <option value="WRONG_ITEM">Sai mặt hàng</option>
-                                    <option value="OTHER">Khác</option>
+                                    <option value="">@L["BranchReceipt.Create.NoRejection"]</option>
+                                    <option value="QUALITY_FAILURE">@L["BranchReceipt.Create.Issue.Quality"]</option>
+                                    <option value="DAMAGED">@L["BranchReceipt.Create.Issue.Damaged"]</option>
+                                    <option value="EXPIRED">@L["BranchReceipt.Create.Issue.Expired"]</option>
+                                    <option value="WRONG_ITEM">@L["BranchReceipt.Create.Issue.WrongItem"]</option>
+                                    <option value="OTHER">@L["BranchReceipt.Create.Issue.Other"]</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="ops-form-label">Lý do loại bỏ</label>
+                                <label class="ops-form-label">@L["BranchReceipt.Create.RejectionReason"]</label>
                                 <input class="ops-input w-100 receipt-rejection-reason" asp-for="Lines[i].RejectionReason" data-line-index="@i" maxlength="500" />
                                 <span asp-validation-for="Lines[i].RejectionReason" class="text-danger"></span>
                             </div>
                             <div class="col-lg-5 col-md-12">
-                                <label class="ops-form-label">Quy cách và giá cung cấp <span class="text-danger">*</span></label>
+                                <label class="ops-form-label">@L["BranchReceipt.Create.Offer"] <span class="text-danger">*</span></label>
                                 <select class="ops-select w-100 receipt-offer"
                                         asp-for="Lines[i].IngredientSupplierId"
                                         data-line-index="@i"
                                         data-current-offer="@Model.Lines[i].IngredientSupplierId"
                                         required>
-                                    <option value="">Nhập mã yêu cầu và chọn nhà cung cấp trước</option>
+                                    <option value="">@L["BranchReceipt.Create.OfferPlaceholder"]</option>
                                 </select>
-                                <div class="ops-help offer-summary" data-line-index="@i">Giá và quy cách hiện hành được lưu cùng phiếu để phục vụ đối chiếu.</div>
+                                <div class="ops-help offer-summary" data-line-index="@i">@L["BranchReceipt.Create.OfferHelp"]</div>
                                 <input asp-for="Lines[i].InputUnitId" type="hidden" />
                                 <input asp-for="Lines[i].ActualPackagePrice" type="hidden" />
                                 <input asp-for="Lines[i].PackageQuantity" type="hidden" />
@@ -119,13 +123,13 @@
                         </div>
                     </div>
                 }
-                <div class="ops-notice ops-notice-info mb-0"><strong>Kiểm soát dữ liệu:</strong> hệ thống đối chiếu số gói, số lượng theo đơn vị mua hàng và giá gói tại thời điểm nhận. Chỉ khi xác nhận phiếu, số lượng chấp nhận mới được quy đổi sang đơn vị tồn kho và ghi vào tồn kho.</div>
+                <div class="ops-notice ops-notice-info mb-0"><strong>@L["BranchReceipt.Create.ControlTitle"]</strong> @L["BranchReceipt.Create.ControlCopy"]</div>
             </div>
         </section>
 
         <div class="ops-actions justify-content-end">
-            <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId">Hủy</a>
-            <button type="submit" class="ops-btn ops-btn-primary" id="saveReceiptButton"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Lưu bản nháp</button>
+            <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId">@L["Common.Cancel"]</a>
+            <button type="submit" class="ops-btn ops-btn-primary" id="saveReceiptButton"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> @L["BranchReceipt.Create.SaveDraft"]</button>
         </div>
     </form>
 </main>
@@ -137,6 +141,19 @@
         const form = document.getElementById('branchReceiptForm');
         const saveButton = document.getElementById('saveReceiptButton');
         const money = new Intl.NumberFormat('vi-VN');
+        const msg = {
+            rejectedExceeds: @Html.Raw(J("BranchReceipt.Create.Js.RejectedExceeds")),
+            selectIssue: @Html.Raw(J("BranchReceipt.Create.Js.SelectIssue")),
+            enterReason: @Html.Raw(J("BranchReceipt.Create.Js.EnterReason")),
+            saving: @Html.Raw(J("BranchReceipt.Create.Js.Saving")),
+            selectOffer: @Html.Raw(J("BranchReceipt.Create.Js.SelectOffer")),
+            loadingOffers: @Html.Raw(J("BranchReceipt.Create.Js.LoadingOffers")),
+            offerPlaceholder: @Html.Raw(J("BranchReceipt.Create.OfferPlaceholder")),
+            loadFailed: @Html.Raw(J("BranchReceipt.Create.Js.LoadFailed")),
+            chooseOffer: @Html.Raw(J("BranchReceipt.Create.Js.ChooseOffer")),
+            noOffers: @Html.Raw(J("BranchReceipt.Create.Js.NoOffers")),
+            offerSummary: @Html.Raw(J("BranchReceipt.Create.Js.OfferSummary"))
+        };
 
         const validateReceiptLine = (index) => {
             const actual = document.querySelector(`.receipt-actual[data-line-index="${index}"]`);
@@ -146,15 +163,9 @@
             const actualValue = Number(actual?.value || 0);
             const rejectedValue = Number(rejected?.value || 0);
 
-            rejected?.setCustomValidity(rejectedValue > actualValue
-                ? 'Số gói bị loại không được vượt số gói thực nhận.'
-                : '');
-            issueType?.setCustomValidity(rejectedValue > 0 && !issueType.value
-                ? 'Chọn loại sự cố cho hàng bị loại.'
-                : '');
-            reason?.setCustomValidity(rejectedValue > 0 && !reason.value.trim()
-                ? 'Nhập lý do loại bỏ.'
-                : '');
+            rejected?.setCustomValidity(rejectedValue > actualValue ? msg.rejectedExceeds : '');
+            issueType?.setCustomValidity(rejectedValue > 0 && !issueType.value ? msg.selectIssue : '');
+            reason?.setCustomValidity(rejectedValue > 0 && !reason.value.trim() ? msg.enterReason : '');
         };
 
         const lineIndexes = [...document.querySelectorAll('.receipt-actual')]
@@ -180,7 +191,7 @@
 
             saveButton.disabled = true;
             saveButton.setAttribute('aria-busy', 'true');
-            saveButton.textContent = 'Đang lưu...';
+            saveButton.textContent = msg.saving;
         });
 
         const updateOfferFields = (select) => {
@@ -193,7 +204,7 @@
             };
 
             if (!option?.dataset.offerId) {
-                summary.textContent = 'Chọn một gói mua hợp lệ để hệ thống chụp giá và quy cách.';
+                summary.textContent = msg.selectOffer;
                 ['InputUnitId', 'ActualPackagePrice', 'PackageQuantity', 'PackageUnitId', 'SupplierId']
                     .forEach(name => setValue(name, ''));
                 return;
@@ -204,7 +215,10 @@
             setValue('PackageQuantity', option.dataset.packageQuantity);
             setValue('ActualPackagePrice', option.dataset.packagePrice);
             setValue('SupplierId', supplier.value);
-            summary.textContent = `${option.dataset.packageDisplay} · ${money.format(Number(option.dataset.packagePrice))} ₫/gói · Tối thiểu ${option.dataset.moq} gói`;
+            summary.textContent = msg.offerSummary
+                .replace('{0}', option.dataset.packageDisplay)
+                .replace('{1}', money.format(Number(option.dataset.packagePrice)))
+                .replace('{2}', option.dataset.moq);
         };
 
         const loadOffers = async (select) => {
@@ -212,11 +226,11 @@
             const requestInput = document.querySelector(`[name="Lines[${index}].RestockRequestId"]`);
             const supplierId = supplier.value;
             const requestId = requestInput?.value;
-            select.innerHTML = '<option value="">Đang tải gói mua...</option>';
+            select.innerHTML = `<option value="">${msg.loadingOffers}</option>`;
             select.disabled = true;
 
             if (!supplierId || !requestId) {
-                select.innerHTML = '<option value="">Nhập mã yêu cầu và chọn nhà cung cấp trước</option>';
+                select.innerHTML = `<option value="">${msg.offerPlaceholder}</option>`;
                 select.disabled = false;
                 updateOfferFields(select);
                 return;
@@ -226,9 +240,9 @@
                 const url = `@Url.Action("OfferOptions", "AdminBranchReceipts", new { area = "Admin" })?storeId=${storeId}&supplierId=${supplierId}&restockRequestId=${requestId}`;
                 const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
                 const payload = await response.json();
-                if (!response.ok || !payload.success) throw new Error(payload.message || 'Không tải được gói mua.');
+                if (!response.ok || !payload.success) throw new Error(payload.message || msg.loadFailed);
 
-                select.innerHTML = '<option value="">Chọn gói mua</option>';
+                select.innerHTML = `<option value="">${msg.chooseOffer}</option>`;
                 for (const offer of payload.data ?? []) {
                     const option = document.createElement('option');
                     option.value = offer.ingredientSupplierId;
@@ -242,7 +256,7 @@
                     select.appendChild(option);
                 }
                 if ((payload.data ?? []).length === 0) {
-                    select.innerHTML = '<option value="">Không có quy cách mua đang hoạt động cho nguyên liệu này</option>';
+                    select.innerHTML = `<option value="">${msg.noOffers}</option>`;
                 } else if (select.dataset.currentOffer) {
                     select.value = select.dataset.currentOffer;
                 }

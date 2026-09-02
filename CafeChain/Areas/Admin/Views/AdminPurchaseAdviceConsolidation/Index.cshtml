@@ -2,19 +2,22 @@
 @using CafeChain.Application.DTOs.Admin.Procurement
 @using CafeChain.Models.Enums.Inventory
 @using CafeChain.ViewModels.Admin.Shared
+@using Microsoft.Extensions.Localization
+@using System.Text.Json
 @model PurchaseAdviceConsolidationPageDto
+@inject IStringLocalizer<ProcurementResource> L
 @{
-    ViewData["Title"] = "Tổng hợp đề nghị mua";
+    ViewData["Title"] = L["Consolidation.Title"];
     var canConsolidate = ViewBag.CanConsolidate is true;
     var canUseSupplierIntelligence = ViewBag.CanUseSupplierIntelligence is true;
     var preview = ViewBag.Preview as PurchaseAdviceConsolidationPreviewDto;
     var createsConsolidatedOrder = preview?.LineCount > 1;
     var createOrderLabel = createsConsolidatedOrder
-        ? "Tạo đơn đặt hàng gộp"
-        : "Tạo đơn đặt hàng";
+        ? L["Consolidation.CreateConsolidated"].Value
+        : L["Consolidation.CreateSingle"].Value;
     var creatingOrderLabel = createsConsolidatedOrder
-        ? "Đang tạo đơn đặt hàng gộp..."
-        : "Đang tạo đơn đặt hàng...";
+        ? L["Consolidation.CreatingConsolidated"].Value
+        : L["Consolidation.CreatingSingle"].Value;
     var selectedIds = ViewBag.SelectedLineIds as int[] ?? Array.Empty<int>();
     var selectedSupplierId = ViewBag.SelectedSupplierId as int?;
     var submittedSelections = ViewBag.SubmittedSelections as IReadOnlyDictionary<int, PurchaseAdviceConsolidationSelectionRequest>
@@ -25,29 +28,29 @@
 <main class="pa-page pa-consolidation-page cc-warehouse-page">
     <header class="pa-header cc-warehouse-header">
         <div>
-            <div class="pa-eyebrow">Kho &amp; Cung ứng / Mua hàng</div>
-            <h1>Tổng hợp đề nghị mua</h1>
-            <p class="pa-subtitle">Kiểm tra nhu cầu, quy cách mua và phân bổ đơn đặt hàng về đúng từng chi nhánh.</p>
+            <div class="pa-eyebrow">@L["Consolidation.Eyebrow"]</div>
+            <h1>@L["Consolidation.Title"]</h1>
+            <p class="pa-subtitle">@L["Consolidation.Subtitle"]</p>
         </div>
         <div class="pa-actions">
-            <a class="pa-action" asp-controller="AdminPurchaseOrderBatches" asp-action="Index"><i class="fas fa-boxes-stacked"></i> Đơn đặt hàng gộp</a>
-            <a class="pa-action" asp-controller="AdminPurchaseAdvices" asp-action="Index"><i class="fas fa-arrow-left"></i> Danh sách đề nghị</a>
+            <a class="pa-action" asp-controller="AdminPurchaseOrderBatches" asp-action="Index"><i class="fas fa-boxes-stacked"></i> @L["Consolidation.ActionOrders"]</a>
+            <a class="pa-action" asp-controller="AdminPurchaseAdvices" asp-action="Index"><i class="fas fa-arrow-left"></i> @L["Consolidation.ActionAdvices"]</a>
         </div>
     </header>
 
     @if (TempData["Error"] is string error) { <div class="pa-alert" role="alert">@error</div> }
     @if (TempData["Success"] is string success) { <div class="pa-alert pa-alert-success" role="status">@success</div> }
-    @if (ViewBag.PreviewError is string previewError) { <div class="pa-alert" role="alert">@previewError <span class="pa-alert-help">Các giá trị vừa nhập vẫn được giữ để bạn điều chỉnh.</span></div> }
+    @if (ViewBag.PreviewError is string previewError) { <div class="pa-alert" role="alert">@previewError <span class="pa-alert-help">@L["Consolidation.PreviewErrorHelp"]</span></div> }
 
     <form method="get" class="pa-band pa-filter-grid pa-filter-grid-wide cc-warehouse-filter">
-        <div class="pa-field"><label>Chi nhánh</label><select name="storeId"><option value="">Tất cả</option>@foreach (var item in Model.Stores) { <option value="@item.Id" selected="@(Model.Filter.StoreId == item.Id)">@item.Label</option> }</select></div>
-        <div class="pa-field"><label>Khu vực</label><select name="areaId"><option value="">Tất cả</option>@foreach (var item in Model.Areas) { <option value="@item.Id" selected="@(Model.Filter.AreaId == item.Id)">@item.Label</option> }</select></div>
-        <div class="pa-field"><label>Trạng thái</label><select name="status"><option value="">Đã gửi + Đang xem xét</option><option value="@PurchaseAdviceStatuses.Submitted" selected="@(Model.Filter.Status == PurchaseAdviceStatuses.Submitted)">Đã gửi</option><option value="@PurchaseAdviceStatuses.UnderReview" selected="@(Model.Filter.Status == PurchaseAdviceStatuses.UnderReview)">Đang xem xét</option></select></div>
-        <div class="pa-field"><label>Cần trước ngày</label><input type="date" name="neededByDate" lang="vi" value="@Model.Filter.NeededByDate?.ToString("yyyy-MM-dd")" /></div>
-        <div class="pa-field"><label>Nguyên liệu</label><select name="ingredientId"><option value="">Tất cả</option>@foreach (var item in Model.Ingredients) { <option value="@item.Id" selected="@(Model.Filter.IngredientId == item.Id)">@item.Label</option> }</select></div>
-        <div class="pa-field"><label>Ưu tiên</label><select name="priority"><option value="">Tất cả</option>@foreach (var value in PurchaseAdvicePriorities.All) { <option value="@value" selected="@(Model.Filter.Priority == value)">@AdminStatusDisplay.PurchaseAdvicePriority(value).Label</option> }</select></div>
-        <div class="pa-field"><label>Nhà cung cấp phù hợp</label><select name="supplierId"><option value="">Tất cả</option>@foreach (var item in Model.Suppliers) { <option value="@item.Id" selected="@(Model.Filter.SupplierId == item.Id)">@item.Label</option> }</select></div>
-        <div class="pa-field pa-field-button"><label class="pa-field-spacer">&nbsp;</label><button class="pa-action" type="submit"><i class="fas fa-filter"></i> Lọc</button></div>
+        <div class="pa-field"><label>@L["Consolidation.Filter.Store"]</label><select name="storeId"><option value="">@L["Consolidation.Filter.All"]</option>@foreach (var item in Model.Stores) { <option value="@item.Id" selected="@(Model.Filter.StoreId == item.Id)">@item.Label</option> }</select></div>
+        <div class="pa-field"><label>@L["Consolidation.Filter.Area"]</label><select name="areaId"><option value="">@L["Consolidation.Filter.All"]</option>@foreach (var item in Model.Areas) { <option value="@item.Id" selected="@(Model.Filter.AreaId == item.Id)">@item.Label</option> }</select></div>
+        <div class="pa-field"><label>@L["Consolidation.Filter.Status"]</label><select name="status"><option value="">@L["Consolidation.Filter.StatusAll"]</option><option value="@PurchaseAdviceStatuses.Submitted" selected="@(Model.Filter.Status == PurchaseAdviceStatuses.Submitted)">@L["Consolidation.Filter.StatusSubmitted"]</option><option value="@PurchaseAdviceStatuses.UnderReview" selected="@(Model.Filter.Status == PurchaseAdviceStatuses.UnderReview)">@L["Consolidation.Filter.StatusUnderReview"]</option></select></div>
+        <div class="pa-field"><label>@L["Consolidation.Filter.NeededBy"]</label><input type="date" name="neededByDate" value="@Model.Filter.NeededByDate?.ToString("yyyy-MM-dd")" /></div>
+        <div class="pa-field"><label>@L["Consolidation.Filter.Ingredient"]</label><select name="ingredientId"><option value="">@L["Consolidation.Filter.All"]</option>@foreach (var item in Model.Ingredients) { <option value="@item.Id" selected="@(Model.Filter.IngredientId == item.Id)">@item.Label</option> }</select></div>
+        <div class="pa-field"><label>@L["Consolidation.Filter.Priority"]</label><select name="priority"><option value="">@L["Consolidation.Filter.All"]</option>@foreach (var value in PurchaseAdvicePriorities.All) { <option value="@value" selected="@(Model.Filter.Priority == value)">@AdminStatusDisplay.PurchaseAdvicePriority(value).Label</option> }</select></div>
+        <div class="pa-field"><label>@L["Consolidation.Filter.Supplier"]</label><select name="supplierId"><option value="">@L["Consolidation.Filter.All"]</option>@foreach (var item in Model.Suppliers) { <option value="@item.Id" selected="@(Model.Filter.SupplierId == item.Id)">@item.Label</option> }</select></div>
+        <div class="pa-field pa-field-button"><label class="pa-field-spacer">&nbsp;</label><button class="pa-action" type="submit"><i class="fas fa-filter"></i> @L["Consolidation.Filter.Apply"]</button></div>
     </form>
 
     <div class="pa-workspace">
@@ -56,21 +59,21 @@
                 @Html.AntiForgeryToken()
                 <div class="pa-band pa-actions pa-consolidation-toolbar">
                     <div class="pa-field pa-grow">
-                        <label for="supplier-select">Nhà cung cấp</label>
+                        <label for="supplier-select">@L["Consolidation.Toolbar.SupplierLabel"]</label>
                         <select name="SupplierId" id="supplier-select" required disabled="@(!canConsolidate)">
-                            <option value="">Chọn nhà cung cấp</option>
+                            <option value="">@L["Consolidation.Toolbar.SelectSupplier"]</option>
                             @foreach (var item in Model.Suppliers) { <option value="@item.Id" selected="@(selectedSupplierId == item.Id)">@item.Label</option> }
                         </select>
                     </div>
-                    <div class="pa-toolbar-copy"><strong id="pa-queue-title">Đề nghị chờ tổng hợp</strong><span>Hệ thống sẽ kiểm tra lại giá, số lượng đặt tối thiểu, quy đổi và phạm vi phục vụ chi nhánh.</span></div>
-                    <button class="pa-action pa-action-primary" type="submit" disabled="@(!canConsolidate)" data-submit-label="Đang kiểm tra..."><i class="fas fa-layer-group"></i> Kiểm tra bản tổng hợp</button>
+                    <div class="pa-toolbar-copy"><strong id="pa-queue-title">@L["Consolidation.Toolbar.QueueTitle"]</strong><span>@L["Consolidation.Toolbar.Hint"]</span></div>
+                    <button class="pa-action pa-action-primary" type="submit" disabled="@(!canConsolidate)" data-submit-label="@L["Consolidation.Toolbar.Checking"]"><i class="fas fa-layer-group"></i> @L["Consolidation.Toolbar.CheckPreview"]</button>
                 </div>
 
                 <div class="pa-table-wrap cc-warehouse-table-shell">
                     <table class="pa-table pa-consolidation-table">
-                        <thead><tr><th>Chọn</th><th>Đề nghị / chi nhánh</th><th>Nguyên liệu</th><th>Số lượng còn cần đặt</th><th>Ngày cần hàng</th><th>Quy cách và giá cung cấp</th><th>Hình thức / số lượng</th></tr></thead>
+                        <thead><tr><th>@L["Consolidation.Table.ColSelect"]</th><th>@L["Consolidation.Table.ColAdviceStore"]</th><th>@L["Consolidation.Table.ColIngredient"]</th><th>@L["Consolidation.Table.ColRemainingQty"]</th><th>@L["Consolidation.Table.ColNeededDate"]</th><th>@L["Consolidation.Table.ColOffer"]</th><th>@L["Consolidation.Table.ColModeQty"]</th></tr></thead>
                         <tbody>
-                        @if (Model.Lines.Count == 0) { <tr><td colspan="7" class="pa-empty" role="status"><i class="fas fa-inbox"></i><strong>Không có đề nghị mua sẵn sàng tổng hợp</strong><span>Hãy kiểm tra bộ lọc hoặc trạng thái đề nghị.</span></td></tr> }
+                        @if (Model.Lines.Count == 0) { <tr><td colspan="7" class="pa-empty" role="status"><i class="fas fa-inbox"></i><strong>@L["Consolidation.EmptyTitle"]</strong><span>@L["Consolidation.EmptyCopy"]</span></td></tr> }
                         @for (var i = 0; i < Model.Lines.Count; i++)
                         {
                             var line = Model.Lines[i];
@@ -99,18 +102,18 @@
                                 initialMode = PurchaseMode.Packaged;
                             var initialLooseQuantity = submitted?.OrderedProcurementQuantity ?? planningRemaining;
                             <tr data-line data-store-id="@line.StoreId" data-ingredient-id="@line.IngredientId" data-required-base="@line.RemainingToOrderBaseQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-compatible="@string.Join(',', line.CompatibleSupplierIds)" data-remaining="@planningRemaining.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-plan-unit="@planningUnitLabel" data-procurement="@hasProcurementContract.ToString().ToLowerInvariant()" class="@(isSelected ? "pa-row-selected" : string.Empty)">
-                                <td><input class="pa-check line-check" type="checkbox" name="selectedLineIds" value="@line.PurchaseAdviceLineId" checked="@isSelected" disabled="@(!canConsolidate || offers.Count == 0)" aria-label="Chọn @line.IngredientName từ @line.StoreName" /></td>
-                                <td><a class="pa-code" asp-controller="AdminPurchaseAdvices" asp-action="Details" asp-route-id="@line.PurchaseAdviceId">@line.AdviceNumber</a><div class="pa-muted">@line.StoreName · Yêu cầu nhập hàng #@line.RestockRequestId</div><input type="hidden" name="Lines[@i].PurchaseAdviceLineId" value="@line.PurchaseAdviceLineId" /><input type="hidden" name="Lines[@i].RowVersion" value="@line.RowVersion" /></td>
+                                <td><input class="pa-check line-check" type="checkbox" name="selectedLineIds" value="@line.PurchaseAdviceLineId" checked="@isSelected" disabled="@(!canConsolidate || offers.Count == 0)" aria-label="@L["Consolidation.RowAria", line.IngredientName, line.StoreName]" /></td>
+                                <td><a class="pa-code" asp-controller="AdminPurchaseAdvices" asp-action="Details" asp-route-id="@line.PurchaseAdviceId">@line.AdviceNumber</a><div class="pa-muted">@line.StoreName · @L["Consolidation.RestockRequestId", line.RestockRequestId]</div><input type="hidden" name="Lines[@i].PurchaseAdviceLineId" value="@line.PurchaseAdviceLineId" /><input type="hidden" name="Lines[@i].RowVersion" value="@line.RowVersion" /></td>
                                 <td><strong>@line.IngredientName</strong><div class="pa-muted">@planningUnitLabel · @AdminStatusDisplay.PurchaseAdvicePriority(line.Priority).Label</div></td>
                                 <td>
                                     <strong>@AdminStatusDisplay.Quantity(planningRemaining) @planningUnitLabel</strong>
-                                    <div class="pa-muted">Đã đưa vào đơn @(hasProcurementContract ? AdminStatusDisplay.Quantity(line.AllocatedToPoProcurementQuantity.GetValueOrDefault()) + " " + AdminStatusDisplay.Unit(line.ProcurementUnitName) : AdminStatusDisplay.Quantity(line.AllocatedToPoBaseQuantity) + " " + AdminStatusDisplay.Unit(line.BaseUnitName))</div>
-                                    @if (hasProcurementContract) { <div class="pa-muted">Tồn kho chỉ quy đổi khi xác nhận nhập.</div> }
+                                    <div class="pa-muted">@L["Consolidation.IncludedInOrder", hasProcurementContract ? AdminStatusDisplay.Quantity(line.AllocatedToPoProcurementQuantity.GetValueOrDefault()) + " " + AdminStatusDisplay.Unit(line.ProcurementUnitName) : AdminStatusDisplay.Quantity(line.AllocatedToPoBaseQuantity) + " " + AdminStatusDisplay.Unit(line.BaseUnitName)]</div>
+                                    @if (hasProcurementContract) { <div class="pa-muted">@L["Consolidation.ImportConversionNote"]</div> }
                                 </td>
                                 <td>@AdminStatusDisplay.Date(line.NeededByDate)</td>
                                 <td>
                                     <select class="offer-select" name="Lines[@i].IngredientSupplierId" disabled="@(!canConsolidate)">
-                                        <option value="">Chọn quy cách cung cấp</option>
+                                        <option value="">@L["Consolidation.OfferSelectPlaceholder"]</option>
                                         @foreach (var offer in offers)
                                         {
                                             var packageContentUnitLabel = hasProcurementContract
@@ -118,25 +121,25 @@
                                                 : AdminStatusDisplay.Unit(line.BaseUnitName);
                                             var looseUnitLabel = AdminStatusDisplay.Unit(offer.LooseProcurementUnitName);
                                             <option value="@offer.IngredientSupplierId" data-supplier="@offer.SupplierId" data-package-base="@offer.PackageBaseQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-package-proc="@offer.PackageProcurementQuantity?.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-allows-loose="@offer.AllowsLoosePurchase.ToString().ToLowerInvariant()" data-loose-unit="@looseUnitLabel" data-loose-price="@offer.CurrentProcurementUnitPrice?.ToString(System.Globalization.CultureInfo.InvariantCulture)" selected="@(initialOffer?.IngredientSupplierId == offer.IngredientSupplierId)">
-                                                @offer.SupplierName · @(offer.PackageQuantity > 0 ? $"1 gói = {AdminStatusDisplay.Quantity(hasProcurementContract && offer.PackageProcurementQuantity.HasValue ? offer.PackageProcurementQuantity.Value : offer.PackageBaseQuantity)} {packageContentUnitLabel} · {AdminStatusDisplay.Currency(offer.CurrentPackagePrice)}/gói" : "Không có quy cách đóng gói")@(offer.AllowsLoosePurchase ? $" · mua rời {AdminStatusDisplay.Currency(offer.CurrentProcurementUnitPrice.GetValueOrDefault())}/{looseUnitLabel}" : string.Empty) · giao trong @offer.LeadTimeDays ngày
+                                                @offer.SupplierName · @(offer.PackageQuantity > 0 ? L["Consolidation.OfferOption.Package", AdminStatusDisplay.Quantity(hasProcurementContract && offer.PackageProcurementQuantity.HasValue ? offer.PackageProcurementQuantity.Value : offer.PackageBaseQuantity), packageContentUnitLabel, AdminStatusDisplay.Currency(offer.CurrentPackagePrice)].Value : L["Consolidation.OfferOption.NoPackage"].Value)@(offer.AllowsLoosePurchase ? $" · {L["Consolidation.OfferOption.Loose", AdminStatusDisplay.Currency(offer.CurrentProcurementUnitPrice.GetValueOrDefault()), looseUnitLabel]}" : string.Empty) · @L["Consolidation.OfferOption.LeadTime", offer.LeadTimeDays]
                                             </option>
                                         }
                                     </select>
                                     @if (canUseSupplierIntelligence)
                                     {
-                                        <button class="pa-action supplier-intelligence-button" type="button" disabled="@(!canConsolidate || offers.Count == 0)"><i class="fas fa-scale-balanced"></i> So sánh nhà cung cấp</button>
+                                        <button class="pa-action supplier-intelligence-button" type="button" disabled="@(!canConsolidate || offers.Count == 0)"><i class="fas fa-scale-balanced"></i> @L["Consolidation.CompareSupplier"]</button>
                                     }
                                     <div class="pa-muted supplier-intelligence-result" role="status"></div>
-                                    @if (offers.Count == 0) { <div class="pa-inline-warning">Chưa có quy cách cung cấp hoặc Nhà cung cấp chưa phục vụ chi nhánh này.</div> }
+                                    @if (offers.Count == 0) { <div class="pa-inline-warning">@L["Consolidation.NoOfferOrScope"]</div> }
                                 </td>
                                 <td>
                                     <select class="purchase-mode mb-2" name="Lines[@i].PurchaseMode" disabled="@(!canConsolidate || !hasProcurementContract)">
-                                        <option value="@PurchaseMode.Packaged" selected="@(initialMode == PurchaseMode.Packaged)">Đóng gói</option>
-                                        <option value="@PurchaseMode.Loose" selected="@(initialMode == PurchaseMode.Loose)" disabled="@(initialOffer?.AllowsLoosePurchase != true)">Mua rời</option>
+                                        <option value="@PurchaseMode.Packaged" selected="@(initialMode == PurchaseMode.Packaged)">@L["Consolidation.PurchaseMode.Package"]</option>
+                                        <option value="@PurchaseMode.Loose" selected="@(initialMode == PurchaseMode.Loose)" disabled="@(initialOffer?.AllowsLoosePurchase != true)">@L["Consolidation.PurchaseMode.Loose"]</option>
                                     </select>
-                                    <input class="pack-count" type="number" name="Lines[@i].PackageCount" value="@(submitted?.PackageCount ?? suggestedPackageCount)" min="1" step="1" readonly disabled="@(!canConsolidate || initialMode == PurchaseMode.Loose)" aria-label="Số gói đề xuất cho @line.IngredientName" />
-                                    <input class="loose-quantity" type="number" name="Lines[@i].OrderedProcurementQuantity" value="@initialLooseQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" min="0.001" max="@planningRemaining.ToString(System.Globalization.CultureInfo.InvariantCulture)" step="0.001" disabled="@(!canConsolidate || initialMode != PurchaseMode.Loose)" aria-label="Số lượng mua rời cho @line.IngredientName" />
-                                    <div class="pa-muted pack-math">Tự tính theo phần còn cần và quy cách.</div>
+                                    <input class="pack-count" type="number" name="Lines[@i].PackageCount" value="@(submitted?.PackageCount ?? suggestedPackageCount)" min="1" step="1" readonly disabled="@(!canConsolidate || initialMode == PurchaseMode.Loose)" aria-label="@L["Consolidation.PackCountAria", line.IngredientName]" />
+                                    <input class="loose-quantity" type="number" name="Lines[@i].OrderedProcurementQuantity" value="@initialLooseQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" min="0.001" max="@planningRemaining.ToString(System.Globalization.CultureInfo.InvariantCulture)" step="0.001" disabled="@(!canConsolidate || initialMode != PurchaseMode.Loose)" aria-label="@L["Consolidation.LooseQtyAria", line.IngredientName]" />
+                                    <div class="pa-muted pack-math">@L["Consolidation.AutoComputeHint"]</div>
                                 </td>
                             </tr>
                         }
@@ -151,28 +154,28 @@
             {
                 <div class="pa-band pa-draft-empty">
                     <i class="fas fa-file-circle-plus"></i>
-                    <h2>Bản nháp đơn đặt hàng</h2>
-                    <p>Chọn đề nghị, Nhà cung cấp và quy cách cung cấp để xem phân bổ theo chi nhánh trước khi tạo đơn đặt hàng.</p>
+                    <h2>@L["Consolidation.DraftTitle"]</h2>
+                    <p>@L["Consolidation.DraftHint"]</p>
                 </div>
             }
             else
             {
                 <div class="pa-band pa-preview">
-                    <div class="pa-preview-heading"><div><div class="pa-eyebrow">Bản tổng hợp hợp lệ</div><h2>@preview.SupplierName</h2></div><div class="pa-preview-total">@AdminStatusDisplay.Currency(preview.TotalAmount)</div></div>
-                    <div class="pa-summary-grid"><div class="pa-kpi"><span>Chi nhánh</span><strong>@preview.StoreCount</strong></div><div class="pa-kpi"><span>Dòng đề nghị</span><strong>@preview.LineCount</strong></div><div class="pa-kpi"><span>Nhóm mua</span><strong>@preview.Groups.Count</strong></div><div class="pa-kpi"><span>Trạng thái</span><strong>Chờ tạo</strong></div></div>
+                    <div class="pa-preview-heading"><div><div class="pa-eyebrow">@L["Consolidation.PreviewHeading"]</div><h2>@preview.SupplierName</h2></div><div class="pa-preview-total">@AdminStatusDisplay.Currency(preview.TotalAmount)</div></div>
+                    <div class="pa-summary-grid"><div class="pa-kpi"><span>@L["Consolidation.Kpi.Store"]</span><strong>@preview.StoreCount</strong></div><div class="pa-kpi"><span>@L["Consolidation.Kpi.Line"]</span><strong>@preview.LineCount</strong></div><div class="pa-kpi"><span>@L["Consolidation.Kpi.Group"]</span><strong>@preview.Groups.Count</strong></div><div class="pa-kpi"><span>@L["Consolidation.Kpi.Status"]</span><strong>@L["Consolidation.Kpi.StatusPending"]</strong></div></div>
                     @foreach (var warning in preview.Warnings) { <div class="pa-inline-warning"><i class="fas fa-triangle-exclamation"></i> @warning</div> }
                     @foreach (var group in preview.Groups)
                     {
                         <div class="pa-preview-group">
-                            <div class="pa-preview-group-head"><div><strong>@group.IngredientName</strong><div class="pa-muted">@(group.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Loose ? $"Mua rời theo {AdminStatusDisplay.Unit(group.ProcurementUnitName)}" : $"{AdminStatusDisplay.Quantity(group.PackageQuantity.GetValueOrDefault())} {AdminStatusDisplay.Unit(group.PackageUnitName)}/gói · tối thiểu {group.MinimumOrderPackageCount} gói") · giao trong @group.LeadTimeDays ngày</div></div><strong>@AdminStatusDisplay.Currency(group.LineTotal)</strong></div>
-                            <div class="pa-package-line">@if (group.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Packaged) { <span>@AdminStatusDisplay.Quantity(group.PackageCount.GetValueOrDefault()) gói</span><span>@AdminStatusDisplay.Currency(group.PackagePriceSnapshot.GetValueOrDefault())/gói</span> } else { <span>@AdminStatusDisplay.Currency(group.UnitPricePerProcurementUnit.GetValueOrDefault())/@AdminStatusDisplay.Unit(group.ProcurementUnitName)</span> }@if (group.OrderedProcurementQuantity.HasValue) { <span>Đặt @AdminStatusDisplay.Quantity(group.OrderedProcurementQuantity.Value) @AdminStatusDisplay.Unit(group.ProcurementUnitName)</span> } else { <span>Đặt @AdminStatusDisplay.Quantity(group.OrderedBaseQuantity) đơn vị cơ sở</span> }</div>
-                            <div class="pa-package-line">@if (group.DemandCoveredProcurementQuantity.HasValue) { <span>Phủ @AdminStatusDisplay.Quantity(group.DemandCoveredProcurementQuantity.Value) @AdminStatusDisplay.Unit(group.ProcurementUnitName)</span><span>Dư quy cách @AdminStatusDisplay.Quantity(group.RoundingSurplusProcurementQuantity.GetValueOrDefault()) @AdminStatusDisplay.Unit(group.ProcurementUnitName)</span> } else { <span>Phủ nhu cầu @AdminStatusDisplay.Quantity(group.DemandCoveredBaseQuantity)</span><span>Dư quy cách @AdminStatusDisplay.Quantity(group.RoundingSurplusBaseQuantity)</span> }</div>
+                            <div class="pa-preview-group-head"><div><strong>@group.IngredientName</strong><div class="pa-muted">@(group.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Loose ? L["Consolidation.GroupHead.Loose", AdminStatusDisplay.Unit(group.ProcurementUnitName)].Value : L["Consolidation.GroupHead.Package", AdminStatusDisplay.Quantity(group.PackageQuantity.GetValueOrDefault()), AdminStatusDisplay.Unit(group.PackageUnitName), group.MinimumOrderPackageCount].Value) · @L["Consolidation.GroupHead.LeadTime", group.LeadTimeDays]</div></div><strong>@AdminStatusDisplay.Currency(group.LineTotal)</strong></div>
+                            <div class="pa-package-line">@if (group.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Packaged) { <span>@AdminStatusDisplay.Quantity(group.PackageCount.GetValueOrDefault()) @L["Consolidation.PackageLine"]</span><span>@L["Consolidation.PricePerPack", AdminStatusDisplay.Currency(group.PackagePriceSnapshot.GetValueOrDefault())]</span> } else { <span>@AdminStatusDisplay.Currency(group.UnitPricePerProcurementUnit.GetValueOrDefault())/@AdminStatusDisplay.Unit(group.ProcurementUnitName)</span> }@if (group.OrderedProcurementQuantity.HasValue) { <span>@L["Consolidation.Allocation.Order"] @AdminStatusDisplay.Quantity(group.OrderedProcurementQuantity.Value) @AdminStatusDisplay.Unit(group.ProcurementUnitName)</span> } else { <span>@L["Consolidation.OrderBaseUnits", AdminStatusDisplay.Quantity(group.OrderedBaseQuantity)]</span> }</div>
+                            <div class="pa-package-line">@if (group.DemandCoveredProcurementQuantity.HasValue) { <span>@L["Consolidation.Coverage.Cover", $"{AdminStatusDisplay.Quantity(group.DemandCoveredProcurementQuantity.Value)} {AdminStatusDisplay.Unit(group.ProcurementUnitName)}"]</span><span>@L["Consolidation.Coverage.Excess", $"{AdminStatusDisplay.Quantity(group.RoundingSurplusProcurementQuantity.GetValueOrDefault())} {AdminStatusDisplay.Unit(group.ProcurementUnitName)}"]</span> } else { <span>@L["Consolidation.Coverage.CoverDemand", AdminStatusDisplay.Quantity(group.DemandCoveredBaseQuantity)]</span><span>@L["Consolidation.Coverage.Excess", AdminStatusDisplay.Quantity(group.RoundingSurplusBaseQuantity)]</span> }</div>
                             <div class="pa-allocation-list">
                                 @foreach (var allocation in group.Allocations)
                                 {
                                     <div>
-                                        <span>@allocation.StoreName · Yêu cầu nhập #@allocation.RestockRequestId</span>
-                                    <strong>@if (allocation.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Packaged) { <span>@allocation.PackageCount gói</span> } @if (allocation.OrderedProcurementQuantity.HasValue) { <span>· đặt @AdminStatusDisplay.Quantity(allocation.OrderedProcurementQuantity.Value) @AdminStatusDisplay.Unit(allocation.ProcurementUnitName), phủ @AdminStatusDisplay.Quantity(allocation.DemandCoveredProcurementQuantity.GetValueOrDefault()) @AdminStatusDisplay.Unit(allocation.ProcurementUnitName), dư @AdminStatusDisplay.Quantity(allocation.RoundingSurplusProcurementQuantity.GetValueOrDefault()) @AdminStatusDisplay.Unit(allocation.ProcurementUnitName)</span> } else { <span>· đặt @AdminStatusDisplay.Quantity(allocation.OrderedBaseQuantity), phủ @AdminStatusDisplay.Quantity(allocation.DemandCoveredBaseQuantity), dư @AdminStatusDisplay.Quantity(allocation.RoundingSurplusBaseQuantity)</span> }</strong>
+                                        <span>@allocation.StoreName · @L["Consolidation.Allocation.RestockRequest", allocation.RestockRequestId]</span>
+                                    <strong>@if (allocation.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Packaged) { <span>@allocation.PackageCount @L["Consolidation.PackageLine"]</span> } @if (allocation.OrderedProcurementQuantity.HasValue) { <span>· @L["Consolidation.Allocation.Order"] @AdminStatusDisplay.Quantity(allocation.OrderedProcurementQuantity.Value) @AdminStatusDisplay.Unit(allocation.ProcurementUnitName), @L["Consolidation.Allocation.Cover"] @AdminStatusDisplay.Quantity(allocation.DemandCoveredProcurementQuantity.GetValueOrDefault()) @AdminStatusDisplay.Unit(allocation.ProcurementUnitName), @L["Consolidation.Allocation.Excess"] @AdminStatusDisplay.Quantity(allocation.RoundingSurplusProcurementQuantity.GetValueOrDefault()) @AdminStatusDisplay.Unit(allocation.ProcurementUnitName)</span> } else { <span>· @L["Consolidation.Allocation.Order"] @AdminStatusDisplay.Quantity(allocation.OrderedBaseQuantity), @L["Consolidation.Allocation.Cover"] @AdminStatusDisplay.Quantity(allocation.DemandCoveredBaseQuantity), @L["Consolidation.Allocation.Excess"] @AdminStatusDisplay.Quantity(allocation.RoundingSurplusBaseQuantity)</span> }</strong>
                                     </div>
                                 }
                             </div>
@@ -208,11 +211,11 @@
                             }
                         }
                         <div class="pa-delivery-grid">
-                            <div class="pa-field"><label>Giao từ ngày</label><input type="date" name="ExpectedDeliveryFrom" lang="vi" value="@preview.Groups.SelectMany(x => x.Allocations).Min(x => x.NeededByDate).ToString("yyyy-MM-dd")" required /><span class="pa-muted">Ngày/tháng/năm</span></div>
-                            <div class="pa-field"><label>Đến ngày</label><input type="date" name="ExpectedDeliveryTo" lang="vi" value="@preview.Groups.SelectMany(x => x.Allocations).Max(x => x.NeededByDate).ToString("yyyy-MM-dd")" required /><span class="pa-muted">Ngày/tháng/năm</span></div>
+                            <div class="pa-field"><label>@L["Consolidation.Delivery.FromLabel"]</label><input type="date" name="ExpectedDeliveryFrom" value="@preview.Groups.SelectMany(x => x.Allocations).Min(x => x.NeededByDate).ToString("yyyy-MM-dd")" required /><span class="pa-muted">@L["Consolidation.Delivery.DateFormatHelp"]</span></div>
+                            <div class="pa-field"><label>@L["Consolidation.Delivery.ToLabel"]</label><input type="date" name="ExpectedDeliveryTo" value="@preview.Groups.SelectMany(x => x.Allocations).Max(x => x.NeededByDate).ToString("yyyy-MM-dd")" required /><span class="pa-muted">@L["Consolidation.Delivery.DateFormatHelp"]</span></div>
                         </div>
-                        <div class="pa-field"><label>Ghi chú cho đơn đặt hàng</label><textarea name="Note" rows="2" maxlength="1000" placeholder="Điều kiện giao hàng hoặc lưu ý chung..."></textarea></div>
-                        <div class="pa-create-warning"><i class="fas fa-lock"></i> Khi tạo, hệ thống khóa và kiểm tra lại số lượng còn cần đặt, giá, số lượng tối thiểu và phạm vi phục vụ chi nhánh.</div>
+                        <div class="pa-field"><label>@L["Consolidation.OrderNotesLabel"]</label><textarea name="Note" rows="2" maxlength="1000" placeholder="@L["Consolidation.OrderNotesPlaceholder"]"></textarea></div>
+                        <div class="pa-create-warning"><i class="fas fa-lock"></i> @L["Consolidation.CreateWarning"]</div>
                         <button class="pa-action pa-action-primary pa-action-block" type="submit" data-submit-label="@creatingOrderLabel"><i class="fas fa-boxes-stacked"></i> @createOrderLabel</button>
                     </form>
                 </div>
@@ -224,6 +227,32 @@
 @section Scripts {
 <script>
 (() => {
+    const m = @Html.Raw(JsonSerializer.Serialize(new Dictionary<string, string>
+    {
+        ["looseCopy"] = L["Consolidation.Js.LooseCopy"], ["selectValidOffer"] = L["Consolidation.Js.SelectValidOffer"],
+        ["packMath"] = L["Consolidation.Js.PackMath"], ["confidenceHigh"] = L["Consolidation.Js.Confidence.High"],
+        ["confidenceMedium"] = L["Consolidation.Js.Confidence.Medium"], ["confidenceLow"] = L["Consolidation.Js.Confidence.Low"],
+        ["unknown"] = L["Consolidation.Js.Confidence.Unknown"], ["modeLoose"] = L["Consolidation.Js.Mode.Loose"],
+        ["modePackage"] = L["Consolidation.Js.Mode.Package"], ["leadConfirmed"] = L["Consolidation.Js.LeadTime.Confirmed"],
+        ["leadEstimated"] = L["Consolidation.Js.LeadTime.Estimated"], ["leadUnknown"] = L["Consolidation.Js.LeadTime.Unknown"],
+        ["scoreNone"] = L["Consolidation.Js.Score.None"], ["score"] = L["Consolidation.Js.Score.Of100"],
+        ["shadowNote"] = L["Consolidation.Js.ShadowNote"], ["normalNote"] = L["Consolidation.Js.NormalNote"],
+        ["rankingUnavailable"] = L["Consolidation.Js.RankingUnavailable"], ["noCandidates"] = L["Consolidation.Js.NoCandidates"],
+        ["rankPrefix"] = L["Consolidation.Js.RankPrefix"], ["rankEligible"] = L["Consolidation.Js.RankEligible"],
+        ["rankReference"] = L["Consolidation.Js.RankReferenceOnly"], ["loading"] = L["Consolidation.Js.Loading"],
+        ["compareFailed"] = L["Consolidation.Js.CompareFailed"], ["loadedShadow"] = L["Consolidation.Js.LoadedShadow"],
+        ["loadedNormal"] = L["Consolidation.Js.LoadedNormal"], ["swalTitle"] = L["Consolidation.Js.SwalTitle"],
+        ["close"] = L["Consolidation.Js.SwalClose"], ["warningTitle"] = L["Consolidation.Js.WarningTitle"],
+        ["understood"] = L["Consolidation.Js.Understood"], ["processing"] = L["Consolidation.Js.Processing"],
+        ["factMode"] = L["Consolidation.Js.Fact.PurchaseMode"], ["factQty"] = L["Consolidation.Js.Fact.PurchaseQty"],
+        ["factCost"] = L["Consolidation.Js.Fact.TotalCost"], ["factExcess"] = L["Consolidation.Js.Fact.ExcessQty"],
+        ["factLead"] = L["Consolidation.Js.Fact.LeadTime"], ["factScore"] = L["Consolidation.Js.Fact.TotalScore"],
+        ["factConfidence"] = L["Consolidation.Js.Fact.Confidence"], ["factPrice"] = L["Consolidation.Js.Fact.PriceScore"],
+        ["factOnTime"] = L["Consolidation.Js.Fact.OnTimeScore"], ["factFill"] = L["Consolidation.Js.Fact.QtyScore"],
+        ["factQuality"] = L["Consolidation.Js.Fact.QualityScore"], ["factDelivery"] = L["Consolidation.Js.Fact.DeliveryTimeScore"]
+    }));
+    const format = (template, ...values) => values.reduce((text, value, index) => text.replaceAll(`{${index}}`, value), template);
+    const locale = document.documentElement.dataset.culture || 'vi-VN';
     const supplier = document.getElementById('supplier-select');
     const updatePackMath = (row, resetQuantity = false) => {
         const select = row.querySelector('.offer-select');
@@ -249,7 +278,7 @@
             const remaining = Number(row.dataset.remaining || 0);
             if (looseInput && (!Number(looseInput.value) || Number(looseInput.value) > remaining))
                 looseInput.value = String(remaining);
-            if (copy) copy.textContent = `Mua rời ${Number(looseInput?.value || 0).toLocaleString('vi-VN')} ${offer?.dataset.looseUnit || row.dataset.planUnit} · ${Number(offer?.dataset.loosePrice || 0).toLocaleString('vi-VN')} ₫/đơn vị.`;
+            if (copy) copy.textContent = format(m.looseCopy, Number(looseInput?.value || 0).toLocaleString(locale), offer?.dataset.looseUnit || row.dataset.planUnit, Number(offer?.dataset.loosePrice || 0).toLocaleString(locale));
             return;
         }
         if (looseInput) looseInput.value = '';
@@ -260,13 +289,13 @@
         const remaining = Number(row.dataset.remaining || 0);
         if (!packInput || !copy || packageQuantity <= 0 || remaining <= 0) {
             if (packInput) packInput.value = '1';
-            if (copy) copy.textContent = 'Chọn quy cách hợp lệ để tính số gói.';
+            if (copy) copy.textContent = m.selectValidOffer;
             return;
         }
         const count = Math.ceil(remaining / packageQuantity);
         const ordered = count * packageQuantity;
         packInput.value = String(count);
-        copy.textContent = `${count} gói · đặt ${ordered.toLocaleString('vi-VN')} ${row.dataset.planUnit} · dư ${(ordered - remaining).toLocaleString('vi-VN')} ${row.dataset.planUnit}`;
+        copy.textContent = format(m.packMath, count.toLocaleString(locale), ordered.toLocaleString(locale), row.dataset.planUnit, (ordered - remaining).toLocaleString(locale));
     };
     if (supplier) {
         const syncOffers = (resetQuantity = false) => {
@@ -306,35 +335,30 @@
         return node;
     };
     const confidenceLabel = value => ({
-        HIGH: 'Cao',
-        MEDIUM: 'Vừa phải',
-        INSUFFICIENT_DATA: 'Chưa đủ dữ liệu'
-    }[value] || 'Chưa xác định');
+        HIGH: m.confidenceHigh, MEDIUM: m.confidenceMedium, INSUFFICIENT_DATA: m.confidenceLow
+    }[value] || m.unknown);
     const purchaseModeLabel = value => ({
-        LOOSE: 'Mua rời',
-        PACKAGED: 'Đóng gói'
-    }[value] || 'Chưa xác định');
+        LOOSE: m.modeLoose, PACKAGED: m.modePackage
+    }[value] || m.unknown);
     const leadTimeLabel = value => ({
-        CONFIRMED: 'đã xác nhận',
-        FALLBACK: 'tạm tính'
-    }[value] || 'chưa xác định');
+        CONFIRMED: m.leadConfirmed, FALLBACK: m.leadEstimated
+    }[value] || m.leadUnknown);
     const scoreLabel = value => value == null
-        ? 'Chưa đủ dữ liệu'
-        : `${Number(value).toLocaleString('vi-VN')}/100`;
+        ? m.scoreNone
+        : format(m.score, Number(value).toLocaleString(locale));
     const renderSupplierComparison = data => {
         const root = supplierText('div', 'supplier-comparison-modal', '');
         const mode = data.shadowMode
-            ? 'Dữ liệu thử nghiệm — chế độ quan sát. Kết quả chỉ hỗ trợ quyết định, hệ thống không tự chọn nhà cung cấp.'
-            : 'Kết quả do hệ thống tính toán từ lịch sử mua và nhận hàng.';
+            ? m.shadowNote : m.normalNote;
         root.appendChild(supplierText('p', 'supplier-comparison-mode', mode));
         root.appendChild(supplierText(
             'p',
             'supplier-comparison-summary',
-            data.rankingMessage || 'Chưa có đủ thông tin để xếp hạng cạnh tranh.'));
+            data.rankingMessage || m.rankingUnavailable));
 
         const candidates = Array.isArray(data.candidates) ? data.candidates : [];
         if (candidates.length === 0) {
-            root.appendChild(supplierText('div', 'supplier-comparison-empty', 'Không có nhà cung cấp và quy cách mua hợp lệ cho điều kiện hiện tại.'));
+            root.appendChild(supplierText('div', 'supplier-comparison-empty', m.noCandidates));
             return root;
         }
 
@@ -342,11 +366,11 @@
         candidates.forEach(candidate => {
             const card = supplierText('article', 'supplier-comparison-card', '');
             const heading = supplierText('div', 'supplier-comparison-card-heading', '');
-            heading.appendChild(supplierText('strong', '', `${candidate.rank ? `Hạng ${candidate.rank} · ` : ''}${candidate.supplierName}`));
+            heading.appendChild(supplierText('strong', '', `${candidate.rank ? format(m.rankPrefix, candidate.rank) : ''}${candidate.supplierName}`));
             heading.appendChild(supplierText(
                 'span',
                 candidate.rankable ? 'supplier-rankable' : 'supplier-reference-only',
-                candidate.rankable ? 'Đủ điều kiện xếp hạng' : 'Chỉ dùng tham khảo'));
+                candidate.rankable ? m.rankEligible : m.rankReference));
             card.appendChild(heading);
 
             const facts = supplierText('dl', 'supplier-comparison-facts', '');
@@ -354,21 +378,17 @@
                 facts.appendChild(supplierText('dt', '', label));
                 facts.appendChild(supplierText('dd', '', value));
             };
-            addFact('Hình thức mua', purchaseModeLabel(candidate.purchaseMode));
-            addFact('Số lượng mua', candidate.purchaseMode === 'LOOSE'
-                ? Number(candidate.requiredPurchaseQuantity || 0).toLocaleString('vi-VN')
-                : `${Number(candidate.packageCount || 0).toLocaleString('vi-VN')} gói`);
-            addFact('Tổng chi phí', `${Number(candidate.estimatedAmount || 0).toLocaleString('vi-VN')} ₫`);
-            addFact('Lượng mua dư', Number(candidate.excessBaseQuantity || 0).toLocaleString('vi-VN'));
-            addFact('Thời gian giao dự kiến', `${Number(candidate.leadTimeDays || 0).toLocaleString('vi-VN')} ngày · ${leadTimeLabel(candidate.leadTimeSource)}`);
-            addFact('Tổng điểm', scoreLabel(candidate.score));
-            addFact('Mức độ tin cậy', `${confidenceLabel(candidate.confidence)} · ${Number(candidate.receiptCount || 0)} phiếu nhận đã xác nhận`);
+            addFact(m.factMode, purchaseModeLabel(candidate.purchaseMode));
+            addFact(m.factQty, candidate.purchaseMode === 'LOOSE' ? Number(candidate.requiredPurchaseQuantity || 0).toLocaleString(locale) : `${Number(candidate.packageCount || 0).toLocaleString(locale)} ${m.modePackage}`);
+            addFact(m.factCost, Number(candidate.estimatedAmount || 0).toLocaleString(locale));
+            addFact(m.factExcess, Number(candidate.excessBaseQuantity || 0).toLocaleString(locale));
+            addFact(m.factLead, `${Number(candidate.leadTimeDays || 0).toLocaleString(locale)} · ${leadTimeLabel(candidate.leadTimeSource)}`);
+            addFact(m.factScore, scoreLabel(candidate.score));
+            addFact(m.factConfidence, `${confidenceLabel(candidate.confidence)} · ${Number(candidate.receiptCount || 0).toLocaleString(locale)}`);
             const components = candidate.componentScores || {};
-            addFact('Điểm giá mua', scoreLabel(components.price));
-            addFact('Điểm giao đúng hẹn', scoreLabel(components.onTime));
-            addFact('Điểm đáp ứng đủ số lượng', scoreLabel(components.fill));
-            addFact('Điểm chất lượng hàng', scoreLabel(components.quality));
-            addFact('Điểm thời gian giao', scoreLabel(components.leadTime));
+            addFact(m.factPrice, scoreLabel(components.price)); addFact(m.factOnTime, scoreLabel(components.onTime));
+            addFact(m.factFill, scoreLabel(components.fill)); addFact(m.factQuality, scoreLabel(components.quality));
+            addFact(m.factDelivery, scoreLabel(components.leadTime));
             card.appendChild(facts);
 
             const warnings = Array.isArray(candidate.warnings) ? candidate.warnings : [];
@@ -387,7 +407,7 @@
         const output = row?.querySelector('.supplier-intelligence-result');
         if (!row || !output) return;
         button.disabled = true;
-        output.textContent = 'Đang tải dữ liệu so sánh...';
+        output.textContent = m.loading;
         const query = new URLSearchParams({
             storeId: row.dataset.storeId,
             ingredientId: row.dataset.ingredientId,
@@ -396,25 +416,24 @@
         try {
             const response = await fetch(`@Url.Action("CompareSuppliers", "AdminIntelligence")?${query}`, { headers: { Accept: 'application/json' } });
             const payload = await response.json();
-            if (!response.ok || !payload.success) throw new Error(payload.message || 'Không thể so sánh nhà cung cấp.');
+            if (!response.ok || !payload.success) throw new Error(payload.message || m.compareFailed);
             const data = payload.data;
             output.textContent = data.shadowMode
-                ? 'Đã tải kết quả thử nghiệm. Bấm lại để xem.'
-                : 'Đã tải kết quả so sánh. Bấm lại để xem.';
+                ? m.loadedShadow : m.loadedNormal;
             await Swal.fire({
                 icon: 'info',
-                title: 'So sánh nhà cung cấp',
+                title: m.swalTitle,
                 html: renderSupplierComparison(data),
                 width: 'min(960px, 95vw)',
-                confirmButtonText: 'Đóng'
+                confirmButtonText: m.close
             });
         } catch (error) {
-            output.textContent = error.message || 'Không thể so sánh nhà cung cấp.';
+            output.textContent = error.message || m.compareFailed;
             await Swal.fire({
                 icon: 'warning',
-                title: 'Chưa thể so sánh nhà cung cấp',
+                title: m.warningTitle,
                 text: output.textContent,
-                confirmButtonText: 'Đã hiểu'
+                confirmButtonText: m.understood
             });
         } finally {
             button.disabled = false;
@@ -446,7 +465,7 @@
         if (!button || button.disabled) return;
         button.disabled = true;
         button.dataset.originalText = button.innerHTML;
-        button.textContent = button.dataset.submitLabel || 'Đang xử lý...';
+        button.textContent = button.dataset.submitLabel || m.processing;
     }));
 })();
 </script>

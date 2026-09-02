@@ -1,4 +1,6 @@
 @model CafeChain.ViewModels.Admin.Shared.AdminNextActionPanelVM
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<CafeChain.SharedResource> SharedText
 
 <aside class="production-next-action" aria-labelledby="productionNextActionTitle">
     <span class="production-next-action__icon" aria-hidden="true"><i class="@Model.IconClass"></i></span>
@@ -7,7 +9,7 @@
         <p>@Model.Description</p>
         @if (!string.IsNullOrWhiteSpace(Model.RoleLabel))
         {
-            <span class="production-next-action__role">Phụ trách: @Model.RoleLabel</span>
+            <span class="production-next-action__role">@SharedText["Common.Responsible"]: @Model.RoleLabel</span>
         }
     </div>
 </aside>

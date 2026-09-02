@@ -4,6 +4,8 @@
     let isEdit = false;
     let unitCache = [];
     const $ = window.jQuery;
+    const catalog = window.CafeChainUiCatalog?.read("ingredient-ui-catalog") || {};
+    const t = (key, values) => window.CafeChainUiCatalog?.text(catalog, key, values) || key;
     const token = () => document.querySelector('#ingredientAntiForgeryForm input[name="__RequestVerificationToken"]')?.value || "";
 
     function resolveMessage(payload, response, fallback) {
@@ -15,13 +17,13 @@
 
     async function requestJson(url, options = {}, config = {}) {
         const requireSuccess = config.requireSuccess !== false;
-        const fallback = config.fallback || "Không thể thực hiện thao tác. Vui lòng thử lại.";
+        const fallback = config.fallback || t("Ingredient.Js.RequestFailed");
         let response;
         try {
             response = await fetch(url, options);
         } catch {
             throw new Error(window.AdminFeedback?.networkMessage?.()
-                || "Không thể kết nối máy chủ. Vui lòng kiểm tra mạng và thử lại.");
+                || t("Ingredient.Js.NetworkError"));
         }
 
         let result;
@@ -29,7 +31,7 @@
             result = await response.json();
         } catch {
             throw new Error(resolveMessage(null, response,
-                response.ok ? "Máy chủ trả về dữ liệu không hợp lệ." : fallback));
+                response.ok ? t("Ingredient.Js.InvalidResponse") : fallback));
         }
 
         if (!response.ok || (requireSuccess && result?.success !== true)) {
@@ -53,21 +55,21 @@
         try {
             const data = await requestJson("/Admin/AdminIngredient/GetUnits", {}, {
                 requireSuccess: false,
-                fallback: "Không thể tải danh sách đơn vị."
+                fallback: t("Ingredient.Js.LoadUnitsFailed")
             });
-            if (!Array.isArray(data)) throw new Error("Máy chủ trả về danh sách đơn vị không hợp lệ.");
+            if (!Array.isArray(data)) throw new Error(t("Ingredient.Js.InvalidUnitList"));
             unitCache = data;
             renderUnits();
         } catch (error) {
             unitCache = [];
             renderUnits();
-            toast(error.message || "Không thể tải danh sách đơn vị.", "error");
+            toast(error.message || t("Ingredient.Js.LoadUnitsFailed"), "error");
         }
     }
 
     function renderUnits(selectedId) {
         const select = document.getElementById("baseUnitId");
-        select.innerHTML = '<option value="">-- Chọn đơn vị --</option>';
+        select.innerHTML = `<option value="">${t("Ingredient.Js.SelectUnit")}</option>`;
         unitCache.forEach(unit => select.add(new Option(unit.text, unit.id)));
         if (selectedId) select.value = String(selectedId);
     }
@@ -86,7 +88,7 @@
     function openCreateModal() {
         isEdit = false;
         clearForm();
-        $("#modalTitle").text("Thêm nguyên liệu");
+        $("#modalTitle").text(t("Ingredient.Js.ModalCreateTitle"));
         openIngredientModal();
     }
 
@@ -95,18 +97,18 @@
         clearForm();
         try {
             const result = await requestJson(`/Admin/AdminIngredient/GetById?id=${id}`, {}, {
-                fallback: "Không thể tải thông tin nguyên liệu."
+                fallback: t("Ingredient.Js.LoadDetailFailed")
             });
             const item = result.data;
-            if (!item) throw new Error("Máy chủ không trả về thông tin nguyên liệu.");
+            if (!item) throw new Error(t("Ingredient.Js.MissingDetail"));
             $("#ingredientId").val(item.ingredientId);
             $("#code").val(item.code);
             $("#name").val(item.name);
             renderUnits(item.baseUnitId);
-            $("#modalTitle").text("Cập nhật nguyên liệu");
+            $("#modalTitle").text(t("Ingredient.Js.ModalEditTitle"));
             openIngredientModal();
         } catch (error) {
-            toast(error.message || "Không thể tải thông tin nguyên liệu.", "error");
+            toast(error.message || t("Ingredient.Js.LoadDetailFailed"), "error");
         }
     }
 
@@ -122,7 +124,7 @@
     function saveIngredient() {
         const data = payload();
         if (!data.code?.trim() || !data.name?.trim() || !data.baseUnitId)
-            return toast("Vui lòng nhập mã, tên và đơn vị tồn kho cơ sở.", "warning");
+            return toast(t("Ingredient.Js.ValidationError"), "warning");
 
         const button = document.getElementById("btnSave");
         void AdminMutationGuard.run("ingredient-save", button, async () => {
@@ -133,28 +135,28 @@
                     headers: { "Content-Type": "application/json", "RequestVerificationToken": token() },
                     body: JSON.stringify(data)
                 }, {
-                    fallback: isEdit ? "Không thể cập nhật nguyên liệu." : "Không thể tạo nguyên liệu."
+                    fallback: isEdit ? t("Ingredient.Js.UpdateFailed") : t("Ingredient.Js.CreateFailed")
                 });
-                toast(result.message || (isEdit ? "Cập nhật thành công" : "Thêm thành công"), "success");
+                toast(result.message || (isEdit ? t("Ingredient.Js.UpdateSuccess") : t("Ingredient.Js.CreateSuccess")), "success");
                 window.location.reload();
             } catch (error) {
-                toast(error.message || "Không thể lưu nguyên liệu.", "error");
+                toast(error.message || t("Ingredient.Js.SaveFailed"), "error");
             }
         });
     }
 
     function toggleStatus(id, button) {
         const isActive = button.classList.contains("ingredient-btn-danger");
-        const actionText = isActive ? "ngưng hoạt động" : "kích hoạt";
+        const actionText = isActive ? t("Ingredient.Js.Action.Disable") : t("Ingredient.Js.Action.Enable");
 
         if (typeof Swal !== 'undefined') {
             Swal.fire({
-                title: 'Xác nhận ' + actionText,
-                text: 'Bạn có chắc chắn muốn ' + actionText + ' nguyên liệu này không?',
+                title: t("Ingredient.Js.ConfirmTitle", { action: actionText }),
+                text: t("Ingredient.Js.ConfirmText", { action: actionText }),
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonText: 'Đồng ý',
-                cancelButtonText: 'Hủy bỏ',
+                confirmButtonText: t("Common.ConfirmYes"),
+                cancelButtonText: t("Common.CancelLong"),
                 reverseButtons: true,
                 customClass: {
                     confirmButton: 'btn btn-swal-confirm me-2',
@@ -167,7 +169,7 @@
                 }
             });
         } else {
-            if (confirm('Bạn có chắc chắn muốn ' + actionText + ' nguyên liệu này không?')) {
+            if (confirm(t("Ingredient.Js.ConfirmFallback", { action: actionText }))) {
                 executeToggle(id, button);
             }
         }
@@ -180,12 +182,12 @@
                     method: "POST",
                     headers: { "RequestVerificationToken": token() }
                 }, {
-                    fallback: "Không thể cập nhật trạng thái nguyên liệu."
+                    fallback: t("Ingredient.Js.ToggleFailed")
                 });
-                toast(result.message || "Đã cập nhật trạng thái", "success");
+                toast(result.message || t("Ingredient.Js.ToastStatusUpdated"), "success");
                 window.location.reload();
             } catch (error) {
-                toast(error.message || "Không thể cập nhật trạng thái nguyên liệu.", "error");
+                toast(error.message || t("Ingredient.Js.ToggleFailed"), "error");
             }
         });
     }

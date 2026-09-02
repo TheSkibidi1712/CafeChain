@@ -1,67 +1,68 @@
 @model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferDetailVM
+@inject Microsoft.Extensions.Localization.IStringLocalizer<CafeChain.InventoryResource> InventoryText
 
 <section class="transfer-card">
     <div class="transfer-card-header">
         <div>
             <span class="section-kicker">
                 <i class="fas fa-circle-info"></i>
-                Thông tin chung
+                @InventoryText["Common.GeneralInformation"]
             </span>
-            <h2>Thông tin phiếu</h2>
+            <h2>@InventoryText["Transfer.Create.DocumentInformation"]</h2>
         </div>
 
-        <span class="auto-pill">Chỉ xem</span>
+        <span class="auto-pill">@InventoryText["Common.ReadOnly"]</span>
     </div>
 
     <div class="transfer-readonly-grid">
         <div class="transfer-readonly-field">
-            <span>Mã phiếu</span>
+            <span>@InventoryText["Transfer.Code"]</span>
             <strong>@Model.Code</strong>
         </div>
 
         <div class="transfer-readonly-field">
-            <span>Ngày chứng từ</span>
-            <strong>@Model.DocumentDate.ToString("dd/MM/yyyy")</strong>
+            <span>@InventoryText["Transfer.DocumentDate"]</span>
+            <strong>@Model.DocumentDate.ToString("d")</strong>
         </div>
 
         <div class="transfer-readonly-field">
-            <span>Loại phiếu</span>
-            <strong>@Model.Type.ToVietnamese()</strong>
+            <span>@InventoryText["Transfer.Detail.Type"]</span>
+            <strong>@InventoryText[$"Transfer.Type.{Model.Type}"]</strong>
         </div>
 
         <div class="transfer-readonly-field">
-            <span>Mục đích</span>
-            <strong>@Model.Purpose.ToVietnamese()</strong>
+            <span>@InventoryText["Transfer.Purpose"]</span>
+            <strong>@InventoryText[$"Transfer.Purpose.{Model.Purpose}"]</strong>
         </div>
 
         <div class="transfer-readonly-field">
-            <span>Người lập</span>
+            <span>@InventoryText["Transfer.CreatedBy"]</span>
             <strong>@(string.IsNullOrWhiteSpace(Model.CreatedByName) ? "-" : Model.CreatedByName)</strong>
         </div>
 
         <div class="transfer-readonly-field">
-            <span>Ngày lập</span>
-            <strong>@Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</strong>
+            <span>@InventoryText["Common.CreatedDate"]</span>
+            <strong>@Model.CreatedAt.ToLocalTime().ToString("g")</strong>
         </div>
 
         <div class="transfer-readonly-field">
-            <span>Người xác nhận</span>
+            <span>@InventoryText["Common.ConfirmedBy"]</span>
             <strong>@(Model.ConfirmedByName ?? "-")</strong>
         </div>
 
         <div class="transfer-readonly-field">
-            <span>Ngày xác nhận</span>
-            <strong>@(Model.ConfirmedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-")</strong>
+            <span>@InventoryText["Common.ConfirmedDate"]</span>
+            <strong>@(Model.ConfirmedAt?.ToLocalTime().ToString("g") ?? "-")</strong>
         </div>
 
         <div class="transfer-readonly-field">
-            <span>Người hủy</span>
+            <span>@InventoryText["Common.CancelledBy"]</span>
             <strong>@(Model.CancelledByName ?? "-")</strong>
         </div>
 
         <div class="transfer-readonly-field">
-            <span>Ngày hủy</span>
-            <strong>@(Model.CancelledAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-")</strong>
+            <span>@InventoryText["Common.CancelledDate"]</span>
+            <strong>@(Model.CancelledAt?.ToLocalTime().ToString("g") ?? "-")</strong>
         </div>
 
     </div>
@@ -71,7 +72,7 @@
         <details class="transfer-technical-details">
             <summary>
                 <i class="fas fa-code"></i>
-                Thông tin kỹ thuật
+                @InventoryText["Common.TechnicalInformation"]
             </summary>
             <div class="transfer-readonly-field transfer-readonly-wide">
                 <span>Request Key</span>

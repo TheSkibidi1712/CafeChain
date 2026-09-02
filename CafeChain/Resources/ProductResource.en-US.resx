@@ -1,0 +1,1154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="Common.MenuStructure" xml:space="preserve"><value>Menu structure</value></data>
+  <data name="Common.Add" xml:space="preserve"><value>Add new</value></data>
+  <data name="Common.ClearFilters" xml:space="preserve"><value>Clear filters</value></data>
+  <data name="Common.AllWithCount" xml:space="preserve"><value>All ({0})</value></data>
+  <data name="Common.ActiveWithCount" xml:space="preserve"><value>Active ({0})</value></data>
+  <data name="Common.InactiveWithCount" xml:space="preserve"><value>Inactive ({0})</value></data>
+  <data name="Common.Search" xml:space="preserve"><value>Search</value></data>
+  <data name="Common.Display" xml:space="preserve"><value>Show:</value></data>
+  <data name="Common.DisplayRows" xml:space="preserve"><value>Rows displayed</value></data>
+  <data name="Common.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Common.Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Common.Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Common.Inactive" xml:space="preserve"><value>Inactive</value></data>
+  <data name="Common.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Common.Lock" xml:space="preserve"><value>Lock</value></data>
+  <data name="Common.Unlock" xml:space="preserve"><value>Unlock</value></data>
+  <data name="Common.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Common.Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Common.Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Common.Update" xml:space="preserve"><value>Update</value></data>
+  <data name="Common.Retry" xml:space="preserve"><value>Try again</value></data>
+  <data name="Common.Loading" xml:space="preserve"><value>Loading...</value></data>
+  <data name="Common.NoData" xml:space="preserve"><value>No data available</value></data>
+  <data name="Common.Results" xml:space="preserve"><value>{0} results</value></data>
+  <data name="Drink.PageTitle" xml:space="preserve"><value>Drink management</value></data>
+  <data name="Drink.Eyebrow" xml:space="preserve"><value>CafeChain menu</value></data>
+  <data name="Drink.Title" xml:space="preserve"><value>Drink list</value></data>
+  <data name="Drink.Description" xml:space="preserve"><value>Manage images, categories, and sales status for all products.</value></data>
+  <data name="Drink.Total" xml:space="preserve"><value>Total drinks</value></data>
+  <data name="Drink.Selling" xml:space="preserve"><value>Selling</value></data>
+  <data name="Drink.Paused" xml:space="preserve"><value>Paused</value></data>
+  <data name="Drink.FilterAria" xml:space="preserve"><value>Drink status filters</value></data>
+  <data name="Drink.SearchAria" xml:space="preserve"><value>Search drinks</value></data>
+  <data name="Drink.SearchPlaceholder" xml:space="preserve"><value>Search drinks...</value></data>
+  <data name="Drink.InventoryTitle" xml:space="preserve"><value>Drink catalog</value></data>
+  <data name="Drink.InventoryDescription" xml:space="preserve"><value>Update product images and information in one place.</value></data>
+  <data name="Drink.Image" xml:space="preserve"><value>Image</value></data>
+  <data name="Drink.Code" xml:space="preserve"><value>Code</value></data>
+  <data name="Drink.Name" xml:space="preserve"><value>Drink name</value></data>
+  <data name="Drink.Category" xml:space="preserve"><value>Category</value></data>
+  <data name="Drink.Type" xml:space="preserve"><value>Product type</value></data>
+  <data name="Drink.EmptyTitle" xml:space="preserve"><value>No matching drinks found</value></data>
+  <data name="Drink.EmptyHint" xml:space="preserve"><value>Try changing the keyword or status filter.</value></data>
+  <data name="Drink.ManageImages" xml:space="preserve"><value>Manage images</value></data>
+  <data name="Drink.Edit" xml:space="preserve"><value>Edit drink</value></data>
+  <data name="Drink.Resume" xml:space="preserve"><value>Resume selling</value></data>
+  <data name="Drink.Pagination" xml:space="preserve"><value>Drink pagination</value></data>
+  <data name="Drink.Range" xml:space="preserve"><value>Showing {0}-{1} of {2}</value></data>
+  <data name="Drink.SelectAll" xml:space="preserve"><value>Select all drinks</value></data>
+  <data name="Drink.SelectOne" xml:space="preserve"><value>Select {0}</value></data>
+  <data name="Drink.ImageAdd" xml:space="preserve"><value>Add a new image</value></data>
+  <data name="Drink.ImageHint" xml:space="preserve"><value>Use a square JPG or PNG image for the best display.</value></data>
+  <data name="Drink.ImageChoose" xml:space="preserve"><value>Choose image</value></data>
+  <data name="Drink.ImageNoFile" xml:space="preserve"><value>No file selected</value></data>
+  <data name="Drink.ImageDefault" xml:space="preserve"><value>Set as default</value></data>
+  <data name="Drink.ImageLibrary" xml:space="preserve"><value>Image library</value></data>
+  <data name="Drink.ImageLibraryHint" xml:space="preserve"><value>Select the default image or delete an image</value></data>
+  <data name="Drink.ImageEditTitle" xml:space="preserve"><value>Edit image</value></data>
+  <data name="Drink.ImageEditHint" xml:space="preserve"><value>Replace the current image with a new one</value></data>
+  <data name="Drink.ImageCurrent" xml:space="preserve"><value>Current image</value></data>
+  <data name="Drink.ImageNew" xml:space="preserve"><value>New image (preview)</value></data>
+  <data name="Drink.ImageChooseNew" xml:space="preserve"><value>Choose a new image</value></data>
+  <data name="Drink.ImageChange" xml:space="preserve"><value>Choose another image</value></data>
+  <data name="Drink.ImageSave" xml:space="preserve"><value>Save changes</value></data>
+  <data name="Size.Title" xml:space="preserve"><value>Drink size management</value></data>
+  <data name="Size.Description" xml:space="preserve"><value>Configure display codes, names, and size types used on the menu.</value></data>
+  <data name="Size.FilterAria" xml:space="preserve"><value>Size filters</value></data>
+  <data name="Size.SearchAria" xml:space="preserve"><value>Search sizes by code or name</value></data>
+  <data name="Size.SearchPlaceholder" xml:space="preserve"><value>Search sizes...</value></data>
+  <data name="Size.List" xml:space="preserve"><value>Size list</value></data>
+  <data name="Size.Code" xml:space="preserve"><value>SIZE CODE</value></data>
+  <data name="Size.Name" xml:space="preserve"><value>SIZE NAME</value></data>
+  <data name="Size.DescriptionLabel" xml:space="preserve"><value>DESCRIPTION</value></data>
+  <data name="Size.Type" xml:space="preserve"><value>SIZE TYPE</value></data>
+  <data name="Size.Volume" xml:space="preserve"><value>Volume</value></data>
+  <data name="Size.Cup" xml:space="preserve"><value>Cup</value></data>
+  <data name="Size.AssignDrinks" xml:space="preserve"><value>Assign drinks</value></data>
+  <data name="Size.Empty" xml:space="preserve"><value>No matching sizes found.</value></data>
+  <data name="Size.CreateTitle" xml:space="preserve"><value>Add a drink size</value></data>
+  <data name="Size.Configure" xml:space="preserve"><value>Menu configuration</value></data>
+  <data name="Size.CodeLabel" xml:space="preserve"><value>Size code</value></data>
+  <data name="Size.NameLabel" xml:space="preserve"><value>Size name</value></data>
+  <data name="Size.TypeLabel" xml:space="preserve"><value>Size type</value></data>
+  <data name="Size.TypeChoose" xml:space="preserve"><value>-- Select a size type --</value></data>
+  <data name="Size.DescriptionForm" xml:space="preserve"><value>Size description</value></data>
+  <data name="Size.NamePlaceholder" xml:space="preserve"><value>Medium</value></data>
+  <data name="Size.DescriptionPlaceholder" xml:space="preserve"><value>Example: Medium size</value></data>
+  <data name="Size.AiIdea" xml:space="preserve"><value>AI idea</value></data>
+  <data name="Size.Optional" xml:space="preserve"><value>(optional)</value></data>
+  <data name="Size.AiMode" xml:space="preserve"><value>Size suggestion mode</value></data>
+  <data name="Size.AiNew" xml:space="preserve"><value>Create new</value></data>
+  <data name="Size.AiDevelop" xml:space="preserve"><value>Develop the entered data</value></data>
+  <data name="Size.AiVariant" xml:space="preserve"><value>Create a variant</value></data>
+  <data name="Size.AiPlaceholder" xml:space="preserve"><value>Example: 330 ml bottle</value></data>
+  <data name="Size.AiSuggest" xml:space="preserve"><value>AI suggestions</value></data>
+  <data name="Size.AiChoose" xml:space="preserve"><value>Choose a suggestion</value></data>
+  <data name="Size.Apply" xml:space="preserve"><value>Apply</value></data>
+  <data name="Size.Dismiss" xml:space="preserve"><value>Dismiss</value></data>
+  <data name="Size.CodeHint" xml:space="preserve"><value>Use a short code (S, M, L) for quick receipt display.</value></data>
+  <data name="Size.Save" xml:space="preserve"><value>Save information</value></data>
+  <data name="Size.EditTitle" xml:space="preserve"><value>Edit size</value></data>
+  <data name="Size.EditHint" xml:space="preserve"><value>Update information</value></data>
+  <data name="Size.ManageDrinks" xml:space="preserve"><value>Manage drinks by size</value></data>
+  <data name="Size.ManageDrinksHint" xml:space="preserve"><value>Assign or disconnect drinks from this size</value></data>
+  <data name="Size.AssignHint" xml:space="preserve"><value>Select Assign to add a drink to this size, or Disable to stop selling this size.</value></data>
+  <data name="Size.Unassigned" xml:space="preserve"><value>Unassigned</value></data>
+  <data name="Size.Assigned" xml:space="preserve"><value>Assigned</value></data>
+  <data name="Size.PriceTitle" xml:space="preserve"><value>Configure product selling price</value></data>
+  <data name="Size.PriceHint" xml:space="preserve"><value>Enter the listed price (VND)</value></data>
+  <data name="Size.PriceLabel" xml:space="preserve"><value>Product selling price</value></data>
+  <data name="Size.PriceQuick" xml:space="preserve"><value>Quick suggestions:</value></data>
+  <data name="Size.PricePreview" xml:space="preserve"><value>Listed display:</value></data>
+  <data name="Size.PriceConfirm" xml:space="preserve"><value>Confirm price assignment</value></data>
+  <data name="Topping.Title" xml:space="preserve"><value>Drink topping management</value></data>
+  <data name="Topping.Description" xml:space="preserve"><value>Configure toppings, selling prices, and consumed ingredient sources.</value></data>
+  <data name="Topping.FilterAria" xml:space="preserve"><value>Topping filters</value></data>
+  <data name="Topping.SearchAria" xml:space="preserve"><value>Search toppings by code or name</value></data>
+  <data name="Topping.SearchPlaceholder" xml:space="preserve"><value>Search toppings...</value></data>
+  <data name="Topping.List" xml:space="preserve"><value>Topping list</value></data>
+  <data name="Topping.Code" xml:space="preserve"><value>CODE</value></data>
+  <data name="Topping.Price" xml:space="preserve"><value>SELLING PRICE</value></data>
+  <data name="Topping.CostSource" xml:space="preserve"><value>CONSUMPTION SOURCE / COST</value></data>
+  <data name="Topping.EstimatedBomCost" xml:space="preserve"><value>Estimated BOM cost:</value></data>
+  <data name="Topping.ActualCost" xml:space="preserve"><value>Actual cost:</value></data>
+  <data name="Topping.FifoAtSale" xml:space="preserve"><value>FIFO at sale</value></data>
+  <data name="Topping.ViewBom" xml:space="preserve"><value>View BOM</value></data>
+  <data name="Topping.EditBom" xml:space="preserve"><value>Edit BOM</value></data>
+  <data name="Topping.CreateBom" xml:space="preserve"><value>Create BOM</value></data>
+  <data name="Topping.Empty" xml:space="preserve"><value>No matching toppings found.</value></data>
+  <data name="Profit.Title" xml:space="preserve"><value>Projected cost and gross profit</value></data>
+  <data name="Profit.Eyebrow" xml:space="preserve"><value>Products / Cost analysis</value></data>
+  <data name="Profit.Description" xml:space="preserve"><value>Compare FIFO cost, selling price, and profitability for each drink size.</value></data>
+  <data name="Profit.OpenBom" xml:space="preserve"><value>Open recipes and BOM</value></data>
+  <data name="Profit.Setup" xml:space="preserve"><value>Simulation setup</value></data>
+  <data name="Profit.SetupHint" xml:space="preserve"><value>Select the data scope to analyze.</value></data>
+  <data name="Profit.Store" xml:space="preserve"><value>FIFO simulation store</value></data>
+  <data name="Profit.Drink" xml:space="preserve"><value>Drink</value></data>
+  <data name="Profit.Reload" xml:space="preserve"><value>Reload</value></data>
+  <data name="Profit.Result" xml:space="preserve"><value>Analysis results</value></data>
+  <data name="Profit.ResultHint" xml:space="preserve"><value>Compare cost and profitability for each size configuration.</value></data>
+  <data name="Profit.ScopeNote" xml:space="preserve"><value>Store-level FIFO data</value></data>
+  <data name="Profit.FilterAria" xml:space="preserve"><value>Cost simulation filters</value></data>
+  <data name="Profit.GlobalPrice" xml:space="preserve"><value>The selling price applies system-wide.</value></data>
+  <data name="Profit.StoreCostHint" xml:space="preserve"><value>Cost is simulated for the selected store.</value></data>
+  <data name="Profit.CostSource" xml:space="preserve"><value>Cost source</value></data>
+  <data name="Profit.StoreFifo" xml:space="preserve"><value>Store FIFO</value></data>
+  <data name="Profit.CalculatedAt" xml:space="preserve"><value>Calculated at</value></data>
+  <data name="Profit.SizeCount" xml:space="preserve"><value>Sizes</value></data>
+  <data name="Profit.ReadyCount" xml:space="preserve"><value>Complete data</value></data>
+  <data name="Profit.Loading" xml:space="preserve"><value>Simulating FIFO cost layers...</value></data>
+  <data name="Profit.LoadError" xml:space="preserve"><value>Unable to load data</value></data>
+  <data name="Profit.Empty" xml:space="preserve"><value>This drink has no active sizes.</value></data>
+  <data name="Profit.Table.SizeBom" xml:space="preserve"><value>Size / Ingredient quantity (BOM)</value></data>
+  <data name="Profit.Table.CostStatus" xml:space="preserve"><value>Cost status</value></data>
+  <data name="Profit.Table.FifoCost" xml:space="preserve"><value>FIFO cost</value></data>
+  <data name="Profit.Table.GlobalPrice" xml:space="preserve"><value>System-wide selling price</value></data>
+  <data name="Profit.Table.GrossProfit" xml:space="preserve"><value>Gross profit</value></data>
+  <data name="Profit.Table.Margin" xml:space="preserve"><value>Gross margin</value></data>
+  <data name="Profit.Table.Markup" xml:space="preserve"><value>Markup</value></data>
+  <data name="Profit.Breadcrumb.Products" xml:space="preserve"><value>Products</value></data>
+  <data name="Profit.Breadcrumb.Current" xml:space="preserve"><value>Cost and profitability</value></data>
+  <data name="Profit.Price.Scope" xml:space="preserve"><value>System-wide selling price</value></data>
+  <data name="Profit.Price.Update" xml:space="preserve"><value>Update price</value></data>
+  <data name="Profit.Price.FifoCost" xml:space="preserve"><value>FIFO cost</value></data>
+  <data name="Profit.Price.Current" xml:space="preserve"><value>Current price</value></data>
+  <data name="Profit.Price.Suggestion" xml:space="preserve"><value>Suggested price</value></data>
+  <data name="Profit.Price.Target" xml:space="preserve"><value>Target</value></data>
+  <data name="Profit.Price.TargetMargin" xml:space="preserve"><value>Gross margin</value></data>
+  <data name="Profit.Price.TargetMarkup" xml:space="preserve"><value>Markup</value></data>
+  <data name="Profit.Price.TargetProfit" xml:space="preserve"><value>Desired profit</value></data>
+  <data name="Profit.Price.TargetValue" xml:space="preserve"><value>Target value</value></data>
+  <data name="Profit.Price.Rounding" xml:space="preserve"><value>Price rounding rule</value></data>
+  <data name="Profit.Price.NoRounding" xml:space="preserve"><value>No rounding</value></data>
+  <data name="Profit.Price.Nearest500" xml:space="preserve"><value>Nearest 500 VND</value></data>
+  <data name="Profit.Price.Ceiling500" xml:space="preserve"><value>Round up to 500 VND</value></data>
+  <data name="Profit.Price.Nearest1000" xml:space="preserve"><value>Nearest 1,000 VND</value></data>
+  <data name="Profit.Price.Ceiling1000" xml:space="preserve"><value>Round up to 1,000 VND</value></data>
+  <data name="Profit.Price.Calculate" xml:space="preserve"><value>Calculate suggested price</value></data>
+  <data name="Profit.Price.New" xml:space="preserve"><value>New selling price</value></data>
+  <data name="Profit.Price.Label" xml:space="preserve"><value>Selling price (VND)</value></data>
+  <data name="Profit.Price.ApplyScope" xml:space="preserve"><value>Application scope</value></data>
+  <data name="Profit.Price.SystemWide" xml:space="preserve"><value>System-wide</value></data>
+  <data name="Profit.Price.EffectiveAt" xml:space="preserve"><value>Effective time</value></data>
+  <data name="Profit.Price.Immediate" xml:space="preserve"><value>Immediately after confirmation</value></data>
+  <data name="Profit.Reason" xml:space="preserve"><value>Reason for change</value></data>
+  <data name="Profit.Price.IncompleteConfirm" xml:space="preserve"><value>I acknowledge that cost data is incomplete and still want to save a manual price.</value></data>
+  <data name="Profit.Price.Apply" xml:space="preserve"><value>Confirm price application</value></data>
+  <data name="Profit.Policy.Eyebrow" xml:space="preserve"><value>Topping policy by size</value></data>
+  <data name="Profit.Policy.Title" xml:space="preserve"><value>Toppings for drink</value></data>
+  <data name="Profit.Policy.Add" xml:space="preserve"><value>Add policy</value></data>
+  <data name="Profit.Policy.PriceTreatment" xml:space="preserve"><value>Selling price treatment</value></data>
+  <data name="Profit.Policy.PriceIncluded" xml:space="preserve"><value>Included in base price</value></data>
+  <data name="Profit.Policy.PriceAdd" xml:space="preserve"><value>Add topping price</value></data>
+  <data name="Profit.Policy.CostTreatment" xml:space="preserve"><value>Cost treatment</value></data>
+  <data name="Profit.Policy.CostIncluded" xml:space="preserve"><value>Included in drink BOM</value></data>
+  <data name="Profit.Policy.CostAdd" xml:space="preserve"><value>Add topping recipe cost</value></data>
+  <data name="Profit.Policy.Quantity" xml:space="preserve"><value>Quantity per cup</value></data>
+  <data name="Profit.Policy.Unit" xml:space="preserve"><value>Unit</value></data>
+  <data name="Profit.Policy.RecipePortion" xml:space="preserve"><value>Recipe portion</value></data>
+  <data name="Profit.Policy.QuantityHint" xml:space="preserve"><value>One recipe portion represents one topping BOM execution; ingredients are converted to inventory units.</value></data>
+  <data name="Profit.Policy.Default" xml:space="preserve"><value>Selected by default in POS</value></data>
+  <data name="Profit.Policy.Required" xml:space="preserve"><value>Required in POS</value></data>
+  <data name="Profit.Policy.Save" xml:space="preserve"><value>Save policy</value></data>
+  <data name="Profit.Js.IncompleteData" xml:space="preserve"><value>Insufficient data</value></data>
+  <data name="Profit.Js.RequestFailed" xml:space="preserve"><value>Unable to process the request.</value></data>
+  <data name="Profit.Js.UpdatePrice" xml:space="preserve"><value>Update price</value></data>
+  <data name="Profit.Js.NoBom" xml:space="preserve"><value>No BOM</value></data>
+  <data name="Profit.Js.KnownCost" xml:space="preserve"><value>Known:</value></data>
+  <data name="Profit.Js.Details" xml:space="preserve"><value>Details</value></data>
+  <data name="Profit.Js.NoComponents" xml:space="preserve"><value>No cost components are available.</value></data>
+  <data name="Profit.Js.Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="Profit.Js.NoDefaultToppings" xml:space="preserve"><value>No active default toppings are available.</value></data>
+  <data name="Profit.Js.CostAllocation" xml:space="preserve"><value>First-in, first-out (FIFO) cost allocation</value></data>
+  <data name="Profit.Js.Component" xml:space="preserve"><value>Component</value></data>
+  <data name="Profit.Js.RequiredQuantity" xml:space="preserve"><value>Required quantity</value></data>
+  <data name="Profit.Js.CoveredQuantity" xml:space="preserve"><value>Quantity with cost data</value></data>
+  <data name="Profit.Js.CalculatedCost" xml:space="preserve"><value>Calculated cost</value></data>
+  <data name="Profit.Js.DefaultToppings" xml:space="preserve"><value>Default toppings</value></data>
+  <data name="Profit.Js.Quantity" xml:space="preserve"><value>Quantity</value></data>
+  <data name="Profit.Js.PriceImpact" xml:space="preserve"><value>Selling price impact</value></data>
+  <data name="Profit.Js.CostImpact" xml:space="preserve"><value>Cost impact</value></data>
+  <data name="Profit.Js.PriceIncrease" xml:space="preserve"><value>Price increase</value></data>
+  <data name="Profit.Js.CostIncrease" xml:space="preserve"><value>Cost increase</value></data>
+  <data name="Profit.Js.SuggestedPrice" xml:space="preserve"><value>Suggested price: {price}</value></data>
+  <data name="Profit.Js.CurrentPrice" xml:space="preserve"><value>Current price: {price}</value></data>
+  <data name="Profit.Js.Difference" xml:space="preserve"><value>Difference: {value}</value></data>
+  <data name="Profit.Js.NewProfit" xml:space="preserve"><value>New profit: {value}</value></data>
+  <data name="Profit.Js.NewMargin" xml:space="preserve"><value>New margin: {value}</value></data>
+  <data name="Profit.Js.NewMarkup" xml:space="preserve"><value>New markup: {value}</value></data>
+  <data name="Profit.Js.UsePrice" xml:space="preserve"><value>Use this price</value></data>
+  <data name="Profit.Js.PriceReasonRequired" xml:space="preserve"><value>Enter a reason for changing the selling price.</value></data>
+  <data name="Profit.Js.IncompleteConfirmation" xml:space="preserve"><value>Cost data is incomplete. Confirm the warning and enter a reason.</value></data>
+  <data name="Profit.Js.PriceUpdated" xml:space="preserve"><value>System-wide selling price updated.</value></data>
+  <data name="Profit.Js.RecipePortion" xml:space="preserve"><value>recipe portion</value></data>
+  <data name="Profit.Js.DefaultOnPos" xml:space="preserve"><value>Selected by default in POS</value></data>
+  <data name="Profit.Js.Required" xml:space="preserve"><value>Required</value></data>
+  <data name="Profit.Js.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Profit.Js.NoPolicies" xml:space="preserve"><value>No active topping policy is available for this drink and size.</value></data>
+  <data name="Profit.Js.NeedsReview" xml:space="preserve"><value>Needs confirmation</value></data>
+  <data name="Profit.Js.NoEligibleToppings" xml:space="preserve"><value>No eligible toppings are available for this drink/size. Configure topping categories first.</value></data>
+  <data name="Profit.Js.EditPolicy" xml:space="preserve"><value>Edit {name}</value></data>
+  <data name="Profit.Js.AddPolicy" xml:space="preserve"><value>Add policy</value></data>
+  <data name="Profit.Js.PolicyReasonRequired" xml:space="preserve"><value>Enter a reason for changing the topping policy.</value></data>
+  <data name="Profit.Js.PolicySaved" xml:space="preserve"><value>Default topping policy saved.</value></data>
+  <data name="Profit.Js.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Profit.Status.EXACT_READY" xml:space="preserve"><value>Exact size BOM</value></data>
+  <data name="Profit.Status.GENERIC_FALLBACK_ONLY" xml:space="preserve"><value>Generic BOM only</value></data>
+  <data name="Profit.Status.MISSING_RECIPE" xml:space="preserve"><value>Missing size BOM</value></data>
+  <data name="Profit.Status.MULTIPLE_ACTIVE_RECIPE" xml:space="preserve"><value>Overlapping active BOMs</value></data>
+  <data name="Profit.Status.INVALID_RECIPE" xml:space="preserve"><value>Invalid BOM</value></data>
+  <data name="Profit.Status.FUTURE_RECIPE_ONLY" xml:space="preserve"><value>BOM is not yet effective</value></data>
+  <data name="Profit.Status.COMPLETE" xml:space="preserve"><value>Complete</value></data>
+  <data name="Profit.Status.INCOMPLETE" xml:space="preserve"><value>Incomplete</value></data>
+  <data name="Profit.Status.MISSING_DEFAULT_TOPPING_POLICY" xml:space="preserve"><value>Legacy topping configuration needs confirmation</value></data>
+  <data name="Profit.Status.MISSING_COST_LAYER" xml:space="preserve"><value>Missing FIFO cost layer</value></data>
+  <data name="Profit.Status.INSUFFICIENT_COST_QUANTITY" xml:space="preserve"><value>Insufficient FIFO quantity</value></data>
+  <data name="Profit.Status.MISSING_CONVERSION" xml:space="preserve"><value>Missing conversion</value></data>
+  <data name="Profit.Status.INVALID_BOM" xml:space="preserve"><value>Invalid BOM</value></data>
+  <data name="Profit.Treatment.INCLUDED_IN_BASE_PRICE" xml:space="preserve"><value>Included in base price</value></data>
+  <data name="Profit.Treatment.ADD_TOPPING_PRICE" xml:space="preserve"><value>Add topping price</value></data>
+  <data name="Profit.Treatment.INCLUDED_IN_DRINK_RECIPE" xml:space="preserve"><value>Included in drink BOM</value></data>
+  <data name="Profit.Treatment.ADD_TOPPING_RECIPE_COST" xml:space="preserve"><value>Add topping recipe cost</value></data>
+  <data name="Profit.Treatment.DISPLAY_ONLY" xml:space="preserve"><value>Legacy configuration needs confirmation</value></data>
+  <data name="StoreMenu.Title" xml:space="preserve"><value>Store menu</value></data>
+  <data name="StoreMenu.Eyebrow" xml:space="preserve"><value>Menu operations</value></data>
+  <data name="StoreMenu.Description" xml:space="preserve"><value>Control SKU availability, effective prices, and service readiness at each CafeChain store.</value></data>
+  <data name="StoreMenu.Sync" xml:space="preserve"><value>Sync new SKUs</value></data>
+  <data name="StoreMenu.Profitability" xml:space="preserve"><value>View cost &amp; profit</value></data>
+  <data name="StoreMenu.Store" xml:space="preserve"><value>Store</value></data>
+  <data name="StoreMenu.Search" xml:space="preserve"><value>Search SKU</value></data>
+  <data name="StoreMenu.SearchPlaceholder" xml:space="preserve"><value>Drink name, code, or size</value></data>
+  <data name="StoreMenu.ConfigurationStatus" xml:space="preserve"><value>Configuration status</value></data>
+  <data name="StoreMenu.Availability" xml:space="preserve"><value>Availability</value></data>
+  <data name="StoreMenu.All" xml:space="preserve"><value>All</value></data>
+  <data name="StoreMenu.Status.Draft" xml:space="preserve"><value>Draft</value></data>
+  <data name="StoreMenu.Status.Scheduled" xml:space="preserve"><value>Scheduled</value></data>
+  <data name="StoreMenu.Status.Active" xml:space="preserve"><value>Selling</value></data>
+  <data name="StoreMenu.Status.Paused" xml:space="preserve"><value>Paused</value></data>
+  <data name="StoreMenu.Status.Ended" xml:space="preserve"><value>Ended</value></data>
+  <data name="StoreMenu.Availability.Available" xml:space="preserve"><value>Available</value></data>
+  <data name="StoreMenu.Availability.LowStock" xml:space="preserve"><value>Low stock</value></data>
+  <data name="StoreMenu.Availability.OutOfStock" xml:space="preserve"><value>Out of ingredients</value></data>
+  <data name="StoreMenu.Availability.InvalidRecipe" xml:space="preserve"><value>Invalid BOM</value></data>
+  <data name="StoreMenu.Availability.Topping" xml:space="preserve"><value>Required topping unavailable</value></data>
+  <data name="StoreMenu.Availability.Store" xml:space="preserve"><value>Store not ready</value></data>
+  <data name="StoreMenu.Total" xml:space="preserve"><value>Total SKUs</value></data>
+  <data name="StoreMenu.Active" xml:space="preserve"><value>Selling</value></data>
+  <data name="StoreMenu.Unavailable" xml:space="preserve"><value>Unavailable</value></data>
+  <data name="StoreMenu.Override" xml:space="preserve"><value>Custom price</value></data>
+  <data name="StoreMenu.List" xml:space="preserve"><value>Store SKU list</value></data>
+  <data name="StoreMenu.ListHint" xml:space="preserve"><value>Prioritize paused or ingredient-constrained items.</value></data>
+  <data name="StoreMenu.Loading" xml:space="preserve"><value>Loading store menu...</value></data>
+  <data name="StoreMenu.LoadError" xml:space="preserve"><value>Unable to load the store menu</value></data>
+  <data name="StoreMenu.Empty" xml:space="preserve"><value>No drink/size is available in this store menu.</value></data>
+  <data name="StoreMenu.EmptyHint" xml:space="preserve"><value>Check menu data or change the filters.</value></data>
+  <data name="StoreMenu.Table.Order" xml:space="preserve"><value>Order</value></data>
+  <data name="StoreMenu.Table.Item" xml:space="preserve"><value>Drink / size</value></data>
+  <data name="StoreMenu.Table.Price" xml:space="preserve"><value>Selling price</value></data>
+  <data name="StoreMenu.Table.Margin" xml:space="preserve"><value>FIFO / Margin</value></data>
+  <data name="StoreMenu.Table.Effective" xml:space="preserve"><value>Effective period</value></data>
+  <data name="StoreMenu.SyncTitle" xml:space="preserve"><value>Prepare new SKUs as drafts</value></data>
+  <data name="StoreMenu.Filter.Title" xml:space="preserve"><value>Operations filters</value></data>
+  <data name="StoreMenu.Filter.Hint" xml:space="preserve"><value>Narrow the menu by store, SKU, and selling status.</value></data>
+  <data name="StoreMenu.Realtime" xml:space="preserve"><value>Real-time monitoring</value></data>
+  <data name="StoreMenu.Filter.Aria" xml:space="preserve"><value>Store menu filters</value></data>
+  <data name="StoreMenu.Reload" xml:space="preserve"><value>Reload menu</value></data>
+  <data name="StoreMenu.Drawer.Eyebrow" xml:space="preserve"><value>Store menu</value></data>
+  <data name="StoreMenu.Drawer.Title" xml:space="preserve"><value>Update item</value></data>
+  <data name="StoreMenu.Drawer.OverridePrice" xml:space="preserve"><value>Store-specific price (VND)</value></data>
+  <data name="StoreMenu.Drawer.GlobalHint" xml:space="preserve"><value>Leave blank when selecting “Use global price”.</value></data>
+  <data name="StoreMenu.Drawer.DisplayOrder" xml:space="preserve"><value>Display order</value></data>
+  <data name="StoreMenu.Drawer.Reason" xml:space="preserve"><value>Reason for change</value></data>
+  <data name="StoreMenu.Js.RequestFailed" xml:space="preserve"><value>Unable to process the request.</value></data>
+  <data name="StoreMenu.Js.NoStores" xml:space="preserve"><value>No stores are available within your access scope.</value></data>
+  <data name="StoreMenu.Js.NoStoresHint" xml:space="preserve"><value>Contact an administrator to check your role and store scope.</value></data>
+  <data name="StoreMenu.Js.SyncSuccess" xml:space="preserve"><value>New SKUs were synced to the store menu.</value></data>
+  <data name="StoreMenu.Js.NoFilteredItems" xml:space="preserve"><value>No drink/size matches the filters.</value></data>
+  <data name="StoreMenu.Js.NoItems" xml:space="preserve"><value>No drink/size has been added to the store menu.</value></data>
+  <data name="StoreMenu.Js.ClearFiltersHint" xml:space="preserve"><value>Clear the search or choose another status.</value></data>
+  <data name="StoreMenu.Js.SetupHint" xml:space="preserve"><value>Set up and publish menu data before operations begin.</value></data>
+  <data name="StoreMenu.Js.IncompleteData" xml:space="preserve"><value>Insufficient data</value></data>
+  <data name="StoreMenu.Js.NotCalculated" xml:space="preserve"><value>Not calculated</value></data>
+  <data name="StoreMenu.Js.Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="StoreMenu.Js.NoLimit" xml:space="preserve"><value>No limit</value></data>
+  <data name="StoreMenu.Js.From" xml:space="preserve"><value>From {value}</value></data>
+  <data name="StoreMenu.Js.Immediate" xml:space="preserve"><value>Effective immediately</value></data>
+  <data name="StoreMenu.Js.To" xml:space="preserve"><value>To {value}</value></data>
+  <data name="StoreMenu.Js.NoEnd" xml:space="preserve"><value>No end date</value></data>
+  <data name="StoreMenu.Js.StorePrice" xml:space="preserve"><value>Store-specific price</value></data>
+  <data name="StoreMenu.Js.GlobalPrice" xml:space="preserve"><value>Global price</value></data>
+  <data name="StoreMenu.Js.Margin" xml:space="preserve"><value>Margin {value}</value></data>
+  <data name="StoreMenu.Js.ReasonRequired" xml:space="preserve"><value>A reason for the change is required.</value></data>
+  <data name="StoreMenu.Js.PriceInvalid" xml:space="preserve"><value>The store-specific price must be greater than 0.</value></data>
+  <data name="StoreMenu.Js.OrderInvalid" xml:space="preserve"><value>Display order must be 0 or greater.</value></data>
+  <data name="StoreMenu.Js.Saving" xml:space="preserve"><value>Saving...</value></data>
+  <data name="StoreMenu.Js.UpdateSuccess" xml:space="preserve"><value>Store menu updated.</value></data>
+  <data name="StoreMenu.Js.ReloadToContinue" xml:space="preserve"><value>Reload to continue</value></data>
+  <data name="StoreMenu.Js.Confirm" xml:space="preserve"><value>Confirm</value></data>
+  <data name="StoreMenu.Action.Publish.Title" xml:space="preserve"><value>Publish item</value></data>
+  <data name="StoreMenu.Action.Publish.Hint" xml:space="preserve"><value>The item will appear on the store menu when it is ready to sell.</value></data>
+  <data name="StoreMenu.Action.Publish.Submit" xml:space="preserve"><value>Publish</value></data>
+  <data name="StoreMenu.Action.Pause.Title" xml:space="preserve"><value>Pause SKU</value></data>
+  <data name="StoreMenu.Action.Pause.Hint" xml:space="preserve"><value>Cashiers will not be able to sell this SKU at the store.</value></data>
+  <data name="StoreMenu.Action.Pause.Submit" xml:space="preserve"><value>Confirm pause</value></data>
+  <data name="StoreMenu.Action.Resume.Title" xml:space="preserve"><value>Resume SKU</value></data>
+  <data name="StoreMenu.Action.Resume.Hint" xml:space="preserve"><value>The SKU will return to the catalog when its BOM and inventory are ready.</value></data>
+  <data name="StoreMenu.Action.Resume.Submit" xml:space="preserve"><value>Resume selling</value></data>
+  <data name="StoreMenu.Action.Order.Title" xml:space="preserve"><value>Change display order</value></data>
+  <data name="StoreMenu.Action.Order.Hint" xml:space="preserve"><value>Smaller numbers are displayed first on POS.</value></data>
+  <data name="StoreMenu.Action.Order.Submit" xml:space="preserve"><value>Save order</value></data>
+  <data name="StoreMenu.Action.Override.Title" xml:space="preserve"><value>Set store-specific price</value></data>
+  <data name="StoreMenu.Action.Override.Hint" xml:space="preserve"><value>This price replaces the global price for this SKU at the selected store.</value></data>
+  <data name="StoreMenu.Action.Override.Submit" xml:space="preserve"><value>Apply store price</value></data>
+  <data name="StoreMenu.Action.Global.Title" xml:space="preserve"><value>Use global price</value></data>
+  <data name="StoreMenu.Action.Global.Hint" xml:space="preserve"><value>The store-specific price will be removed and the SKU will use the current global price.</value></data>
+  <data name="StoreMenu.Action.Global.Submit" xml:space="preserve"><value>Use global price</value></data>
+  <data name="StoreMenu.Action.ViewBom" xml:space="preserve"><value>View BOM</value></data>
+  <data name="StoreMenu.Action.ViewProfit" xml:space="preserve"><value>View profitability</value></data>
+  <data name="StoreMenu.Js.EffectivePrice" xml:space="preserve"><value>Effective price {value}</value></data>
+  <data name="Recipe.Create.PageTitle" xml:space="preserve"><value>Create BOM recipe</value></data>
+  <data name="Recipe.Create.Title" xml:space="preserve"><value>Create recipe</value></data>
+  <data name="Recipe.Create.Description" xml:space="preserve"><value>Select the correct target, then verify output and quantities before immediately publishing the recipe.</value></data>
+  <data name="Recipe.Edit.PageTitle" xml:space="preserve"><value>Create recipe version</value></data>
+  <data name="Recipe.Edit.Title" xml:space="preserve"><value>Create a new recipe version</value></data>
+  <data name="Recipe.Edit.Description" xml:space="preserve"><value>Create the next version for {0}. The current version remains in history.</value></data>
+  <data name="Recipe.Eyebrow" xml:space="preserve"><value>Production / BOM</value></data>
+  <data name="Recipe.List" xml:space="preserve"><value>Recipes</value></data>
+  <data name="Recipe.CreateNew" xml:space="preserve"><value>Create</value></data>
+  <data name="Recipe.NewVersion" xml:space="preserve"><value>New version</value></data>
+  <data name="Recipe.Back" xml:space="preserve"><value>Back to list</value></data>
+  <data name="Recipe.Identity" xml:space="preserve"><value>Recipe type and target</value></data>
+  <data name="Recipe.Type" xml:space="preserve"><value>Recipe type</value></data>
+  <data name="Recipe.Type.Pos" xml:space="preserve"><value>POS item</value></data>
+  <data name="Recipe.Type.Subrecipe" xml:space="preserve"><value>Prepared item</value></data>
+  <data name="Recipe.Product" xml:space="preserve"><value>POS product</value></data>
+  <data name="Recipe.Drink" xml:space="preserve"><value>Applicable drink</value></data>
+  <data name="Recipe.Topping" xml:space="preserve"><value>Applicable topping</value></data>
+  <data name="Recipe.PreparedItem" xml:space="preserve"><value>Output prepared item</value></data>
+  <data name="Recipe.Select" xml:space="preserve"><value>-- Select --</value></data>
+  <data name="Recipe.SelectProduct" xml:space="preserve"><value>-- Select product --</value></data>
+  <data name="Recipe.SelectTopping" xml:space="preserve"><value>-- Select topping --</value></data>
+  <data name="Recipe.SelectPrepared" xml:space="preserve"><value>-- Select prepared item (code + name) --</value></data>
+  <data name="Recipe.LegacyPreparedWarning" xml:space="preserve"><value>This legacy record is not linked to a prepared item. Select a prepared item, yield, and unit before publishing an active version.</value></data>
+  <data name="Recipe.PreparedFixed" xml:space="preserve"><value>The prepared item remains fixed throughout the version chain.</value></data>
+  <data name="Recipe.RefreshPrepared" xml:space="preserve"><value>Refresh prepared items</value></data>
+  <data name="Recipe.Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Recipe.PreparedIdentityHint" xml:space="preserve"><value>Uses a stable prepared-item identity; free text and recipe codes are not used as output identities.</value></data>
+  <data name="Recipe.CreatePrepared" xml:space="preserve"><value>Cannot find it? Create a prepared item</value></data>
+  <data name="Recipe.Output" xml:space="preserve"><value>Output yield</value></data>
+  <data name="Recipe.ExpectedYield" xml:space="preserve"><value>Standard yield per batch</value></data>
+  <data name="Recipe.YieldHint" xml:space="preserve"><value>This is the prepared-item quantity actually received after processing. No additional recovery rate is applied.</value></data>
+  <data name="Recipe.OutputUnit" xml:space="preserve"><value>Output unit</value></data>
+  <data name="Recipe.SelectUnit" xml:space="preserve"><value>-- Unit --</value></data>
+  <data name="Recipe.NormalizedPreview" xml:space="preserve"><value>Normalized output preview</value></data>
+  <data name="Recipe.NormalizedHint" xml:space="preserve"><value>Enter a quantity and unit to preview the inventory conversion.</value></data>
+  <data name="Recipe.Components" xml:space="preserve"><value>BOM components</value></data>
+  <data name="Recipe.AddComponent" xml:space="preserve"><value>Add component</value></data>
+  <data name="Recipe.Column.Type" xml:space="preserve"><value>Type</value></data>
+  <data name="Recipe.Column.Component" xml:space="preserve"><value>Component</value></data>
+  <data name="Recipe.Column.Quantity" xml:space="preserve"><value>Quantity</value></data>
+  <data name="Recipe.Column.Unit" xml:space="preserve"><value>Unit</value></data>
+  <data name="Recipe.Column.LineCost" xml:space="preserve"><value>Line cost</value></data>
+  <data name="Recipe.Column.DataStatus" xml:space="preserve"><value>Data status</value></data>
+  <data name="Recipe.Column.Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Recipe.Instructions" xml:space="preserve"><value>Preparation instructions</value></data>
+  <data name="Recipe.DescriptionLabel" xml:space="preserve"><value>Description</value></data>
+  <data name="Recipe.DescriptionPlaceholder" xml:space="preserve"><value>Example: Add ice before milk...</value></data>
+  <data name="Recipe.ReviewAria" xml:space="preserve"><value>Review and save recipe</value></data>
+  <data name="Recipe.ReviewVersionAria" xml:space="preserve"><value>Review and save recipe version</value></data>
+  <data name="Recipe.Review" xml:space="preserve"><value>Review and save</value></data>
+  <data name="Recipe.PublishNow" xml:space="preserve"><value>Confirm immediate publication</value></data>
+  <data name="Recipe.FromVersion" xml:space="preserve"><value>From version #{0}</value></data>
+  <data name="Recipe.Target" xml:space="preserve"><value>Target</value></data>
+  <data name="Recipe.Bom" xml:space="preserve"><value>BOM</value></data>
+  <data name="Recipe.NotSelected" xml:space="preserve"><value>Not selected</value></data>
+  <data name="Recipe.Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="Recipe.NoComponents" xml:space="preserve"><value>No components</value></data>
+  <data name="Recipe.Checking" xml:space="preserve"><value>Checking</value></data>
+  <data name="Recipe.NoChanges" xml:space="preserve"><value>No changes yet.</value></data>
+  <data name="Recipe.AppliedImmediately" xml:space="preserve"><value>The new recipe will be published immediately after saving.</value></data>
+  <data name="Recipe.EstimatedCost" xml:space="preserve"><value>Estimated cost</value></data>
+  <data name="Recipe.CostFromCompleteLines" xml:space="preserve"><value>Calculated from component lines with complete package data</value></data>
+  <data name="Recipe.NoComponentSelected" xml:space="preserve"><value>No component selected</value></data>
+  <data name="Recipe.CostWarning" xml:space="preserve"><value>Incomplete cost data does not block saving when allowed by the server. The system never displays an inaccurate zero cost.</value></data>
+  <data name="Recipe.CostSummaryAria" xml:space="preserve"><value>Recipe cost summary</value></data>
+  <data name="Recipe.TotalCost" xml:space="preserve"><value>Total cost</value></data>
+  <data name="Recipe.CostRatio" xml:space="preserve"><value>Cost ratio</value></data>
+  <data name="Recipe.ReviewHint" xml:space="preserve"><value>Review components and cost data before creating the new version.</value></data>
+  <data name="Recipe.SaveApply" xml:space="preserve"><value>Save and publish now</value></data>
+  <data name="Recipe.SelectComponent" xml:space="preserve"><value>-- Select component --</value></data>
+  <data name="Recipe.RawIngredients" xml:space="preserve"><value>Raw ingredients</value></data>
+  <data name="Recipe.ChildPrepared" xml:space="preserve"><value>Child prepared items</value></data>
+  <data name="Recipe.ChildPreparedVersion" xml:space="preserve"><value>Child prepared items (recipe version fixed)</value></data>
+  <data name="Recipe.UnmappedPrepared" xml:space="preserve"><value>Prepared item: (not mapped)</value></data>
+  <data name="Recipe.Version" xml:space="preserve"><value>version #{0}</value></data>
+  <data name="Recipe.Js.Piece" xml:space="preserve"><value>piece</value></data>
+  <data name="Recipe.Js.Unit" xml:space="preserve"><value>Unit</value></data>
+  <data name="Recipe.Js.Yes" xml:space="preserve"><value>Yes</value></data>
+  <data name="Recipe.Js.None" xml:space="preserve"><value>None</value></data>
+  <data name="Recipe.Js.InventoryUnit" xml:space="preserve"><value>Inventory unit: {unit}</value></data>
+  <data name="Recipe.Js.ActiveRecipe" xml:space="preserve"><value>Active recipe: {status}</value></data>
+  <data name="Recipe.Js.PreparedPrefix" xml:space="preserve"><value>Prepared item</value></data>
+  <data name="Recipe.Js.Unmapped" xml:space="preserve"><value>not mapped</value></data>
+  <data name="Recipe.Js.PinnedVersion" xml:space="preserve"><value>Pinned version</value></data>
+  <data name="Recipe.Js.BaseUnit" xml:space="preserve"><value>Base unit: {unit}</value></data>
+  <data name="Recipe.Js.PosTarget" xml:space="preserve"><value>POS item and size: {drink} · {size}</value></data>
+  <data name="Recipe.Js.PosTargetMissing" xml:space="preserve"><value>Select both a POS item and size</value></data>
+  <data name="Recipe.Js.PosOutput" xml:space="preserve"><value>1 serving of {drink} · {size}</value></data>
+  <data name="Recipe.Js.ToppingTarget" xml:space="preserve"><value>Topping: {name}</value></data>
+  <data name="Recipe.Js.ToppingMissing" xml:space="preserve"><value>Select a topping</value></data>
+  <data name="Recipe.Js.ToppingOutput" xml:space="preserve"><value>1 topping selection: {name}</value></data>
+  <data name="Recipe.Js.PreparedTarget" xml:space="preserve"><value>Prepared item: {name}</value></data>
+  <data name="Recipe.Js.PreparedMissing" xml:space="preserve"><value>Select a prepared item</value></data>
+  <data name="Recipe.Js.YieldOutput" xml:space="preserve"><value>Standard yield per batch: {quantity} {unit}</value></data>
+  <data name="Recipe.Js.YieldMissing" xml:space="preserve"><value>Standard batch yield is not defined</value></data>
+  <data name="Recipe.Js.LineSummary" xml:space="preserve"><value>{count} lines · Quantities use each line's display unit</value></data>
+  <data name="Recipe.Js.ChangeSummary" xml:space="preserve"><value>Added: {added} · Removed: {removed} · Changed: {changed}</value></data>
+  <data name="Recipe.Js.Invalid" xml:space="preserve"><value>Recipe data is invalid.</value></data>
+  <data name="Recipe.Js.Applying" xml:space="preserve"><value>Publishing...</value></data>
+  <data name="Recipe.Js.Calculating" xml:space="preserve"><value>Calculating…</value></data>
+  <data name="Recipe.Js.Normalizing" xml:space="preserve"><value>Normalizing output yield</value></data>
+  <data name="Recipe.Js.SelectPreparedOutput" xml:space="preserve"><value>Select an output prepared item.</value></data>
+  <data name="Recipe.Js.EnterYield" xml:space="preserve"><value>Enter the output yield for one batch.</value></data>
+  <data name="Recipe.Js.SelectOutputUnit" xml:space="preserve"><value>Select an output unit.</value></data>
+  <data name="Recipe.Js.PerBatch" xml:space="preserve"><value>/ batch</value></data>
+  <data name="Recipe.Js.InventoryQuantity" xml:space="preserve"><value>{quantity} {unit} in inventory</value></data>
+  <data name="Recipe.Js.CannotConvert" xml:space="preserve"><value>Unable to convert</value></data>
+  <data name="Recipe.Js.PreviewError" xml:space="preserve"><value>Preview error</value></data>
+  <data name="Recipe.Js.SessionError" xml:space="preserve"><value>The session is invalid or the connection was lost</value></data>
+  <data name="Recipe.Js.Code" xml:space="preserve"><value>Code</value></data>
+  <data name="Recipe.Js.Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Recipe.Js.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Recipe.Js.Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Recipe.Js.CurrentActiveRecipe" xml:space="preserve"><value>Current active recipe</value></data>
+  <data name="Recipe.Js.ActiveExists" xml:space="preserve"><value>An active recipe exists</value></data>
+  <data name="Recipe.Js.VersionCount" xml:space="preserve"><value>Version count</value></data>
+  <data name="Recipe.Js.ActiveConflictTitle" xml:space="preserve"><value>An active recipe already exists</value></data>
+  <data name="Recipe.Js.ActiveConflictHint" xml:space="preserve"><value>Each prepared item can have only one active version. Open the edit page to archive the current version and create a new one.</value></data>
+  <data name="Recipe.Js.ViewRecipe" xml:space="preserve"><value>View recipe</value></data>
+  <data name="Recipe.Js.CreateVersion" xml:space="preserve"><value>Create new version</value></data>
+  <data name="Recipe.Js.PreparedNotFound" xml:space="preserve"><value>No prepared item found</value></data>
+  <data name="Recipe.Js.Searching" xml:space="preserve"><value>Searching…</value></data>
+  <data name="Recipe.Js.Loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="Recipe.Js.DataComplete" xml:space="preserve"><value>Complete data</value></data>
+  <data name="Recipe.Js.DataIncomplete" xml:space="preserve"><value>Incomplete data</value></data>
+  <data name="Recipe.Js.Duplicate" xml:space="preserve"><value>This component is already used on row {rows}.</value></data>
+  <data name="Recipe.Js.MergeRow" xml:space="preserve"><value>Merge with row {row}</value></data>
+  <data name="Recipe.Js.ChooseOther" xml:space="preserve"><value>Choose another component</value></data>
+  <data name="Recipe.Js.CannotMerge" xml:space="preserve"><value>Unable to merge components</value></data>
+  <data name="Recipe.Js.UnitMismatch" xml:space="preserve"><value>The two rows use different units (codes {unitA} and {unitB}). Convert them to the same unit before merging.</value></data>
+  <data name="Recipe.Js.CostMissing" xml:space="preserve"><value>Cost data is incomplete</value></data>
+  <data name="Recipe.Js.CostCannotCalculate" xml:space="preserve"><value>Unable to calculate the full cost</value></data>
+  <data name="Recipe.Js.ViewIngredients" xml:space="preserve"><value>View ingredients</value></data>
+  <data name="Recipe.Js.ViewSuppliers" xml:space="preserve"><value>View suppliers</value></data>
+  <data name="Recipe.Js.ViewConversions" xml:space="preserve"><value>View unit conversions</value></data>
+  <data name="Recipe.Js.IncompleteUpper" xml:space="preserve"><value>INCOMPLETE</value></data>
+  <data name="Recipe.Js.CostComplete" xml:space="preserve"><value>Estimated cost (complete package data)</value></data>
+  <data name="Recipe.Js.ComponentRowAria" xml:space="preserve"><value>Component on row {row}</value></data>
+  <data name="Recipe.Js.AutoUnitAria" xml:space="preserve"><value>Automatically determined unit</value></data>
+  <data name="Recipe.Js.Auto" xml:space="preserve"><value>Automatic</value></data>
+  <data name="Recipe.Js.RemoveRow" xml:space="preserve"><value>Remove row</value></data>
+  <data name="Recipe.Js.SearchComponent" xml:space="preserve"><value>-- Search components --</value></data>
+  <data name="Recipe.Js.NoComponent" xml:space="preserve"><value>No component found</value></data>
+  <data name="Recipe.Js.SearchProduct" xml:space="preserve"><value>-- Search products --</value></data>
+  <data name="Recipe.Js.SearchTopping" xml:space="preserve"><value>-- Search toppings --</value></data>
+  <data name="Recipe.Js.SelectSize" xml:space="preserve"><value>-- Select size --</value></data>
+  <data name="Recipe.Js.ActivePreparedConflict" xml:space="preserve"><value>This prepared item already has an active recipe. Create a new version from the edit page.</value></data>
+  <data name="Recipe.Js.AtLeastOne" xml:space="preserve"><value>Add at least one component to the recipe.</value></data>
+  <data name="Recipe.Js.DuplicateBeforeSave" xml:space="preserve"><value>Duplicate component codes exist. Merge the rows or choose another component before saving.</value></data>
+  <data name="Recipe.Js.Saving" xml:space="preserve"><value>Saving…</value></data>
+  <data name="Recipe.Js.Applied" xml:space="preserve"><value>Published</value></data>
+  <data name="Recipe.Js.SaveError" xml:space="preserve"><value>Unable to save recipe</value></data>
+  <data name="Recipe.Js.Conflict" xml:space="preserve"><value>The recipe conflicts with an active version.</value></data>
+  <data name="Recipe.Js.ServerError" xml:space="preserve"><value>The recipe cannot be saved right now. Try again or contact an administrator.</value></data>
+  <data name="Recipe.Js.EnterPreparedYieldUnit" xml:space="preserve"><value>Enter the prepared item, yield, and unit.</value></data>
+  <data name="Recipe.Js.Error" xml:space="preserve"><value>Error</value></data>
+  <data name="Recipe.Index.PageTitle" xml:space="preserve"><value>BOM recipes</value></data>
+  <data name="Recipe.Index.Title" xml:space="preserve"><value>Recipes and ingredient quantities</value></data>
+  <data name="Recipe.Index.Description" xml:space="preserve"><value>Manage inputs, expected yield, and recipe versions for POS items, toppings, and prepared items.</value></data>
+  <data name="Recipe.Index.DataHealth" xml:space="preserve"><value>Check data health</value></data>
+  <data name="Recipe.Type.PosShort" xml:space="preserve"><value>POS items</value></data>
+  <data name="Recipe.Search" xml:space="preserve"><value>Search recipes</value></data>
+  <data name="Recipe.SearchPlaceholder" xml:space="preserve"><value>Search name, recipe code, or prepared-item code...</value></data>
+  <data name="Recipe.Filter.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Recipe.Filter.AllStatus" xml:space="preserve"><value>All statuses</value></data>
+  <data name="Recipe.Status.Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Recipe.Status.Inactive" xml:space="preserve"><value>Inactive</value></data>
+  <data name="Recipe.Filter.Apply" xml:space="preserve"><value>Filter</value></data>
+  <data name="Recipe.Filter.Reset" xml:space="preserve"><value>Reset filters</value></data>
+  <data name="Recipe.Index.ListTitle" xml:space="preserve"><value>{0} recipe list</value></data>
+  <data name="Recipe.Index.ListHint" xml:space="preserve"><value>Current versions, data health, and estimated costs.</value></data>
+  <data name="Recipe.Index.Count" xml:space="preserve"><value>{0} recipes</value></data>
+  <data name="Recipe.Column.Prepared" xml:space="preserve"><value>Prepared item</value></data>
+  <data name="Recipe.Column.Version" xml:space="preserve"><value>Version</value></data>
+  <data name="Recipe.Column.YieldBatch" xml:space="preserve"><value>Yield/batch</value></data>
+  <data name="Recipe.Column.YieldBatchTitle" xml:space="preserve"><value>Yield per batch</value></data>
+  <data name="Recipe.Column.NormalizedYield" xml:space="preserve"><value>Normalized yield</value></data>
+  <data name="Recipe.Column.CostBatch" xml:space="preserve"><value>Cost/batch</value></data>
+  <data name="Recipe.Column.UnitCost" xml:space="preserve"><value>Unit cost</value></data>
+  <data name="Recipe.Column.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Recipe.Column.Source" xml:space="preserve"><value>Consumption source</value></data>
+  <data name="Recipe.Column.Portion" xml:space="preserve"><value>Quantity/serving</value></data>
+  <data name="Recipe.Column.Configuration" xml:space="preserve"><value>Configuration</value></data>
+  <data name="Recipe.Column.CostPortion" xml:space="preserve"><value>Cost/serving</value></data>
+  <data name="Recipe.Column.Identity" xml:space="preserve"><value>Identity</value></data>
+  <data name="Recipe.Empty.Title" xml:space="preserve"><value>No {0} recipes</value></data>
+  <data name="Recipe.Empty.Hint" xml:space="preserve"><value>Try another search term or status filter.</value></data>
+  <data name="Recipe.Add" xml:space="preserve"><value>Add recipe</value></data>
+  <data name="Recipe.PreparedVersion" xml:space="preserve"><value>Prepared-item version</value></data>
+  <data name="Recipe.CurrentVersion" xml:space="preserve"><value>Current version</value></data>
+  <data name="Recipe.NotCalculated" xml:space="preserve"><value>Not calculated</value></data>
+  <data name="Recipe.PerPortion" xml:space="preserve"><value>/serving</value></data>
+  <data name="Recipe.SelectedVersion" xml:space="preserve"><value>uses the selected recipe version</value></data>
+  <data name="Recipe.ViewStructure" xml:space="preserve"><value>View structure</value></data>
+  <data name="Recipe.ViewStructureTitle" xml:space="preserve"><value>View BOM structure</value></data>
+  <data name="Recipe.ViewStructureAria" xml:space="preserve"><value>View the BOM structure of {0}</value></data>
+  <data name="Recipe.Actions.Open" xml:space="preserve"><value>Open actions</value></data>
+  <data name="Recipe.Actions.OpenAria" xml:space="preserve"><value>Open actions for {0}</value></data>
+  <data name="Recipe.Actions.CreateVersion" xml:space="preserve"><value>Create version</value></data>
+  <data name="Recipe.Actions.Edit" xml:space="preserve"><value>Edit recipe</value></data>
+  <data name="Recipe.Actions.Delete" xml:space="preserve"><value>Delete recipe</value></data>
+  <data name="Recipe.Pagination.Aria" xml:space="preserve"><value>Recipe pagination</value></data>
+  <data name="Recipe.Pagination.Summary" xml:space="preserve"><value>Page {0} of {1}</value></data>
+  <data name="Recipe.Pagination.Previous" xml:space="preserve"><value>Previous page</value></data>
+  <data name="Recipe.Pagination.Next" xml:space="preserve"><value>Next page</value></data>
+  <data name="Recipe.Delete.Title" xml:space="preserve"><value>Delete recipe?</value></data>
+  <data name="Recipe.Delete.Message" xml:space="preserve"><value>“{name}” (#{id}) will be permanently deleted.</value></data>
+  <data name="Recipe.Delete.Confirm" xml:space="preserve"><value>Delete</value></data>
+  <data name="Recipe.Delete.ErrorTitle" xml:space="preserve"><value>Unable to delete</value></data>
+  <data name="Recipe.Delete.Error" xml:space="preserve"><value>The recipe could not be deleted.</value></data>
+  <data name="Recipe.Delete.ConnectionTitle" xml:space="preserve"><value>Connection lost</value></data>
+  <data name="Recipe.Delete.Connection" xml:space="preserve"><value>Unable to connect to the server.</value></data>
+  <data name="Recipe.Health.COMPLETE" xml:space="preserve"><value>Complete</value></data>
+  <data name="Recipe.Health.INACTIVE" xml:space="preserve"><value>Inactive</value></data>
+  <data name="Recipe.Health.MISSING_COMPONENTS" xml:space="preserve"><value>Missing components</value></data>
+  <data name="Recipe.Health.MISSING_OUTPUT_IDENTITY" xml:space="preserve"><value>Missing output prepared item</value></data>
+  <data name="Recipe.Health.MISSING_OUTPUT_QUANTITY" xml:space="preserve"><value>Missing yield</value></data>
+  <data name="Recipe.Health.MISSING_OUTPUT_UNIT" xml:space="preserve"><value>Missing unit</value></data>
+  <data name="Recipe.Health.INVALID_PREPARED_ITEM_MAPPING" xml:space="preserve"><value>Invalid prepared-item mapping</value></data>
+  <data name="Recipe.Health.MISSING_COMPONENT_UNIT" xml:space="preserve"><value>Missing component unit</value></data>
+  <data name="Recipe.Health.MISSING_QUOTE" xml:space="preserve"><value>Missing quote</value></data>
+  <data name="Recipe.Health.MISSING_CONVERSION" xml:space="preserve"><value>Missing conversion</value></data>
+  <data name="Recipe.Health.MISSING_CHILD_COST" xml:space="preserve"><value>Missing child prepared-item cost</value></data>
+  <data name="Recipe.Health.INDETERMINATE" xml:space="preserve"><value>Indeterminate</value></data>
+  <data name="Drink.Js.ConfirmTitle" xml:space="preserve"><value>Confirm</value></data>
+  <data name="Drink.Js.ToggleConfirm" xml:space="preserve"><value>Are you sure you want to change this drink's status?</value></data>
+  <data name="Drink.Js.Confirm" xml:space="preserve"><value>Confirm</value></data>
+  <data name="Drink.Js.ToggleFailed" xml:space="preserve"><value>Unable to update the drink status.</value></data>
+  <data name="Drink.Js.ToggleSuccess" xml:space="preserve"><value>Drink status updated successfully.</value></data>
+  <data name="Drink.Js.FileType" xml:space="preserve"><value>Only JPG, JPEG, and PNG files are accepted.</value></data>
+  <data name="Drink.Js.FileSize" xml:space="preserve"><value>The image must not exceed 5 MB.</value></data>
+  <data name="Drink.Js.Create" xml:space="preserve"><value>Create drink</value></data>
+  <data name="Drink.Js.Creating" xml:space="preserve"><value>Creating...</value></data>
+  <data name="Drink.Js.Updating" xml:space="preserve"><value>Updating...</value></data>
+  <data name="Drink.Js.Update" xml:space="preserve"><value>Update drink</value></data>
+  <data name="Drink.Js.Validation" xml:space="preserve"><value>Please complete all required fields.</value></data>
+  <data name="Drink.Js.ImageProcessFailed" xml:space="preserve"><value>Unable to process the image.</value></data>
+  <data name="Drink.Js.ImageAlt" xml:space="preserve"><value>Drink image {number}</value></data>
+  <data name="Drink.Js.SetDefaultTitle" xml:space="preserve"><value>Set as default image</value></data>
+  <data name="Drink.Js.Default" xml:space="preserve"><value>Default</value></data>
+  <data name="Drink.Js.DeleteImageTitle" xml:space="preserve"><value>Delete image</value></data>
+  <data name="Drink.Js.InvalidData" xml:space="preserve"><value>The submitted data is invalid.</value></data>
+  <data name="Drink.Js.NetworkError" xml:space="preserve"><value>Unable to connect to the server. Check your network and try again.</value></data>
+  <data name="Drink.Js.EntityName" xml:space="preserve"><value>drink</value></data>
+  <data name="Drink.Js.SaveFailed" xml:space="preserve"><value>Unable to save the drink. Please try again.</value></data>
+  <data name="Drink.Js.StatusActive" xml:space="preserve"><value>Status: Selling</value></data>
+  <data name="Drink.Js.StatusInactive" xml:space="preserve"><value>Status: Paused</value></data>
+  <data name="Drink.Js.NoFile" xml:space="preserve"><value>No file selected</value></data>
+  <data name="Drink.Js.DrinkNotFound" xml:space="preserve"><value>The drink for this image could not be found.</value></data>
+  <data name="Drink.Js.Uploading" xml:space="preserve"><value>Uploading...</value></data>
+  <data name="Drink.Js.ImageAddSuccess" xml:space="preserve"><value>Image added successfully.</value></data>
+  <data name="Drink.Js.ImageAddFailed" xml:space="preserve"><value>Unable to add the image.</value></data>
+  <data name="Drink.Js.ImageUploadError" xml:space="preserve"><value>An error occurred while uploading the image.</value></data>
+  <data name="Drink.Js.DefaultSuccess" xml:space="preserve"><value>Default image updated.</value></data>
+  <data name="Drink.Js.DefaultFailed" xml:space="preserve"><value>Unable to update the default image.</value></data>
+  <data name="Drink.Js.DeleteConfirm" xml:space="preserve"><value>Are you sure you want to delete this image?</value></data>
+  <data name="Drink.Js.DeleteSuccess" xml:space="preserve"><value>Image deleted successfully.</value></data>
+  <data name="Drink.Js.DeleteFailed" xml:space="preserve"><value>Unable to delete the image.</value></data>
+  <data name="Drink.Js.DeleteSystemError" xml:space="preserve"><value>A system error occurred while deleting the image.</value></data>
+  <data name="Drink.Js.ImageNotFound" xml:space="preserve"><value>The image to edit could not be found.</value></data>
+  <data name="Drink.Js.ChooseReplacement" xml:space="preserve"><value>Choose a new image before saving.</value></data>
+  <data name="Drink.Js.Saving" xml:space="preserve"><value>Saving...</value></data>
+  <data name="Drink.Js.SaveChanges" xml:space="preserve"><value>Save changes</value></data>
+  <data name="Drink.Js.ImageUpdateSuccess" xml:space="preserve"><value>Image updated successfully.</value></data>
+  <data name="Drink.Js.ImageUpdateFailed" xml:space="preserve"><value>Unable to update the image.</value></data>
+  <data name="Drink.Js.ImageUpdateError" xml:space="preserve"><value>An error occurred while updating the image.</value></data>
+  <data name="Drink.Js.ImageLoading" xml:space="preserve"><value>Loading images...</value></data>
+  <data name="Drink.Js.ImageListError" xml:space="preserve"><value>Unable to load the image list.</value></data>
+  <data name="Drink.Js.ImageLoadError" xml:space="preserve"><value>Unable to load images.</value></data>
+  <data name="Drink.Js.ImageEmpty" xml:space="preserve"><value>No images are available.</value></data>
+  <data name="Drink.Js.SetDefault" xml:space="preserve"><value>Set default</value></data>
+  <data name="Drink.Js.SetDefaultHint" xml:space="preserve"><value>Click to set as the default image</value></data>
+  <data name="Drink.Js.EditImage" xml:space="preserve"><value>Edit image</value></data>
+  <data name="Drink.Js.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Drink.Js.Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Drink.Js.NoItems" xml:space="preserve"><value>None</value></data>
+  <data name="Drink.Js.AiRequired" xml:space="preserve"><value>Enter a name, category, and product type first.</value></data>
+  <data name="Drink.Js.AiLoading" xml:space="preserve"><value>Generating...</value></data>
+  <data name="Drink.Js.AiFailed" xml:space="preserve"><value>Unable to generate suggestions.</value></data>
+  <data name="Drink.Js.AiOverwrite" xml:space="preserve"><value>Replace the current code and description with the AI suggestion?</value></data>
+  <data name="Drink.Js.AiApplied" xml:space="preserve"><value>Suggestion applied. The changes have not been saved.</value></data>
+  <data name="Drink.Js.AiTitle" xml:space="preserve"><value>Drink suggestion</value></data>
+  <data name="Drink.Js.AiInvalidReference" xml:space="preserve"><value>The suggested category or product type is no longer available.</value></data>
+  <data name="Drink.Js.AiImageFailed" xml:space="preserve"><value>Unable to add the AI image to the image editor.</value></data>
+  <data name="Size.Js.Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="Size.Js.NoDrinkData" xml:space="preserve"><value>No drink data is available.</value></data>
+  <data name="Size.Js.Incompatible" xml:space="preserve"><value>This size is not compatible with the product type.</value></data>
+  <data name="Size.Js.Other" xml:space="preserve"><value>Other</value></data>
+  <data name="Size.Js.Profitability" xml:space="preserve"><value>Manage cost and profitability</value></data>
+  <data name="Size.Js.Price" xml:space="preserve"><value>Price</value></data>
+  <data name="Size.Js.DisableHint" xml:space="preserve"><value>Disable this size for the drink</value></data>
+  <data name="Size.Js.EnableHint" xml:space="preserve"><value>Enable this size again</value></data>
+  <data name="Size.Js.Disable" xml:space="preserve"><value>Disable</value></data>
+  <data name="Size.Js.Enable" xml:space="preserve"><value>Enable</value></data>
+  <data name="Size.Js.Assign" xml:space="preserve"><value>Assign</value></data>
+  <data name="Size.Js.Invalid" xml:space="preserve"><value>Not eligible</value></data>
+  <data name="Size.Js.NoAssigned" xml:space="preserve"><value>No drinks have been assigned this size.</value></data>
+  <data name="Size.Js.AllAssigned" xml:space="preserve"><value>All eligible drinks have been assigned.</value></data>
+  <data name="Size.Js.ManageTitle" xml:space="preserve"><value>Manage drinks - size {name}</value></data>
+  <data name="Size.Js.LoadError" xml:space="preserve"><value>Unable to load data.</value></data>
+  <data name="Size.Js.InvalidPrice" xml:space="preserve"><value>Enter a valid selling price (VND).</value></data>
+  <data name="Size.Js.AssignSuccess" xml:space="preserve"><value>Product assigned and selling price saved.</value></data>
+  <data name="Size.Js.AssignError" xml:space="preserve"><value>Unable to assign the selling price.</value></data>
+  <data name="Size.Js.ConfirmTitle" xml:space="preserve"><value>Confirm</value></data>
+  <data name="Size.Js.DrinkStatusConfirm" xml:space="preserve"><value>Are you sure you want to change this drink size status?</value></data>
+  <data name="Size.Js.SizeStatusConfirm" xml:space="preserve"><value>Are you sure you want to change this size status?</value></data>
+  <data name="Size.Js.Confirm" xml:space="preserve"><value>Confirm</value></data>
+  <data name="Size.Js.StatusSuccess" xml:space="preserve"><value>Status updated successfully.</value></data>
+  <data name="Size.Js.UpdateError" xml:space="preserve"><value>Unable to update the status.</value></data>
+  <data name="Size.Js.CodeRequired" xml:space="preserve"><value>Size code is required.</value></data>
+  <data name="Size.Js.CodeMax" xml:space="preserve"><value>Size code cannot exceed 20 characters.</value></data>
+  <data name="Size.Js.NameRequired" xml:space="preserve"><value>Size name is required.</value></data>
+  <data name="Size.Js.NameMax" xml:space="preserve"><value>Size name cannot exceed 50 characters.</value></data>
+  <data name="Size.Js.InvalidResponse" xml:space="preserve"><value>The server returned an invalid response.</value></data>
+  <data name="Size.Js.ActionFailed" xml:space="preserve"><value>Unable to complete the size operation.</value></data>
+  <data name="Size.Js.NotFound" xml:space="preserve"><value>Size not found.</value></data>
+  <data name="Size.Js.UpdateSuccess" xml:space="preserve"><value>Size updated successfully.</value></data>
+  <data name="Size.Js.AiNameRequired" xml:space="preserve"><value>Enter a size name first.</value></data>
+  <data name="Size.Js.AiLoading" xml:space="preserve"><value>Generating...</value></data>
+  <data name="Size.Js.AiFailed" xml:space="preserve"><value>Unable to generate suggestions.</value></data>
+  <data name="Size.Js.AiOverwriteCode" xml:space="preserve"><value>Replace the current size code?</value></data>
+  <data name="Size.Js.AiCodeApplied" xml:space="preserve"><value>Suggested code applied. The changes have not been saved.</value></data>
+  <data name="Size.Js.AiTitle" xml:space="preserve"><value>Size suggestion</value></data>
+  <data name="Size.Js.AiChooseValid" xml:space="preserve"><value>Choose a valid suggestion.</value></data>
+  <data name="Size.Js.AiInvalidType" xml:space="preserve"><value>The suggested size type is invalid. Choose another suggestion.</value></data>
+  <data name="Size.Js.AiOverwrite" xml:space="preserve"><value>Replace the current size data with the AI suggestion?</value></data>
+  <data name="Size.Js.AiApplied" xml:space="preserve"><value>Suggestion applied. Review it before saving.</value></data>
+  <data name="Size.Js.TypeRequired" xml:space="preserve"><value>Select a size type.</value></data>
+  <data name="Size.Js.CreateSuccess" xml:space="preserve"><value>Size created successfully.</value></data>
+  <data name="Topping.ImageAria" xml:space="preserve"><value>Image for {0}</value></data>
+  <data name="Topping.PriceSource" xml:space="preserve"><value>Selling price from Topping.Price</value></data>
+  <data name="Topping.PerPortion" xml:space="preserve"><value>per portion</value></data>
+  <data name="Topping.ViewPreparedStock" xml:space="preserve"><value>View prepared-item inventory</value></data>
+  <data name="Topping.StatusLabel" xml:space="preserve"><value>Status:</value></data>
+  <data name="Topping.CreateTitle" xml:space="preserve"><value>Add a topping</value></data>
+  <data name="Topping.Configure" xml:space="preserve"><value>Menu configuration</value></data>
+  <data name="Topping.CodeLabel" xml:space="preserve"><value>Topping code</value></data>
+  <data name="Topping.CodePlaceholder" xml:space="preserve"><value>Example: BLACK_PEARL</value></data>
+  <data name="Topping.NameLabel" xml:space="preserve"><value>Topping name</value></data>
+  <data name="Topping.PriceLabel" xml:space="preserve"><value>Topping price</value></data>
+  <data name="Topping.PricePlaceholder" xml:space="preserve"><value>Example: 5000</value></data>
+  <data name="Topping.AiIdea" xml:space="preserve"><value>AI idea</value></data>
+  <data name="Topping.Optional" xml:space="preserve"><value>(optional)</value></data>
+  <data name="Topping.AiModeAria" xml:space="preserve"><value>Topping suggestion mode</value></data>
+  <data name="Topping.AiNew" xml:space="preserve"><value>Create new</value></data>
+  <data name="Topping.AiDevelop" xml:space="preserve"><value>Develop the entered data</value></data>
+  <data name="Topping.AiVariant" xml:space="preserve"><value>Create a variant</value></data>
+  <data name="Topping.AiPlaceholder" xml:space="preserve"><value>Example: golden tapioca pearls</value></data>
+  <data name="Topping.AiSuggest" xml:space="preserve"><value>AI suggestions</value></data>
+  <data name="Topping.AiChoose" xml:space="preserve"><value>Choose a suggestion</value></data>
+  <data name="Topping.AiReference" xml:space="preserve"><value>1. Choose a Pexels reference image</value></data>
+  <data name="Topping.AiFinal" xml:space="preserve"><value>2. Choose a final image from Pexels or ComfyUI</value></data>
+  <data name="Topping.Apply" xml:space="preserve"><value>Apply</value></data>
+  <data name="Topping.UsePexels" xml:space="preserve"><value>Use Pexels image</value></data>
+  <data name="Topping.GenerateAgain" xml:space="preserve"><value>Generate again with ComfyUI</value></data>
+  <data name="Topping.GenerateWithoutReference" xml:space="preserve"><value>Generate with ComfyUI without Pexels</value></data>
+  <data name="Topping.SearchAgain" xml:space="preserve"><value>Search Pexels again</value></data>
+  <data name="Topping.Dismiss" xml:space="preserve"><value>Dismiss</value></data>
+  <data name="Topping.ImageAdd" xml:space="preserve"><value>Add a new image</value></data>
+  <data name="Topping.ImageHint" xml:space="preserve"><value>Use a square JPG or PNG image for the best display.</value></data>
+  <data name="Topping.ImageChoose" xml:space="preserve"><value>Choose image</value></data>
+  <data name="Topping.ImageNoFile" xml:space="preserve"><value>No file selected</value></data>
+  <data name="Topping.ImagePreview" xml:space="preserve"><value>Image preview</value></data>
+  <data name="Topping.ImageRemove" xml:space="preserve"><value>Remove selected image</value></data>
+  <data name="Topping.Save" xml:space="preserve"><value>Save information</value></data>
+  <data name="Topping.EditTitle" xml:space="preserve"><value>Edit topping</value></data>
+  <data name="Topping.ImageLabel" xml:space="preserve"><value>Topping image</value></data>
+  <data name="Topping.ImageLeaveEmpty" xml:space="preserve"><value>Leave empty to keep the current image.</value></data>
+  <data name="Topping.SaveChanges" xml:space="preserve"><value>Save changes</value></data>
+  <data name="Topping.ManageTitle" xml:space="preserve"><value>Manage drinks - topping</value></data>
+  <data name="Topping.ManageHint" xml:space="preserve"><value>Assign or disconnect drinks from this topping.</value></data>
+  <data name="Topping.AssignHint" xml:space="preserve"><value>Assign drinks to this topping, or enable and disable existing assignments.</value></data>
+  <data name="Topping.Loading" xml:space="preserve"><value>Loading data...</value></data>
+  <data name="Topping.Assigned" xml:space="preserve"><value>Assigned</value></data>
+  <data name="Topping.Unassigned" xml:space="preserve"><value>Unassigned</value></data>
+  <data name="Topping.NoData" xml:space="preserve"><value>No data available</value></data>
+  <data name="Drink.Form.CreateTitle" xml:space="preserve"><value>Add a new drink</value></data>
+  <data name="Drink.Form.CreateEyebrow" xml:space="preserve"><value>New product</value></data>
+  <data name="Drink.Form.CreateDescription" xml:space="preserve"><value>Complete the information, images, and classification to make the product ready for the menu.</value></data>
+  <data name="Drink.Form.EditTitle" xml:space="preserve"><value>Edit drink</value></data>
+  <data name="Drink.Form.EditEyebrow" xml:space="preserve"><value>Update product</value></data>
+  <data name="Drink.Form.EditDescription" xml:space="preserve"><value>Update information and images to keep the product consistent across the menu.</value></data>
+  <data name="Drink.Form.Information" xml:space="preserve"><value>Drink information</value></data>
+  <data name="Drink.Form.Code" xml:space="preserve"><value>Drink code</value></data>
+  <data name="Drink.Form.Name" xml:space="preserve"><value>Drink name</value></data>
+  <data name="Drink.Form.NamePlaceholder" xml:space="preserve"><value>Enter a drink name...</value></data>
+  <data name="Drink.Form.Category" xml:space="preserve"><value>Category</value></data>
+  <data name="Drink.Form.CategoryChoose" xml:space="preserve"><value>-- Select a category --</value></data>
+  <data name="Drink.Form.Type" xml:space="preserve"><value>Product type</value></data>
+  <data name="Drink.Form.TypeChoose" xml:space="preserve"><value>-- Select a product type --</value></data>
+  <data name="Drink.Form.Description" xml:space="preserve"><value>Detailed description</value></data>
+  <data name="Drink.Form.DescriptionPlaceholder" xml:space="preserve"><value>Describe ingredients and flavor...</value></data>
+  <data name="Drink.Form.ProductImages" xml:space="preserve"><value>Product images</value></data>
+  <data name="Drink.Form.ImageRules" xml:space="preserve"><value>JPG or PNG • Maximum 5 MB • Images are cropped to a square before upload</value></data>
+  <data name="Drink.Form.DropImages" xml:space="preserve"><value>Drag and drop images here</value></data>
+  <data name="Drink.Form.Or" xml:space="preserve"><value>or</value></data>
+  <data name="Drink.Form.ChooseFile" xml:space="preserve"><value>choose files</value></data>
+  <data name="Drink.Form.DefaultHint" xml:space="preserve"><value>Select “Default” to set the main product image.</value></data>
+  <data name="Drink.Form.Back" xml:space="preserve"><value>Back</value></data>
+  <data name="Drink.Form.CropTitle" xml:space="preserve"><value>Crop product image</value></data>
+  <data name="Drink.Form.Preview" xml:space="preserve"><value>Preview</value></data>
+  <data name="Drink.Form.AspectRatio" xml:space="preserve"><value>Aspect ratio:</value></data>
+  <data name="Drink.Form.OutputSize" xml:space="preserve"><value>Saved size:</value></data>
+  <data name="Drink.Form.CropConfirm" xml:space="preserve"><value>Apply crop</value></data>
+  <data name="Topping.Js.InvalidResponse" xml:space="preserve"><value>The server returned an invalid response.</value></data>
+  <data name="Topping.Js.RequestFailed" xml:space="preserve"><value>Unable to process the request.</value></data>
+  <data name="Topping.Js.GenericError" xml:space="preserve"><value>An error occurred.</value></data>
+  <data name="Topping.Js.NameRequired" xml:space="preserve"><value>Enter a topping name.</value></data>
+  <data name="Topping.Js.PriceInvalid" xml:space="preserve"><value>Enter a valid topping price.</value></data>
+  <data name="Topping.Js.AiLoading" xml:space="preserve"><value>Generating...</value></data>
+  <data name="Topping.Js.AiFailed" xml:space="preserve"><value>Unable to generate suggestions.</value></data>
+  <data name="Topping.Js.AiOverwriteCode" xml:space="preserve"><value>Replace the current topping code?</value></data>
+  <data name="Topping.Js.AiCodeApplied" xml:space="preserve"><value>Suggested code applied. The changes have not been saved.</value></data>
+  <data name="Topping.Js.AiTitle" xml:space="preserve"><value>Topping suggestion</value></data>
+  <data name="Topping.Js.NameMax" xml:space="preserve"><value>Topping name cannot exceed 100 characters.</value></data>
+  <data name="Topping.Js.CodeRequired" xml:space="preserve"><value>Enter a topping code.</value></data>
+  <data name="Topping.Js.CodeMax" xml:space="preserve"><value>Topping code cannot exceed 50 characters.</value></data>
+  <data name="Topping.Js.PriceRequired" xml:space="preserve"><value>Enter a topping price.</value></data>
+  <data name="Topping.Js.PriceMinimum" xml:space="preserve"><value>Topping price must be at least 1,000 VND.</value></data>
+  <data name="Topping.Js.ImageRequired" xml:space="preserve"><value>Choose a topping image.</value></data>
+  <data name="Topping.Js.ImageInvalid" xml:space="preserve"><value>The image file is invalid.</value></data>
+  <data name="Topping.Js.ImageSize" xml:space="preserve"><value>The image must not exceed 3 MB.</value></data>
+  <data name="Topping.Js.ImageType" xml:space="preserve"><value>Only JPG, JPEG, PNG, or WEBP files are accepted.</value></data>
+  <data name="Topping.Js.ImageFormat" xml:space="preserve"><value>The image format is invalid.</value></data>
+  <data name="Topping.Js.NoFile" xml:space="preserve"><value>No file selected</value></data>
+  <data name="Topping.Js.Saving" xml:space="preserve"><value>Saving...</value></data>
+  <data name="Topping.Js.Save" xml:space="preserve"><value>Save information</value></data>
+  <data name="Topping.Js.SaveChanges" xml:space="preserve"><value>Save changes</value></data>
+  <data name="Topping.Js.LoadDrinksFailed" xml:space="preserve"><value>Unable to load the drink list.</value></data>
+  <data name="Topping.Js.Assigning" xml:space="preserve"><value>Assigning...</value></data>
+  <data name="Topping.Js.Assign" xml:space="preserve"><value>Assign</value></data>
+  <data name="Topping.Js.StatusSuccess" xml:space="preserve"><value>Status updated successfully.</value></data>
+  <data name="Topping.Js.ReloadFailed" xml:space="preserve"><value>Unable to reload data.</value></data>
+  <data name="Topping.Js.ConfirmTitle" xml:space="preserve"><value>Confirm</value></data>
+  <data name="Topping.Js.StatusConfirm" xml:space="preserve"><value>Are you sure you want to change this topping's status?</value></data>
+  <data name="Topping.Js.Confirm" xml:space="preserve"><value>Confirm</value></data>
+  <data name="Topping.Js.SecurityTokenMissing" xml:space="preserve"><value>The security token could not be found.</value></data>
+  <data name="Topping.Js.StatusFailed" xml:space="preserve"><value>Unable to update the topping status.</value></data>
+  <data name="Topping.Js.NoDrinkData" xml:space="preserve"><value>No drink data is available.</value></data>
+  <data name="Topping.Js.NoAssigned" xml:space="preserve"><value>No drinks have been assigned this topping.</value></data>
+  <data name="Topping.Js.AllAssigned" xml:space="preserve"><value>All drinks have been assigned this topping.</value></data>
+  <data name="Topping.Js.DrinkFallback" xml:space="preserve"><value>Drink</value></data>
+  <data name="Topping.Js.DisableHint" xml:space="preserve"><value>Disable this topping for the drink</value></data>
+  <data name="Topping.Js.EnableHint" xml:space="preserve"><value>Enable this topping again</value></data>
+  <data name="Topping.Js.Disable" xml:space="preserve"><value>Disable</value></data>
+  <data name="Topping.Js.Enable" xml:space="preserve"><value>Enable</value></data>
+  <data name="Common.AllStatuses" xml:space="preserve"><value>All statuses</value></data>
+  <data name="Common.Filter" xml:space="preserve"><value>Filter</value></data>
+  <data name="Common.ResetFilters" xml:space="preserve"><value>Reset filters</value></data>
+  <data name="Common.None" xml:space="preserve"><value>None</value></data>
+  <data name="Common.OpenActions" xml:space="preserve"><value>Open actions</value></data>
+  <data name="Common.OpenActionsAria" xml:space="preserve"><value>Open actions for {0}</value></data>
+  <data name="Common.Activate" xml:space="preserve"><value>Activate</value></data>
+  <data name="Common.Deactivate" xml:space="preserve"><value>Deactivate</value></data>
+  <data name="Common.PageSummary" xml:space="preserve"><value>Page {0} of {1}</value></data>
+  <data name="Common.PreviousPage" xml:space="preserve"><value>Previous page</value></data>
+  <data name="Common.NextPage" xml:space="preserve"><value>Next page</value></data>
+  <data name="Common.Description" xml:space="preserve"><value>Description</value></data>
+  <data name="PreparedItem.PageTitle" xml:space="preserve"><value>Prepared item catalog</value></data>
+  <data name="PreparedItem.Title" xml:space="preserve"><value>Prepared items</value></data>
+  <data name="PreparedItem.Create" xml:space="preserve"><value>Create prepared item</value></data>
+  <data name="PreparedItem.Description" xml:space="preserve"><value>Manage inventory identities used as production recipe outputs. Actual stock is tracked separately for each store.</value></data>
+  <data name="PreparedItem.SearchLabel" xml:space="preserve"><value>Search by code or name</value></data>
+  <data name="PreparedItem.SearchPlaceholder" xml:space="preserve"><value>Search prepared items by code or name...</value></data>
+  <data name="PreparedItem.ListTitle" xml:space="preserve"><value>Prepared item list</value></data>
+  <data name="PreparedItem.ListHint" xml:space="preserve"><value>Inventory identity, base unit, and currently active recipe.</value></data>
+  <data name="PreparedItem.PageCount" xml:space="preserve"><value>{0} items on this page</value></data>
+  <data name="PreparedItem.Column.Item" xml:space="preserve"><value>Prepared item</value></data>
+  <data name="PreparedItem.Column.Unit" xml:space="preserve"><value>Inventory unit</value></data>
+  <data name="PreparedItem.Column.ActiveRecipe" xml:space="preserve"><value>Active recipe</value></data>
+  <data name="PreparedItem.Empty.Title" xml:space="preserve"><value>No prepared items.</value></data>
+  <data name="PreparedItem.Empty.CreateHint" xml:space="preserve"><value>Create a prepared item before creating a preparation recipe.</value></data>
+  <data name="PreparedItem.Empty.Create" xml:space="preserve"><value>Create the first prepared item</value></data>
+  <data name="PreparedItem.Empty.ReadOnly" xml:space="preserve"><value>There are no prepared items. Your account has view-only access.</value></data>
+  <data name="PreparedItem.ViewActiveRecipe" xml:space="preserve"><value>View active recipe</value></data>
+  <data name="PreparedItem.ActiveRecipe" xml:space="preserve"><value>Current recipe</value></data>
+  <data name="PreparedItem.VersionCount" xml:space="preserve"><value>{0} versions</value></data>
+  <data name="PreparedItem.ViewRecipe" xml:space="preserve"><value>View recipe</value></data>
+  <data name="PreparedItem.ViewRecipeAria" xml:space="preserve"><value>View recipe for {0}</value></data>
+  <data name="PreparedItem.CreateRecipe" xml:space="preserve"><value>Create recipe</value></data>
+  <data name="PreparedItem.CreateRecipeAria" xml:space="preserve"><value>Create recipe for {0}</value></data>
+  <data name="PreparedItem.Edit" xml:space="preserve"><value>Edit details</value></data>
+  <data name="PreparedItem.PaginationAria" xml:space="preserve"><value>Prepared item catalog pagination</value></data>
+  <data name="PreparedItem.Modal.Subtitle" xml:space="preserve"><value>Set the identity and inventory management unit.</value></data>
+  <data name="PreparedItem.Identity.Title" xml:space="preserve"><value>Identity details</value></data>
+  <data name="PreparedItem.Identity.Hint" xml:space="preserve"><value>The code and name used throughout BOM recipes.</value></data>
+  <data name="PreparedItem.Code" xml:space="preserve"><value>Prepared item code</value></data>
+  <data name="PreparedItem.CodeHint" xml:space="preserve"><value>Use uppercase text without extra spaces.</value></data>
+  <data name="PreparedItem.Name" xml:space="preserve"><value>Prepared item name</value></data>
+  <data name="PreparedItem.Inventory.Title" xml:space="preserve"><value>Inventory settings</value></data>
+  <data name="PreparedItem.Inventory.Hint" xml:space="preserve"><value>Select the base unit and add an operational description.</value></data>
+  <data name="PreparedItem.BaseUnit" xml:space="preserve"><value>Base inventory unit</value></data>
+  <data name="PreparedItem.BaseUnitHint" xml:space="preserve"><value>This unit stores the prepared item's inventory quantity. Avoid changing it after inventory transactions exist.</value></data>
+  <data name="PreparedItem.Save" xml:space="preserve"><value>Save prepared item</value></data>
+  <data name="PreparedItem.Js.SelectUnit" xml:space="preserve"><value>-- Select a unit --</value></data>
+  <data name="PreparedItem.Js.UnitsLoadFailed" xml:space="preserve"><value>Could not load the unit list.</value></data>
+  <data name="PreparedItem.Js.CreateTitle" xml:space="preserve"><value>Create prepared item</value></data>
+  <data name="PreparedItem.Js.EditTitle" xml:space="preserve"><value>Edit prepared item</value></data>
+  <data name="PreparedItem.Js.SaveFailed" xml:space="preserve"><value>Could not save</value></data>
+  <data name="PreparedItem.Js.SessionError" xml:space="preserve"><value>Connection error or invalid session.</value></data>
+  <data name="PreparedItem.Js.Activate" xml:space="preserve"><value>Activate</value></data>
+  <data name="PreparedItem.Js.Deactivate" xml:space="preserve"><value>Deactivate</value></data>
+  <data name="PreparedItem.Js.ToggleTitle" xml:space="preserve"><value>{action} prepared item?</value></data>
+  <data name="PreparedItem.Js.ActivateHint" xml:space="preserve"><value>The prepared item can be used in BOM configurations again.</value></data>
+  <data name="PreparedItem.Js.DeactivateHint" xml:space="preserve"><value>The prepared item will no longer be selectable in new configurations.</value></data>
+  <data name="PreparedItem.Js.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="PreparedItem.Js.UpdateFailed" xml:space="preserve"><value>Could not update</value></data>
+  <data name="PreparedItem.Js.GenericError" xml:space="preserve"><value>An error occurred.</value></data>
+  <data name="PreparedItem.Js.ConnectionLost" xml:space="preserve"><value>Connection lost</value></data>
+  <data name="PreparedItem.Js.ServerUnavailable" xml:space="preserve"><value>Could not connect to the server.</value></data>
+  <data name="Recipe.BomTree.Empty" xml:space="preserve"><value>This recipe has no BOM components.</value></data>
+  <data name="Recipe.Health.PageTitle" xml:space="preserve"><value>BOM data health</value></data>
+  <data name="Recipe.Health.Description" xml:space="preserve"><value>Identify which recipes are ready and which need configuration, unit conversions, or costing data.</value></data>
+  <data name="Recipe.Health.Breadcrumb" xml:space="preserve"><value>Data health</value></data>
+  <data name="Recipe.Health.Back" xml:space="preserve"><value>Back to recipes</value></data>
+  <data name="Recipe.Health.IntroTitle" xml:space="preserve"><value>Prioritize incomplete data</value></data>
+  <data name="Recipe.Health.IntroHint" xml:space="preserve"><value>Each row explains the cause and links directly to the screen that needs updating. Filtered totals and page counts are shown separately for clarity.</value></data>
+  <data name="Recipe.Health.TotalFiltered" xml:space="preserve"><value>Total filtered results: {0}</value></data>
+  <data name="Recipe.Health.SearchLabel" xml:space="preserve"><value>Search recipes that need review</value></data>
+  <data name="Recipe.Health.SearchPlaceholder" xml:space="preserve"><value>Search by name, recipe code, or prepared item code...</value></data>
+  <data name="Recipe.Health.TypeLabel" xml:space="preserve"><value>Recipe target type</value></data>
+  <data name="Recipe.Health.AllTypes" xml:space="preserve"><value>All types</value></data>
+  <data name="Recipe.Health.PageSizeLabel" xml:space="preserve"><value>Rows per page</value></data>
+  <data name="Recipe.Health.Rows" xml:space="preserve"><value>{0} rows</value></data>
+  <data name="Recipe.Health.SummaryAria" xml:space="preserve"><value>Recipe data health summary for the current page</value></data>
+  <data name="Recipe.Health.CompleteMetric" xml:space="preserve"><value>Complete · This page</value></data>
+  <data name="Recipe.Health.MissingQuoteMetric" xml:space="preserve"><value>Missing cost data · This page</value></data>
+  <data name="Recipe.Health.MissingConversionMetric" xml:space="preserve"><value>Missing conversion · This page</value></data>
+  <data name="Recipe.Health.MissingOutputMetric" xml:space="preserve"><value>Missing output · This page</value></data>
+  <data name="Recipe.Health.VersionIssueMetric" xml:space="preserve"><value>Version needs review · This page</value></data>
+  <data name="Recipe.Health.MappingErrorMetric" xml:space="preserve"><value>Mapping error · This page</value></data>
+  <data name="Recipe.Health.DetailTitle" xml:space="preserve"><value>Issues to resolve</value></data>
+  <data name="Recipe.Health.DetailHint" xml:space="preserve"><value>Configuration and costing status for each recipe on the current page.</value></data>
+  <data name="Recipe.Health.ListCount" xml:space="preserve"><value>This page: {0} · Total filtered results: {1}</value></data>
+  <data name="Recipe.Health.DetailAria" xml:space="preserve"><value>BOM data health details</value></data>
+  <data name="Recipe.Health.Column.Recipe" xml:space="preserve"><value>Recipe</value></data>
+  <data name="Recipe.Health.Column.Version" xml:space="preserve"><value>Effective version</value></data>
+  <data name="Recipe.Health.Column.Configuration" xml:space="preserve"><value>Configuration</value></data>
+  <data name="Recipe.Health.Column.Costing" xml:space="preserve"><value>Costing data</value></data>
+  <data name="Recipe.Health.Column.Reason" xml:space="preserve"><value>Reason and resolution</value></data>
+  <data name="Recipe.Health.Empty" xml:space="preserve"><value>No recipes to evaluate.</value></data>
+  <data name="Recipe.Health.NoIssues" xml:space="preserve"><value>No data issues to resolve</value></data>
+  <data name="Recipe.Health.OpenActionsAria" xml:space="preserve"><value>Open {0} resolution options</value></data>
+  <data name="Recipe.Health.Resolve" xml:space="preserve"><value>Resolve</value></data>
+  <data name="Recipe.Health.GoToRelated" xml:space="preserve"><value>Go to related data</value></data>
+  <data name="Recipe.Health.PaginationAria" xml:space="preserve"><value>Recipe data health pagination</value></data>
+  <data name="Recipe.Health.CURRENT" xml:space="preserve"><value>Current</value></data>
+  <data name="Recipe.Health.HISTORICAL" xml:space="preserve"><value>Historical version</value></data>
+  <data name="Recipe.Health.AMBIGUOUS" xml:space="preserve"><value>Effective version needs review</value></data>
+  <data name="Recipe.Health.MISSING" xml:space="preserve"><value>No effective version</value></data>
+  <data name="Recipe.Health.INVALID_TARGET" xml:space="preserve"><value>Invalid recipe target</value></data>
+  <data name="Recipe.Health.Current.CURRENT.Message" xml:space="preserve"><value>This is the effective version for the recipe target.</value></data>
+  <data name="Recipe.Health.Current.HISTORICAL.Message" xml:space="preserve"><value>Another version is currently effective for this recipe target.</value></data>
+  <data name="Recipe.Health.Current.AMBIGUOUS.Message" xml:space="preserve"><value>Multiple versions are marked effective. The system cannot select one automatically.</value></data>
+  <data name="Recipe.Health.Current.MISSING.Message" xml:space="preserve"><value>No effective version was found for this recipe target.</value></data>
+  <data name="Recipe.Health.Current.INVALID_TARGET.Message" xml:space="preserve"><value>The recipe does not identify exactly one valid business target.</value></data>
+  <data name="Recipe.Health.TYPE_POS" xml:space="preserve"><value>POS item</value></data>
+  <data name="Recipe.Health.TYPE_TOPPING" xml:space="preserve"><value>Topping</value></data>
+  <data name="Recipe.Health.TYPE_SUBRECIPE" xml:space="preserve"><value>Prepared item</value></data>
+  <data name="Recipe.Health.Reason.INACTIVE" xml:space="preserve"><value>The recipe is inactive.</value></data>
+  <data name="Recipe.Health.Reason.MISSING_COMPONENTS" xml:space="preserve"><value>The recipe has no BOM components.</value></data>
+  <data name="Recipe.Health.Reason.INVALID_PREPARED_ITEM_MAPPING" xml:space="preserve"><value>The prepared-item mapping is invalid.</value></data>
+  <data name="Recipe.Health.Reason.MISSING_COMPONENT_UNIT" xml:space="preserve"><value>One or more BOM lines have no active quantity unit.</value></data>
+  <data name="Recipe.Health.Reason.MISSING_OUTPUT_IDENTITY" xml:space="preserve"><value>The recipe has no prepared-item output.</value></data>
+  <data name="Recipe.Health.Reason.MISSING_OUTPUT_QUANTITY" xml:space="preserve"><value>The recipe has no output quantity greater than 0.</value></data>
+  <data name="Recipe.Health.Reason.MISSING_OUTPUT_UNIT" xml:space="preserve"><value>The recipe has no active output unit.</value></data>
+  <data name="Recipe.Health.Reason.INDETERMINATE" xml:space="preserve"><value>Cost cannot be determined because the calculation is incomplete.</value></data>
+  <data name="Recipe.Health.Action.MISSING_QUOTE" xml:space="preserve"><value>Update supplier quote</value></data>
+  <data name="Recipe.Health.Action.MISSING_CONVERSION" xml:space="preserve"><value>Configure conversion</value></data>
+  <data name="Recipe.Health.Action.MISSING_CHILD_COST" xml:space="preserve"><value>Edit related BOM</value></data>
+  <data name="Recipe.Health.Action.INDETERMINATE" xml:space="preserve"><value>Review BOM</value></data>
+  <data name="Recipe.Health.ReasonGroup.MISSING_QUOTE" xml:space="preserve"><value>Supplier quote data is missing or invalid.</value></data>
+  <data name="Recipe.Health.ReasonGroup.MISSING_CONVERSION" xml:space="preserve"><value>A unit conversion is missing or conflicting.</value></data>
+  <data name="Recipe.Health.ReasonGroup.MISSING_CHILD_COST" xml:space="preserve"><value>A child prepared-item cost cannot be determined.</value></data>
+  <data name="Recipe.Health.ReasonGroup.INDETERMINATE" xml:space="preserve"><value>Cost cannot be determined because data is incomplete.</value></data>
+  <data name="Recipe.Compare.PageTitle" xml:space="preserve"><value>Compare recipe versions - {0}</value></data>
+  <data name="Recipe.Compare.Title" xml:space="preserve"><value>Compare versions</value></data>
+  <data name="Recipe.Compare.Description" xml:space="preserve"><value>Compare two versions of the same recipe target. This evidence is read-only.</value></data>
+  <data name="Recipe.Compare.Back" xml:space="preserve"><value>Back to recipe workspace</value></data>
+  <data name="Recipe.Compare.VersionsAria" xml:space="preserve"><value>Two compared versions</value></data>
+  <data name="Recipe.Compare.BeforeVersion" xml:space="preserve"><value>Previous version</value></data>
+  <data name="Recipe.Compare.AfterVersion" xml:space="preserve"><value>Later version</value></data>
+  <data name="Recipe.Compare.Version" xml:space="preserve"><value>Version {0}</value></data>
+  <data name="Recipe.Compare.Output" xml:space="preserve"><value>Output</value></data>
+  <data name="Recipe.Compare.DesignCost" xml:space="preserve"><value>Design cost</value></data>
+  <data name="Recipe.Compare.CostData" xml:space="preserve"><value>Cost data</value></data>
+  <data name="Recipe.Compare.InsufficientData" xml:space="preserve"><value>Insufficient data</value></data>
+  <data name="Recipe.Compare.CostComplete" xml:space="preserve"><value>Cost data complete</value></data>
+  <data name="Recipe.Compare.CostIncomplete" xml:space="preserve"><value>Cost data incomplete</value></data>
+  <data name="Recipe.Compare.CostChanged" xml:space="preserve"><value>Cost-data completeness changed</value></data>
+  <data name="Recipe.Compare.SummaryTitle" xml:space="preserve"><value>Change summary</value></data>
+  <data name="Recipe.Compare.SummaryHint" xml:space="preserve"><value>Output, cost-data completeness, and design-cost difference.</value></data>
+  <data name="Recipe.Compare.Unchanged" xml:space="preserve"><value>Unchanged</value></data>
+  <data name="Recipe.Compare.DesignCostDelta" xml:space="preserve"><value>Design-cost difference</value></data>
+  <data name="Recipe.Compare.Indeterminate" xml:space="preserve"><value>Cannot be determined</value></data>
+  <data name="Recipe.Compare.LineChanges" xml:space="preserve"><value>BOM line changes</value></data>
+  <data name="Recipe.Compare.LineChangesHint" xml:space="preserve"><value>Distinguishes added, removed, and changed business components.</value></data>
+  <data name="Recipe.Compare.NoLineChanges" xml:space="preserve"><value>There are no BOM line changes between these versions.</value></data>
+  <data name="Recipe.Compare.AddedLines" xml:space="preserve"><value>Added lines</value></data>
+  <data name="Recipe.Compare.RemovedLines" xml:space="preserve"><value>Removed lines</value></data>
+  <data name="Recipe.Compare.ChangedLines" xml:space="preserve"><value>Changed lines</value></data>
+  <data name="Recipe.Compare.InputType.INGREDIENT" xml:space="preserve"><value>Direct ingredient</value></data>
+  <data name="Recipe.Compare.InputType.PREPARED_ITEM" xml:space="preserve"><value>Prepared-item input</value></data>
+  <data name="Recipe.Compare.Code" xml:space="preserve"><value>Code</value></data>
+  <data name="Recipe.Compare.Before" xml:space="preserve"><value>Before</value></data>
+  <data name="Recipe.Compare.After" xml:space="preserve"><value>After</value></data>
+  <data name="Recipe.Compare.NormalizedBefore" xml:space="preserve"><value>Normalized before</value></data>
+  <data name="Recipe.Compare.NormalizedAfter" xml:space="preserve"><value>Normalized after</value></data>
+  <data name="Recipe.Compare.NoData" xml:space="preserve"><value>No data</value></data>
+  <data name="Recipe.Compare.Change.ADDED" xml:space="preserve"><value>Added</value></data>
+  <data name="Recipe.Compare.Change.REMOVED" xml:space="preserve"><value>Removed</value></data>
+  <data name="Recipe.Compare.Change.QUANTITY" xml:space="preserve"><value>quantity changed</value></data>
+  <data name="Recipe.Compare.Change.UNIT" xml:space="preserve"><value>unit changed</value></data>
+  <data name="Recipe.Compare.Change.NORMALIZED_QUANTITY" xml:space="preserve"><value>normalized quantity changed</value></data>
+  <data name="Recipe.Unit.Batch" xml:space="preserve"><value>batch</value></data>
+  <data name="Recipe.Unit.Serving" xml:space="preserve"><value>serving</value></data>
+  <data name="Recipe.Visualize.PageTitle" xml:space="preserve"><value>Recipe workspace - {0}</value></data>
+  <data name="Recipe.Visualize.Back" xml:space="preserve"><value>Back to list</value></data>
+  <data name="Recipe.Visualize.CheckData" xml:space="preserve"><value>Check data</value></data>
+  <data name="Recipe.Visualize.NewVersion" xml:space="preserve"><value>Create new version</value></data>
+  <data name="Recipe.Visualize.Description" xml:space="preserve"><value>{0}. Review outputs, input quantities, and version evidence in one workspace.</value></data>
+  <data name="Recipe.Visualize.RecipeCode" xml:space="preserve"><value>Recipe code</value></data>
+  <data name="Recipe.Visualize.TargetCode" xml:space="preserve"><value>Target code</value></data>
+  <data name="Recipe.Visualize.InheritedVersion" xml:space="preserve"><value>Inherited from the previous version</value></data>
+  <data name="Recipe.Visualize.OriginalVersion" xml:space="preserve"><value>Original version</value></data>
+  <data name="Recipe.Visualize.SectionsAria" xml:space="preserve"><value>Recipe sections</value></data>
+  <data name="Recipe.Visualize.OutputAndBom" xml:space="preserve"><value>Output and BOM</value></data>
+  <data name="Recipe.Visualize.WhereUsed" xml:space="preserve"><value>Where used</value></data>
+  <data name="Recipe.Visualize.History" xml:space="preserve"><value>Version history</value></data>
+  <data name="Recipe.Visualize.Context" xml:space="preserve"><value>Version context</value></data>
+  <data name="Recipe.Visualize.SummaryAria" xml:space="preserve"><value>Recipe summary</value></data>
+  <data name="Recipe.Visualize.BomLines" xml:space="preserve"><value>BOM lines</value></data>
+  <data name="Recipe.Visualize.BomLinesHint" xml:space="preserve"><value>Total inputs in this version</value></data>
+  <data name="Recipe.Visualize.StoreFifoCost" xml:space="preserve"><value>Store FIFO cost</value></data>
+  <data name="Recipe.Visualize.NoStore" xml:space="preserve"><value>No store selected</value></data>
+  <data name="Recipe.Visualize.Readiness" xml:space="preserve"><value>Readiness</value></data>
+  <data name="Recipe.Visualize.FlowTitle" xml:space="preserve"><value>Output and input quantities</value></data>
+  <data name="Recipe.Visualize.FlowHint" xml:space="preserve"><value>Read from the required output down through each consumed component.</value></data>
+  <data name="Recipe.Visualize.PreparedInputs" xml:space="preserve"><value>Prepared-item inputs</value></data>
+  <data name="Recipe.Visualize.PreparedInputsHint" xml:space="preserve"><value>Produced by a selected source recipe version.</value></data>
+  <data name="Recipe.Visualize.NoPreparedInputs" xml:space="preserve"><value>This version uses no prepared-item inputs.</value></data>
+  <data name="Recipe.Visualize.Quantity" xml:space="preserve"><value>Quantity</value></data>
+  <data name="Recipe.Visualize.Normalized" xml:space="preserve"><value>Normalized</value></data>
+  <data name="Recipe.Visualize.NoConversion" xml:space="preserve"><value>No conversion to the inventory unit</value></data>
+  <data name="Recipe.Visualize.CostContribution" xml:space="preserve"><value>Cost contribution</value></data>
+  <data name="Recipe.Visualize.SourceRecipe" xml:space="preserve"><value>Source recipe</value></data>
+  <data name="Recipe.Visualize.Ingredients" xml:space="preserve"><value>Ingredients</value></data>
+  <data name="Recipe.Visualize.DirectIngredients" xml:space="preserve"><value>Direct ingredients</value></data>
+  <data name="Recipe.Visualize.DirectIngredientsHint" xml:space="preserve"><value>Consumed directly from inventory when the recipe is produced.</value></data>
+  <data name="Recipe.Visualize.NoDirectIngredients" xml:space="preserve"><value>This version has no direct ingredients.</value></data>
+  <data name="Recipe.Visualize.WhereUsedTitle" xml:space="preserve"><value>Where used</value></data>
+  <data name="Recipe.Visualize.WhereUsedHint" xml:space="preserve"><value>Current parent recipes and points of sale that use this recipe target.</value></data>
+  <data name="Recipe.Visualize.NoWhereUsed" xml:space="preserve"><value>No current usage has been recorded.</value></data>
+  <data name="Recipe.Visualize.CurrentParents" xml:space="preserve"><value>Current parent recipes</value></data>
+  <data name="Recipe.Visualize.ResultCount" xml:space="preserve"><value>{0} results</value></data>
+  <data name="Recipe.Visualize.RecipeCodeValue" xml:space="preserve"><value>Recipe code: {0}</value></data>
+  <data name="Recipe.Visualize.ParentResultsTruncated" xml:space="preserve"><value>Showing the first {0} results; additional usages are not shown.</value></data>
+  <data name="Recipe.Visualize.CurrentLocations" xml:space="preserve"><value>Current points of sale within your access scope</value></data>
+  <data name="Recipe.Visualize.BranchCount" xml:space="preserve"><value>{0} branches</value></data>
+  <data name="Recipe.Visualize.LocationResultsTruncated" xml:space="preserve"><value>Showing the first {0} branches; additional branches are not shown.</value></data>
+  <data name="Recipe.Visualize.HistoryTitle" xml:space="preserve"><value>Version history</value></data>
+  <data name="Recipe.Visualize.HistoryHint" xml:space="preserve"><value>Versions of the same recipe target, kept separate from inventory history and technical logs.</value></data>
+  <data name="Recipe.Visualize.NoHistory" xml:space="preserve"><value>No related versions have been recorded.</value></data>
+  <data name="Recipe.Visualize.AppliedAt" xml:space="preserve"><value>Applied: {0}</value></data>
+  <data name="Recipe.Visualize.OnRelease" xml:space="preserve"><value>when released</value></data>
+  <data name="Recipe.Visualize.CompareCurrent" xml:space="preserve"><value>Compare with the viewed version</value></data>
+  <data name="Recipe.Visualize.ViewVersion" xml:space="preserve"><value>View version</value></data>
+  <data name="Recipe.Visualize.HistoryTruncated" xml:space="preserve"><value>Showing the latest {0} of {1} versions.</value></data>
+  <data name="Recipe.Visualize.OperationsTitle" xml:space="preserve"><value>Branch inventory and production</value></data>
+  <data name="Recipe.Visualize.OperationsHint" xml:space="preserve"><value>Prepared-item replenishment signals; actual inventory and open production are presented separately.</value></data>
+  <data name="Recipe.Visualize.SelectStoreForOperations" xml:space="preserve"><value>Select a branch in the cost-basis section to view operational data.</value></data>
+  <data name="Recipe.Visualize.OperationsUnavailable" xml:space="preserve"><value>Data for the selected branch could not be loaded.</value></data>
+  <data name="Recipe.Visualize.ReplenishmentAria" xml:space="preserve"><value>Branch replenishment demand signals</value></data>
+  <data name="Recipe.Visualize.UsableStock" xml:space="preserve"><value>Usable inventory</value></data>
+  <data name="Recipe.Visualize.StockBreakdown" xml:space="preserve"><value>On hand {0} · Reserved {1}</value></data>
+  <data name="Recipe.Visualize.LowStockThreshold" xml:space="preserve"><value>Low-stock threshold</value></data>
+  <data name="Recipe.Visualize.NotConfigured" xml:space="preserve"><value>Not configured</value></data>
+  <data name="Recipe.Visualize.ConfigureThreshold" xml:space="preserve"><value>Configure a threshold before evaluating inventory.</value></data>
+  <data name="Recipe.Visualize.BelowThreshold" xml:space="preserve"><value>Usable inventory is below the threshold.</value></data>
+  <data name="Recipe.Visualize.AboveThreshold" xml:space="preserve"><value>Usable inventory is not below the threshold.</value></data>
+  <data name="Recipe.Visualize.TargetStock" xml:space="preserve"><value>Target inventory</value></data>
+  <data name="Recipe.Visualize.OpenProduction" xml:space="preserve"><value>Open production supply</value></data>
+  <data name="Recipe.Visualize.NotConvertible" xml:space="preserve"><value>Cannot be converted</value></data>
+  <data name="Recipe.Visualize.OpenProductionHint" xml:space="preserve"><value>Reduces planning demand only; it does not increase on-hand inventory.</value></data>
+  <data name="Recipe.Visualize.NetNeed" xml:space="preserve"><value>Remaining replenishment need</value></data>
+  <data name="Recipe.Visualize.NotCalculated" xml:space="preserve"><value>Cannot be calculated</value></data>
+  <data name="Recipe.Visualize.NetNeedReady" xml:space="preserve"><value>Open production supply has been deducted.</value></data>
+  <data name="Recipe.Visualize.NetNeedUnavailable" xml:space="preserve"><value>Inventory policy and conversion data are required.</value></data>
+  <data name="Recipe.Visualize.ReplenishmentLinksAria" xml:space="preserve"><value>Replenishment trace links</value></data>
+  <data name="Recipe.Visualize.StockAlert" xml:space="preserve"><value>Stock alert</value></data>
+  <data name="Recipe.Visualize.RestockRequest" xml:space="preserve"><value>Restock request</value></data>
+  <data name="Recipe.Visualize.ProductionOrderNumber" xml:space="preserve"><value>Production order #{0}</value></data>
+  <data name="Recipe.Visualize.OpenProductionTruncated" xml:space="preserve"><value>Showing the latest {0} of {1} open production sources.</value></data>
+  <data name="Recipe.Visualize.NoReplenishment" xml:space="preserve"><value>No accessible replenishment signal is available for this branch.</value></data>
+  <data name="Recipe.Visualize.RecentProduction" xml:space="preserve"><value>Recent production</value></data>
+  <data name="Recipe.Visualize.OrderCount" xml:space="preserve"><value>{0} orders</value></data>
+  <data name="Recipe.Visualize.NoProductionEvidence" xml:space="preserve"><value>No evidence exists for this exact version.</value></data>
+  <data name="Recipe.Visualize.RecentProductionHint" xml:space="preserve"><value>Up to five recent orders for the viewed version.</value></data>
+  <data name="Recipe.Visualize.EvidenceVersion" xml:space="preserve"><value>Evidence version</value></data>
+  <data name="Recipe.Visualize.EvidenceVersionHint" xml:space="preserve"><value>Each order continues to use the version pinned during planning.</value></data>
+  <data name="Recipe.Visualize.RecentProductionAria" xml:space="preserve"><value>Recent production list</value></data>
+  <data name="Recipe.Visualize.OrderCode" xml:space="preserve"><value>Order {0}</value></data>
+  <data name="Recipe.Visualize.AcceptedOutput" xml:space="preserve"><value>Accepted output</value></data>
+  <data name="Recipe.Visualize.NoAcceptanceEvidence" xml:space="preserve"><value>No acceptance evidence</value></data>
+  <data name="Recipe.Visualize.Completed" xml:space="preserve"><value>Completed</value></data>
+  <data name="Recipe.Visualize.NotCompleted" xml:space="preserve"><value>Not completed</value></data>
+  <data name="Recipe.Visualize.ViewProductionOrder" xml:space="preserve"><value>View production order</value></data>
+  <data name="Recipe.Visualize.ContextAria" xml:space="preserve"><value>Recipe context</value></data>
+  <data name="Recipe.Visualize.ContextTitle" xml:space="preserve"><value>Recipe context</value></data>
+  <data name="Recipe.Visualize.ContextHint" xml:space="preserve"><value>The version, status, and target being viewed.</value></data>
+  <data name="Recipe.Visualize.RecipeVersion" xml:space="preserve"><value>Recipe version</value></data>
+  <data name="Recipe.Visualize.Target" xml:space="preserve"><value>Target</value></data>
+  <data name="Recipe.Visualize.EffectiveDate" xml:space="preserve"><value>Effective date</value></data>
+  <data name="Recipe.Visualize.EffectiveImmediately" xml:space="preserve"><value>Effective immediately</value></data>
+  <data name="Recipe.Visualize.VersionSource" xml:space="preserve"><value>Version source</value></data>
+  <data name="Recipe.Visualize.VersionNumber" xml:space="preserve"><value>Version {0}</value></data>
+  <data name="Recipe.Visualize.CostBasis" xml:space="preserve"><value>Cost basis</value></data>
+  <data name="Recipe.Visualize.DesignCost" xml:space="preserve"><value>Estimated design cost</value></data>
+  <data name="Recipe.Visualize.InsufficientData" xml:space="preserve"><value>Insufficient data</value></data>
+  <data name="Recipe.Visualize.StoreFifoCostFull" xml:space="preserve"><value>Branch FIFO cost</value></data>
+  <data name="Recipe.Visualize.NoData" xml:space="preserve"><value>No data</value></data>
+  <data name="Recipe.Visualize.BranchValue" xml:space="preserve"><value>Branch: {0}</value></data>
+  <data name="Recipe.Visualize.EvidenceUpdated" xml:space="preserve"><value>Evidence updated: {0}</value></data>
+  <data name="Recipe.Visualize.AllowedStore" xml:space="preserve"><value>Accessible branch</value></data>
+  <data name="Recipe.Visualize.SelectStore" xml:space="preserve"><value>Select a branch</value></data>
+  <data name="Recipe.Visualize.View" xml:space="preserve"><value>View</value></data>
+  <data name="Recipe.Visualize.OutputDefinition" xml:space="preserve"><value>Output definition</value></data>
+  <data name="Recipe.Visualize.TechnicalTrace" xml:space="preserve"><value>Technical trace</value></data>
+  <data name="Recipe.Visualize.Target.Pos" xml:space="preserve"><value>Drink · Size {0}</value></data>
+  <data name="Recipe.Visualize.Target.Topping" xml:space="preserve"><value>Topping</value></data>
+  <data name="Recipe.Visualize.Target.PreparedItem" xml:space="preserve"><value>Prepared item</value></data>
+  <data name="Recipe.Visualize.Target.Recipe" xml:space="preserve"><value>Recipe</value></data>
+  <data name="Recipe.Visualize.State.Current" xml:space="preserve"><value>Current</value></data>
+  <data name="Recipe.Visualize.State.Historical" xml:space="preserve"><value>Historical</value></data>
+  <data name="Recipe.Visualize.Relation.MenuItemSize" xml:space="preserve"><value>Item / Size</value></data>
+  <data name="Recipe.Visualize.Relation.Topping" xml:space="preserve"><value>Topping</value></data>
+  <data name="Recipe.Visualize.Relation.PreparedItem" xml:space="preserve"><value>Prepared item</value></data>
+  <data name="Recipe.Visualize.Relation.PointOfSale" xml:space="preserve"><value>Point of sale</value></data>
+  <data name="Recipe.Visualize.Relation.Recipe" xml:space="preserve"><value>Recipe</value></data>
+  <data name="Recipe.Visualize.PinnedVersion" xml:space="preserve"><value>Pinned input version: {0}</value></data>
+  <data name="Recipe.Visualize.Relationship.Current" xml:space="preserve"><value>Viewed version</value></data>
+  <data name="Recipe.Visualize.Relationship.Derived" xml:space="preserve"><value>Derived version</value></data>
+  <data name="Recipe.Visualize.Relationship.Original" xml:space="preserve"><value>Original version</value></data>
+  <data name="Recipe.Visualize.Evidence.Available" xml:space="preserve"><value>Passed</value></data>
+  <data name="Recipe.Visualize.Evidence.Incomplete" xml:space="preserve"><value>Not passed</value></data>
+  <data name="Recipe.Visualize.Evidence.NotApplicable" xml:space="preserve"><value>Not applicable</value></data>
+  <data name="Recipe.Visualize.Evidence.Unavailable" xml:space="preserve"><value>No data</value></data>
+  <data name="Recipe.Visualize.ReadinessSummary" xml:space="preserve"><value>{0}/{1} criteria passed</value></data>
+  <data name="Recipe.Visualize.Scope.Global" xml:space="preserve"><value>System-wide</value></data>
+  <data name="Recipe.Visualize.Scope.Store" xml:space="preserve"><value>By branch</value></data>
+  <data name="Recipe.Visualize.Facet.CONFIGURATION" xml:space="preserve"><value>Recipe configuration</value></data>
+  <data name="Recipe.Visualize.Facet.PRICING" xml:space="preserve"><value>Cost data</value></data>
+  <data name="Recipe.Visualize.Facet.POINT_OF_SALE" xml:space="preserve"><value>Sellability</value></data>
+  <data name="Recipe.Visualize.Facet.PREPARED_INPUTS" xml:space="preserve"><value>Prepared inputs</value></data>
+  <data name="Recipe.Visualize.Facet.STORE_FIFO_EVIDENCE" xml:space="preserve"><value>FIFO cost evidence</value></data>
+  <data name="Recipe.Visualize.Facet.STORE_OPERATIONS" xml:space="preserve"><value>Operational conditions</value></data>
+  <data name="Recipe.Visualize.Facet.CONFIGURATION.AVAILABLE" xml:space="preserve"><value>Recipe configuration is complete.</value></data>
+  <data name="Recipe.Visualize.Facet.CONFIGURATION.INCOMPLETE" xml:space="preserve"><value>Recipe configuration is incomplete.</value></data>
+  <data name="Recipe.Visualize.Facet.CONFIGURATION.UNAVAILABLE" xml:space="preserve"><value>Configuration data is unavailable.</value></data>
+  <data name="Recipe.Visualize.Facet.PRICING.AVAILABLE" xml:space="preserve"><value>Cost data is ready.</value></data>
+  <data name="Recipe.Visualize.Facet.PRICING.INCOMPLETE" xml:space="preserve"><value>Cost data is incomplete.</value></data>
+  <data name="Recipe.Visualize.Facet.PRICING.UNAVAILABLE" xml:space="preserve"><value>Cost data is unavailable.</value></data>
+  <data name="Recipe.Visualize.Facet.POINT_OF_SALE.AVAILABLE" xml:space="preserve"><value>Ready for point-of-sale use.</value></data>
+  <data name="Recipe.Visualize.Facet.POINT_OF_SALE.INCOMPLETE" xml:space="preserve"><value>Not ready for point-of-sale use.</value></data>
+  <data name="Recipe.Visualize.Facet.POINT_OF_SALE.NOT_APPLICABLE" xml:space="preserve"><value>Not applicable to points of sale.</value></data>
+  <data name="Recipe.Visualize.Facet.PREPARED_INPUTS.AVAILABLE" xml:space="preserve"><value>Prepared inputs are ready.</value></data>
+  <data name="Recipe.Visualize.Facet.PREPARED_INPUTS.INCOMPLETE" xml:space="preserve"><value>Prepared inputs are not ready.</value></data>
+  <data name="Recipe.Visualize.Facet.PREPARED_INPUTS.NOT_APPLICABLE" xml:space="preserve"><value>No prepared inputs are used.</value></data>
+  <data name="Recipe.Visualize.Facet.STORE_FIFO_EVIDENCE.AVAILABLE" xml:space="preserve"><value>Branch FIFO cost evidence is available.</value></data>
+  <data name="Recipe.Visualize.Facet.STORE_FIFO_EVIDENCE.UNAVAILABLE" xml:space="preserve"><value>Select a branch to evaluate FIFO cost.</value></data>
+  <data name="Recipe.Visualize.Facet.STORE_OPERATIONS.AVAILABLE" xml:space="preserve"><value>Branch production conditions are met.</value></data>
+  <data name="Recipe.Visualize.Facet.STORE_OPERATIONS.INCOMPLETE" xml:space="preserve"><value>Operational conditions still require attention.</value></data>
+  <data name="Recipe.Visualize.Facet.STORE_OPERATIONS.UNAVAILABLE" xml:space="preserve"><value>Operational conditions cannot be evaluated.</value></data>
+  <data name="Recipe.Visualize.Output.Title" xml:space="preserve"><value>Output</value></data>
+  <data name="Recipe.Visualize.Output.Scope" xml:space="preserve"><value>Application scope</value></data>
+  <data name="Recipe.Visualize.Output.StandardBatch" xml:space="preserve"><value>Standard batch output</value></data>
+  <data name="Recipe.Visualize.Output.PosDisplay" xml:space="preserve"><value>1 serving of {0} · Size {1}</value></data>
+  <data name="Recipe.Visualize.Output.ToppingDisplay" xml:space="preserve"><value>One use of {0} according to its topping standard</value></data>
+  <data name="Recipe.Visualize.Output.BatchDisplay" xml:space="preserve"><value>{0} {1} / batch</value></data>
+  <data name="Recipe.Visualize.Output.PosContext" xml:space="preserve"><value>One serving of the viewed drink and size.</value></data>
+  <data name="Recipe.Visualize.Output.ToppingContext" xml:space="preserve"><value>Consumption is defined by the standard lines; no physical output is inferred.</value></data>
+  <data name="Recipe.Visualize.Output.BatchContext" xml:space="preserve"><value>A batch is one recipe run; inventory remains recorded in physical units.</value></data>
+  <data name="Recipe.Visualize.Output.UnknownContext" xml:space="preserve"><value>Complete the recipe target configuration.</value></data>
+  <data name="Recipe.Visualize.Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="Recipe.Visualize.Unit" xml:space="preserve"><value>unit</value></data>
+  <data name="Recipe.Visualize.Input.Prepared" xml:space="preserve"><value>Prepared input</value></data>
+  <data name="Recipe.Visualize.Input.Direct" xml:space="preserve"><value>Direct ingredient</value></data>
+</root>

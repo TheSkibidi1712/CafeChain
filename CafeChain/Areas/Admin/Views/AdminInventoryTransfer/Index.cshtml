@@ -1,10 +1,14 @@
 @model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferIndexVM
 @using CafeChain.Models.Enums.Inventory
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<CafeChain.InventoryResource> InventoryText
 
 @{
-    ViewData["Title"] = "Phiếu chuyển kho";
+    ViewData["Title"] = InventoryText["Transfer.Index.Title"];
     var previousPage = Model.Page <= 1 ? 1 : Model.Page - 1;
     var nextPage = Model.Page >= Model.TotalPages ? Model.TotalPages : Model.Page + 1;
+    string StatusLabel(InventoryTransferStatus status) => InventoryText[$"Transfer.Status.{status}"];
+    string PurposeLabel(InventoryTransferPurpose purpose) => InventoryText[$"Transfer.Purpose.{purpose}"];
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
@@ -13,9 +17,9 @@
 <main class="transfer-page transfer-index-page ops-shell cc-warehouse-page">
     <header class="transfer-header ops-header cc-warehouse-header">
         <div>
-            <div class="transfer-eyebrow">Kho &amp; Cung ứng / Phiếu chuyển kho</div>
-            <h1><i class="fa-solid fa-arrows-left-right me-2 text-warning" aria-hidden="true"></i>Phiếu chuyển kho</h1>
-            <p class="transfer-subtitle">Theo dõi toàn bộ phiếu chuyển nguyên liệu giữa các chi nhánh.</p>
+            <div class="transfer-eyebrow">@InventoryText["Transfer.Index.Eyebrow"]</div>
+            <h1><i class="fa-solid fa-arrows-left-right me-2 text-warning" aria-hidden="true"></i>@InventoryText["Transfer.Index.Title"]</h1>
+            <p class="transfer-subtitle">@InventoryText["Transfer.Index.Description"]</p>
         </div>
 
         <div class="transfer-header-actions ops-actions">
@@ -24,7 +28,7 @@
                asp-controller="AdminInventoryTransfer"
                asp-action="Create">
                 <i class="fa-solid fa-plus" aria-hidden="true"></i>
-                Tạo phiếu chuyển kho
+                @InventoryText["Transfer.Index.Create"]
             </a>
         </div>
     </header>
@@ -33,38 +37,38 @@
         <section class="transfer-card cc-warehouse-filter">
             <div class="transfer-filter-heading">
                 <div>
-                    <span>Bộ lọc nhanh</span>
-                    <strong>Tìm phiếu chuyển kho</strong>
+                    <span>@InventoryText["Transfer.Index.QuickFilter"]</span>
+                    <strong>@InventoryText["Transfer.Index.Find"]</strong>
                 </div>
-                <span class="transfer-filter-scope"><i class="fa-solid fa-filter" aria-hidden="true"></i>Thu hẹp dữ liệu theo mã, chi nhánh, trạng thái</span>
+                <span class="transfer-filter-scope"><i class="fa-solid fa-filter" aria-hidden="true"></i>@InventoryText["Transfer.Index.FilterHint"]</span>
             </div>
             <form method="get" class="transfer-filter-grid">
                 <div class="transfer-field">
-                    <label for="Keyword">Mã phiếu</label>
+                    <label for="Keyword">@InventoryText["Transfer.Code"]</label>
                     <input id="Keyword"
                            name="Keyword"
                            class="transfer-input"
                            value="@Model.Keyword"
-                           placeholder="Nhập mã phiếu..." />
+                           placeholder="@InventoryText["Transfer.Index.CodePlaceholder"]" />
                 </div>
 
                 <div class="transfer-field">
-                    <label for="Status">Trạng thái</label>
+                    <label for="Status">@InventoryText["Common.Status"]</label>
                     <select id="Status" name="Status" class="transfer-input">
-                        <option value="">Tất cả trạng thái</option>
+                        <option value="">@InventoryText["Transfer.Index.AllStatuses"]</option>
                         @foreach (InventoryTransferStatus status in Enum.GetValues(typeof(InventoryTransferStatus)))
                         {
                             <option value="@status" selected="@(Model.Status == status)">
-                                @status.ToVietnamese()
+                                @StatusLabel(status)
                             </option>
                         }
                     </select>
                 </div>
 
                 <div class="transfer-field">
-                    <label for="FromStoreId">Kho nguồn</label>
+                    <label for="FromStoreId">@InventoryText["Transfer.SourceStore"]</label>
                     <select id="FromStoreId" name="FromStoreId" class="transfer-input">
-                        <option value="">Tất cả kho nguồn</option>
+                        <option value="">@InventoryText["Transfer.Index.AllSourceStores"]</option>
                         @foreach (var store in Model.Stores)
                         {
                             <option value="@store.StoreId" selected="@(Model.FromStoreId == store.StoreId)">
@@ -75,9 +79,9 @@
                 </div>
 
                 <div class="transfer-field">
-                    <label for="ToStoreId">Kho đích</label>
+                    <label for="ToStoreId">@InventoryText["Transfer.DestinationStore"]</label>
                     <select id="ToStoreId" name="ToStoreId" class="transfer-input">
-                        <option value="">Tất cả kho đích</option>
+                        <option value="">@InventoryText["Transfer.Index.AllDestinationStores"]</option>
                         @foreach (var store in Model.Stores)
                         {
                             <option value="@store.StoreId" selected="@(Model.ToStoreId == store.StoreId)">
@@ -92,7 +96,7 @@
                 <div class="transfer-filter-actions">
                     <button class="transfer-secondary-button" type="submit">
                         <i class="fa-solid fa-filter"></i>
-                        Lọc
+                        @InventoryText["Common.Filter"]
                     </button>
 
                     <a class="transfer-ghost-button"
@@ -100,7 +104,7 @@
                        asp-controller="AdminInventoryTransfer"
                        asp-action="Index">
                         <i class="fa-solid fa-rotate-left"></i>
-                        Xóa lọc
+                        @InventoryText["Common.ClearFilters"]
                     </a>
                 </div>
             </form>
@@ -111,9 +115,9 @@
                 <div>
                     <span class="section-kicker">
                         <i class="fas fa-list"></i>
-                        Danh sách phiếu
+                        @InventoryText["Transfer.Index.List"]
                     </span>
-                    <h2>@Model.TotalItems phiếu chuyển kho</h2>
+                    <h2>@InventoryText["Transfer.Index.Total", Model.TotalItems]</h2>
                 </div>
             </div>
 
@@ -121,15 +125,15 @@
                 <table class="transfer-table transfer-index-table">
                     <thead>
                         <tr>
-                            <th class="text-center">Mã phiếu</th>
-                            <th class="text-center">Trạng thái</th>
-                            <th class="text-center">Mục đích</th>
-                            <th class="text-center">Kho nguồn</th>
-                            <th class="text-center">Kho đích</th>
-                            <th class="text-center">Người lập</th>
-                            <th class="text-center">Ngày chứng từ</th>
-                            <th class="text-center">Số dòng</th>
-                            <th class="text-center">Thao tác</th>
+                            <th class="text-center">@InventoryText["Transfer.Code"]</th>
+                            <th class="text-center">@InventoryText["Common.Status"]</th>
+                            <th class="text-center">@InventoryText["Transfer.Purpose"]</th>
+                            <th class="text-center">@InventoryText["Transfer.SourceStore"]</th>
+                            <th class="text-center">@InventoryText["Transfer.DestinationStore"]</th>
+                            <th class="text-center">@InventoryText["Transfer.CreatedBy"]</th>
+                            <th class="text-center">@InventoryText["Transfer.DocumentDate"]</th>
+                            <th class="text-center">@InventoryText["Common.LineCount"]</th>
+                            <th class="text-center">@InventoryText["Common.Actions"]</th>
                         </tr>
                     </thead>
 
@@ -137,7 +141,7 @@
                         @if (!Model.Items.Any())
                         {
                             <tr class="transfer-empty-row">
-                                <td colspan="9" class="text-center">Chưa có phiếu chuyển kho.</td>
+                                <td colspan="9" class="text-center">@InventoryText["Transfer.Index.Empty"]</td>
                             </tr>
                         }
                         else
@@ -148,21 +152,21 @@
                                     <td class="text-center">
                                         <strong>@item.Code</strong>
                                         <span class="transfer-index-date">
-                                            Ngày tạo @item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                            @InventoryText["Common.CreatedAt", item.CreatedAt.ToLocalTime().ToString("g")]
                                         </span>
                                     </td>
 
                                     <td class="text-center">
                                         <span class="transfer-status-pill transfer-status-@item.Status.ToString().ToLower()">
-                                            @item.Status.ToVietnamese()
+                                            @StatusLabel(item.Status)
                                         </span>
                                     </td>
 
-                                    <td class="text-center">@item.Purpose.ToVietnamese()</td>
+                                    <td class="text-center">@PurposeLabel(item.Purpose)</td>
                                     <td class="text-center">@item.FromStoreName</td>
                                     <td class="text-center">@item.ToStoreName</td>
                                     <td class="text-center">@(string.IsNullOrWhiteSpace(item.CreatedByName) ? "-" : item.CreatedByName)</td>
-                                    <td class="text-center">@item.DocumentDate.ToString("dd/MM/yyyy")</td>
+                                    <td class="text-center">@item.DocumentDate.ToString("d")</td>
                                     <td class="text-center">@item.DetailCount</td>
                                     <td class="text-center">
                                         <a class="transfer-outline-button transfer-table-action"
@@ -171,7 +175,7 @@
                                            asp-action="Detail"
                                            asp-route-id="@item.InventoryTransferId">
                                             <i class="fas fa-eye"></i>
-                                            Xem
+                                            @InventoryText["Common.View"]
                                         </a>
                                     </td>
                                 </tr>
@@ -193,10 +197,10 @@
                    asp-route-FromStoreId="@Model.FromStoreId"
                    asp-route-ToStoreId="@Model.ToStoreId">
                     <i class="fas fa-chevron-left"></i>
-                    Trước
+                    @InventoryText["Common.Previous"]
                 </a>
 
-                <span>Trang @Model.Page / @Model.TotalPages</span>
+                <span>@InventoryText["Common.PageOf", Model.Page, Model.TotalPages]</span>
 
                 <a class="transfer-ghost-button @(Model.Page >= Model.TotalPages ? "disabled" : "")"
                    asp-area="Admin"
@@ -208,7 +212,7 @@
                    asp-route-Status="@Model.Status"
                    asp-route-FromStoreId="@Model.FromStoreId"
                    asp-route-ToStoreId="@Model.ToStoreId">
-                    Sau
+                    @InventoryText["Common.Next"]
                     <i class="fas fa-chevron-right"></i>
                 </a>
             </div>

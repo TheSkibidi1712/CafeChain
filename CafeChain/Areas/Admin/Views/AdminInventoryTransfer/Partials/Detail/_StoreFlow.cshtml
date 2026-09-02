@@ -1,29 +1,30 @@
 @model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferDetailVM
+@inject Microsoft.Extensions.Localization.IStringLocalizer<CafeChain.InventoryResource> InventoryText
 
 <section class="transfer-card">
     <div class="transfer-card-header compact">
         <div>
             <span class="section-kicker">
                 <i class="fas fa-warehouse"></i>
-                Luồng chuyển kho
+                @InventoryText["Transfer.Detail.Flow"]
             </span>
-            <h2>Kho nguồn và kho đích</h2>
+            <h2>@InventoryText["Transfer.Detail.SourceAndDestination"]</h2>
         </div>
     </div>
 
     <div class="store-route transfer-readonly-route">
         <div class="route-field route-source">
-            <label>Kho nguồn</label>
+            <label>@InventoryText["Transfer.SourceStore"]</label>
             <strong>@Model.FromStoreName</strong>
         </div>
 
         <div class="route-arrow">
             <i class="fas fa-arrow-right"></i>
-            Chuyển
+            @InventoryText["Transfer.Create.Transfer"]
         </div>
 
         <div class="route-field route-destination">
-            <label>Kho đích</label>
+            <label>@InventoryText["Transfer.DestinationStore"]</label>
             <strong>@Model.ToStoreName</strong>
         </div>
     </div>

@@ -1,4 +1,7 @@
 @model CafeChain.ViewModels.Admin.Sizes.AdminSizeIndexVM
+@using Microsoft.Extensions.Localization
+@using System.Text.Json
+@inject IStringLocalizer<CafeChain.ProductResource> ProductText
 @using System.Security.Claims
 @using CafeChain.Application.Constants
 @using CafeChain.Application.Interfaces.Admin.Permissions
@@ -15,6 +18,21 @@
         canAssign = (await PermissionService.HasPermissionAsync(accountId, PermissionConstants.SizeAssignDrink)).Data?.Allowed == true;
         canViewTopping = (await PermissionService.HasPermissionAsync(accountId, PermissionConstants.ToppingView)).Data?.Allowed == true;
     }
+    var sizeJsKeys = new[]
+    {
+        "Size.Cup", "Size.Volume", "Common.Cancel", "Size.Js.Unknown", "Size.Js.NoDrinkData",
+        "Size.Js.Incompatible", "Size.Js.Other", "Size.Js.Profitability", "Size.Js.Price",
+        "Size.Js.DisableHint", "Size.Js.EnableHint", "Size.Js.Disable", "Size.Js.Enable", "Size.Js.Assign",
+        "Size.Js.Invalid", "Size.Js.NoAssigned", "Size.Js.AllAssigned", "Size.Js.ManageTitle", "Size.Js.LoadError",
+        "Size.Js.InvalidPrice", "Size.Js.AssignSuccess", "Size.Js.AssignError", "Size.Js.ConfirmTitle",
+        "Size.Js.DrinkStatusConfirm", "Size.Js.SizeStatusConfirm", "Size.Js.Confirm", "Size.Js.StatusSuccess",
+        "Size.Js.UpdateError", "Size.Js.CodeRequired", "Size.Js.CodeMax", "Size.Js.NameRequired", "Size.Js.NameMax",
+        "Size.Js.InvalidResponse", "Size.Js.ActionFailed", "Size.Js.NotFound", "Size.Js.UpdateSuccess",
+        "Size.Js.AiNameRequired", "Size.Js.AiLoading", "Size.Js.AiFailed", "Size.Js.AiOverwriteCode",
+        "Size.Js.AiCodeApplied", "Size.Js.AiTitle", "Size.Js.AiChooseValid", "Size.Js.AiInvalidType",
+        "Size.Js.AiOverwrite", "Size.Js.AiApplied", "Size.Js.TypeRequired", "Size.Js.CreateSuccess"
+    };
+    var sizeJsCatalog = JsonSerializer.Serialize(sizeJsKeys.ToDictionary(key => key, key => ProductText[key].Value));
 }
 
 @section Styles {
@@ -29,10 +47,10 @@
     <header class="size-page-heading ops-header cc-warehouse-header">
         <div>
             <div class="ops-eyebrow">
-                <i class="fas fa-layer-group me-1"></i> Cấu trúc thực đơn
+                <i class="fas fa-layer-group me-1"></i> @ProductText["Common.MenuStructure"]
             </div>
-            <h1 class="ops-title"><i class="fa-solid fa-ruler-horizontal me-2 text-warning" aria-hidden="true"></i>Quản lý Size đồ uống</h1>
-            <p class="ops-subtitle">Thiết lập mã hiển thị, tên gọi và loại kích thước sử dụng trên thực đơn.</p>
+            <h1 class="ops-title"><i class="fa-solid fa-ruler-horizontal me-2 text-warning" aria-hidden="true"></i>@ProductText["Size.Title"]</h1>
+            <p class="ops-subtitle">@ProductText["Size.Description"]</p>
         </div>
         <div class="ops-actions">
             @if (canCreate)
@@ -40,7 +58,7 @@
                 <button class="btn btn-orange px-3"
                         data-bs-toggle="modal"
                         data-bs-target="#createModal">
-                    <i class="fas fa-plus me-2"></i> Thêm mới
+                    <i class="fas fa-plus me-2"></i> @ProductText["Common.Add"]
                 </button>
             }
         </div>
@@ -48,24 +66,24 @@
 
 
     <div class="catalog-list-toolbar">
-        <div class="catalog-filter-tabs" aria-label="Bộ lọc Size">
+        <div class="catalog-filter-tabs" aria-label="@ProductText["Size.FilterAria"]">
             <a asp-action="Index"
                asp-route-keyword="@Model.Keyword"
                asp-route-pageSize="@Model.PageSize"
                class="catalog-filter-tab @(!Model.Active.HasValue ? "active" : null)"
-               aria-current="@(!Model.Active.HasValue ? "page" : null)">Tất cả (@Model.AllCount)</a>
+               aria-current="@(!Model.Active.HasValue ? "page" : null)">@ProductText["Common.AllWithCount", Model.AllCount]</a>
             <a asp-action="Index"
                asp-route-keyword="@Model.Keyword"
                asp-route-active="true"
                asp-route-pageSize="@Model.PageSize"
                class="catalog-filter-tab @(Model.Active == true ? "active" : null)"
-               aria-current="@(Model.Active == true ? "page" : null)">Đang hoạt động (@Model.ActiveCount)</a>
+               aria-current="@(Model.Active == true ? "page" : null)">@ProductText["Common.ActiveWithCount", Model.ActiveCount]</a>
             <a asp-action="Index"
                asp-route-keyword="@Model.Keyword"
                asp-route-active="false"
                asp-route-pageSize="@Model.PageSize"
                class="catalog-filter-tab @(Model.Active == false ? "active" : null)"
-               aria-current="@(Model.Active == false ? "page" : null)">Ngừng hoạt động (@Model.InactiveCount)</a>
+               aria-current="@(Model.Active == false ? "page" : null)">@ProductText["Common.InactiveWithCount", Model.InactiveCount]</a>
         </div>
 
         <form asp-action="Index" method="get" class="catalog-list-tools" id="sizeFilterForm" role="search">
@@ -76,15 +94,15 @@
             }
 
             <div class="catalog-search-box">
-                <button type="submit" class="catalog-search-button" title="Tìm kiếm" aria-label="Tìm Size">
+                <button type="submit" class="catalog-search-button" title="@ProductText["Common.Search"]" aria-label="@ProductText["Size.SearchAria"]">
                     <i class="fas fa-search" aria-hidden="true"></i>
                 </button>
-                <label for="sizeKeyword" class="visually-hidden">Tìm Size theo mã hoặc tên</label>
+                <label for="sizeKeyword" class="visually-hidden">@ProductText["Size.SearchAria"]</label>
                 <input id="sizeKeyword"
                        type="search"
                        name="keyword"
                        value="@Model.Keyword"
-                       placeholder="Tìm Size..."
+                       placeholder="@ProductText["Size.SearchPlaceholder"]"
                        autocomplete="off" />
                 @if (!string.IsNullOrWhiteSpace(Model.Keyword))
                 {
@@ -92,16 +110,16 @@
                        asp-route-active="@Model.Active"
                        asp-route-pageSize="@Model.PageSize"
                        class="catalog-search-clear"
-                       title="Xóa lọc"
-                       aria-label="Xóa bộ lọc Size">
+                       title="@ProductText["Common.ClearFilters"]"
+                       aria-label="@ProductText["Common.ClearFilters"]">
                         <i class="fas fa-times" aria-hidden="true"></i>
                     </a>
                 }
             </div>
 
             <label class="catalog-page-size">
-                <span>Hiển thị:</span>
-                <select name="pageSize" aria-label="Số dòng Size hiển thị" onchange="this.form.submit()">
+                <span>@ProductText["Common.Display"]</span>
+                <select name="pageSize" aria-label="@ProductText["Common.DisplayRows"]" onchange="this.form.submit()">
                     <option value="10" selected="@(Model.PageSize == 10)">10</option>
                     <option value="25" selected="@(Model.PageSize == 25)">25</option>
                     <option value="50" selected="@(Model.PageSize == 50)">50</option>
@@ -122,7 +140,7 @@
 
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold mb-0">Danh sách Size</h5>
+            <h5 class="fw-bold mb-0">@ProductText["Size.List"]</h5>
         </div>
 
         <!-- Table -->
@@ -130,12 +148,12 @@
         <table class="table table-borderless align-middle">
             <thead class="text-muted">
                 <tr>
-                    <th class="text-center" style="width: 12%;">MÃ SIZE</th>
-                    <th style="width: 18%;">TÊN SIZE</th>
-                    <th style="width: 30%;">MÔ TẢ</th>
-                    <th class="text-center" style="width: 12%;">LOẠI SIZE</th>
-                    <th class="text-center" style="width: 14%;">TRẠNG THÁI</th>
-                    <th class="text-center" style="width: 14%;">HÀNH ĐỘNG</th>
+                    <th class="text-center" style="width: 12%;">@ProductText["Size.Code"]</th>
+                    <th style="width: 18%;">@ProductText["Size.Name"]</th>
+                    <th style="width: 30%;">@ProductText["Size.DescriptionLabel"]</th>
+                    <th class="text-center" style="width: 12%;">@ProductText["Size.Type"]</th>
+                    <th class="text-center" style="width: 14%;">@ProductText["Common.Status"]</th>
+                    <th class="text-center" style="width: 14%;">@ProductText["Common.Actions"]</th>
                 </tr>
             </thead>
 
@@ -161,18 +179,18 @@
 
                         <td class="text-center">
                             <span class="size-type-badge @(item.SizeType == CafeChain.Models.Enums.Drink.SizeTypeEnum.Volume ? "size-type-volume" : "size-type-cup")">
-                                @(item.SizeType == CafeChain.Models.Enums.Drink.SizeTypeEnum.Volume ? "Dung tích" : "Ly")
+                                @(item.SizeType == CafeChain.Models.Enums.Drink.SizeTypeEnum.Volume ? ProductText["Size.Volume"] : ProductText["Size.Cup"])
                             </span>
                         </td>
 
                         <td class="text-center">
                             @if (item.Active)
                             {
-                                <span class="status-active">Hoạt động</span>
+                                <span class="status-active">@ProductText["Common.Active"]</span>
                             }
                             else
                             {
-                                <span class="status-inactive">Ngừng</span>
+                                <span class="status-inactive">@ProductText["Common.Inactive"]</span>
                             }
                         </td>
 
@@ -182,7 +200,7 @@
                                 @if (canAssign)
                                 {
                                 <button class="size-action-btn is-assign"
-                                        title="Gán đồ uống"
+                                        title="@ProductText["Size.AssignDrinks"]"
                                         onclick="openDrinkModal(@item.SizeId, '@item.Name')">
                                     <i class="fas fa-link"></i>
                                 </button>
@@ -192,7 +210,7 @@
                                 @if (canUpdate)
                                 {
                                 <button class="size-action-btn is-edit"
-                                        title="Chỉnh sửa"
+                                        title="@ProductText["Common.Edit"]"
                                         data-bs-toggle="modal"
                                         data-bs-target="#editModal"
                                         onclick="openEditModal(
@@ -210,7 +228,7 @@
                                 @if (canToggle)
                                 {
                                 <button class="size-action-btn @(item.Active ? "is-lock" : "is-unlock")"
-                                        title="@(item.Active ? "Khóa" : "Mở khóa")"
+                                        title="@(item.Active ? ProductText["Common.Lock"] : ProductText["Common.Unlock"])"
                                         onclick="toggleSize(@item.SizeId)">
                                     <i class="fas @(item.Active ? "fa-lock" : "fa-unlock")"></i>
                                 </button>
@@ -221,7 +239,7 @@
                 }
                 @if (sizes.Count == 0)
                 {
-                    <tr><td colspan="6" class="text-center text-muted py-4">Không tìm thấy Size phù hợp.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-4">@ProductText["Size.Empty"]</td></tr>
                 }
             </tbody>
         </table>
@@ -253,9 +271,9 @@
                         <i class="fas fa-mug-hot"></i>
                     </div>
                     <div>
-                        <h6 class="fw-bold mb-0">Thêm mới Size đồ uống</h6>
+                        <h6 class="fw-bold mb-0">@ProductText["Size.CreateTitle"]</h6>
                         <small class="text-muted text-uppercase" style="font-size:11px;">
-                            Cấu hình thực đơn
+                            @ProductText["Size.Configure"]
                         </small>
                     </div>
                 </div>
@@ -271,7 +289,7 @@
                         <!-- Mã Size -->
                         <div class="col-md-3 size-code-field">
                             <label class="form-label fw-semibold">
-                                Mã Size <span class="text-danger">*</span>
+                                @ProductText["Size.CodeLabel"] <span class="text-danger">*</span>
                             </label>
                             <input id="create-code"
                                    name="SizeCode"
@@ -284,63 +302,63 @@
                         <!-- Tên Size -->
                         <div class="col-md-4 size-name-field">
                             <label class="form-label fw-semibold">
-                                Tên Size <span class="text-danger">*</span>
+                                @ProductText["Size.NameLabel"] <span class="text-danger">*</span>
                             </label>
                             <input id="create-name"
                                    name="Name"
                                    class="form-control"
-                                   placeholder="Size vừa"
+                                   placeholder="@ProductText["Size.NamePlaceholder"]"
                                    maxlength="50"
                                    required />
                         </div>
 
                         <div class="col-md-5 size-type-field">
                             <label class="form-label fw-semibold">
-                                Loại Size <span class="text-danger">*</span>
+                                @ProductText["Size.TypeLabel"] <span class="text-danger">*</span>
                             </label>
                             <select id="create-size-type"
                                     name="SizeType"
                                     class="form-select"
                                     required>
-                                <option value="" selected>-- Chọn loại size --</option>
+                                <option value="" selected>@ProductText["Size.TypeChoose"]</option>
                                 <option value="1">Ly</option>
-                                <option value="2">Dung tích</option>
+                                <option value="2">@ProductText["Size.Volume"]</option>
                             </select>
                         </div>
 
                         <!-- Mô Tả Size -->
                         <div class="col-12 size-description-field">
                             <label class="form-label fw-semibold">
-                                Mô Tả Size
+                                @ProductText["Size.DescriptionForm"]
                             </label>
                             <input id="create-description"
                                    name="Description"
                                    class="form-control bg-light"
-                                   placeholder="Ví dụ: Size vừa"
+                                   placeholder="@ProductText["Size.DescriptionPlaceholder"]"
                                    maxlength="300" />
                         </div>
 
                         <div class="col-12 size-ai-section d-none">
-                            <label for="sizeAiIdea" class="form-label fw-semibold">Ý tưởng cho AI <span class="text-muted fw-normal">(không bắt buộc)</span></label>
-                            <select id="sizeAiGenerationMode" class="form-select mb-2" aria-label="Chế độ gợi ý size">
-                                <option value="0">Tạo mới</option>
-                                <option value="1">Phát triển dữ liệu đang nhập</option>
-                                <option value="2">Tạo biến thể</option>
+                            <label for="sizeAiIdea" class="form-label fw-semibold">@ProductText["Size.AiIdea"] <span class="text-muted fw-normal">@ProductText["Size.Optional"]</span></label>
+                            <select id="sizeAiGenerationMode" class="form-select mb-2" aria-label="@ProductText["Size.AiMode"]">
+                                <option value="0">@ProductText["Size.AiNew"]</option>
+                                <option value="1">@ProductText["Size.AiDevelop"]</option>
+                                <option value="2">@ProductText["Size.AiVariant"]</option>
                             </select>
-                            <input id="sizeAiIdea" class="form-control mb-2" maxlength="200" placeholder="Ví dụ: chai 330ml" autocomplete="off" />
+                            <input id="sizeAiIdea" class="form-control mb-2" maxlength="200" placeholder="@ProductText["Size.AiPlaceholder"]" autocomplete="off" />
                             <button type="button" id="btnSizeAiSuggestion" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-wand-magic-sparkles me-1"></i> AI gợi ý
+                                <i class="fas fa-wand-magic-sparkles me-1"></i> @ProductText["Size.AiSuggest"]
                             </button>
                             <div id="sizeAiSuggestionPanel" class="ai-suggestion-panel mt-2 d-none">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <strong>Chọn một gợi ý</strong>
+                                    <strong>@ProductText["Size.AiChoose"]</strong>
                                     <span id="sizeAiSource" class="badge bg-secondary"></span>
                                 </div>
                                 <div id="sizeAiOptionList" class="ai-option-grid"></div>
                                 <div id="sizeAiWarnings" class="small text-warning mt-2"></div>
                                 <div class="d-flex gap-2 mt-2">
-                                    <button type="button" id="btnApplySizeAi" class="btn btn-primary btn-sm" disabled>Áp dụng</button>
-                                    <button type="button" id="btnDismissSizeAi" class="btn btn-light btn-sm">Bỏ qua</button>
+                                    <button type="button" id="btnApplySizeAi" class="btn btn-primary btn-sm" disabled>@ProductText["Size.Apply"]</button>
+                                    <button type="button" id="btnDismissSizeAi" class="btn btn-light btn-sm">@ProductText["Size.Dismiss"]</button>
                                 </div>
                             </div>
                         </div>
@@ -348,7 +366,7 @@
                     </div>
 
                     <p class="text-muted small mt-3 mb-0">
-                        Sử dụng mã ngắn (S, M, L) để hiển thị nhanh trên hóa đơn.
+                        @ProductText["Size.CodeHint"]
                     </p>
 
                 </div>
@@ -356,11 +374,11 @@
                 <!-- Footer -->
                 <div class="modal-footer border-0 pt-2">
                     <button type="button" class="btn btn-light px-3" data-bs-dismiss="modal">
-                        Hủy bỏ
+                        @ProductText["Common.Cancel"]
                     </button>
 
                     <button type="submit" class="btn btn-orange px-4">
-                        <i class="fas fa-save me-2"></i> Lưu thông tin
+                        <i class="fas fa-save me-2"></i> @ProductText["Size.Save"]
                     </button>
                 </div>
             </form>
@@ -380,9 +398,9 @@
                         <i class="fas fa-pen"></i>
                     </div>
                     <div>
-                        <h6 class="fw-bold mb-0">Chỉnh sửa Size</h6>
+                        <h6 class="fw-bold mb-0">@ProductText["Size.EditTitle"]</h6>
                         <small class="text-muted text-uppercase" style="font-size:11px;">
-                            Cập nhật thông tin
+                            @ProductText["Size.EditHint"]
                         </small>
                     </div>
                 </div>
@@ -401,7 +419,7 @@
                         <!-- Mã -->
                         <div class="col-md-3 size-code-field">
                             <label class="form-label fw-semibold">
-                                Mã Size <span class="text-danger">*</span>
+                                @ProductText["Size.CodeLabel"] <span class="text-danger">*</span>
                             </label>
                             <input id="edit-code"
                                    name="SizeCode"
@@ -413,7 +431,7 @@
                         <!-- Tên -->
                         <div class="col-md-4 size-name-field">
                             <label class="form-label fw-semibold">
-                                Tên Size <span class="text-danger">*</span>
+                                @ProductText["Size.NameLabel"] <span class="text-danger">*</span>
                             </label>
                             <input id="edit-name"
                                    name="Name"
@@ -424,21 +442,21 @@
 
                         <div class="col-md-5 size-type-field">
                             <label class="form-label fw-semibold">
-                                Loại Size <span class="text-danger">*</span>
+                                @ProductText["Size.TypeLabel"] <span class="text-danger">*</span>
                             </label>
                             <select id="edit-size-type"
                                     name="SizeType"
                                     class="form-select"
                                     required>
                                 <option value="1">Ly</option>
-                                <option value="2">Dung tích</option>
+                                <option value="2">@ProductText["Size.Volume"]</option>
                             </select>
                         </div>
 
                         <!-- Mô tả -->
                         <div class="col-12">
                             <label class="form-label fw-semibold">
-                                Mô Tả Size
+                                @ProductText["Size.DescriptionForm"]
                             </label>
                             <input id="edit-description"
                                    name="Description"
@@ -453,11 +471,11 @@
                 <!-- Footer -->
                 <div class="modal-footer border-0 pt-2">
                     <button type="button" class="btn btn-light px-3" data-bs-dismiss="modal">
-                        Hủy bỏ
+                        @ProductText["Common.Cancel"]
                     </button>
 
                     <button type="submit" class="btn btn-orange px-4">
-                        <i class="fas fa-check me-2"></i> Cập nhật
+                        <i class="fas fa-check me-2"></i> @ProductText["Common.Update"]
                     </button>
                 </div>
             </form>
@@ -478,8 +496,8 @@
                         <i class="fas fa-glass-martini-alt"></i>
                     </div>
                     <div>
-                        <h5 class="fw-bold mb-0 text-dark" id="drinkModalTitle">Quản lý đồ uống theo Size</h5>
-                        <small class="text-muted">Gán hoặc ngắt kết nối đồ uống với kích thước này</small>
+                        <h5 class="fw-bold mb-0 text-dark" id="drinkModalTitle">@ProductText["Size.ManageDrinks"]</h5>
+                        <small class="text-muted">@ProductText["Size.ManageDrinksHint"]</small>
                     </div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -489,14 +507,14 @@
             <div class="modal-body p-4">
                 <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom">
                     <span class="badge bg-brown px-3 py-2 fs-6 rounded-pill" id="currentSizeBadge">Size</span>
-                    <span class="small text-muted"><i class="fas fa-info-circle me-1"></i>Bấm Gán để thêm đồ uống vào Size, hoặc Tắt để ngừng bán Size này</span>
+                    <span class="small text-muted"><i class="fas fa-info-circle me-1"></i>@ProductText["Size.AssignHint"]</span>
                 </div>
 
                 <div class="row g-4">
                     <!-- UNASSIGNED -->
                     <div class="col-md-6">
                         <div class="d-flex align-items-center justify-content-between mb-3">
-                            <h6 class="fw-bold mb-0 text-secondary"><i class="fas fa-plus-circle me-1 text-primary"></i> Chưa gán</h6>
+                            <h6 class="fw-bold mb-0 text-secondary"><i class="fas fa-plus-circle me-1 text-primary"></i> @ProductText["Size.Unassigned"]</h6>
                         </div>
                         <div id="unassignedList" class="d-flex flex-column gap-2"></div>
                     </div>
@@ -504,7 +522,7 @@
                     <!-- ASSIGNED -->
                     <div class="col-md-6">
                         <div class="d-flex align-items-center justify-content-between mb-3">
-                            <h6 class="fw-bold mb-0 text-secondary"><i class="fas fa-check-circle me-1 text-success"></i> Đã gán</h6>
+                            <h6 class="fw-bold mb-0 text-secondary"><i class="fas fa-check-circle me-1 text-success"></i> @ProductText["Size.Assigned"]</h6>
                         </div>
                         <div id="assignedList" class="d-flex flex-column gap-2"></div>
                     </div>
@@ -513,7 +531,7 @@
 
             <!-- FOOTER -->
             <div class="modal-footer border-top bg-light">
-                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">@ProductText["Common.Close"]</button>
             </div>
 
         </div>
@@ -531,9 +549,9 @@
                         <i class="fas fa-tags"></i>
                     </div>
                     <div>
-                        <h5 class="modal-title mb-0">Cấu hình Giá Bán Sản Phẩm</h5>
+                        <h5 class="modal-title mb-0">@ProductText["Size.PriceTitle"]</h5>
                         <small class="text-white-50" style="font-size:12px;">
-                            Nhập đơn giá niêm yết (VNĐ)
+                            @ProductText["Size.PriceHint"]
                         </small>
                     </div>
                 </div>
@@ -542,7 +560,7 @@
 
             <div class="modal-body p-4">
                 <div class="mb-3">
-                    <label for="priceInput" class="form-label fw-bold text-dark">Giá bán sản phẩm <span class="text-danger">*</span></label>
+                    <label for="priceInput" class="form-label fw-bold text-dark">@ProductText["Size.PriceLabel"] <span class="text-danger">*</span></label>
 
                     <div class="mb-3">
                         <input type="number"
@@ -556,26 +574,26 @@
 
                     <!-- Quick price presets -->
                     <div class="d-flex align-items-center gap-1.5 flex-wrap mt-2 mb-3">
-                        <span class="small text-muted me-1 fw-semibold" style="font-size:11px;">Gợi ý nhanh:</span>
-                        <button type="button" class="price-preset-chip" onclick="selectPresetPrice(25000)">25.000đ</button>
-                        <button type="button" class="price-preset-chip" onclick="selectPresetPrice(30000)">30.000đ</button>
-                        <button type="button" class="price-preset-chip" onclick="selectPresetPrice(35000)">35.000đ</button>
-                        <button type="button" class="price-preset-chip" onclick="selectPresetPrice(40000)">40.000đ</button>
-                        <button type="button" class="price-preset-chip" onclick="selectPresetPrice(45000)">45.000đ</button>
+                        <span class="small text-muted me-1 fw-semibold" style="font-size:11px;">@ProductText["Size.PriceQuick"]</span>
+                        <button type="button" class="price-preset-chip" onclick="selectPresetPrice(25000)">@((25000m).ToString("N0")) ₫</button>
+                        <button type="button" class="price-preset-chip" onclick="selectPresetPrice(30000)">@((30000m).ToString("N0")) ₫</button>
+                        <button type="button" class="price-preset-chip" onclick="selectPresetPrice(35000)">@((35000m).ToString("N0")) ₫</button>
+                        <button type="button" class="price-preset-chip" onclick="selectPresetPrice(40000)">@((40000m).ToString("N0")) ₫</button>
+                        <button type="button" class="price-preset-chip" onclick="selectPresetPrice(45000)">@((45000m).ToString("N0")) ₫</button>
                     </div>
 
                     <!-- Dynamic preview badge -->
                     <div class="price-preview-badge">
-                        <span class="small text-muted fw-semibold">Hiển thị niêm yết:</span>
-                        <span id="priceFormattedPreview" class="fw-bold text-primary fs-6">0 VNĐ</span>
+                        <span class="small text-muted fw-semibold">@ProductText["Size.PricePreview"]</span>
+                        <span id="priceFormattedPreview" class="fw-bold text-primary fs-6">0 ₫</span>
                     </div>
                 </div>
             </div>
 
             <div class="modal-footer border-top bg-light p-3">
-                <button type="button" class="btn btn-light px-3" data-bs-dismiss="modal">Hủy bỏ</button>
+                <button type="button" class="btn btn-light px-3" data-bs-dismiss="modal">@ProductText["Common.Cancel"]</button>
                 <button type="button" class="btn btn-orange px-4" onclick="confirmAssign()">
-                    <i class="fas fa-check-circle me-1"></i> Xác nhận Gán Giá
+                    <i class="fas fa-check-circle me-1"></i> @ProductText["Size.PriceConfirm"]
                 </button>
             </div>
 
@@ -591,5 +609,6 @@
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
 
+    <script id="sizeUiCatalog" type="application/json">@Html.Raw(sizeJsCatalog)</script>
     <script src="~/js/Admin/DrinkSize/drinksize.js" asp-append-version="true"></script>
 }

@@ -1,9 +1,10 @@
 @model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferCreateVM
+@inject Microsoft.Extensions.Localization.IStringLocalizer<CafeChain.InventoryResource> InventoryText
 
 <footer class="transfer-action-bar">
     <div class="transfer-action-status" id="transferActionStatus">
         <i class="fas fa-circle-info"></i>
-        Kiểm tra tồn kho trước khi xác nhận.
+        @InventoryText["Transfer.Create.CheckStockFirst"]
     </div>
 
     <div class="transfer-action-buttons">
@@ -12,17 +13,17 @@
            asp-controller="AdminInventoryTransfer"
            asp-action="Index">
             <i class="fas fa-xmark"></i>
-            Hủy
+            @InventoryText["Common.Cancel"]
         </a>
 
         <button class="transfer-secondary-button" type="button" id="btnSaveTransferDraft">
             <i class="fas fa-floppy-disk"></i>
-            Lưu nháp
+            @InventoryText["Common.SaveDraft"]
         </button>
 
-        <button class="transfer-primary-button" type="button" id="btnConfirmTransfer" title="Hoàn thành kiểm tra tồn kho để mở khóa nút này">
+        <button class="transfer-primary-button" type="button" id="btnConfirmTransfer" title="@InventoryText["Transfer.Create.ConfirmDisabledTitle"]">
             <i class="fas fa-truck-fast"></i>
-            Xác nhận chuyển kho
+            @InventoryText["Transfer.Create.Confirm"]
         </button>
     </div>
 </footer>

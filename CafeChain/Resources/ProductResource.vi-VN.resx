@@ -1,0 +1,1154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="Common.MenuStructure" xml:space="preserve"><value>Cấu trúc thực đơn</value></data>
+  <data name="Common.Add" xml:space="preserve"><value>Thêm mới</value></data>
+  <data name="Common.ClearFilters" xml:space="preserve"><value>Xóa lọc</value></data>
+  <data name="Common.AllWithCount" xml:space="preserve"><value>Tất cả ({0})</value></data>
+  <data name="Common.ActiveWithCount" xml:space="preserve"><value>Đang hoạt động ({0})</value></data>
+  <data name="Common.InactiveWithCount" xml:space="preserve"><value>Ngừng hoạt động ({0})</value></data>
+  <data name="Common.Search" xml:space="preserve"><value>Tìm kiếm</value></data>
+  <data name="Common.Display" xml:space="preserve"><value>Hiển thị:</value></data>
+  <data name="Common.DisplayRows" xml:space="preserve"><value>Số dòng hiển thị</value></data>
+  <data name="Common.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Common.Actions" xml:space="preserve"><value>Hành động</value></data>
+  <data name="Common.Active" xml:space="preserve"><value>Hoạt động</value></data>
+  <data name="Common.Inactive" xml:space="preserve"><value>Ngừng</value></data>
+  <data name="Common.Edit" xml:space="preserve"><value>Chỉnh sửa</value></data>
+  <data name="Common.Lock" xml:space="preserve"><value>Khóa</value></data>
+  <data name="Common.Unlock" xml:space="preserve"><value>Mở khóa</value></data>
+  <data name="Common.Cancel" xml:space="preserve"><value>Hủy</value></data>
+  <data name="Common.Close" xml:space="preserve"><value>Đóng</value></data>
+  <data name="Common.Save" xml:space="preserve"><value>Lưu</value></data>
+  <data name="Common.Update" xml:space="preserve"><value>Cập nhật</value></data>
+  <data name="Common.Retry" xml:space="preserve"><value>Thử lại</value></data>
+  <data name="Common.Loading" xml:space="preserve"><value>Đang tải...</value></data>
+  <data name="Common.NoData" xml:space="preserve"><value>Chưa có dữ liệu</value></data>
+  <data name="Common.Results" xml:space="preserve"><value>{0} kết quả</value></data>
+  <data name="Drink.PageTitle" xml:space="preserve"><value>Quản lý Nước uống</value></data>
+  <data name="Drink.Eyebrow" xml:space="preserve"><value>Thực đơn CafeChain</value></data>
+  <data name="Drink.Title" xml:space="preserve"><value>Danh sách nước uống</value></data>
+  <data name="Drink.Description" xml:space="preserve"><value>Theo dõi hình ảnh, danh mục và trạng thái bán của toàn bộ sản phẩm.</value></data>
+  <data name="Drink.Total" xml:space="preserve"><value>Tổng đồ uống</value></data>
+  <data name="Drink.Selling" xml:space="preserve"><value>Đang bán</value></data>
+  <data name="Drink.Paused" xml:space="preserve"><value>Ngừng bán</value></data>
+  <data name="Drink.FilterAria" xml:space="preserve"><value>Bộ lọc trạng thái đồ uống</value></data>
+  <data name="Drink.SearchAria" xml:space="preserve"><value>Tìm kiếm đồ uống</value></data>
+  <data name="Drink.SearchPlaceholder" xml:space="preserve"><value>Tìm đồ uống...</value></data>
+  <data name="Drink.InventoryTitle" xml:space="preserve"><value>Kho đồ uống</value></data>
+  <data name="Drink.InventoryDescription" xml:space="preserve"><value>Cập nhật hình ảnh và thông tin sản phẩm ngay tại một nơi.</value></data>
+  <data name="Drink.Image" xml:space="preserve"><value>Hình ảnh</value></data>
+  <data name="Drink.Code" xml:space="preserve"><value>Mã</value></data>
+  <data name="Drink.Name" xml:space="preserve"><value>Tên nước uống</value></data>
+  <data name="Drink.Category" xml:space="preserve"><value>Danh mục</value></data>
+  <data name="Drink.Type" xml:space="preserve"><value>Loại sản phẩm</value></data>
+  <data name="Drink.EmptyTitle" xml:space="preserve"><value>Không tìm thấy đồ uống phù hợp</value></data>
+  <data name="Drink.EmptyHint" xml:space="preserve"><value>Thử đổi từ khóa hoặc trạng thái lọc để xem thêm kết quả.</value></data>
+  <data name="Drink.ManageImages" xml:space="preserve"><value>Quản lý ảnh</value></data>
+  <data name="Drink.Edit" xml:space="preserve"><value>Sửa đồ uống</value></data>
+  <data name="Drink.Resume" xml:space="preserve"><value>Mở bán lại</value></data>
+  <data name="Drink.Pagination" xml:space="preserve"><value>Phân trang đồ uống</value></data>
+  <data name="Drink.Range" xml:space="preserve"><value>Hiển thị {0}-{1} trong số {2}</value></data>
+  <data name="Drink.SelectAll" xml:space="preserve"><value>Chọn tất cả đồ uống</value></data>
+  <data name="Drink.SelectOne" xml:space="preserve"><value>Chọn {0}</value></data>
+  <data name="Drink.ImageAdd" xml:space="preserve"><value>Thêm ảnh mới</value></data>
+  <data name="Drink.ImageHint" xml:space="preserve"><value>Ảnh JPG hoặc PNG, nên sử dụng ảnh vuông để hiển thị đẹp nhất.</value></data>
+  <data name="Drink.ImageChoose" xml:space="preserve"><value>Chọn ảnh</value></data>
+  <data name="Drink.ImageNoFile" xml:space="preserve"><value>Chưa chọn file nào</value></data>
+  <data name="Drink.ImageDefault" xml:space="preserve"><value>Đặt làm mặc định</value></data>
+  <data name="Drink.ImageLibrary" xml:space="preserve"><value>Thư viện ảnh</value></data>
+  <data name="Drink.ImageLibraryHint" xml:space="preserve"><value>Chọn ảnh đại diện hoặc xóa ảnh</value></data>
+  <data name="Drink.ImageEditTitle" xml:space="preserve"><value>Chỉnh sửa ảnh</value></data>
+  <data name="Drink.ImageEditHint" xml:space="preserve"><value>Thay thế ảnh hiện tại bằng ảnh mới</value></data>
+  <data name="Drink.ImageCurrent" xml:space="preserve"><value>Ảnh hiện tại</value></data>
+  <data name="Drink.ImageNew" xml:space="preserve"><value>Ảnh mới (xem trước)</value></data>
+  <data name="Drink.ImageChooseNew" xml:space="preserve"><value>Chọn ảnh mới</value></data>
+  <data name="Drink.ImageChange" xml:space="preserve"><value>Đổi ảnh khác</value></data>
+  <data name="Drink.ImageSave" xml:space="preserve"><value>Lưu thay đổi</value></data>
+  <data name="Size.Title" xml:space="preserve"><value>Quản lý Size đồ uống</value></data>
+  <data name="Size.Description" xml:space="preserve"><value>Thiết lập mã hiển thị, tên gọi và loại kích thước sử dụng trên thực đơn.</value></data>
+  <data name="Size.FilterAria" xml:space="preserve"><value>Bộ lọc Size</value></data>
+  <data name="Size.SearchAria" xml:space="preserve"><value>Tìm Size theo mã hoặc tên</value></data>
+  <data name="Size.SearchPlaceholder" xml:space="preserve"><value>Tìm Size...</value></data>
+  <data name="Size.List" xml:space="preserve"><value>Danh sách Size</value></data>
+  <data name="Size.Code" xml:space="preserve"><value>MÃ SIZE</value></data>
+  <data name="Size.Name" xml:space="preserve"><value>TÊN SIZE</value></data>
+  <data name="Size.DescriptionLabel" xml:space="preserve"><value>MÔ TẢ</value></data>
+  <data name="Size.Type" xml:space="preserve"><value>LOẠI SIZE</value></data>
+  <data name="Size.Volume" xml:space="preserve"><value>Dung tích</value></data>
+  <data name="Size.Cup" xml:space="preserve"><value>Ly</value></data>
+  <data name="Size.AssignDrinks" xml:space="preserve"><value>Gán đồ uống</value></data>
+  <data name="Size.Empty" xml:space="preserve"><value>Không tìm thấy Size phù hợp.</value></data>
+  <data name="Size.CreateTitle" xml:space="preserve"><value>Thêm mới Size đồ uống</value></data>
+  <data name="Size.Configure" xml:space="preserve"><value>Cấu hình thực đơn</value></data>
+  <data name="Size.CodeLabel" xml:space="preserve"><value>Mã Size</value></data>
+  <data name="Size.NameLabel" xml:space="preserve"><value>Tên Size</value></data>
+  <data name="Size.TypeLabel" xml:space="preserve"><value>Loại Size</value></data>
+  <data name="Size.TypeChoose" xml:space="preserve"><value>-- Chọn loại size --</value></data>
+  <data name="Size.DescriptionForm" xml:space="preserve"><value>Mô Tả Size</value></data>
+  <data name="Size.NamePlaceholder" xml:space="preserve"><value>Size vừa</value></data>
+  <data name="Size.DescriptionPlaceholder" xml:space="preserve"><value>Ví dụ: Size vừa</value></data>
+  <data name="Size.AiIdea" xml:space="preserve"><value>Ý tưởng cho AI</value></data>
+  <data name="Size.Optional" xml:space="preserve"><value>(không bắt buộc)</value></data>
+  <data name="Size.AiMode" xml:space="preserve"><value>Chế độ gợi ý size</value></data>
+  <data name="Size.AiNew" xml:space="preserve"><value>Tạo mới</value></data>
+  <data name="Size.AiDevelop" xml:space="preserve"><value>Phát triển dữ liệu đang nhập</value></data>
+  <data name="Size.AiVariant" xml:space="preserve"><value>Tạo biến thể</value></data>
+  <data name="Size.AiPlaceholder" xml:space="preserve"><value>Ví dụ: chai 330ml</value></data>
+  <data name="Size.AiSuggest" xml:space="preserve"><value>AI gợi ý</value></data>
+  <data name="Size.AiChoose" xml:space="preserve"><value>Chọn một gợi ý</value></data>
+  <data name="Size.Apply" xml:space="preserve"><value>Áp dụng</value></data>
+  <data name="Size.Dismiss" xml:space="preserve"><value>Bỏ qua</value></data>
+  <data name="Size.CodeHint" xml:space="preserve"><value>Sử dụng mã ngắn (S, M, L) để hiển thị nhanh trên hóa đơn.</value></data>
+  <data name="Size.Save" xml:space="preserve"><value>Lưu thông tin</value></data>
+  <data name="Size.EditTitle" xml:space="preserve"><value>Chỉnh sửa Size</value></data>
+  <data name="Size.EditHint" xml:space="preserve"><value>Cập nhật thông tin</value></data>
+  <data name="Size.ManageDrinks" xml:space="preserve"><value>Quản lý đồ uống theo Size</value></data>
+  <data name="Size.ManageDrinksHint" xml:space="preserve"><value>Gán hoặc ngắt kết nối đồ uống với kích thước này</value></data>
+  <data name="Size.AssignHint" xml:space="preserve"><value>Bấm Gán để thêm đồ uống vào Size, hoặc Tắt để ngừng bán Size này</value></data>
+  <data name="Size.Unassigned" xml:space="preserve"><value>Chưa gán</value></data>
+  <data name="Size.Assigned" xml:space="preserve"><value>Đã gán</value></data>
+  <data name="Size.PriceTitle" xml:space="preserve"><value>Cấu hình Giá Bán Sản Phẩm</value></data>
+  <data name="Size.PriceHint" xml:space="preserve"><value>Nhập đơn giá niêm yết (VNĐ)</value></data>
+  <data name="Size.PriceLabel" xml:space="preserve"><value>Giá bán sản phẩm</value></data>
+  <data name="Size.PriceQuick" xml:space="preserve"><value>Gợi ý nhanh:</value></data>
+  <data name="Size.PricePreview" xml:space="preserve"><value>Hiển thị niêm yết:</value></data>
+  <data name="Size.PriceConfirm" xml:space="preserve"><value>Xác nhận Gán Giá</value></data>
+  <data name="Topping.Title" xml:space="preserve"><value>Quản lý Topping đồ uống</value></data>
+  <data name="Topping.Description" xml:space="preserve"><value>Thiết lập topping, giá bán và nguồn nguyên liệu tiêu hao trên thực đơn.</value></data>
+  <data name="Topping.FilterAria" xml:space="preserve"><value>Bộ lọc Topping</value></data>
+  <data name="Topping.SearchAria" xml:space="preserve"><value>Tìm Topping theo mã hoặc tên</value></data>
+  <data name="Topping.SearchPlaceholder" xml:space="preserve"><value>Tìm Topping...</value></data>
+  <data name="Topping.List" xml:space="preserve"><value>Danh sách Topping</value></data>
+  <data name="Topping.Code" xml:space="preserve"><value>MÃ</value></data>
+  <data name="Topping.Price" xml:space="preserve"><value>GIÁ BÁN</value></data>
+  <data name="Topping.CostSource" xml:space="preserve"><value>NGUỒN TIÊU HAO / GIÁ VỐN</value></data>
+  <data name="Topping.EstimatedBomCost" xml:space="preserve"><value>Giá vốn BOM ước tính:</value></data>
+  <data name="Topping.ActualCost" xml:space="preserve"><value>Giá vốn thực tế:</value></data>
+  <data name="Topping.FifoAtSale" xml:space="preserve"><value>FIFO khi bán</value></data>
+  <data name="Topping.ViewBom" xml:space="preserve"><value>Xem BOM</value></data>
+  <data name="Topping.EditBom" xml:space="preserve"><value>Sửa BOM</value></data>
+  <data name="Topping.CreateBom" xml:space="preserve"><value>Tạo BOM</value></data>
+  <data name="Topping.Empty" xml:space="preserve"><value>Không tìm thấy Topping phù hợp.</value></data>
+  <data name="Profit.Title" xml:space="preserve"><value>Vốn và lợi nhuận gộp dự kiến</value></data>
+  <data name="Profit.Eyebrow" xml:space="preserve"><value>Sản phẩm / Phân tích giá vốn</value></data>
+  <data name="Profit.Description" xml:space="preserve"><value>Đối chiếu giá vốn theo nhập trước - xuất trước (FIFO), giá bán và khả năng sinh lời theo từng size đồ uống.</value></data>
+  <data name="Profit.OpenBom" xml:space="preserve"><value>Mở công thức và BOM</value></data>
+  <data name="Profit.Setup" xml:space="preserve"><value>Thiết lập mô phỏng</value></data>
+  <data name="Profit.SetupHint" xml:space="preserve"><value>Chọn phạm vi dữ liệu cần phân tích.</value></data>
+  <data name="Profit.Store" xml:space="preserve"><value>Cửa hàng mô phỏng FIFO</value></data>
+  <data name="Profit.Drink" xml:space="preserve"><value>Đồ uống</value></data>
+  <data name="Profit.Reload" xml:space="preserve"><value>Tải lại</value></data>
+  <data name="Profit.Result" xml:space="preserve"><value>Kết quả phân tích</value></data>
+  <data name="Profit.ResultHint" xml:space="preserve"><value>So sánh chi phí và khả năng sinh lời theo từng cấu hình size.</value></data>
+  <data name="Profit.ScopeNote" xml:space="preserve"><value>Dữ liệu FIFO theo cửa hàng</value></data>
+  <data name="Profit.FilterAria" xml:space="preserve"><value>Bộ lọc mô phỏng giá vốn</value></data>
+  <data name="Profit.GlobalPrice" xml:space="preserve"><value>Giá bán áp dụng toàn hệ thống.</value></data>
+  <data name="Profit.StoreCostHint" xml:space="preserve"><value>Giá vốn được mô phỏng theo cửa hàng đang chọn.</value></data>
+  <data name="Profit.CostSource" xml:space="preserve"><value>Nguồn chi phí</value></data>
+  <data name="Profit.StoreFifo" xml:space="preserve"><value>FIFO cửa hàng</value></data>
+  <data name="Profit.CalculatedAt" xml:space="preserve"><value>Thời điểm tính</value></data>
+  <data name="Profit.SizeCount" xml:space="preserve"><value>Số size</value></data>
+  <data name="Profit.ReadyCount" xml:space="preserve"><value>Dữ liệu hoàn chỉnh</value></data>
+  <data name="Profit.Loading" xml:space="preserve"><value>Đang mô phỏng lớp giá FIFO...</value></data>
+  <data name="Profit.LoadError" xml:space="preserve"><value>Không tải được dữ liệu</value></data>
+  <data name="Profit.Empty" xml:space="preserve"><value>Chưa có size đang hoạt động cho đồ uống này.</value></data>
+  <data name="Profit.Table.SizeBom" xml:space="preserve"><value>Size / Định mức nguyên liệu (BOM)</value></data>
+  <data name="Profit.Table.CostStatus" xml:space="preserve"><value>Trạng thái chi phí</value></data>
+  <data name="Profit.Table.FifoCost" xml:space="preserve"><value>Giá vốn FIFO</value></data>
+  <data name="Profit.Table.GlobalPrice" xml:space="preserve"><value>Giá bán toàn hệ thống</value></data>
+  <data name="Profit.Table.GrossProfit" xml:space="preserve"><value>Lợi nhuận gộp</value></data>
+  <data name="Profit.Table.Margin" xml:space="preserve"><value>Biên lợi nhuận gộp (Margin)</value></data>
+  <data name="Profit.Table.Markup" xml:space="preserve"><value>Tỷ lệ cộng giá (Markup)</value></data>
+  <data name="Profit.Breadcrumb.Products" xml:space="preserve"><value>Sản phẩm</value></data>
+  <data name="Profit.Breadcrumb.Current" xml:space="preserve"><value>Vốn và lợi nhuận</value></data>
+  <data name="Profit.Price.Scope" xml:space="preserve"><value>Giá bán toàn hệ thống</value></data>
+  <data name="Profit.Price.Update" xml:space="preserve"><value>Cập nhật giá</value></data>
+  <data name="Profit.Price.FifoCost" xml:space="preserve"><value>Giá vốn FIFO</value></data>
+  <data name="Profit.Price.Current" xml:space="preserve"><value>Giá hiện tại</value></data>
+  <data name="Profit.Price.Suggestion" xml:space="preserve"><value>Giá đề xuất</value></data>
+  <data name="Profit.Price.Target" xml:space="preserve"><value>Mục tiêu</value></data>
+  <data name="Profit.Price.TargetMargin" xml:space="preserve"><value>Biên lợi nhuận gộp</value></data>
+  <data name="Profit.Price.TargetMarkup" xml:space="preserve"><value>Tỷ lệ cộng giá</value></data>
+  <data name="Profit.Price.TargetProfit" xml:space="preserve"><value>Tiền lời mong muốn</value></data>
+  <data name="Profit.Price.TargetValue" xml:space="preserve"><value>Giá trị mục tiêu</value></data>
+  <data name="Profit.Price.Rounding" xml:space="preserve"><value>Quy tắc làm tròn giá</value></data>
+  <data name="Profit.Price.NoRounding" xml:space="preserve"><value>Không làm tròn</value></data>
+  <data name="Profit.Price.Nearest500" xml:space="preserve"><value>Gần nhất 500 VNĐ</value></data>
+  <data name="Profit.Price.Ceiling500" xml:space="preserve"><value>Làm tròn lên 500 VNĐ</value></data>
+  <data name="Profit.Price.Nearest1000" xml:space="preserve"><value>Gần nhất 1.000 VNĐ</value></data>
+  <data name="Profit.Price.Ceiling1000" xml:space="preserve"><value>Làm tròn lên 1.000 VNĐ</value></data>
+  <data name="Profit.Price.Calculate" xml:space="preserve"><value>Tính giá đề xuất</value></data>
+  <data name="Profit.Price.New" xml:space="preserve"><value>Giá bán mới</value></data>
+  <data name="Profit.Price.Label" xml:space="preserve"><value>Giá bán (VND)</value></data>
+  <data name="Profit.Price.ApplyScope" xml:space="preserve"><value>Phạm vi áp dụng</value></data>
+  <data name="Profit.Price.SystemWide" xml:space="preserve"><value>Toàn hệ thống</value></data>
+  <data name="Profit.Price.EffectiveAt" xml:space="preserve"><value>Thời điểm hiệu lực</value></data>
+  <data name="Profit.Price.Immediate" xml:space="preserve"><value>Ngay khi xác nhận</value></data>
+  <data name="Profit.Reason" xml:space="preserve"><value>Lý do thay đổi</value></data>
+  <data name="Profit.Price.IncompleteConfirm" xml:space="preserve"><value>Tôi xác nhận giá vốn chưa đầy đủ và vẫn muốn lưu giá thủ công.</value></data>
+  <data name="Profit.Price.Apply" xml:space="preserve"><value>Xác nhận áp dụng giá</value></data>
+  <data name="Profit.Policy.Eyebrow" xml:space="preserve"><value>Chính sách topping theo size</value></data>
+  <data name="Profit.Policy.Title" xml:space="preserve"><value>Topping cho món</value></data>
+  <data name="Profit.Policy.Add" xml:space="preserve"><value>Thêm chính sách</value></data>
+  <data name="Profit.Policy.PriceTreatment" xml:space="preserve"><value>Xử lý giá bán</value></data>
+  <data name="Profit.Policy.PriceIncluded" xml:space="preserve"><value>Đã gồm trong giá gốc</value></data>
+  <data name="Profit.Policy.PriceAdd" xml:space="preserve"><value>Cộng giá topping</value></data>
+  <data name="Profit.Policy.CostTreatment" xml:space="preserve"><value>Xử lý giá vốn</value></data>
+  <data name="Profit.Policy.CostIncluded" xml:space="preserve"><value>Đã gồm trong BOM đồ uống</value></data>
+  <data name="Profit.Policy.CostAdd" xml:space="preserve"><value>Cộng thêm giá vốn topping</value></data>
+  <data name="Profit.Policy.Quantity" xml:space="preserve"><value>Số lượng mỗi ly</value></data>
+  <data name="Profit.Policy.Unit" xml:space="preserve"><value>Đơn vị</value></data>
+  <data name="Profit.Policy.RecipePortion" xml:space="preserve"><value>Phần công thức</value></data>
+  <data name="Profit.Policy.QuantityHint" xml:space="preserve"><value>Một phần công thức tương ứng với một lần thực hiện BOM topping; nguyên liệu được quy đổi về đơn vị tồn kho.</value></data>
+  <data name="Profit.Policy.Default" xml:space="preserve"><value>Chọn mặc định trên POS</value></data>
+  <data name="Profit.Policy.Required" xml:space="preserve"><value>Bắt buộc chọn trên POS</value></data>
+  <data name="Profit.Policy.Save" xml:space="preserve"><value>Lưu chính sách</value></data>
+  <data name="Profit.Js.IncompleteData" xml:space="preserve"><value>Chưa đủ dữ liệu</value></data>
+  <data name="Profit.Js.RequestFailed" xml:space="preserve"><value>Không thể xử lý yêu cầu.</value></data>
+  <data name="Profit.Js.UpdatePrice" xml:space="preserve"><value>Cập nhật giá</value></data>
+  <data name="Profit.Js.NoBom" xml:space="preserve"><value>Chưa có BOM</value></data>
+  <data name="Profit.Js.KnownCost" xml:space="preserve"><value>Đã biết:</value></data>
+  <data name="Profit.Js.Details" xml:space="preserve"><value>Chi tiết</value></data>
+  <data name="Profit.Js.NoComponents" xml:space="preserve"><value>Chưa có thành phần chi phí.</value></data>
+  <data name="Profit.Js.Unknown" xml:space="preserve"><value>Chưa xác định</value></data>
+  <data name="Profit.Js.NoDefaultToppings" xml:space="preserve"><value>Chưa có topping mặc định đang áp dụng.</value></data>
+  <data name="Profit.Js.CostAllocation" xml:space="preserve"><value>Phân bổ giá vốn theo nhập trước - xuất trước (FIFO)</value></data>
+  <data name="Profit.Js.Component" xml:space="preserve"><value>Thành phần</value></data>
+  <data name="Profit.Js.RequiredQuantity" xml:space="preserve"><value>Số lượng cần</value></data>
+  <data name="Profit.Js.CoveredQuantity" xml:space="preserve"><value>Số lượng đã có dữ liệu giá</value></data>
+  <data name="Profit.Js.CalculatedCost" xml:space="preserve"><value>Chi phí tính được</value></data>
+  <data name="Profit.Js.DefaultToppings" xml:space="preserve"><value>Topping mặc định</value></data>
+  <data name="Profit.Js.Quantity" xml:space="preserve"><value>Số lượng</value></data>
+  <data name="Profit.Js.PriceImpact" xml:space="preserve"><value>Ảnh hưởng giá bán</value></data>
+  <data name="Profit.Js.CostImpact" xml:space="preserve"><value>Ảnh hưởng giá vốn</value></data>
+  <data name="Profit.Js.PriceIncrease" xml:space="preserve"><value>Giá tăng</value></data>
+  <data name="Profit.Js.CostIncrease" xml:space="preserve"><value>Vốn tăng</value></data>
+  <data name="Profit.Js.SuggestedPrice" xml:space="preserve"><value>Giá đề xuất: {price}</value></data>
+  <data name="Profit.Js.CurrentPrice" xml:space="preserve"><value>Giá hiện tại: {price}</value></data>
+  <data name="Profit.Js.Difference" xml:space="preserve"><value>Chênh lệch: {value}</value></data>
+  <data name="Profit.Js.NewProfit" xml:space="preserve"><value>Lợi nhuận mới: {value}</value></data>
+  <data name="Profit.Js.NewMargin" xml:space="preserve"><value>Biên lợi nhuận mới: {value}</value></data>
+  <data name="Profit.Js.NewMarkup" xml:space="preserve"><value>Tỷ lệ cộng giá mới: {value}</value></data>
+  <data name="Profit.Js.UsePrice" xml:space="preserve"><value>Dùng giá này</value></data>
+  <data name="Profit.Js.PriceReasonRequired" xml:space="preserve"><value>Vui lòng nhập lý do thay đổi giá bán.</value></data>
+  <data name="Profit.Js.IncompleteConfirmation" xml:space="preserve"><value>Giá vốn chưa đầy đủ. Hãy xác nhận cảnh báo và nhập lý do.</value></data>
+  <data name="Profit.Js.PriceUpdated" xml:space="preserve"><value>Đã cập nhật giá bán toàn hệ thống.</value></data>
+  <data name="Profit.Js.RecipePortion" xml:space="preserve"><value>phần công thức</value></data>
+  <data name="Profit.Js.DefaultOnPos" xml:space="preserve"><value>Chọn mặc định trên POS</value></data>
+  <data name="Profit.Js.Required" xml:space="preserve"><value>Bắt buộc</value></data>
+  <data name="Profit.Js.Edit" xml:space="preserve"><value>Sửa</value></data>
+  <data name="Profit.Js.NoPolicies" xml:space="preserve"><value>Chưa có chính sách topping đang áp dụng cho món và size này.</value></data>
+  <data name="Profit.Js.NeedsReview" xml:space="preserve"><value>Cần xác nhận</value></data>
+  <data name="Profit.Js.NoEligibleToppings" xml:space="preserve"><value>Món/size này chưa có topping phù hợp. Hãy cấu hình danh mục topping trước.</value></data>
+  <data name="Profit.Js.EditPolicy" xml:space="preserve"><value>Sửa {name}</value></data>
+  <data name="Profit.Js.AddPolicy" xml:space="preserve"><value>Thêm chính sách</value></data>
+  <data name="Profit.Js.PolicyReasonRequired" xml:space="preserve"><value>Vui lòng nhập lý do thay đổi chính sách topping.</value></data>
+  <data name="Profit.Js.PolicySaved" xml:space="preserve"><value>Đã lưu chính sách topping mặc định.</value></data>
+  <data name="Profit.Js.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Profit.Status.EXACT_READY" xml:space="preserve"><value>BOM đúng size</value></data>
+  <data name="Profit.Status.GENERIC_FALLBACK_ONLY" xml:space="preserve"><value>Chỉ có BOM chung</value></data>
+  <data name="Profit.Status.MISSING_RECIPE" xml:space="preserve"><value>Thiếu BOM theo size</value></data>
+  <data name="Profit.Status.MULTIPLE_ACTIVE_RECIPE" xml:space="preserve"><value>Trùng BOM hiệu lực</value></data>
+  <data name="Profit.Status.INVALID_RECIPE" xml:space="preserve"><value>BOM không hợp lệ</value></data>
+  <data name="Profit.Status.FUTURE_RECIPE_ONLY" xml:space="preserve"><value>BOM chưa đến ngày hiệu lực</value></data>
+  <data name="Profit.Status.COMPLETE" xml:space="preserve"><value>Đầy đủ</value></data>
+  <data name="Profit.Status.INCOMPLETE" xml:space="preserve"><value>Chưa đầy đủ</value></data>
+  <data name="Profit.Status.MISSING_DEFAULT_TOPPING_POLICY" xml:space="preserve"><value>Cấu hình topping cũ cần xác nhận</value></data>
+  <data name="Profit.Status.MISSING_COST_LAYER" xml:space="preserve"><value>Thiếu lớp giá FIFO</value></data>
+  <data name="Profit.Status.INSUFFICIENT_COST_QUANTITY" xml:space="preserve"><value>Không đủ lượng FIFO</value></data>
+  <data name="Profit.Status.MISSING_CONVERSION" xml:space="preserve"><value>Thiếu quy đổi</value></data>
+  <data name="Profit.Status.INVALID_BOM" xml:space="preserve"><value>BOM không hợp lệ</value></data>
+  <data name="Profit.Treatment.INCLUDED_IN_BASE_PRICE" xml:space="preserve"><value>Đã gồm trong giá gốc</value></data>
+  <data name="Profit.Treatment.ADD_TOPPING_PRICE" xml:space="preserve"><value>Cộng giá topping</value></data>
+  <data name="Profit.Treatment.INCLUDED_IN_DRINK_RECIPE" xml:space="preserve"><value>Đã gồm trong BOM đồ uống</value></data>
+  <data name="Profit.Treatment.ADD_TOPPING_RECIPE_COST" xml:space="preserve"><value>Cộng thêm giá vốn topping</value></data>
+  <data name="Profit.Treatment.DISPLAY_ONLY" xml:space="preserve"><value>Cấu hình cũ cần xác nhận</value></data>
+  <data name="StoreMenu.Title" xml:space="preserve"><value>Menu cửa hàng</value></data>
+  <data name="StoreMenu.Eyebrow" xml:space="preserve"><value>Vận hành thực đơn</value></data>
+  <data name="StoreMenu.Description" xml:space="preserve"><value>Kiểm soát SKU, giá hiệu lực và khả năng phục vụ tại từng chi nhánh CafeChain.</value></data>
+  <data name="StoreMenu.Sync" xml:space="preserve"><value>Đồng bộ SKU mới</value></data>
+  <data name="StoreMenu.Profitability" xml:space="preserve"><value>Xem vốn &amp; lợi nhuận</value></data>
+  <data name="StoreMenu.Store" xml:space="preserve"><value>Cửa hàng</value></data>
+  <data name="StoreMenu.Search" xml:space="preserve"><value>Tìm SKU</value></data>
+  <data name="StoreMenu.SearchPlaceholder" xml:space="preserve"><value>Tên, mã đồ uống hoặc size</value></data>
+  <data name="StoreMenu.ConfigurationStatus" xml:space="preserve"><value>Trạng thái cấu hình</value></data>
+  <data name="StoreMenu.Availability" xml:space="preserve"><value>Khả năng bán</value></data>
+  <data name="StoreMenu.All" xml:space="preserve"><value>Tất cả</value></data>
+  <data name="StoreMenu.Status.Draft" xml:space="preserve"><value>Bản nháp</value></data>
+  <data name="StoreMenu.Status.Scheduled" xml:space="preserve"><value>Đã lên lịch</value></data>
+  <data name="StoreMenu.Status.Active" xml:space="preserve"><value>Đang bán</value></data>
+  <data name="StoreMenu.Status.Paused" xml:space="preserve"><value>Tạm dừng</value></data>
+  <data name="StoreMenu.Status.Ended" xml:space="preserve"><value>Đã kết thúc</value></data>
+  <data name="StoreMenu.Availability.Available" xml:space="preserve"><value>Sẵn sàng</value></data>
+  <data name="StoreMenu.Availability.LowStock" xml:space="preserve"><value>Sắp hết</value></data>
+  <data name="StoreMenu.Availability.OutOfStock" xml:space="preserve"><value>Hết nguyên liệu</value></data>
+  <data name="StoreMenu.Availability.InvalidRecipe" xml:space="preserve"><value>BOM chưa hợp lệ</value></data>
+  <data name="StoreMenu.Availability.Topping" xml:space="preserve"><value>Thiếu topping bắt buộc</value></data>
+  <data name="StoreMenu.Availability.Store" xml:space="preserve"><value>Cửa hàng chưa sẵn sàng</value></data>
+  <data name="StoreMenu.Total" xml:space="preserve"><value>Tổng SKU</value></data>
+  <data name="StoreMenu.Active" xml:space="preserve"><value>Đang bán</value></data>
+  <data name="StoreMenu.Unavailable" xml:space="preserve"><value>Không khả dụng</value></data>
+  <data name="StoreMenu.Override" xml:space="preserve"><value>Dùng giá riêng</value></data>
+  <data name="StoreMenu.List" xml:space="preserve"><value>Danh sách SKU cửa hàng</value></data>
+  <data name="StoreMenu.ListHint" xml:space="preserve"><value>Ưu tiên xử lý các món tạm dừng hoặc thiếu nguyên liệu.</value></data>
+  <data name="StoreMenu.Loading" xml:space="preserve"><value>Đang tải menu cửa hàng...</value></data>
+  <data name="StoreMenu.LoadError" xml:space="preserve"><value>Không tải được menu cửa hàng</value></data>
+  <data name="StoreMenu.Empty" xml:space="preserve"><value>Chưa có món/size trong menu cửa hàng.</value></data>
+  <data name="StoreMenu.EmptyHint" xml:space="preserve"><value>Hãy kiểm tra dữ liệu menu hoặc thay đổi bộ lọc.</value></data>
+  <data name="StoreMenu.Table.Order" xml:space="preserve"><value>Thứ tự</value></data>
+  <data name="StoreMenu.Table.Item" xml:space="preserve"><value>Món / size</value></data>
+  <data name="StoreMenu.Table.Price" xml:space="preserve"><value>Giá bán</value></data>
+  <data name="StoreMenu.Table.Margin" xml:space="preserve"><value>FIFO / Biên lợi nhuận</value></data>
+  <data name="StoreMenu.Table.Effective" xml:space="preserve"><value>Thời gian hiệu lực</value></data>
+  <data name="StoreMenu.SyncTitle" xml:space="preserve"><value>Chuẩn bị các SKU mới ở trạng thái bản nháp</value></data>
+  <data name="StoreMenu.Filter.Title" xml:space="preserve"><value>Bộ lọc vận hành</value></data>
+  <data name="StoreMenu.Filter.Hint" xml:space="preserve"><value>Thu hẹp menu theo cửa hàng, SKU và trạng thái bán.</value></data>
+  <data name="StoreMenu.Realtime" xml:space="preserve"><value>Theo dõi theo thời gian thực</value></data>
+  <data name="StoreMenu.Filter.Aria" xml:space="preserve"><value>Bộ lọc menu cửa hàng</value></data>
+  <data name="StoreMenu.Reload" xml:space="preserve"><value>Tải lại menu</value></data>
+  <data name="StoreMenu.Drawer.Eyebrow" xml:space="preserve"><value>Menu cửa hàng</value></data>
+  <data name="StoreMenu.Drawer.Title" xml:space="preserve"><value>Cập nhật món</value></data>
+  <data name="StoreMenu.Drawer.OverridePrice" xml:space="preserve"><value>Giá riêng tại cửa hàng (VND)</value></data>
+  <data name="StoreMenu.Drawer.GlobalHint" xml:space="preserve"><value>Để trống khi chọn “Dùng giá toàn hệ thống”.</value></data>
+  <data name="StoreMenu.Drawer.DisplayOrder" xml:space="preserve"><value>Thứ tự hiển thị</value></data>
+  <data name="StoreMenu.Drawer.Reason" xml:space="preserve"><value>Lý do thay đổi</value></data>
+  <data name="StoreMenu.Js.RequestFailed" xml:space="preserve"><value>Không thể xử lý yêu cầu.</value></data>
+  <data name="StoreMenu.Js.NoStores" xml:space="preserve"><value>Không có cửa hàng trong phạm vi được cấp quyền.</value></data>
+  <data name="StoreMenu.Js.NoStoresHint" xml:space="preserve"><value>Liên hệ quản trị viên để kiểm tra vai trò và phạm vi cửa hàng.</value></data>
+  <data name="StoreMenu.Js.SyncSuccess" xml:space="preserve"><value>Đã đồng bộ SKU mới vào menu cửa hàng.</value></data>
+  <data name="StoreMenu.Js.NoFilteredItems" xml:space="preserve"><value>Không có món/size phù hợp bộ lọc.</value></data>
+  <data name="StoreMenu.Js.NoItems" xml:space="preserve"><value>Chưa có món/size trong menu cửa hàng.</value></data>
+  <data name="StoreMenu.Js.ClearFiltersHint" xml:space="preserve"><value>Thử xóa từ khóa hoặc chọn trạng thái khác.</value></data>
+  <data name="StoreMenu.Js.SetupHint" xml:space="preserve"><value>Dữ liệu menu cần được thiết lập và đăng bán trước khi vận hành.</value></data>
+  <data name="StoreMenu.Js.IncompleteData" xml:space="preserve"><value>Chưa đủ dữ liệu</value></data>
+  <data name="StoreMenu.Js.NotCalculated" xml:space="preserve"><value>Chưa tính được</value></data>
+  <data name="StoreMenu.Js.Unknown" xml:space="preserve"><value>Chưa xác định</value></data>
+  <data name="StoreMenu.Js.NoLimit" xml:space="preserve"><value>Không giới hạn</value></data>
+  <data name="StoreMenu.Js.From" xml:space="preserve"><value>Từ {value}</value></data>
+  <data name="StoreMenu.Js.Immediate" xml:space="preserve"><value>Có hiệu lực ngay</value></data>
+  <data name="StoreMenu.Js.To" xml:space="preserve"><value>Đến {value}</value></data>
+  <data name="StoreMenu.Js.NoEnd" xml:space="preserve"><value>Không có ngày kết thúc</value></data>
+  <data name="StoreMenu.Js.StorePrice" xml:space="preserve"><value>Giá riêng cửa hàng</value></data>
+  <data name="StoreMenu.Js.GlobalPrice" xml:space="preserve"><value>Giá toàn hệ thống</value></data>
+  <data name="StoreMenu.Js.Margin" xml:space="preserve"><value>Biên lợi nhuận {value}</value></data>
+  <data name="StoreMenu.Js.ReasonRequired" xml:space="preserve"><value>Bắt buộc nhập lý do thay đổi.</value></data>
+  <data name="StoreMenu.Js.PriceInvalid" xml:space="preserve"><value>Giá riêng phải lớn hơn 0.</value></data>
+  <data name="StoreMenu.Js.OrderInvalid" xml:space="preserve"><value>Thứ tự hiển thị phải từ 0 trở lên.</value></data>
+  <data name="StoreMenu.Js.Saving" xml:space="preserve"><value>Đang lưu...</value></data>
+  <data name="StoreMenu.Js.UpdateSuccess" xml:space="preserve"><value>Đã cập nhật menu cửa hàng.</value></data>
+  <data name="StoreMenu.Js.ReloadToContinue" xml:space="preserve"><value>Tải lại để tiếp tục</value></data>
+  <data name="StoreMenu.Js.Confirm" xml:space="preserve"><value>Xác nhận</value></data>
+  <data name="StoreMenu.Action.Publish.Title" xml:space="preserve"><value>Đăng bán món</value></data>
+  <data name="StoreMenu.Action.Publish.Hint" xml:space="preserve"><value>Món sẽ xuất hiện trên menu cửa hàng khi đủ điều kiện bán.</value></data>
+  <data name="StoreMenu.Action.Publish.Submit" xml:space="preserve"><value>Đăng bán</value></data>
+  <data name="StoreMenu.Action.Pause.Title" xml:space="preserve"><value>Tạm dừng SKU</value></data>
+  <data name="StoreMenu.Action.Pause.Hint" xml:space="preserve"><value>Thu ngân sẽ không thể bán SKU này tại cửa hàng.</value></data>
+  <data name="StoreMenu.Action.Pause.Submit" xml:space="preserve"><value>Xác nhận tạm dừng</value></data>
+  <data name="StoreMenu.Action.Resume.Title" xml:space="preserve"><value>Mở bán lại SKU</value></data>
+  <data name="StoreMenu.Action.Resume.Hint" xml:space="preserve"><value>SKU được đưa lại vào danh mục nếu BOM và tồn kho sẵn sàng.</value></data>
+  <data name="StoreMenu.Action.Resume.Submit" xml:space="preserve"><value>Mở bán lại</value></data>
+  <data name="StoreMenu.Action.Order.Title" xml:space="preserve"><value>Đổi thứ tự hiển thị</value></data>
+  <data name="StoreMenu.Action.Order.Hint" xml:space="preserve"><value>Số nhỏ hơn được ưu tiên hiển thị trước trên POS.</value></data>
+  <data name="StoreMenu.Action.Order.Submit" xml:space="preserve"><value>Lưu thứ tự</value></data>
+  <data name="StoreMenu.Action.Override.Title" xml:space="preserve"><value>Đặt giá riêng cửa hàng</value></data>
+  <data name="StoreMenu.Action.Override.Hint" xml:space="preserve"><value>Giá này thay thế giá toàn hệ thống cho đúng SKU tại cửa hàng.</value></data>
+  <data name="StoreMenu.Action.Override.Submit" xml:space="preserve"><value>Áp dụng giá riêng</value></data>
+  <data name="StoreMenu.Action.Global.Title" xml:space="preserve"><value>Dùng giá toàn hệ thống</value></data>
+  <data name="StoreMenu.Action.Global.Hint" xml:space="preserve"><value>Giá riêng sẽ bị xóa và SKU quay về giá toàn hệ thống hiện tại.</value></data>
+  <data name="StoreMenu.Action.Global.Submit" xml:space="preserve"><value>Dùng giá toàn hệ thống</value></data>
+  <data name="StoreMenu.Action.ViewBom" xml:space="preserve"><value>Xem BOM</value></data>
+  <data name="StoreMenu.Action.ViewProfit" xml:space="preserve"><value>Xem lợi nhuận</value></data>
+  <data name="StoreMenu.Js.EffectivePrice" xml:space="preserve"><value>Giá hiệu lực {value}</value></data>
+  <data name="Recipe.Create.PageTitle" xml:space="preserve"><value>Tạo công thức BOM</value></data>
+  <data name="Recipe.Create.Title" xml:space="preserve"><value>Tạo công thức</value></data>
+  <data name="Recipe.Create.Description" xml:space="preserve"><value>Chọn đúng đối tượng, kiểm tra đầu ra và định mức trước khi lưu để công thức được áp dụng ngay.</value></data>
+  <data name="Recipe.Edit.PageTitle" xml:space="preserve"><value>Tạo phiên bản công thức</value></data>
+  <data name="Recipe.Edit.Title" xml:space="preserve"><value>Tạo phiên bản công thức mới</value></data>
+  <data name="Recipe.Edit.Description" xml:space="preserve"><value>Tạo phiên bản kế tiếp cho {0}. Phiên bản hiện tại vẫn được giữ trong lịch sử.</value></data>
+  <data name="Recipe.Eyebrow" xml:space="preserve"><value>Sản xuất / BOM</value></data>
+  <data name="Recipe.List" xml:space="preserve"><value>Công thức</value></data>
+  <data name="Recipe.CreateNew" xml:space="preserve"><value>Tạo mới</value></data>
+  <data name="Recipe.NewVersion" xml:space="preserve"><value>Phiên bản mới</value></data>
+  <data name="Recipe.Back" xml:space="preserve"><value>Quay lại danh sách</value></data>
+  <data name="Recipe.Identity" xml:space="preserve"><value>Loại và đối tượng công thức</value></data>
+  <data name="Recipe.Type" xml:space="preserve"><value>Loại công thức</value></data>
+  <data name="Recipe.Type.Pos" xml:space="preserve"><value>Món bán (POS)</value></data>
+  <data name="Recipe.Type.Subrecipe" xml:space="preserve"><value>Bán thành phẩm</value></data>
+  <data name="Recipe.Product" xml:space="preserve"><value>Sản phẩm POS</value></data>
+  <data name="Recipe.Drink" xml:space="preserve"><value>Thức uống áp dụng</value></data>
+  <data name="Recipe.Topping" xml:space="preserve"><value>Topping áp dụng</value></data>
+  <data name="Recipe.PreparedItem" xml:space="preserve"><value>Bán thành phẩm đầu ra</value></data>
+  <data name="Recipe.Select" xml:space="preserve"><value>-- Chọn --</value></data>
+  <data name="Recipe.SelectProduct" xml:space="preserve"><value>-- Chọn sản phẩm --</value></data>
+  <data name="Recipe.SelectTopping" xml:space="preserve"><value>-- Chọn topping --</value></data>
+  <data name="Recipe.SelectPrepared" xml:space="preserve"><value>-- Chọn BTP (mã + tên) --</value></data>
+  <data name="Recipe.LegacyPreparedWarning" xml:space="preserve"><value>Dữ liệu cũ chưa liên kết BTP — bắt buộc chọn BTP, sản lượng và đơn vị tính trước khi lưu phiên bản đang hoạt động.</value></data>
+  <data name="Recipe.PreparedFixed" xml:space="preserve"><value>BTP cố định trong chuỗi phiên bản (không đổi).</value></data>
+  <data name="Recipe.RefreshPrepared" xml:space="preserve"><value>Làm mới danh sách bán thành phẩm</value></data>
+  <data name="Recipe.Refresh" xml:space="preserve"><value>Làm mới</value></data>
+  <data name="Recipe.PreparedIdentityHint" xml:space="preserve"><value>Danh tính ổn định từ danh mục BTP (không dùng tên tự do, không dùng mã công thức làm đầu ra).</value></data>
+  <data name="Recipe.CreatePrepared" xml:space="preserve"><value>Không tìm thấy BTP? Tạo bán thành phẩm</value></data>
+  <data name="Recipe.Output" xml:space="preserve"><value>Sản lượng đầu ra</value></data>
+  <data name="Recipe.ExpectedYield" xml:space="preserve"><value>Sản lượng chuẩn một mẻ</value></data>
+  <data name="Recipe.YieldHint" xml:space="preserve"><value>Đây là lượng BTP thực nhận sau chế biến. Hệ thống không nhân thêm tỷ lệ thu hồi.</value></data>
+  <data name="Recipe.OutputUnit" xml:space="preserve"><value>Đơn vị đầu ra</value></data>
+  <data name="Recipe.SelectUnit" xml:space="preserve"><value>-- ĐVT --</value></data>
+  <data name="Recipe.NormalizedPreview" xml:space="preserve"><value>Xem trước kết quả chuẩn hóa</value></data>
+  <data name="Recipe.NormalizedHint" xml:space="preserve"><value>Nhập số lượng và đơn vị để xem quy đổi tồn kho.</value></data>
+  <data name="Recipe.Components" xml:space="preserve"><value>Thành phần định mức</value></data>
+  <data name="Recipe.AddComponent" xml:space="preserve"><value>Thêm thành phần</value></data>
+  <data name="Recipe.Column.Type" xml:space="preserve"><value>Loại</value></data>
+  <data name="Recipe.Column.Component" xml:space="preserve"><value>Thành phần</value></data>
+  <data name="Recipe.Column.Quantity" xml:space="preserve"><value>Số lượng</value></data>
+  <data name="Recipe.Column.Unit" xml:space="preserve"><value>Đơn vị</value></data>
+  <data name="Recipe.Column.LineCost" xml:space="preserve"><value>Giá vốn dòng</value></data>
+  <data name="Recipe.Column.DataStatus" xml:space="preserve"><value>Trạng thái dữ liệu</value></data>
+  <data name="Recipe.Column.Actions" xml:space="preserve"><value>Thao tác</value></data>
+  <data name="Recipe.Instructions" xml:space="preserve"><value>Hướng dẫn chế biến</value></data>
+  <data name="Recipe.DescriptionLabel" xml:space="preserve"><value>Mô tả</value></data>
+  <data name="Recipe.DescriptionPlaceholder" xml:space="preserve"><value>VD: Pha đá trước khi cho sữa...</value></data>
+  <data name="Recipe.ReviewAria" xml:space="preserve"><value>Kiểm tra và lưu công thức</value></data>
+  <data name="Recipe.ReviewVersionAria" xml:space="preserve"><value>Kiểm tra và lưu phiên bản công thức</value></data>
+  <data name="Recipe.Review" xml:space="preserve"><value>Kiểm tra và lưu</value></data>
+  <data name="Recipe.PublishNow" xml:space="preserve"><value>Xác nhận áp dụng ngay</value></data>
+  <data name="Recipe.FromVersion" xml:space="preserve"><value>Từ phiên bản #{0}</value></data>
+  <data name="Recipe.Target" xml:space="preserve"><value>Đối tượng</value></data>
+  <data name="Recipe.Bom" xml:space="preserve"><value>Định mức</value></data>
+  <data name="Recipe.NotSelected" xml:space="preserve"><value>Chưa chọn</value></data>
+  <data name="Recipe.Unknown" xml:space="preserve"><value>Chưa xác định</value></data>
+  <data name="Recipe.NoComponents" xml:space="preserve"><value>Chưa có thành phần</value></data>
+  <data name="Recipe.Checking" xml:space="preserve"><value>Đang kiểm tra</value></data>
+  <data name="Recipe.NoChanges" xml:space="preserve"><value>Chưa có thay đổi.</value></data>
+  <data name="Recipe.AppliedImmediately" xml:space="preserve"><value>Công thức mới sẽ được áp dụng ngay sau khi lưu.</value></data>
+  <data name="Recipe.EstimatedCost" xml:space="preserve"><value>Giá vốn ước tính</value></data>
+  <data name="Recipe.CostFromCompleteLines" xml:space="preserve"><value>Tính từ các dòng đủ dữ liệu gói</value></data>
+  <data name="Recipe.NoComponentSelected" xml:space="preserve"><value>Chưa chọn thành phần</value></data>
+  <data name="Recipe.CostWarning" xml:space="preserve"><value>Giá vốn chưa đầy đủ không chặn lưu nếu máy chủ cho phép. Hệ thống không hiển thị giá trị 0 không chính xác.</value></data>
+  <data name="Recipe.CostSummaryAria" xml:space="preserve"><value>Tóm tắt giá vốn công thức</value></data>
+  <data name="Recipe.TotalCost" xml:space="preserve"><value>Tổng giá vốn</value></data>
+  <data name="Recipe.CostRatio" xml:space="preserve"><value>Tỷ lệ giá vốn</value></data>
+  <data name="Recipe.ReviewHint" xml:space="preserve"><value>Kiểm tra thành phần và dữ liệu giá vốn trước khi tạo phiên bản mới.</value></data>
+  <data name="Recipe.SaveApply" xml:space="preserve"><value>Lưu và áp dụng ngay</value></data>
+  <data name="Recipe.SelectComponent" xml:space="preserve"><value>-- Chọn thành phần --</value></data>
+  <data name="Recipe.RawIngredients" xml:space="preserve"><value>Nguyên liệu thô</value></data>
+  <data name="Recipe.ChildPrepared" xml:space="preserve"><value>Bán thành phẩm con</value></data>
+  <data name="Recipe.ChildPreparedVersion" xml:space="preserve"><value>Bán thành phẩm con (cố định phiên bản công thức)</value></data>
+  <data name="Recipe.UnmappedPrepared" xml:space="preserve"><value>BTP: (chưa ánh xạ)</value></data>
+  <data name="Recipe.Version" xml:space="preserve"><value>phiên bản #{0}</value></data>
+  <data name="Recipe.Js.Piece" xml:space="preserve"><value>cái</value></data>
+  <data name="Recipe.Js.Unit" xml:space="preserve"><value>ĐVT</value></data>
+  <data name="Recipe.Js.Yes" xml:space="preserve"><value>Có</value></data>
+  <data name="Recipe.Js.None" xml:space="preserve"><value>Chưa có</value></data>
+  <data name="Recipe.Js.InventoryUnit" xml:space="preserve"><value>ĐVT tồn kho: {unit}</value></data>
+  <data name="Recipe.Js.ActiveRecipe" xml:space="preserve"><value>Công thức đang hoạt động: {status}</value></data>
+  <data name="Recipe.Js.PreparedPrefix" xml:space="preserve"><value>BTP</value></data>
+  <data name="Recipe.Js.Unmapped" xml:space="preserve"><value>chưa ánh xạ</value></data>
+  <data name="Recipe.Js.PinnedVersion" xml:space="preserve"><value>Phiên bản ghim</value></data>
+  <data name="Recipe.Js.BaseUnit" xml:space="preserve"><value>ĐVT cơ sở: {unit}</value></data>
+  <data name="Recipe.Js.PosTarget" xml:space="preserve"><value>Món bán và cỡ: {drink} · {size}</value></data>
+  <data name="Recipe.Js.PosTargetMissing" xml:space="preserve"><value>Chưa chọn đủ món bán và cỡ</value></data>
+  <data name="Recipe.Js.PosOutput" xml:space="preserve"><value>1 phần {drink} · {size}</value></data>
+  <data name="Recipe.Js.ToppingTarget" xml:space="preserve"><value>Topping: {name}</value></data>
+  <data name="Recipe.Js.ToppingMissing" xml:space="preserve"><value>Chưa chọn topping</value></data>
+  <data name="Recipe.Js.ToppingOutput" xml:space="preserve"><value>1 lựa chọn topping {name}</value></data>
+  <data name="Recipe.Js.PreparedTarget" xml:space="preserve"><value>Bán thành phẩm: {name}</value></data>
+  <data name="Recipe.Js.PreparedMissing" xml:space="preserve"><value>Chưa chọn bán thành phẩm</value></data>
+  <data name="Recipe.Js.YieldOutput" xml:space="preserve"><value>Sản lượng chuẩn một mẻ: {quantity} {unit}</value></data>
+  <data name="Recipe.Js.YieldMissing" xml:space="preserve"><value>Chưa xác định sản lượng chuẩn một mẻ</value></data>
+  <data name="Recipe.Js.LineSummary" xml:space="preserve"><value>{count} dòng · Số lượng chuẩn hóa theo đơn vị hiển thị từng dòng</value></data>
+  <data name="Recipe.Js.ChangeSummary" xml:space="preserve"><value>Dòng thêm: {added} · Dòng bỏ: {removed} · Dòng thay đổi: {changed}</value></data>
+  <data name="Recipe.Js.Invalid" xml:space="preserve"><value>Dữ liệu công thức chưa hợp lệ.</value></data>
+  <data name="Recipe.Js.Applying" xml:space="preserve"><value>Đang áp dụng...</value></data>
+  <data name="Recipe.Js.Calculating" xml:space="preserve"><value>Đang tính…</value></data>
+  <data name="Recipe.Js.Normalizing" xml:space="preserve"><value>Đang chuẩn hóa sản lượng đầu ra</value></data>
+  <data name="Recipe.Js.SelectPreparedOutput" xml:space="preserve"><value>Chọn bán thành phẩm đầu ra.</value></data>
+  <data name="Recipe.Js.EnterYield" xml:space="preserve"><value>Nhập sản lượng đầu ra của một mẻ.</value></data>
+  <data name="Recipe.Js.SelectOutputUnit" xml:space="preserve"><value>Chọn đơn vị đầu ra.</value></data>
+  <data name="Recipe.Js.PerBatch" xml:space="preserve"><value>/ mẻ</value></data>
+  <data name="Recipe.Js.InventoryQuantity" xml:space="preserve"><value>{quantity} {unit} tồn kho</value></data>
+  <data name="Recipe.Js.CannotConvert" xml:space="preserve"><value>Không quy đổi được</value></data>
+  <data name="Recipe.Js.PreviewError" xml:space="preserve"><value>Lỗi xem trước</value></data>
+  <data name="Recipe.Js.SessionError" xml:space="preserve"><value>Phiên làm việc không hợp lệ hoặc mất kết nối</value></data>
+  <data name="Recipe.Js.Code" xml:space="preserve"><value>Mã</value></data>
+  <data name="Recipe.Js.Name" xml:space="preserve"><value>Tên</value></data>
+  <data name="Recipe.Js.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Recipe.Js.Active" xml:space="preserve"><value>Hoạt động</value></data>
+  <data name="Recipe.Js.CurrentActiveRecipe" xml:space="preserve"><value>Công thức đang hoạt động hiện tại</value></data>
+  <data name="Recipe.Js.ActiveExists" xml:space="preserve"><value>Đã có công thức đang áp dụng</value></data>
+  <data name="Recipe.Js.VersionCount" xml:space="preserve"><value>Số phiên bản</value></data>
+  <data name="Recipe.Js.ActiveConflictTitle" xml:space="preserve"><value>Đã có công thức đang hoạt động</value></data>
+  <data name="Recipe.Js.ActiveConflictHint" xml:space="preserve"><value>Không thể tạo mới vì mỗi BTP chỉ có một phiên bản đang hoạt động. Hãy mở màn hình sửa để lưu trữ phiên bản cũ và tạo phiên bản mới.</value></data>
+  <data name="Recipe.Js.ViewRecipe" xml:space="preserve"><value>Xem công thức</value></data>
+  <data name="Recipe.Js.CreateVersion" xml:space="preserve"><value>Tạo phiên bản mới</value></data>
+  <data name="Recipe.Js.PreparedNotFound" xml:space="preserve"><value>Không tìm thấy BTP</value></data>
+  <data name="Recipe.Js.Searching" xml:space="preserve"><value>Đang tìm…</value></data>
+  <data name="Recipe.Js.Loading" xml:space="preserve"><value>Đang tải…</value></data>
+  <data name="Recipe.Js.DataComplete" xml:space="preserve"><value>Đủ dữ liệu</value></data>
+  <data name="Recipe.Js.DataIncomplete" xml:space="preserve"><value>Thiếu dữ liệu</value></data>
+  <data name="Recipe.Js.Duplicate" xml:space="preserve"><value>Thành phần này đã có ở dòng {rows}.</value></data>
+  <data name="Recipe.Js.MergeRow" xml:space="preserve"><value>Gộp với dòng {row}</value></data>
+  <data name="Recipe.Js.ChooseOther" xml:space="preserve"><value>Chọn thành phần khác</value></data>
+  <data name="Recipe.Js.CannotMerge" xml:space="preserve"><value>Không thể gộp thành phần</value></data>
+  <data name="Recipe.Js.UnitMismatch" xml:space="preserve"><value>Hai dòng đang dùng đơn vị khác nhau (mã {unitA} và {unitB}). Hãy quy đổi về cùng đơn vị trước khi gộp.</value></data>
+  <data name="Recipe.Js.CostMissing" xml:space="preserve"><value>Chưa đủ dữ liệu giá vốn</value></data>
+  <data name="Recipe.Js.CostCannotCalculate" xml:space="preserve"><value>Không thể tính đầy đủ giá vốn</value></data>
+  <data name="Recipe.Js.ViewIngredients" xml:space="preserve"><value>Xem nguyên liệu</value></data>
+  <data name="Recipe.Js.ViewSuppliers" xml:space="preserve"><value>Xem nhà cung cấp</value></data>
+  <data name="Recipe.Js.ViewConversions" xml:space="preserve"><value>Xem quy đổi đơn vị</value></data>
+  <data name="Recipe.Js.IncompleteUpper" xml:space="preserve"><value>CHƯA ĐẦY ĐỦ</value></data>
+  <data name="Recipe.Js.CostComplete" xml:space="preserve"><value>Giá vốn ước tính (đủ dữ liệu gói)</value></data>
+  <data name="Recipe.Js.ComponentRowAria" xml:space="preserve"><value>Thành phần dòng {row}</value></data>
+  <data name="Recipe.Js.AutoUnitAria" xml:space="preserve"><value>Đơn vị được xác định tự động</value></data>
+  <data name="Recipe.Js.Auto" xml:space="preserve"><value>Tự động</value></data>
+  <data name="Recipe.Js.RemoveRow" xml:space="preserve"><value>Xóa dòng</value></data>
+  <data name="Recipe.Js.SearchComponent" xml:space="preserve"><value>-- Tìm thành phần --</value></data>
+  <data name="Recipe.Js.NoComponent" xml:space="preserve"><value>Không có thành phần</value></data>
+  <data name="Recipe.Js.SearchProduct" xml:space="preserve"><value>-- Tìm sản phẩm --</value></data>
+  <data name="Recipe.Js.SearchTopping" xml:space="preserve"><value>-- Tìm topping --</value></data>
+  <data name="Recipe.Js.SelectSize" xml:space="preserve"><value>-- Chọn Size --</value></data>
+  <data name="Recipe.Js.ActivePreparedConflict" xml:space="preserve"><value>BTP đã có công thức đang hoạt động. Hãy tạo phiên bản mới từ màn hình sửa.</value></data>
+  <data name="Recipe.Js.AtLeastOne" xml:space="preserve"><value>Vui lòng thêm ít nhất một thành phần vào công thức.</value></data>
+  <data name="Recipe.Js.DuplicateBeforeSave" xml:space="preserve"><value>Có thành phần trùng mã. Hãy gộp dòng hoặc chọn thành phần khác trước khi lưu.</value></data>
+  <data name="Recipe.Js.Saving" xml:space="preserve"><value>Đang lưu…</value></data>
+  <data name="Recipe.Js.Applied" xml:space="preserve"><value>Đã áp dụng</value></data>
+  <data name="Recipe.Js.SaveError" xml:space="preserve"><value>Lỗi lưu công thức</value></data>
+  <data name="Recipe.Js.Conflict" xml:space="preserve"><value>Công thức đang bị trùng với một phiên bản đang hoạt động.</value></data>
+  <data name="Recipe.Js.ServerError" xml:space="preserve"><value>Không thể lưu công thức lúc này. Vui lòng thử lại hoặc liên hệ quản trị viên.</value></data>
+  <data name="Recipe.Js.EnterPreparedYieldUnit" xml:space="preserve"><value>Nhập đủ BTP, sản lượng, đơn vị.</value></data>
+  <data name="Recipe.Js.Error" xml:space="preserve"><value>Lỗi</value></data>
+  <data name="Recipe.Index.PageTitle" xml:space="preserve"><value>Công thức BOM</value></data>
+  <data name="Recipe.Index.Title" xml:space="preserve"><value>Công thức và định mức nguyên liệu</value></data>
+  <data name="Recipe.Index.Description" xml:space="preserve"><value>Quản lý định mức đầu vào, sản lượng dự kiến và các phiên bản công thức cho món bán, topping và bán thành phẩm.</value></data>
+  <data name="Recipe.Index.DataHealth" xml:space="preserve"><value>Kiểm tra dữ liệu</value></data>
+  <data name="Recipe.Type.PosShort" xml:space="preserve"><value>Món bán</value></data>
+  <data name="Recipe.Search" xml:space="preserve"><value>Tìm công thức</value></data>
+  <data name="Recipe.SearchPlaceholder" xml:space="preserve"><value>Tìm tên, mã công thức hoặc mã BTP...</value></data>
+  <data name="Recipe.Filter.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Recipe.Filter.AllStatus" xml:space="preserve"><value>Tất cả trạng thái</value></data>
+  <data name="Recipe.Status.Active" xml:space="preserve"><value>Đang hoạt động</value></data>
+  <data name="Recipe.Status.Inactive" xml:space="preserve"><value>Không hoạt động</value></data>
+  <data name="Recipe.Filter.Apply" xml:space="preserve"><value>Lọc</value></data>
+  <data name="Recipe.Filter.Reset" xml:space="preserve"><value>Đặt lại bộ lọc</value></data>
+  <data name="Recipe.Index.ListTitle" xml:space="preserve"><value>Danh sách công thức {0}</value></data>
+  <data name="Recipe.Index.ListHint" xml:space="preserve"><value>Phiên bản đang áp dụng, tình trạng dữ liệu và giá vốn ước tính.</value></data>
+  <data name="Recipe.Index.Count" xml:space="preserve"><value>{0} công thức</value></data>
+  <data name="Recipe.Column.Prepared" xml:space="preserve"><value>BTP</value></data>
+  <data name="Recipe.Column.Version" xml:space="preserve"><value>Phiên bản</value></data>
+  <data name="Recipe.Column.YieldBatch" xml:space="preserve"><value>Sản lượng/mẻ</value></data>
+  <data name="Recipe.Column.YieldBatchTitle" xml:space="preserve"><value>Sản lượng mỗi mẻ</value></data>
+  <data name="Recipe.Column.NormalizedYield" xml:space="preserve"><value>Sản lượng quy đổi</value></data>
+  <data name="Recipe.Column.CostBatch" xml:space="preserve"><value>Giá vốn/mẻ</value></data>
+  <data name="Recipe.Column.UnitCost" xml:space="preserve"><value>Giá vốn/đơn vị</value></data>
+  <data name="Recipe.Column.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Recipe.Column.Source" xml:space="preserve"><value>Nguồn tiêu hao</value></data>
+  <data name="Recipe.Column.Portion" xml:space="preserve"><value>Định mức/phần</value></data>
+  <data name="Recipe.Column.Configuration" xml:space="preserve"><value>Cấu hình</value></data>
+  <data name="Recipe.Column.CostPortion" xml:space="preserve"><value>Giá vốn/phần</value></data>
+  <data name="Recipe.Column.Identity" xml:space="preserve"><value>Định danh</value></data>
+  <data name="Recipe.Empty.Title" xml:space="preserve"><value>Chưa có công thức {0}</value></data>
+  <data name="Recipe.Empty.Hint" xml:space="preserve"><value>Thử đổi từ khóa hoặc trạng thái lọc.</value></data>
+  <data name="Recipe.Add" xml:space="preserve"><value>Thêm công thức</value></data>
+  <data name="Recipe.PreparedVersion" xml:space="preserve"><value>Phiên bản cho bán thành phẩm</value></data>
+  <data name="Recipe.CurrentVersion" xml:space="preserve"><value>Phiên bản đang áp dụng</value></data>
+  <data name="Recipe.NotCalculated" xml:space="preserve"><value>Chưa tính được</value></data>
+  <data name="Recipe.PerPortion" xml:space="preserve"><value>/phần</value></data>
+  <data name="Recipe.SelectedVersion" xml:space="preserve"><value>dùng phiên bản công thức đã chọn</value></data>
+  <data name="Recipe.ViewStructure" xml:space="preserve"><value>Xem cấu trúc</value></data>
+  <data name="Recipe.ViewStructureTitle" xml:space="preserve"><value>Xem cấu trúc BOM</value></data>
+  <data name="Recipe.ViewStructureAria" xml:space="preserve"><value>Xem cấu trúc BOM của {0}</value></data>
+  <data name="Recipe.Actions.Open" xml:space="preserve"><value>Mở danh sách thao tác</value></data>
+  <data name="Recipe.Actions.OpenAria" xml:space="preserve"><value>Mở danh sách thao tác cho {0}</value></data>
+  <data name="Recipe.Actions.CreateVersion" xml:space="preserve"><value>Tạo phiên bản</value></data>
+  <data name="Recipe.Actions.Edit" xml:space="preserve"><value>Sửa công thức</value></data>
+  <data name="Recipe.Actions.Delete" xml:space="preserve"><value>Xóa công thức</value></data>
+  <data name="Recipe.Pagination.Aria" xml:space="preserve"><value>Phân trang công thức</value></data>
+  <data name="Recipe.Pagination.Summary" xml:space="preserve"><value>Trang {0} trên {1}</value></data>
+  <data name="Recipe.Pagination.Previous" xml:space="preserve"><value>Trang trước</value></data>
+  <data name="Recipe.Pagination.Next" xml:space="preserve"><value>Trang sau</value></data>
+  <data name="Recipe.Delete.Title" xml:space="preserve"><value>Xóa công thức?</value></data>
+  <data name="Recipe.Delete.Message" xml:space="preserve"><value>“{name}” (#{id}) sẽ bị xóa và không thể khôi phục.</value></data>
+  <data name="Recipe.Delete.Confirm" xml:space="preserve"><value>Xác nhận xóa</value></data>
+  <data name="Recipe.Delete.ErrorTitle" xml:space="preserve"><value>Không thể xóa</value></data>
+  <data name="Recipe.Delete.Error" xml:space="preserve"><value>Không thể xóa công thức.</value></data>
+  <data name="Recipe.Delete.ConnectionTitle" xml:space="preserve"><value>Mất kết nối</value></data>
+  <data name="Recipe.Delete.Connection" xml:space="preserve"><value>Không thể kết nối máy chủ.</value></data>
+  <data name="Recipe.Health.COMPLETE" xml:space="preserve"><value>Hoàn chỉnh</value></data>
+  <data name="Recipe.Health.INACTIVE" xml:space="preserve"><value>Không hoạt động</value></data>
+  <data name="Recipe.Health.MISSING_COMPONENTS" xml:space="preserve"><value>Thiếu thành phần</value></data>
+  <data name="Recipe.Health.MISSING_OUTPUT_IDENTITY" xml:space="preserve"><value>Thiếu bán thành phẩm đầu ra</value></data>
+  <data name="Recipe.Health.MISSING_OUTPUT_QUANTITY" xml:space="preserve"><value>Thiếu sản lượng</value></data>
+  <data name="Recipe.Health.MISSING_OUTPUT_UNIT" xml:space="preserve"><value>Thiếu đơn vị</value></data>
+  <data name="Recipe.Health.INVALID_PREPARED_ITEM_MAPPING" xml:space="preserve"><value>Liên kết BTP không hợp lệ</value></data>
+  <data name="Recipe.Health.MISSING_COMPONENT_UNIT" xml:space="preserve"><value>Thiếu đơn vị thành phần</value></data>
+  <data name="Recipe.Health.MISSING_QUOTE" xml:space="preserve"><value>Thiếu báo giá</value></data>
+  <data name="Recipe.Health.MISSING_CONVERSION" xml:space="preserve"><value>Thiếu quy đổi</value></data>
+  <data name="Recipe.Health.MISSING_CHILD_COST" xml:space="preserve"><value>Thiếu giá BTP con</value></data>
+  <data name="Recipe.Health.INDETERMINATE" xml:space="preserve"><value>Chưa xác định</value></data>
+  <data name="Drink.Js.ConfirmTitle" xml:space="preserve"><value>Xác nhận</value></data>
+  <data name="Drink.Js.ToggleConfirm" xml:space="preserve"><value>Bạn có chắc muốn đổi trạng thái đồ uống?</value></data>
+  <data name="Drink.Js.Confirm" xml:space="preserve"><value>Đồng ý</value></data>
+  <data name="Drink.Js.ToggleFailed" xml:space="preserve"><value>Không thể cập nhật trạng thái đồ uống.</value></data>
+  <data name="Drink.Js.ToggleSuccess" xml:space="preserve"><value>Thay đổi trạng thái thành công.</value></data>
+  <data name="Drink.Js.FileType" xml:space="preserve"><value>Chỉ chấp nhận tệp JPG, JPEG và PNG.</value></data>
+  <data name="Drink.Js.FileSize" xml:space="preserve"><value>Ảnh không được vượt quá 5 MB.</value></data>
+  <data name="Drink.Js.Create" xml:space="preserve"><value>Tạo nước uống</value></data>
+  <data name="Drink.Js.Creating" xml:space="preserve"><value>Đang tạo...</value></data>
+  <data name="Drink.Js.Updating" xml:space="preserve"><value>Đang cập nhật...</value></data>
+  <data name="Drink.Js.Update" xml:space="preserve"><value>Cập nhật nước uống</value></data>
+  <data name="Drink.Js.Validation" xml:space="preserve"><value>Vui lòng kiểm tra và nhập đầy đủ các trường bắt buộc.</value></data>
+  <data name="Drink.Js.ImageProcessFailed" xml:space="preserve"><value>Không thể xử lý ảnh.</value></data>
+  <data name="Drink.Js.ImageAlt" xml:space="preserve"><value>Ảnh nước uống {number}</value></data>
+  <data name="Drink.Js.SetDefaultTitle" xml:space="preserve"><value>Đặt làm ảnh mặc định</value></data>
+  <data name="Drink.Js.Default" xml:space="preserve"><value>Mặc định</value></data>
+  <data name="Drink.Js.DeleteImageTitle" xml:space="preserve"><value>Xóa ảnh</value></data>
+  <data name="Drink.Js.InvalidData" xml:space="preserve"><value>Dữ liệu gửi lên không hợp lệ.</value></data>
+  <data name="Drink.Js.NetworkError" xml:space="preserve"><value>Không thể kết nối máy chủ. Vui lòng kiểm tra mạng và thử lại.</value></data>
+  <data name="Drink.Js.EntityName" xml:space="preserve"><value>nước uống</value></data>
+  <data name="Drink.Js.SaveFailed" xml:space="preserve"><value>Không thể lưu nước uống. Vui lòng thử lại.</value></data>
+  <data name="Drink.Js.StatusActive" xml:space="preserve"><value>Trạng thái: Đang bán</value></data>
+  <data name="Drink.Js.StatusInactive" xml:space="preserve"><value>Trạng thái: Ngừng bán</value></data>
+  <data name="Drink.Js.NoFile" xml:space="preserve"><value>Chưa chọn tệp nào</value></data>
+  <data name="Drink.Js.DrinkNotFound" xml:space="preserve"><value>Không tìm thấy nước uống cần thêm ảnh.</value></data>
+  <data name="Drink.Js.Uploading" xml:space="preserve"><value>Đang tải...</value></data>
+  <data name="Drink.Js.ImageAddSuccess" xml:space="preserve"><value>Thêm ảnh thành công.</value></data>
+  <data name="Drink.Js.ImageAddFailed" xml:space="preserve"><value>Không thể thêm ảnh.</value></data>
+  <data name="Drink.Js.ImageUploadError" xml:space="preserve"><value>Có lỗi xảy ra khi tải ảnh.</value></data>
+  <data name="Drink.Js.DefaultSuccess" xml:space="preserve"><value>Đã cập nhật ảnh mặc định.</value></data>
+  <data name="Drink.Js.DefaultFailed" xml:space="preserve"><value>Không thể cập nhật ảnh mặc định.</value></data>
+  <data name="Drink.Js.DeleteConfirm" xml:space="preserve"><value>Bạn có chắc muốn xóa ảnh này?</value></data>
+  <data name="Drink.Js.DeleteSuccess" xml:space="preserve"><value>Đã xóa ảnh thành công.</value></data>
+  <data name="Drink.Js.DeleteFailed" xml:space="preserve"><value>Không thể xóa ảnh.</value></data>
+  <data name="Drink.Js.DeleteSystemError" xml:space="preserve"><value>Có lỗi hệ thống khi xóa ảnh.</value></data>
+  <data name="Drink.Js.ImageNotFound" xml:space="preserve"><value>Không tìm thấy ảnh cần chỉnh sửa.</value></data>
+  <data name="Drink.Js.ChooseReplacement" xml:space="preserve"><value>Vui lòng chọn ảnh mới để thay thế.</value></data>
+  <data name="Drink.Js.Saving" xml:space="preserve"><value>Đang lưu...</value></data>
+  <data name="Drink.Js.SaveChanges" xml:space="preserve"><value>Lưu thay đổi</value></data>
+  <data name="Drink.Js.ImageUpdateSuccess" xml:space="preserve"><value>Cập nhật ảnh thành công.</value></data>
+  <data name="Drink.Js.ImageUpdateFailed" xml:space="preserve"><value>Không thể cập nhật ảnh.</value></data>
+  <data name="Drink.Js.ImageUpdateError" xml:space="preserve"><value>Có lỗi xảy ra khi cập nhật ảnh.</value></data>
+  <data name="Drink.Js.ImageLoading" xml:space="preserve"><value>Đang tải ảnh...</value></data>
+  <data name="Drink.Js.ImageListError" xml:space="preserve"><value>Lỗi tải danh sách ảnh.</value></data>
+  <data name="Drink.Js.ImageLoadError" xml:space="preserve"><value>Lỗi tải ảnh.</value></data>
+  <data name="Drink.Js.ImageEmpty" xml:space="preserve"><value>Chưa có ảnh nào.</value></data>
+  <data name="Drink.Js.SetDefault" xml:space="preserve"><value>Đặt mặc định</value></data>
+  <data name="Drink.Js.SetDefaultHint" xml:space="preserve"><value>Bấm để đặt làm ảnh mặc định</value></data>
+  <data name="Drink.Js.EditImage" xml:space="preserve"><value>Chỉnh sửa ảnh</value></data>
+  <data name="Drink.Js.Edit" xml:space="preserve"><value>Sửa</value></data>
+  <data name="Drink.Js.Delete" xml:space="preserve"><value>Xóa</value></data>
+  <data name="Drink.Js.NoItems" xml:space="preserve"><value>Không có</value></data>
+  <data name="Drink.Js.AiRequired" xml:space="preserve"><value>Vui lòng nhập tên, danh mục và loại sản phẩm.</value></data>
+  <data name="Drink.Js.AiLoading" xml:space="preserve"><value>Đang gợi ý...</value></data>
+  <data name="Drink.Js.AiFailed" xml:space="preserve"><value>Không thể tạo gợi ý.</value></data>
+  <data name="Drink.Js.AiOverwrite" xml:space="preserve"><value>Ghi đè mã và mô tả hiện tại bằng gợi ý AI?</value></data>
+  <data name="Drink.Js.AiApplied" xml:space="preserve"><value>Đã điền gợi ý. Dữ liệu chưa được lưu.</value></data>
+  <data name="Drink.Js.AiTitle" xml:space="preserve"><value>Gợi ý đồ uống</value></data>
+  <data name="Drink.Js.AiInvalidReference" xml:space="preserve"><value>Danh mục hoặc loại sản phẩm gợi ý không còn hợp lệ.</value></data>
+  <data name="Drink.Js.AiImageFailed" xml:space="preserve"><value>Không thể đưa ảnh AI vào trình xử lý ảnh.</value></data>
+  <data name="Size.Js.Unknown" xml:space="preserve"><value>Chưa xác định</value></data>
+  <data name="Size.Js.NoDrinkData" xml:space="preserve"><value>Không có dữ liệu đồ uống.</value></data>
+  <data name="Size.Js.Incompatible" xml:space="preserve"><value>Size không phù hợp với loại sản phẩm.</value></data>
+  <data name="Size.Js.Other" xml:space="preserve"><value>Khác</value></data>
+  <data name="Size.Js.Profitability" xml:space="preserve"><value>Quản lý vốn và lợi nhuận</value></data>
+  <data name="Size.Js.Price" xml:space="preserve"><value>Giá</value></data>
+  <data name="Size.Js.DisableHint" xml:space="preserve"><value>Tắt size cho đồ uống này</value></data>
+  <data name="Size.Js.EnableHint" xml:space="preserve"><value>Kích hoạt lại size</value></data>
+  <data name="Size.Js.Disable" xml:space="preserve"><value>Tắt</value></data>
+  <data name="Size.Js.Enable" xml:space="preserve"><value>Bật</value></data>
+  <data name="Size.Js.Assign" xml:space="preserve"><value>Gán</value></data>
+  <data name="Size.Js.Invalid" xml:space="preserve"><value>Không hợp lệ</value></data>
+  <data name="Size.Js.NoAssigned" xml:space="preserve"><value>Chưa có đồ uống nào được gán size này.</value></data>
+  <data name="Size.Js.AllAssigned" xml:space="preserve"><value>Tất cả đồ uống phù hợp đã được gán.</value></data>
+  <data name="Size.Js.ManageTitle" xml:space="preserve"><value>Quản lý đồ uống - Size {name}</value></data>
+  <data name="Size.Js.LoadError" xml:space="preserve"><value>Lỗi tải dữ liệu.</value></data>
+  <data name="Size.Js.InvalidPrice" xml:space="preserve"><value>Vui lòng nhập giá bán hợp lệ (VNĐ).</value></data>
+  <data name="Size.Js.AssignSuccess" xml:space="preserve"><value>Gán sản phẩm và thiết lập giá bán thành công.</value></data>
+  <data name="Size.Js.AssignError" xml:space="preserve"><value>Lỗi khi gán giá bán.</value></data>
+  <data name="Size.Js.ConfirmTitle" xml:space="preserve"><value>Xác nhận</value></data>
+  <data name="Size.Js.DrinkStatusConfirm" xml:space="preserve"><value>Bạn có chắc muốn thay đổi trạng thái size đồ uống này?</value></data>
+  <data name="Size.Js.SizeStatusConfirm" xml:space="preserve"><value>Bạn có chắc muốn thay đổi trạng thái size này?</value></data>
+  <data name="Size.Js.Confirm" xml:space="preserve"><value>Đồng ý</value></data>
+  <data name="Size.Js.StatusSuccess" xml:space="preserve"><value>Thay đổi trạng thái thành công.</value></data>
+  <data name="Size.Js.UpdateError" xml:space="preserve"><value>Lỗi cập nhật trạng thái.</value></data>
+  <data name="Size.Js.CodeRequired" xml:space="preserve"><value>Mã size không được để trống.</value></data>
+  <data name="Size.Js.CodeMax" xml:space="preserve"><value>Mã size tối đa 20 ký tự.</value></data>
+  <data name="Size.Js.NameRequired" xml:space="preserve"><value>Tên size không được để trống.</value></data>
+  <data name="Size.Js.NameMax" xml:space="preserve"><value>Tên size tối đa 50 ký tự.</value></data>
+  <data name="Size.Js.InvalidResponse" xml:space="preserve"><value>Phản hồi từ máy chủ không hợp lệ.</value></data>
+  <data name="Size.Js.ActionFailed" xml:space="preserve"><value>Không thể thực hiện thao tác với size.</value></data>
+  <data name="Size.Js.NotFound" xml:space="preserve"><value>Không tìm thấy size.</value></data>
+  <data name="Size.Js.UpdateSuccess" xml:space="preserve"><value>Cập nhật size thành công.</value></data>
+  <data name="Size.Js.AiNameRequired" xml:space="preserve"><value>Vui lòng nhập tên size.</value></data>
+  <data name="Size.Js.AiLoading" xml:space="preserve"><value>Đang gợi ý...</value></data>
+  <data name="Size.Js.AiFailed" xml:space="preserve"><value>Không thể tạo gợi ý.</value></data>
+  <data name="Size.Js.AiOverwriteCode" xml:space="preserve"><value>Ghi đè mã size hiện tại?</value></data>
+  <data name="Size.Js.AiCodeApplied" xml:space="preserve"><value>Đã điền mã gợi ý. Dữ liệu chưa được lưu.</value></data>
+  <data name="Size.Js.AiTitle" xml:space="preserve"><value>Gợi ý size</value></data>
+  <data name="Size.Js.AiChooseValid" xml:space="preserve"><value>Vui lòng chọn một gợi ý hợp lệ.</value></data>
+  <data name="Size.Js.AiInvalidType" xml:space="preserve"><value>Loại size do AI gợi ý không hợp lệ. Vui lòng chọn gợi ý khác.</value></data>
+  <data name="Size.Js.AiOverwrite" xml:space="preserve"><value>Ghi đè dữ liệu size hiện tại bằng gợi ý AI?</value></data>
+  <data name="Size.Js.AiApplied" xml:space="preserve"><value>Đã áp dụng gợi ý vào form. Vui lòng kiểm tra trước khi lưu.</value></data>
+  <data name="Size.Js.TypeRequired" xml:space="preserve"><value>Vui lòng chọn loại size.</value></data>
+  <data name="Size.Js.CreateSuccess" xml:space="preserve"><value>Tạo size thành công.</value></data>
+  <data name="Topping.ImageAria" xml:space="preserve"><value>Ảnh topping {0}</value></data>
+  <data name="Topping.PriceSource" xml:space="preserve"><value>Giá bán từ Topping.Price</value></data>
+  <data name="Topping.PerPortion" xml:space="preserve"><value>mỗi phần</value></data>
+  <data name="Topping.ViewPreparedStock" xml:space="preserve"><value>Xem tồn kho bán thành phẩm</value></data>
+  <data name="Topping.StatusLabel" xml:space="preserve"><value>Trạng thái:</value></data>
+  <data name="Topping.CreateTitle" xml:space="preserve"><value>Thêm topping mới</value></data>
+  <data name="Topping.Configure" xml:space="preserve"><value>Cấu hình thực đơn</value></data>
+  <data name="Topping.CodeLabel" xml:space="preserve"><value>Mã topping</value></data>
+  <data name="Topping.CodePlaceholder" xml:space="preserve"><value>Ví dụ: TRAN_CHAU_DEN</value></data>
+  <data name="Topping.NameLabel" xml:space="preserve"><value>Tên topping</value></data>
+  <data name="Topping.PriceLabel" xml:space="preserve"><value>Giá topping</value></data>
+  <data name="Topping.PricePlaceholder" xml:space="preserve"><value>Ví dụ: 5000</value></data>
+  <data name="Topping.AiIdea" xml:space="preserve"><value>Ý tưởng cho AI</value></data>
+  <data name="Topping.Optional" xml:space="preserve"><value>(không bắt buộc)</value></data>
+  <data name="Topping.AiModeAria" xml:space="preserve"><value>Chế độ gợi ý topping</value></data>
+  <data name="Topping.AiNew" xml:space="preserve"><value>Tạo mới</value></data>
+  <data name="Topping.AiDevelop" xml:space="preserve"><value>Phát triển dữ liệu đang nhập</value></data>
+  <data name="Topping.AiVariant" xml:space="preserve"><value>Tạo biến thể</value></data>
+  <data name="Topping.AiPlaceholder" xml:space="preserve"><value>Ví dụ: trân châu hoàng kim</value></data>
+  <data name="Topping.AiSuggest" xml:space="preserve"><value>AI gợi ý</value></data>
+  <data name="Topping.AiChoose" xml:space="preserve"><value>Chọn một gợi ý</value></data>
+  <data name="Topping.AiReference" xml:space="preserve"><value>1. Chọn ảnh tham chiếu Pexels</value></data>
+  <data name="Topping.AiFinal" xml:space="preserve"><value>2. Chọn ảnh cuối từ Pexels hoặc ComfyUI</value></data>
+  <data name="Topping.Apply" xml:space="preserve"><value>Áp dụng</value></data>
+  <data name="Topping.UsePexels" xml:space="preserve"><value>Dùng ảnh Pexels</value></data>
+  <data name="Topping.GenerateAgain" xml:space="preserve"><value>Tạo lại bằng ComfyUI</value></data>
+  <data name="Topping.GenerateWithoutReference" xml:space="preserve"><value>Tạo ảnh bằng ComfyUI không dùng Pexels</value></data>
+  <data name="Topping.SearchAgain" xml:space="preserve"><value>Tìm lại Pexels</value></data>
+  <data name="Topping.Dismiss" xml:space="preserve"><value>Bỏ qua</value></data>
+  <data name="Topping.ImageAdd" xml:space="preserve"><value>Thêm ảnh mới</value></data>
+  <data name="Topping.ImageHint" xml:space="preserve"><value>Ảnh JPG hoặc PNG, nên sử dụng ảnh vuông để hiển thị đẹp nhất.</value></data>
+  <data name="Topping.ImageChoose" xml:space="preserve"><value>Chọn ảnh</value></data>
+  <data name="Topping.ImageNoFile" xml:space="preserve"><value>Chưa chọn tệp nào</value></data>
+  <data name="Topping.ImagePreview" xml:space="preserve"><value>Ảnh xem trước</value></data>
+  <data name="Topping.ImageRemove" xml:space="preserve"><value>Xóa ảnh đã chọn</value></data>
+  <data name="Topping.Save" xml:space="preserve"><value>Lưu thông tin</value></data>
+  <data name="Topping.EditTitle" xml:space="preserve"><value>Cập nhật topping</value></data>
+  <data name="Topping.ImageLabel" xml:space="preserve"><value>Ảnh topping</value></data>
+  <data name="Topping.ImageLeaveEmpty" xml:space="preserve"><value>Bỏ trống nếu không muốn thay đổi ảnh.</value></data>
+  <data name="Topping.SaveChanges" xml:space="preserve"><value>Lưu thay đổi</value></data>
+  <data name="Topping.ManageTitle" xml:space="preserve"><value>Quản lý đồ uống - Topping</value></data>
+  <data name="Topping.ManageHint" xml:space="preserve"><value>Gán hoặc ngắt kết nối đồ uống với topping này.</value></data>
+  <data name="Topping.AssignHint" xml:space="preserve"><value>Gán đồ uống dùng topping hoặc bật, tắt các liên kết hiện có.</value></data>
+  <data name="Topping.Loading" xml:space="preserve"><value>Đang tải dữ liệu...</value></data>
+  <data name="Topping.Assigned" xml:space="preserve"><value>Đã gán</value></data>
+  <data name="Topping.Unassigned" xml:space="preserve"><value>Chưa gán</value></data>
+  <data name="Topping.NoData" xml:space="preserve"><value>Chưa có dữ liệu</value></data>
+  <data name="Drink.Form.CreateTitle" xml:space="preserve"><value>Thêm nước uống mới</value></data>
+  <data name="Drink.Form.CreateEyebrow" xml:space="preserve"><value>Sản phẩm mới</value></data>
+  <data name="Drink.Form.CreateDescription" xml:space="preserve"><value>Hoàn thiện thông tin, hình ảnh và phân loại để sản phẩm sẵn sàng lên menu.</value></data>
+  <data name="Drink.Form.EditTitle" xml:space="preserve"><value>Chỉnh sửa nước uống</value></data>
+  <data name="Drink.Form.EditEyebrow" xml:space="preserve"><value>Cập nhật sản phẩm</value></data>
+  <data name="Drink.Form.EditDescription" xml:space="preserve"><value>Điều chỉnh thông tin và thư viện ảnh để sản phẩm luôn đồng nhất trên menu.</value></data>
+  <data name="Drink.Form.Information" xml:space="preserve"><value>Thông tin nước uống</value></data>
+  <data name="Drink.Form.Code" xml:space="preserve"><value>Mã nước uống</value></data>
+  <data name="Drink.Form.Name" xml:space="preserve"><value>Tên nước uống</value></data>
+  <data name="Drink.Form.NamePlaceholder" xml:space="preserve"><value>Nhập tên nước uống...</value></data>
+  <data name="Drink.Form.Category" xml:space="preserve"><value>Danh mục</value></data>
+  <data name="Drink.Form.CategoryChoose" xml:space="preserve"><value>-- Chọn danh mục --</value></data>
+  <data name="Drink.Form.Type" xml:space="preserve"><value>Loại sản phẩm</value></data>
+  <data name="Drink.Form.TypeChoose" xml:space="preserve"><value>-- Chọn loại sản phẩm --</value></data>
+  <data name="Drink.Form.Description" xml:space="preserve"><value>Mô tả chi tiết</value></data>
+  <data name="Drink.Form.DescriptionPlaceholder" xml:space="preserve"><value>Mô tả thành phần, hương vị...</value></data>
+  <data name="Drink.Form.ProductImages" xml:space="preserve"><value>Hình ảnh sản phẩm</value></data>
+  <data name="Drink.Form.ImageRules" xml:space="preserve"><value>JPG hoặc PNG • Tối đa 5 MB • Ảnh được cắt vuông trước khi tải lên</value></data>
+  <data name="Drink.Form.DropImages" xml:space="preserve"><value>Kéo và thả ảnh vào đây</value></data>
+  <data name="Drink.Form.Or" xml:space="preserve"><value>hoặc</value></data>
+  <data name="Drink.Form.ChooseFile" xml:space="preserve"><value>chọn tệp</value></data>
+  <data name="Drink.Form.DefaultHint" xml:space="preserve"><value>Chọn “Mặc định” để đặt ảnh đại diện chính cho sản phẩm.</value></data>
+  <data name="Drink.Form.Back" xml:space="preserve"><value>Quay lại</value></data>
+  <data name="Drink.Form.CropTitle" xml:space="preserve"><value>Cắt ảnh sản phẩm</value></data>
+  <data name="Drink.Form.Preview" xml:space="preserve"><value>Xem trước</value></data>
+  <data name="Drink.Form.AspectRatio" xml:space="preserve"><value>Tỷ lệ chuẩn:</value></data>
+  <data name="Drink.Form.OutputSize" xml:space="preserve"><value>Kích thước lưu:</value></data>
+  <data name="Drink.Form.CropConfirm" xml:space="preserve"><value>Xác nhận cắt</value></data>
+  <data name="Topping.Js.InvalidResponse" xml:space="preserve"><value>Phản hồi từ máy chủ không hợp lệ.</value></data>
+  <data name="Topping.Js.RequestFailed" xml:space="preserve"><value>Có lỗi xảy ra khi xử lý yêu cầu.</value></data>
+  <data name="Topping.Js.GenericError" xml:space="preserve"><value>Có lỗi xảy ra.</value></data>
+  <data name="Topping.Js.NameRequired" xml:space="preserve"><value>Vui lòng nhập tên topping.</value></data>
+  <data name="Topping.Js.PriceInvalid" xml:space="preserve"><value>Giá topping không hợp lệ.</value></data>
+  <data name="Topping.Js.AiLoading" xml:space="preserve"><value>Đang gợi ý...</value></data>
+  <data name="Topping.Js.AiFailed" xml:space="preserve"><value>Không thể tạo gợi ý.</value></data>
+  <data name="Topping.Js.AiOverwriteCode" xml:space="preserve"><value>Ghi đè mã topping hiện tại?</value></data>
+  <data name="Topping.Js.AiCodeApplied" xml:space="preserve"><value>Đã điền mã gợi ý. Dữ liệu chưa được lưu.</value></data>
+  <data name="Topping.Js.AiTitle" xml:space="preserve"><value>Gợi ý topping</value></data>
+  <data name="Topping.Js.NameMax" xml:space="preserve"><value>Tên topping tối đa 100 ký tự.</value></data>
+  <data name="Topping.Js.CodeRequired" xml:space="preserve"><value>Mã topping không được để trống.</value></data>
+  <data name="Topping.Js.CodeMax" xml:space="preserve"><value>Mã topping tối đa 50 ký tự.</value></data>
+  <data name="Topping.Js.PriceRequired" xml:space="preserve"><value>Vui lòng nhập giá topping.</value></data>
+  <data name="Topping.Js.PriceMinimum" xml:space="preserve"><value>Giá topping phải lớn hơn hoặc bằng 1.000 VNĐ.</value></data>
+  <data name="Topping.Js.ImageRequired" xml:space="preserve"><value>Vui lòng chọn ảnh topping.</value></data>
+  <data name="Topping.Js.ImageInvalid" xml:space="preserve"><value>Tệp ảnh không hợp lệ.</value></data>
+  <data name="Topping.Js.ImageSize" xml:space="preserve"><value>Ảnh không được vượt quá 3 MB.</value></data>
+  <data name="Topping.Js.ImageType" xml:space="preserve"><value>Chỉ chấp nhận JPG, JPEG, PNG hoặc WEBP.</value></data>
+  <data name="Topping.Js.ImageFormat" xml:space="preserve"><value>Định dạng ảnh không hợp lệ.</value></data>
+  <data name="Topping.Js.NoFile" xml:space="preserve"><value>Chưa chọn tệp nào</value></data>
+  <data name="Topping.Js.Saving" xml:space="preserve"><value>Đang lưu...</value></data>
+  <data name="Topping.Js.Save" xml:space="preserve"><value>Lưu thông tin</value></data>
+  <data name="Topping.Js.SaveChanges" xml:space="preserve"><value>Lưu thay đổi</value></data>
+  <data name="Topping.Js.LoadDrinksFailed" xml:space="preserve"><value>Không thể tải danh sách đồ uống.</value></data>
+  <data name="Topping.Js.Assigning" xml:space="preserve"><value>Đang gán...</value></data>
+  <data name="Topping.Js.Assign" xml:space="preserve"><value>Gán</value></data>
+  <data name="Topping.Js.StatusSuccess" xml:space="preserve"><value>Thay đổi trạng thái thành công.</value></data>
+  <data name="Topping.Js.ReloadFailed" xml:space="preserve"><value>Không thể tải lại dữ liệu.</value></data>
+  <data name="Topping.Js.ConfirmTitle" xml:space="preserve"><value>Xác nhận</value></data>
+  <data name="Topping.Js.StatusConfirm" xml:space="preserve"><value>Bạn có chắc muốn thay đổi trạng thái topping này?</value></data>
+  <data name="Topping.Js.Confirm" xml:space="preserve"><value>Đồng ý</value></data>
+  <data name="Topping.Js.SecurityTokenMissing" xml:space="preserve"><value>Không tìm thấy token bảo mật.</value></data>
+  <data name="Topping.Js.StatusFailed" xml:space="preserve"><value>Cập nhật trạng thái topping thất bại.</value></data>
+  <data name="Topping.Js.NoDrinkData" xml:space="preserve"><value>Không có dữ liệu đồ uống.</value></data>
+  <data name="Topping.Js.NoAssigned" xml:space="preserve"><value>Chưa có đồ uống nào gán topping này.</value></data>
+  <data name="Topping.Js.AllAssigned" xml:space="preserve"><value>Tất cả đồ uống đã được gán topping.</value></data>
+  <data name="Topping.Js.DrinkFallback" xml:space="preserve"><value>Đồ uống</value></data>
+  <data name="Topping.Js.DisableHint" xml:space="preserve"><value>Ngừng sử dụng topping cho đồ uống này</value></data>
+  <data name="Topping.Js.EnableHint" xml:space="preserve"><value>Kích hoạt lại topping</value></data>
+  <data name="Topping.Js.Disable" xml:space="preserve"><value>Tắt</value></data>
+  <data name="Topping.Js.Enable" xml:space="preserve"><value>Bật</value></data>
+  <data name="Common.AllStatuses" xml:space="preserve"><value>Tất cả trạng thái</value></data>
+  <data name="Common.Filter" xml:space="preserve"><value>Lọc</value></data>
+  <data name="Common.ResetFilters" xml:space="preserve"><value>Đặt lại bộ lọc</value></data>
+  <data name="Common.None" xml:space="preserve"><value>Chưa có</value></data>
+  <data name="Common.OpenActions" xml:space="preserve"><value>Mở danh sách thao tác</value></data>
+  <data name="Common.OpenActionsAria" xml:space="preserve"><value>Mở danh sách thao tác cho {0}</value></data>
+  <data name="Common.Activate" xml:space="preserve"><value>Kích hoạt</value></data>
+  <data name="Common.Deactivate" xml:space="preserve"><value>Ngừng hoạt động</value></data>
+  <data name="Common.PageSummary" xml:space="preserve"><value>Trang {0} trên {1}</value></data>
+  <data name="Common.PreviousPage" xml:space="preserve"><value>Trang trước</value></data>
+  <data name="Common.NextPage" xml:space="preserve"><value>Trang sau</value></data>
+  <data name="Common.Description" xml:space="preserve"><value>Mô tả</value></data>
+  <data name="PreparedItem.PageTitle" xml:space="preserve"><value>Danh mục bán thành phẩm</value></data>
+  <data name="PreparedItem.Title" xml:space="preserve"><value>Bán thành phẩm</value></data>
+  <data name="PreparedItem.Create" xml:space="preserve"><value>Tạo bán thành phẩm</value></data>
+  <data name="PreparedItem.Description" xml:space="preserve"><value>Quản lý định danh tồn kho dùng làm đầu ra của công thức sản xuất. Số lượng tồn thực tế được theo dõi riêng theo từng cửa hàng.</value></data>
+  <data name="PreparedItem.SearchLabel" xml:space="preserve"><value>Tìm theo mã hoặc tên</value></data>
+  <data name="PreparedItem.SearchPlaceholder" xml:space="preserve"><value>Tìm theo mã hoặc tên bán thành phẩm...</value></data>
+  <data name="PreparedItem.ListTitle" xml:space="preserve"><value>Danh sách bán thành phẩm</value></data>
+  <data name="PreparedItem.ListHint" xml:space="preserve"><value>Định danh tồn kho, đơn vị cơ sở và công thức đang được áp dụng.</value></data>
+  <data name="PreparedItem.PageCount" xml:space="preserve"><value>{0} mục trên trang</value></data>
+  <data name="PreparedItem.Column.Item" xml:space="preserve"><value>Bán thành phẩm</value></data>
+  <data name="PreparedItem.Column.Unit" xml:space="preserve"><value>Đơn vị tồn kho</value></data>
+  <data name="PreparedItem.Column.ActiveRecipe" xml:space="preserve"><value>Công thức đang hoạt động</value></data>
+  <data name="PreparedItem.Empty.Title" xml:space="preserve"><value>Chưa có bán thành phẩm.</value></data>
+  <data name="PreparedItem.Empty.CreateHint" xml:space="preserve"><value>Hãy tạo BTP trước khi tạo công thức sơ chế.</value></data>
+  <data name="PreparedItem.Empty.Create" xml:space="preserve"><value>Tạo bán thành phẩm đầu tiên</value></data>
+  <data name="PreparedItem.Empty.ReadOnly" xml:space="preserve"><value>Chưa có BTP trong hệ thống. Tài khoản hiện tại chỉ có quyền xem.</value></data>
+  <data name="PreparedItem.ViewActiveRecipe" xml:space="preserve"><value>Xem công thức đang hoạt động</value></data>
+  <data name="PreparedItem.ActiveRecipe" xml:space="preserve"><value>Công thức đang áp dụng</value></data>
+  <data name="PreparedItem.VersionCount" xml:space="preserve"><value>{0} phiên bản</value></data>
+  <data name="PreparedItem.ViewRecipe" xml:space="preserve"><value>Xem công thức</value></data>
+  <data name="PreparedItem.ViewRecipeAria" xml:space="preserve"><value>Xem công thức của {0}</value></data>
+  <data name="PreparedItem.CreateRecipe" xml:space="preserve"><value>Tạo công thức</value></data>
+  <data name="PreparedItem.CreateRecipeAria" xml:space="preserve"><value>Tạo công thức cho {0}</value></data>
+  <data name="PreparedItem.Edit" xml:space="preserve"><value>Sửa thông tin</value></data>
+  <data name="PreparedItem.PaginationAria" xml:space="preserve"><value>Phân trang danh mục bán thành phẩm</value></data>
+  <data name="PreparedItem.Modal.Subtitle" xml:space="preserve"><value>Thiết lập danh tính và đơn vị quản lý tồn kho.</value></data>
+  <data name="PreparedItem.Identity.Title" xml:space="preserve"><value>Thông tin định danh</value></data>
+  <data name="PreparedItem.Identity.Hint" xml:space="preserve"><value>Mã và tên dùng xuyên suốt trong công thức BOM.</value></data>
+  <data name="PreparedItem.Code" xml:space="preserve"><value>Mã BTP</value></data>
+  <data name="PreparedItem.CodeHint" xml:space="preserve"><value>Viết hoa, không khoảng trắng thừa.</value></data>
+  <data name="PreparedItem.Name" xml:space="preserve"><value>Tên BTP</value></data>
+  <data name="PreparedItem.Inventory.Title" xml:space="preserve"><value>Cấu hình tồn kho</value></data>
+  <data name="PreparedItem.Inventory.Hint" xml:space="preserve"><value>Chọn đơn vị cơ sở và bổ sung mô tả vận hành.</value></data>
+  <data name="PreparedItem.BaseUnit" xml:space="preserve"><value>Đơn vị tồn kho cơ sở</value></data>
+  <data name="PreparedItem.BaseUnitHint" xml:space="preserve"><value>Đơn vị này được dùng để lưu số lượng tồn kho của BTP. Sau khi đã phát sinh tồn kho, không nên thay đổi tùy tiện.</value></data>
+  <data name="PreparedItem.Save" xml:space="preserve"><value>Lưu bán thành phẩm</value></data>
+  <data name="PreparedItem.Js.SelectUnit" xml:space="preserve"><value>-- Chọn đơn vị --</value></data>
+  <data name="PreparedItem.Js.UnitsLoadFailed" xml:space="preserve"><value>Không tải được danh sách đơn vị.</value></data>
+  <data name="PreparedItem.Js.CreateTitle" xml:space="preserve"><value>Tạo bán thành phẩm</value></data>
+  <data name="PreparedItem.Js.EditTitle" xml:space="preserve"><value>Sửa bán thành phẩm</value></data>
+  <data name="PreparedItem.Js.SaveFailed" xml:space="preserve"><value>Lỗi lưu</value></data>
+  <data name="PreparedItem.Js.SessionError" xml:space="preserve"><value>Lỗi kết nối hoặc phiên làm việc không hợp lệ.</value></data>
+  <data name="PreparedItem.Js.Activate" xml:space="preserve"><value>Kích hoạt</value></data>
+  <data name="PreparedItem.Js.Deactivate" xml:space="preserve"><value>Ngừng hoạt động</value></data>
+  <data name="PreparedItem.Js.ToggleTitle" xml:space="preserve"><value>{action} bán thành phẩm?</value></data>
+  <data name="PreparedItem.Js.ActivateHint" xml:space="preserve"><value>Bán thành phẩm sẽ có thể tiếp tục được sử dụng trong cấu hình BOM.</value></data>
+  <data name="PreparedItem.Js.DeactivateHint" xml:space="preserve"><value>Bán thành phẩm sẽ không còn được chọn cho cấu hình mới.</value></data>
+  <data name="PreparedItem.Js.Cancel" xml:space="preserve"><value>Hủy</value></data>
+  <data name="PreparedItem.Js.UpdateFailed" xml:space="preserve"><value>Không thể cập nhật</value></data>
+  <data name="PreparedItem.Js.GenericError" xml:space="preserve"><value>Đã xảy ra lỗi.</value></data>
+  <data name="PreparedItem.Js.ConnectionLost" xml:space="preserve"><value>Mất kết nối</value></data>
+  <data name="PreparedItem.Js.ServerUnavailable" xml:space="preserve"><value>Không thể kết nối máy chủ.</value></data>
+  <data name="Recipe.BomTree.Empty" xml:space="preserve"><value>Công thức chưa có thành phần BOM.</value></data>
+  <data name="Recipe.Health.PageTitle" xml:space="preserve"><value>Tình trạng dữ liệu BOM</value></data>
+  <data name="Recipe.Health.Description" xml:space="preserve"><value>Xác định công thức nào đã sẵn sàng, công thức nào cần bổ sung cấu hình, quy đổi đơn vị hoặc dữ liệu giá vốn.</value></data>
+  <data name="Recipe.Health.Breadcrumb" xml:space="preserve"><value>Tình trạng dữ liệu</value></data>
+  <data name="Recipe.Health.Back" xml:space="preserve"><value>Quay lại công thức</value></data>
+  <data name="Recipe.Health.IntroTitle" xml:space="preserve"><value>Ưu tiên xử lý dữ liệu chưa hoàn chỉnh</value></data>
+  <data name="Recipe.Health.IntroHint" xml:space="preserve"><value>Mỗi dòng cho biết nguyên nhân và dẫn thẳng tới màn hình cần cập nhật. Tổng kết quả và số dòng trên trang được tách riêng để tránh hiểu nhầm.</value></data>
+  <data name="Recipe.Health.TotalFiltered" xml:space="preserve"><value>Tổng kết quả lọc: {0}</value></data>
+  <data name="Recipe.Health.SearchLabel" xml:space="preserve"><value>Tìm công thức cần kiểm tra</value></data>
+  <data name="Recipe.Health.SearchPlaceholder" xml:space="preserve"><value>Tìm tên, mã công thức hoặc mã bán thành phẩm...</value></data>
+  <data name="Recipe.Health.TypeLabel" xml:space="preserve"><value>Loại đối tượng công thức</value></data>
+  <data name="Recipe.Health.AllTypes" xml:space="preserve"><value>Tất cả loại</value></data>
+  <data name="Recipe.Health.PageSizeLabel" xml:space="preserve"><value>Số dòng trên mỗi trang</value></data>
+  <data name="Recipe.Health.Rows" xml:space="preserve"><value>{0} dòng</value></data>
+  <data name="Recipe.Health.SummaryAria" xml:space="preserve"><value>Tổng hợp tình trạng dữ liệu công thức trên trang hiện tại</value></data>
+  <data name="Recipe.Health.CompleteMetric" xml:space="preserve"><value>Đủ dữ liệu · Trên trang này</value></data>
+  <data name="Recipe.Health.MissingQuoteMetric" xml:space="preserve"><value>Thiếu dữ liệu giá · Trên trang này</value></data>
+  <data name="Recipe.Health.MissingConversionMetric" xml:space="preserve"><value>Thiếu quy đổi · Trên trang này</value></data>
+  <data name="Recipe.Health.MissingOutputMetric" xml:space="preserve"><value>Thiếu đầu ra · Trên trang này</value></data>
+  <data name="Recipe.Health.VersionIssueMetric" xml:space="preserve"><value>Phiên bản cần kiểm tra · Trên trang này</value></data>
+  <data name="Recipe.Health.MappingErrorMetric" xml:space="preserve"><value>Lỗi liên kết · Trên trang này</value></data>
+  <data name="Recipe.Health.DetailTitle" xml:space="preserve"><value>Chi tiết cần xử lý</value></data>
+  <data name="Recipe.Health.DetailHint" xml:space="preserve"><value>Trạng thái cấu hình và giá vốn của từng công thức trên trang hiện tại.</value></data>
+  <data name="Recipe.Health.ListCount" xml:space="preserve"><value>Trên trang này: {0} · Tổng kết quả lọc: {1}</value></data>
+  <data name="Recipe.Health.DetailAria" xml:space="preserve"><value>Chi tiết tình trạng dữ liệu BOM</value></data>
+  <data name="Recipe.Health.Column.Recipe" xml:space="preserve"><value>Công thức</value></data>
+  <data name="Recipe.Health.Column.Version" xml:space="preserve"><value>Phiên bản áp dụng</value></data>
+  <data name="Recipe.Health.Column.Configuration" xml:space="preserve"><value>Cấu hình</value></data>
+  <data name="Recipe.Health.Column.Costing" xml:space="preserve"><value>Dữ liệu giá vốn</value></data>
+  <data name="Recipe.Health.Column.Reason" xml:space="preserve"><value>Lý do và xử lý</value></data>
+  <data name="Recipe.Health.Empty" xml:space="preserve"><value>Chưa có công thức để đánh giá.</value></data>
+  <data name="Recipe.Health.NoIssues" xml:space="preserve"><value>Không có dữ liệu cần xử lý</value></data>
+  <data name="Recipe.Health.OpenActionsAria" xml:space="preserve"><value>Mở {0} phương án xử lý</value></data>
+  <data name="Recipe.Health.Resolve" xml:space="preserve"><value>Xử lý</value></data>
+  <data name="Recipe.Health.GoToRelated" xml:space="preserve"><value>Đi tới dữ liệu liên quan</value></data>
+  <data name="Recipe.Health.PaginationAria" xml:space="preserve"><value>Phân trang tình trạng dữ liệu công thức</value></data>
+  <data name="Recipe.Health.CURRENT" xml:space="preserve"><value>Đang áp dụng</value></data>
+  <data name="Recipe.Health.HISTORICAL" xml:space="preserve"><value>Phiên bản lịch sử</value></data>
+  <data name="Recipe.Health.AMBIGUOUS" xml:space="preserve"><value>Cần kiểm tra phiên bản áp dụng</value></data>
+  <data name="Recipe.Health.MISSING" xml:space="preserve"><value>Chưa có phiên bản đang áp dụng</value></data>
+  <data name="Recipe.Health.INVALID_TARGET" xml:space="preserve"><value>Đối tượng công thức không hợp lệ</value></data>
+  <data name="Recipe.Health.Current.CURRENT.Message" xml:space="preserve"><value>Đây là phiên bản đang áp dụng cho đối tượng công thức.</value></data>
+  <data name="Recipe.Health.Current.HISTORICAL.Message" xml:space="preserve"><value>Một phiên bản khác đang được áp dụng cho đối tượng công thức này.</value></data>
+  <data name="Recipe.Health.Current.AMBIGUOUS.Message" xml:space="preserve"><value>Có nhiều phiên bản cùng được đánh dấu đang áp dụng. Hệ thống không tự chọn một phiên bản.</value></data>
+  <data name="Recipe.Health.Current.MISSING.Message" xml:space="preserve"><value>Chưa tìm thấy phiên bản đang áp dụng cho đối tượng công thức này.</value></data>
+  <data name="Recipe.Health.Current.INVALID_TARGET.Message" xml:space="preserve"><value>Công thức chưa xác định đúng một đối tượng nghiệp vụ để áp dụng.</value></data>
+  <data name="Recipe.Health.TYPE_POS" xml:space="preserve"><value>Món bán</value></data>
+  <data name="Recipe.Health.TYPE_TOPPING" xml:space="preserve"><value>Topping</value></data>
+  <data name="Recipe.Health.TYPE_SUBRECIPE" xml:space="preserve"><value>Bán thành phẩm</value></data>
+  <data name="Recipe.Health.Reason.INACTIVE" xml:space="preserve"><value>Công thức đang ngừng hoạt động.</value></data>
+  <data name="Recipe.Health.Reason.MISSING_COMPONENTS" xml:space="preserve"><value>Công thức chưa có thành phần BOM.</value></data>
+  <data name="Recipe.Health.Reason.INVALID_PREPARED_ITEM_MAPPING" xml:space="preserve"><value>Liên kết bán thành phẩm chưa hợp lệ.</value></data>
+  <data name="Recipe.Health.Reason.MISSING_COMPONENT_UNIT" xml:space="preserve"><value>Một hoặc nhiều dòng BOM thiếu đơn vị định lượng còn hiệu lực.</value></data>
+  <data name="Recipe.Health.Reason.MISSING_OUTPUT_IDENTITY" xml:space="preserve"><value>Công thức chưa chọn bán thành phẩm đầu ra.</value></data>
+  <data name="Recipe.Health.Reason.MISSING_OUTPUT_QUANTITY" xml:space="preserve"><value>Công thức thiếu sản lượng đầu ra lớn hơn 0.</value></data>
+  <data name="Recipe.Health.Reason.MISSING_OUTPUT_UNIT" xml:space="preserve"><value>Công thức thiếu đơn vị đầu ra còn hiệu lực.</value></data>
+  <data name="Recipe.Health.Reason.INDETERMINATE" xml:space="preserve"><value>Không xác định được giá vốn do kết quả tính chưa đầy đủ.</value></data>
+  <data name="Recipe.Health.Action.MISSING_QUOTE" xml:space="preserve"><value>Cập nhật báo giá nhà cung cấp</value></data>
+  <data name="Recipe.Health.Action.MISSING_CONVERSION" xml:space="preserve"><value>Cấu hình quy đổi</value></data>
+  <data name="Recipe.Health.Action.MISSING_CHILD_COST" xml:space="preserve"><value>Sửa BOM liên quan</value></data>
+  <data name="Recipe.Health.Action.INDETERMINATE" xml:space="preserve"><value>Kiểm tra BOM</value></data>
+  <data name="Recipe.Health.ReasonGroup.MISSING_QUOTE" xml:space="preserve"><value>Thiếu hoặc không hợp lệ dữ liệu báo giá nhà cung cấp.</value></data>
+  <data name="Recipe.Health.ReasonGroup.MISSING_CONVERSION" xml:space="preserve"><value>Thiếu hoặc xung đột quy đổi đơn vị.</value></data>
+  <data name="Recipe.Health.ReasonGroup.MISSING_CHILD_COST" xml:space="preserve"><value>Chưa xác định được giá vốn của bán thành phẩm con.</value></data>
+  <data name="Recipe.Health.ReasonGroup.INDETERMINATE" xml:space="preserve"><value>Không xác định được giá vốn do dữ liệu chưa đầy đủ.</value></data>
+  <data name="Recipe.Compare.PageTitle" xml:space="preserve"><value>So sánh phiên bản công thức - {0}</value></data>
+  <data name="Recipe.Compare.Title" xml:space="preserve"><value>So sánh phiên bản</value></data>
+  <data name="Recipe.Compare.Description" xml:space="preserve"><value>Đối chiếu hai phiên bản của cùng một đối tượng công thức. Đây là bằng chứng chỉ đọc.</value></data>
+  <data name="Recipe.Compare.Back" xml:space="preserve"><value>Quay lại không gian công thức</value></data>
+  <data name="Recipe.Compare.VersionsAria" xml:space="preserve"><value>Hai phiên bản được so sánh</value></data>
+  <data name="Recipe.Compare.BeforeVersion" xml:space="preserve"><value>Phiên bản trước</value></data>
+  <data name="Recipe.Compare.AfterVersion" xml:space="preserve"><value>Phiên bản sau</value></data>
+  <data name="Recipe.Compare.Version" xml:space="preserve"><value>Phiên bản {0}</value></data>
+  <data name="Recipe.Compare.Output" xml:space="preserve"><value>Đầu ra</value></data>
+  <data name="Recipe.Compare.DesignCost" xml:space="preserve"><value>Giá vốn thiết kế</value></data>
+  <data name="Recipe.Compare.CostData" xml:space="preserve"><value>Dữ liệu giá</value></data>
+  <data name="Recipe.Compare.InsufficientData" xml:space="preserve"><value>Chưa đủ dữ liệu</value></data>
+  <data name="Recipe.Compare.CostComplete" xml:space="preserve"><value>Đủ dữ liệu giá</value></data>
+  <data name="Recipe.Compare.CostIncomplete" xml:space="preserve"><value>Chưa đủ dữ liệu giá</value></data>
+  <data name="Recipe.Compare.CostChanged" xml:space="preserve"><value>Mức đầy đủ dữ liệu giá đã thay đổi</value></data>
+  <data name="Recipe.Compare.SummaryTitle" xml:space="preserve"><value>Tóm tắt thay đổi</value></data>
+  <data name="Recipe.Compare.SummaryHint" xml:space="preserve"><value>Đầu ra, mức đầy đủ dữ liệu giá và chênh lệch giá vốn thiết kế.</value></data>
+  <data name="Recipe.Compare.Unchanged" xml:space="preserve"><value>Không thay đổi</value></data>
+  <data name="Recipe.Compare.DesignCostDelta" xml:space="preserve"><value>Chênh lệch giá vốn thiết kế</value></data>
+  <data name="Recipe.Compare.Indeterminate" xml:space="preserve"><value>Chưa thể xác định</value></data>
+  <data name="Recipe.Compare.LineChanges" xml:space="preserve"><value>Thay đổi định mức</value></data>
+  <data name="Recipe.Compare.LineChangesHint" xml:space="preserve"><value>Phân biệt dòng thêm, dòng bỏ và dòng thay đổi theo thành phần nghiệp vụ.</value></data>
+  <data name="Recipe.Compare.NoLineChanges" xml:space="preserve"><value>Không có thay đổi định mức giữa hai phiên bản.</value></data>
+  <data name="Recipe.Compare.AddedLines" xml:space="preserve"><value>Dòng đã thêm</value></data>
+  <data name="Recipe.Compare.RemovedLines" xml:space="preserve"><value>Dòng đã bỏ</value></data>
+  <data name="Recipe.Compare.ChangedLines" xml:space="preserve"><value>Dòng đã thay đổi</value></data>
+  <data name="Recipe.Compare.InputType.INGREDIENT" xml:space="preserve"><value>Nguyên liệu trực tiếp</value></data>
+  <data name="Recipe.Compare.InputType.PREPARED_ITEM" xml:space="preserve"><value>Bán thành phẩm đầu vào</value></data>
+  <data name="Recipe.Compare.Code" xml:space="preserve"><value>Mã</value></data>
+  <data name="Recipe.Compare.Before" xml:space="preserve"><value>Trước</value></data>
+  <data name="Recipe.Compare.After" xml:space="preserve"><value>Sau</value></data>
+  <data name="Recipe.Compare.NormalizedBefore" xml:space="preserve"><value>Chuẩn hóa trước</value></data>
+  <data name="Recipe.Compare.NormalizedAfter" xml:space="preserve"><value>Chuẩn hóa sau</value></data>
+  <data name="Recipe.Compare.NoData" xml:space="preserve"><value>Chưa có dữ liệu</value></data>
+  <data name="Recipe.Compare.Change.ADDED" xml:space="preserve"><value>Đã thêm</value></data>
+  <data name="Recipe.Compare.Change.REMOVED" xml:space="preserve"><value>Đã bỏ</value></data>
+  <data name="Recipe.Compare.Change.QUANTITY" xml:space="preserve"><value>đổi định lượng</value></data>
+  <data name="Recipe.Compare.Change.UNIT" xml:space="preserve"><value>đổi đơn vị</value></data>
+  <data name="Recipe.Compare.Change.NORMALIZED_QUANTITY" xml:space="preserve"><value>đổi lượng chuẩn hóa</value></data>
+  <data name="Recipe.Unit.Batch" xml:space="preserve"><value>mẻ</value></data>
+  <data name="Recipe.Unit.Serving" xml:space="preserve"><value>phần</value></data>
+  <data name="Recipe.Visualize.PageTitle" xml:space="preserve"><value>Không gian công thức - {0}</value></data>
+  <data name="Recipe.Visualize.Back" xml:space="preserve"><value>Quay lại danh sách</value></data>
+  <data name="Recipe.Visualize.CheckData" xml:space="preserve"><value>Kiểm tra dữ liệu</value></data>
+  <data name="Recipe.Visualize.NewVersion" xml:space="preserve"><value>Tạo phiên bản mới</value></data>
+  <data name="Recipe.Visualize.Description" xml:space="preserve"><value>{0}. Xem đầu ra, định mức đầu vào và bằng chứng phiên bản trong một bố cục thống nhất.</value></data>
+  <data name="Recipe.Visualize.RecipeCode" xml:space="preserve"><value>Mã công thức</value></data>
+  <data name="Recipe.Visualize.TargetCode" xml:space="preserve"><value>Mã đối tượng</value></data>
+  <data name="Recipe.Visualize.InheritedVersion" xml:space="preserve"><value>Kế thừa phiên bản trước</value></data>
+  <data name="Recipe.Visualize.OriginalVersion" xml:space="preserve"><value>Phiên bản gốc</value></data>
+  <data name="Recipe.Visualize.SectionsAria" xml:space="preserve"><value>Các phần của công thức</value></data>
+  <data name="Recipe.Visualize.OutputAndBom" xml:space="preserve"><value>Đầu ra và định mức</value></data>
+  <data name="Recipe.Visualize.WhereUsed" xml:space="preserve"><value>Được sử dụng ở đâu</value></data>
+  <data name="Recipe.Visualize.History" xml:space="preserve"><value>Lịch sử phiên bản</value></data>
+  <data name="Recipe.Visualize.Context" xml:space="preserve"><value>Ngữ cảnh phiên bản</value></data>
+  <data name="Recipe.Visualize.SummaryAria" xml:space="preserve"><value>Tóm tắt công thức</value></data>
+  <data name="Recipe.Visualize.BomLines" xml:space="preserve"><value>Dòng định mức</value></data>
+  <data name="Recipe.Visualize.BomLinesHint" xml:space="preserve"><value>Tổng số đầu vào của phiên bản này</value></data>
+  <data name="Recipe.Visualize.StoreFifoCost" xml:space="preserve"><value>Giá vốn FIFO tại chi nhánh</value></data>
+  <data name="Recipe.Visualize.NoStore" xml:space="preserve"><value>Chưa chọn chi nhánh</value></data>
+  <data name="Recipe.Visualize.Readiness" xml:space="preserve"><value>Mức sẵn sàng</value></data>
+  <data name="Recipe.Visualize.FlowTitle" xml:space="preserve"><value>Đầu ra và định mức đầu vào</value></data>
+  <data name="Recipe.Visualize.FlowHint" xml:space="preserve"><value>Đọc từ kết quả cần tạo xuống từng thành phần được sử dụng.</value></data>
+  <data name="Recipe.Visualize.PreparedInputs" xml:space="preserve"><value>Bán thành phẩm đầu vào</value></data>
+  <data name="Recipe.Visualize.PreparedInputsHint" xml:space="preserve"><value>Được tạo từ một phiên bản công thức nguồn đã chọn.</value></data>
+  <data name="Recipe.Visualize.NoPreparedInputs" xml:space="preserve"><value>Phiên bản này không sử dụng bán thành phẩm đầu vào.</value></data>
+  <data name="Recipe.Visualize.Quantity" xml:space="preserve"><value>Định lượng</value></data>
+  <data name="Recipe.Visualize.Normalized" xml:space="preserve"><value>Chuẩn hóa</value></data>
+  <data name="Recipe.Visualize.NoConversion" xml:space="preserve"><value>Chưa có quy đổi về đơn vị tồn kho</value></data>
+  <data name="Recipe.Visualize.CostContribution" xml:space="preserve"><value>Tỷ trọng giá vốn</value></data>
+  <data name="Recipe.Visualize.SourceRecipe" xml:space="preserve"><value>Công thức nguồn</value></data>
+  <data name="Recipe.Visualize.Ingredients" xml:space="preserve"><value>Nguyên liệu</value></data>
+  <data name="Recipe.Visualize.DirectIngredients" xml:space="preserve"><value>Nguyên liệu trực tiếp</value></data>
+  <data name="Recipe.Visualize.DirectIngredientsHint" xml:space="preserve"><value>Được lấy trực tiếp từ tồn kho khi thực hiện công thức.</value></data>
+  <data name="Recipe.Visualize.NoDirectIngredients" xml:space="preserve"><value>Phiên bản này không có nguyên liệu trực tiếp.</value></data>
+  <data name="Recipe.Visualize.WhereUsedTitle" xml:space="preserve"><value>Được sử dụng ở đâu</value></data>
+  <data name="Recipe.Visualize.WhereUsedHint" xml:space="preserve"><value>Các công thức cha hiện hành và điểm bán đang sử dụng đúng đối tượng công thức này.</value></data>
+  <data name="Recipe.Visualize.NoWhereUsed" xml:space="preserve"><value>Chưa ghi nhận nơi sử dụng hiện hành.</value></data>
+  <data name="Recipe.Visualize.CurrentParents" xml:space="preserve"><value>Công thức cha hiện hành</value></data>
+  <data name="Recipe.Visualize.ResultCount" xml:space="preserve"><value>{0} kết quả</value></data>
+  <data name="Recipe.Visualize.RecipeCodeValue" xml:space="preserve"><value>Mã công thức: {0}</value></data>
+  <data name="Recipe.Visualize.ParentResultsTruncated" xml:space="preserve"><value>Đang hiển thị {0} kết quả đầu tiên; còn nơi sử dụng khác chưa hiển thị.</value></data>
+  <data name="Recipe.Visualize.CurrentLocations" xml:space="preserve"><value>Điểm bán hiện hành trong phạm vi được phép xem</value></data>
+  <data name="Recipe.Visualize.BranchCount" xml:space="preserve"><value>{0} chi nhánh</value></data>
+  <data name="Recipe.Visualize.LocationResultsTruncated" xml:space="preserve"><value>Đang hiển thị {0} chi nhánh đầu tiên; còn chi nhánh khác chưa hiển thị.</value></data>
+  <data name="Recipe.Visualize.HistoryTitle" xml:space="preserve"><value>Lịch sử phiên bản</value></data>
+  <data name="Recipe.Visualize.HistoryHint" xml:space="preserve"><value>Các phiên bản của cùng đối tượng công thức; tách biệt với lịch sử tồn kho và nhật ký kỹ thuật.</value></data>
+  <data name="Recipe.Visualize.NoHistory" xml:space="preserve"><value>Chưa ghi nhận phiên bản liên quan.</value></data>
+  <data name="Recipe.Visualize.AppliedAt" xml:space="preserve"><value>Áp dụng: {0}</value></data>
+  <data name="Recipe.Visualize.OnRelease" xml:space="preserve"><value>ngay khi phát hành</value></data>
+  <data name="Recipe.Visualize.CompareCurrent" xml:space="preserve"><value>So sánh với phiên bản đang xem</value></data>
+  <data name="Recipe.Visualize.ViewVersion" xml:space="preserve"><value>Xem phiên bản</value></data>
+  <data name="Recipe.Visualize.HistoryTruncated" xml:space="preserve"><value>Hiển thị {0}/{1} phiên bản gần nhất.</value></data>
+  <data name="Recipe.Visualize.OperationsTitle" xml:space="preserve"><value>Tồn và sản xuất tại chi nhánh</value></data>
+  <data name="Recipe.Visualize.OperationsHint" xml:space="preserve"><value>Tín hiệu bổ sung theo bán thành phẩm; tồn thực tế và nguồn sản xuất đang mở luôn được trình bày riêng.</value></data>
+  <data name="Recipe.Visualize.SelectStoreForOperations" xml:space="preserve"><value>Chọn chi nhánh trong phần cơ sở tính giá vốn để xem dữ liệu vận hành.</value></data>
+  <data name="Recipe.Visualize.OperationsUnavailable" xml:space="preserve"><value>Chưa tải được dữ liệu của chi nhánh đã chọn.</value></data>
+  <data name="Recipe.Visualize.ReplenishmentAria" xml:space="preserve"><value>Tín hiệu nhu cầu bổ sung tại chi nhánh</value></data>
+  <data name="Recipe.Visualize.UsableStock" xml:space="preserve"><value>Tồn khả dụng</value></data>
+  <data name="Recipe.Visualize.StockBreakdown" xml:space="preserve"><value>Hiện có {0} · Đã giữ {1}</value></data>
+  <data name="Recipe.Visualize.LowStockThreshold" xml:space="preserve"><value>Ngưỡng cảnh báo tồn thấp</value></data>
+  <data name="Recipe.Visualize.NotConfigured" xml:space="preserve"><value>Chưa cấu hình</value></data>
+  <data name="Recipe.Visualize.ConfigureThreshold" xml:space="preserve"><value>Cần cấu hình ngưỡng trước khi đánh giá.</value></data>
+  <data name="Recipe.Visualize.BelowThreshold" xml:space="preserve"><value>Tồn khả dụng đang dưới ngưỡng.</value></data>
+  <data name="Recipe.Visualize.AboveThreshold" xml:space="preserve"><value>Tồn khả dụng chưa xuống dưới ngưỡng.</value></data>
+  <data name="Recipe.Visualize.TargetStock" xml:space="preserve"><value>Mức tồn mục tiêu</value></data>
+  <data name="Recipe.Visualize.OpenProduction" xml:space="preserve"><value>Nguồn sản xuất đang mở</value></data>
+  <data name="Recipe.Visualize.NotConvertible" xml:space="preserve"><value>Chưa quy đổi được</value></data>
+  <data name="Recipe.Visualize.OpenProductionHint" xml:space="preserve"><value>Chỉ giảm nhu cầu lập kế hoạch, không làm tăng tồn kho.</value></data>
+  <data name="Recipe.Visualize.NetNeed" xml:space="preserve"><value>Còn cần bổ sung</value></data>
+  <data name="Recipe.Visualize.NotCalculated" xml:space="preserve"><value>Chưa tính được</value></data>
+  <data name="Recipe.Visualize.NetNeedReady" xml:space="preserve"><value>Đã trừ nguồn sản xuất đang mở.</value></data>
+  <data name="Recipe.Visualize.NetNeedUnavailable" xml:space="preserve"><value>Cần đủ chính sách tồn và dữ liệu quy đổi.</value></data>
+  <data name="Recipe.Visualize.ReplenishmentLinksAria" xml:space="preserve"><value>Liên kết truy vết nhu cầu bổ sung</value></data>
+  <data name="Recipe.Visualize.StockAlert" xml:space="preserve"><value>Cảnh báo tồn kho</value></data>
+  <data name="Recipe.Visualize.RestockRequest" xml:space="preserve"><value>Nhu cầu bổ sung</value></data>
+  <data name="Recipe.Visualize.ProductionOrderNumber" xml:space="preserve"><value>Lệnh sản xuất #{0}</value></data>
+  <data name="Recipe.Visualize.OpenProductionTruncated" xml:space="preserve"><value>Hiển thị {0}/{1} nguồn sản xuất đang mở gần nhất.</value></data>
+  <data name="Recipe.Visualize.NoReplenishment" xml:space="preserve"><value>Chưa có tín hiệu nhu cầu bổ sung được phép xem tại chi nhánh này.</value></data>
+  <data name="Recipe.Visualize.RecentProduction" xml:space="preserve"><value>Sản xuất gần đây</value></data>
+  <data name="Recipe.Visualize.OrderCount" xml:space="preserve"><value>{0} lệnh</value></data>
+  <data name="Recipe.Visualize.NoProductionEvidence" xml:space="preserve"><value>Chưa có bằng chứng cho đúng phiên bản này.</value></data>
+  <data name="Recipe.Visualize.RecentProductionHint" xml:space="preserve"><value>Tối đa 5 lệnh gần nhất của phiên bản đang xem.</value></data>
+  <data name="Recipe.Visualize.EvidenceVersion" xml:space="preserve"><value>Phiên bản bằng chứng</value></data>
+  <data name="Recipe.Visualize.EvidenceVersionHint" xml:space="preserve"><value>Mỗi lệnh tiếp tục dùng đúng phiên bản đã ghim khi lập kế hoạch.</value></data>
+  <data name="Recipe.Visualize.RecentProductionAria" xml:space="preserve"><value>Danh sách sản xuất gần đây</value></data>
+  <data name="Recipe.Visualize.OrderCode" xml:space="preserve"><value>Lệnh {0}</value></data>
+  <data name="Recipe.Visualize.AcceptedOutput" xml:space="preserve"><value>Đầu ra được chấp nhận</value></data>
+  <data name="Recipe.Visualize.NoAcceptanceEvidence" xml:space="preserve"><value>Chưa có bằng chứng nghiệm thu</value></data>
+  <data name="Recipe.Visualize.Completed" xml:space="preserve"><value>Hoàn tất</value></data>
+  <data name="Recipe.Visualize.NotCompleted" xml:space="preserve"><value>Chưa hoàn tất</value></data>
+  <data name="Recipe.Visualize.ViewProductionOrder" xml:space="preserve"><value>Xem lệnh sản xuất</value></data>
+  <data name="Recipe.Visualize.ContextAria" xml:space="preserve"><value>Ngữ cảnh công thức</value></data>
+  <data name="Recipe.Visualize.ContextTitle" xml:space="preserve"><value>Ngữ cảnh công thức</value></data>
+  <data name="Recipe.Visualize.ContextHint" xml:space="preserve"><value>Phiên bản, trạng thái và đối tượng đang xem.</value></data>
+  <data name="Recipe.Visualize.RecipeVersion" xml:space="preserve"><value>Phiên bản công thức</value></data>
+  <data name="Recipe.Visualize.Target" xml:space="preserve"><value>Đối tượng</value></data>
+  <data name="Recipe.Visualize.EffectiveDate" xml:space="preserve"><value>Ngày áp dụng</value></data>
+  <data name="Recipe.Visualize.EffectiveImmediately" xml:space="preserve"><value>Áp dụng ngay</value></data>
+  <data name="Recipe.Visualize.VersionSource" xml:space="preserve"><value>Nguồn phiên bản</value></data>
+  <data name="Recipe.Visualize.VersionNumber" xml:space="preserve"><value>Phiên bản {0}</value></data>
+  <data name="Recipe.Visualize.CostBasis" xml:space="preserve"><value>Cơ sở tính giá vốn</value></data>
+  <data name="Recipe.Visualize.DesignCost" xml:space="preserve"><value>Giá vốn ước tính theo thiết kế</value></data>
+  <data name="Recipe.Visualize.InsufficientData" xml:space="preserve"><value>Chưa đủ dữ liệu</value></data>
+  <data name="Recipe.Visualize.StoreFifoCostFull" xml:space="preserve"><value>Giá vốn FIFO tại chi nhánh</value></data>
+  <data name="Recipe.Visualize.NoData" xml:space="preserve"><value>Chưa có dữ liệu</value></data>
+  <data name="Recipe.Visualize.BranchValue" xml:space="preserve"><value>Chi nhánh: {0}</value></data>
+  <data name="Recipe.Visualize.EvidenceUpdated" xml:space="preserve"><value>Bằng chứng cập nhật: {0}</value></data>
+  <data name="Recipe.Visualize.AllowedStore" xml:space="preserve"><value>Chi nhánh được phép xem</value></data>
+  <data name="Recipe.Visualize.SelectStore" xml:space="preserve"><value>Chọn chi nhánh</value></data>
+  <data name="Recipe.Visualize.View" xml:space="preserve"><value>Xem</value></data>
+  <data name="Recipe.Visualize.OutputDefinition" xml:space="preserve"><value>Định nghĩa đầu ra</value></data>
+  <data name="Recipe.Visualize.TechnicalTrace" xml:space="preserve"><value>Dấu vết kỹ thuật</value></data>
+  <data name="Recipe.Visualize.Target.Pos" xml:space="preserve"><value>Đồ uống · Size {0}</value></data>
+  <data name="Recipe.Visualize.Target.Topping" xml:space="preserve"><value>Topping</value></data>
+  <data name="Recipe.Visualize.Target.PreparedItem" xml:space="preserve"><value>Bán thành phẩm</value></data>
+  <data name="Recipe.Visualize.Target.Recipe" xml:space="preserve"><value>Công thức</value></data>
+  <data name="Recipe.Visualize.State.Current" xml:space="preserve"><value>Hiện hành</value></data>
+  <data name="Recipe.Visualize.State.Historical" xml:space="preserve"><value>Lịch sử</value></data>
+  <data name="Recipe.Visualize.Relation.MenuItemSize" xml:space="preserve"><value>Món / Size</value></data>
+  <data name="Recipe.Visualize.Relation.Topping" xml:space="preserve"><value>Topping</value></data>
+  <data name="Recipe.Visualize.Relation.PreparedItem" xml:space="preserve"><value>Bán thành phẩm</value></data>
+  <data name="Recipe.Visualize.Relation.PointOfSale" xml:space="preserve"><value>Điểm bán hàng</value></data>
+  <data name="Recipe.Visualize.Relation.Recipe" xml:space="preserve"><value>Công thức</value></data>
+  <data name="Recipe.Visualize.PinnedVersion" xml:space="preserve"><value>Phiên bản đầu vào được ghim: {0}</value></data>
+  <data name="Recipe.Visualize.Relationship.Current" xml:space="preserve"><value>Phiên bản đang xem</value></data>
+  <data name="Recipe.Visualize.Relationship.Derived" xml:space="preserve"><value>Phiên bản kế thừa</value></data>
+  <data name="Recipe.Visualize.Relationship.Original" xml:space="preserve"><value>Phiên bản gốc</value></data>
+  <data name="Recipe.Visualize.Evidence.Available" xml:space="preserve"><value>Đạt</value></data>
+  <data name="Recipe.Visualize.Evidence.Incomplete" xml:space="preserve"><value>Chưa đạt</value></data>
+  <data name="Recipe.Visualize.Evidence.NotApplicable" xml:space="preserve"><value>Không áp dụng</value></data>
+  <data name="Recipe.Visualize.Evidence.Unavailable" xml:space="preserve"><value>Chưa có dữ liệu</value></data>
+  <data name="Recipe.Visualize.ReadinessSummary" xml:space="preserve"><value>{0}/{1} tiêu chí đạt</value></data>
+  <data name="Recipe.Visualize.Scope.Global" xml:space="preserve"><value>Toàn hệ thống</value></data>
+  <data name="Recipe.Visualize.Scope.Store" xml:space="preserve"><value>Theo chi nhánh</value></data>
+  <data name="Recipe.Visualize.Facet.CONFIGURATION" xml:space="preserve"><value>Cấu hình công thức</value></data>
+  <data name="Recipe.Visualize.Facet.PRICING" xml:space="preserve"><value>Dữ liệu giá vốn</value></data>
+  <data name="Recipe.Visualize.Facet.POINT_OF_SALE" xml:space="preserve"><value>Khả năng bán</value></data>
+  <data name="Recipe.Visualize.Facet.PREPARED_INPUTS" xml:space="preserve"><value>Bán thành phẩm đầu vào</value></data>
+  <data name="Recipe.Visualize.Facet.STORE_FIFO_EVIDENCE" xml:space="preserve"><value>Bằng chứng giá FIFO</value></data>
+  <data name="Recipe.Visualize.Facet.STORE_OPERATIONS" xml:space="preserve"><value>Điều kiện vận hành</value></data>
+  <data name="Recipe.Visualize.Facet.CONFIGURATION.AVAILABLE" xml:space="preserve"><value>Cấu hình công thức đã đầy đủ.</value></data>
+  <data name="Recipe.Visualize.Facet.CONFIGURATION.INCOMPLETE" xml:space="preserve"><value>Cấu hình công thức chưa đầy đủ.</value></data>
+  <data name="Recipe.Visualize.Facet.CONFIGURATION.UNAVAILABLE" xml:space="preserve"><value>Chưa có dữ liệu cấu hình.</value></data>
+  <data name="Recipe.Visualize.Facet.PRICING.AVAILABLE" xml:space="preserve"><value>Dữ liệu giá vốn đã sẵn sàng.</value></data>
+  <data name="Recipe.Visualize.Facet.PRICING.INCOMPLETE" xml:space="preserve"><value>Dữ liệu giá vốn chưa đầy đủ.</value></data>
+  <data name="Recipe.Visualize.Facet.PRICING.UNAVAILABLE" xml:space="preserve"><value>Chưa có dữ liệu giá vốn.</value></data>
+  <data name="Recipe.Visualize.Facet.POINT_OF_SALE.AVAILABLE" xml:space="preserve"><value>Đủ điều kiện sử dụng tại điểm bán.</value></data>
+  <data name="Recipe.Visualize.Facet.POINT_OF_SALE.INCOMPLETE" xml:space="preserve"><value>Chưa đủ điều kiện sử dụng tại điểm bán.</value></data>
+  <data name="Recipe.Visualize.Facet.POINT_OF_SALE.NOT_APPLICABLE" xml:space="preserve"><value>Không áp dụng cho điểm bán.</value></data>
+  <data name="Recipe.Visualize.Facet.PREPARED_INPUTS.AVAILABLE" xml:space="preserve"><value>Bán thành phẩm đầu vào đã sẵn sàng.</value></data>
+  <data name="Recipe.Visualize.Facet.PREPARED_INPUTS.INCOMPLETE" xml:space="preserve"><value>Bán thành phẩm đầu vào chưa sẵn sàng.</value></data>
+  <data name="Recipe.Visualize.Facet.PREPARED_INPUTS.NOT_APPLICABLE" xml:space="preserve"><value>Không có bán thành phẩm đầu vào.</value></data>
+  <data name="Recipe.Visualize.Facet.STORE_FIFO_EVIDENCE.AVAILABLE" xml:space="preserve"><value>Đã có bằng chứng giá FIFO tại chi nhánh.</value></data>
+  <data name="Recipe.Visualize.Facet.STORE_FIFO_EVIDENCE.UNAVAILABLE" xml:space="preserve"><value>Chọn chi nhánh để đánh giá giá FIFO.</value></data>
+  <data name="Recipe.Visualize.Facet.STORE_OPERATIONS.AVAILABLE" xml:space="preserve"><value>Đủ điều kiện sản xuất tại chi nhánh.</value></data>
+  <data name="Recipe.Visualize.Facet.STORE_OPERATIONS.INCOMPLETE" xml:space="preserve"><value>Còn điều kiện vận hành cần xử lý.</value></data>
+  <data name="Recipe.Visualize.Facet.STORE_OPERATIONS.UNAVAILABLE" xml:space="preserve"><value>Chưa thể kiểm tra điều kiện vận hành.</value></data>
+  <data name="Recipe.Visualize.Output.Title" xml:space="preserve"><value>Đầu ra</value></data>
+  <data name="Recipe.Visualize.Output.Scope" xml:space="preserve"><value>Phạm vi áp dụng</value></data>
+  <data name="Recipe.Visualize.Output.StandardBatch" xml:space="preserve"><value>Sản lượng chuẩn một mẻ</value></data>
+  <data name="Recipe.Visualize.Output.PosDisplay" xml:space="preserve"><value>1 phần {0} · Cỡ {1}</value></data>
+  <data name="Recipe.Visualize.Output.ToppingDisplay" xml:space="preserve"><value>Một lần sử dụng {0} theo định mức topping</value></data>
+  <data name="Recipe.Visualize.Output.BatchDisplay" xml:space="preserve"><value>{0} {1} / mẻ</value></data>
+  <data name="Recipe.Visualize.Output.PosContext" xml:space="preserve"><value>Một phần bán theo đúng món và cỡ đang xem.</value></data>
+  <data name="Recipe.Visualize.Output.ToppingContext" xml:space="preserve"><value>Số lượng tiêu hao do các dòng định mức xác định; không suy diễn sản lượng vật lý.</value></data>
+  <data name="Recipe.Visualize.Output.BatchContext" xml:space="preserve"><value>Mẻ là số lần thực hiện công thức; tồn kho vẫn ghi nhận theo đơn vị vật lý.</value></data>
+  <data name="Recipe.Visualize.Output.UnknownContext" xml:space="preserve"><value>Cần hoàn thiện đối tượng công thức.</value></data>
+  <data name="Recipe.Visualize.Unknown" xml:space="preserve"><value>Chưa xác định</value></data>
+  <data name="Recipe.Visualize.Unit" xml:space="preserve"><value>đơn vị</value></data>
+  <data name="Recipe.Visualize.Input.Prepared" xml:space="preserve"><value>Bán thành phẩm đầu vào</value></data>
+  <data name="Recipe.Visualize.Input.Direct" xml:space="preserve"><value>Nguyên liệu trực tiếp</value></data>
+</root>

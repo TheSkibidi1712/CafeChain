@@ -25,6 +25,8 @@
 
         const field = id => document.getElementById(id);
         const mutationGuard = window.AdminMutationGuard;
+        const catalog = window.CafeChainUiCatalog?.read("staff-shift-ui-catalog") || {};
+        const t = (key, values) => window.CafeChainUiCatalog?.text(catalog, key, values) || key;
 
         function normalizeSearch(value) {
             return (value || "")
@@ -55,7 +57,7 @@
             });
 
             if (visibleStaffCount) {
-                visibleStaffCount.textContent = `Hiển thị ${visible}/${staffRows.length} nhân viên`;
+                visibleStaffCount.textContent = t("Shift.Js.Showing", { visible, total: staffRows.length });
             }
 
             const hasActiveFilters = Boolean(query) || status !== "all";
@@ -84,7 +86,7 @@
         function notify(message, type) {
             if (window.Swal) {
                 return Swal.fire({
-                    title: type === "success" ? "Thành công" : type === "warning" ? "Dữ liệu đã thay đổi" : "Không thành công",
+                    title: type === "success" ? t("Shift.Js.Success") : type === "warning" ? t("Shift.Js.DataChanged") : t("Shift.Js.Failed"),
                     text: message,
                     icon: type || "error",
                     confirmButtonColor: "#e8643c"
@@ -108,11 +110,11 @@
             try {
                 result = await response.json();
             } catch {
-                result = { message: "Máy chủ trả về dữ liệu không hợp lệ." };
+                result = { message: t("Shift.Js.InvalidResponse") };
             }
 
             if (!response.ok) {
-                const error = new Error(result.message || "Không thể thực hiện thao tác.");
+                const error = new Error(result.message || t("Shift.Js.ActionFailed"));
                 error.status = response.status;
                 error.errorCode = result.errorCode;
                 throw error;
@@ -122,15 +124,15 @@
 
         async function handleFailure(error) {
             if (error.status === 409 || error.errorCode === "CONCURRENCY_CONFLICT") {
-                await notify(`${error.message} Trang sẽ được tải lại để lấy dữ liệu mới nhất.`, "warning");
+                await notify(`${error.message} ${t("Shift.Js.ReloadNote")}`, "warning");
                 window.location.reload();
                 return;
             }
-            await notify(error.message || "Không thể thực hiện thao tác.", "error");
+            await notify(error.message || t("Shift.Js.ActionFailed"), "error");
         }
 
         async function completeMutation(result) {
-            await notify(result.message || "Thao tác đã hoàn tất.", "success");
+            await notify(result.message || t("Shift.Js.Done"), "success");
             window.location.reload();
         }
 
@@ -156,8 +158,8 @@
             field("scheduleDate").value = options.workDate || "";
             field("scheduleVersion").value = options.rowVersion || "";
             field("scheduleShift").value = options.shiftId || "";
-            field("scheduleContext").textContent = `${options.staffName || "Nhân viên"} · ${formatWorkDate(options.workDate)}`;
-            field("scheduleModalTitle").textContent = options.staffShiftId ? "Sửa lịch làm việc" : "Phân lịch làm việc";
+            field("scheduleContext").textContent = `${options.staffName || t("Shift.Js.StaffFallback")} · ${formatWorkDate(options.workDate)}`;
+            field("scheduleModalTitle").textContent = options.staffShiftId ? t("Shift.Js.EditScheduleTitle") : t("Shift.Js.AssignScheduleTitle");
             const usesCustomTime = Boolean(options.customStart || options.customEnd);
             setCustomTimeEnabled(usesCustomTime);
             field("customStart").value = options.customStart || "";
@@ -209,7 +211,7 @@
                 templateForm?.reset();
                 field("templateId").value = "";
                 field("templateVersion").value = "";
-                field("templateModalTitle").textContent = "Tạo mẫu ca";
+                field("templateModalTitle").textContent = t("Shift.Js.CreateTemplateTitle");
                 templateModal?.show();
                 return;
             }
@@ -223,7 +225,7 @@
                 field("templateStart").value = editTemplate.dataset.start;
                 field("templateEnd").value = editTemplate.dataset.end;
                 field("templateNotes").value = editTemplate.dataset.notes || "";
-                field("templateModalTitle").textContent = "Sửa mẫu ca";
+                field("templateModalTitle").textContent = t("Shift.Js.EditTemplateTitle");
                 templateModal?.show();
             }
         });
@@ -297,18 +299,18 @@
             try {
                 if (window.Swal) {
                     answer = await Swal.fire({
-                        title: "Hủy lịch làm việc",
+                        title: t("Shift.Js.CancelScheduleTitle"),
                         input: "textarea",
-                        inputLabel: "Lý do hủy",
-                        inputPlaceholder: "Nhập lý do để lưu lịch sử...",
+                        inputLabel: t("Shift.Js.CancelReasonLabel"),
+                        inputPlaceholder: t("Shift.Js.CancelReasonPlaceholder"),
                         showCancelButton: true,
-                        confirmButtonText: "Hủy lịch",
-                        cancelButtonText: "Đóng",
+                        confirmButtonText: t("Shift.Js.CancelConfirm"),
+                        cancelButtonText: t("Shift.Js.Close"),
                         confirmButtonColor: "#dc2626",
-                        inputValidator: value => !value?.trim() ? "Vui lòng nhập lý do hủy." : undefined
+                        inputValidator: value => !value?.trim() ? t("Shift.Js.CancelReasonRequired") : undefined
                     });
                 } else {
-                    const value = window.prompt("Lý do hủy lịch:");
+                    const value = window.prompt(t("Shift.Js.CancelPrompt"));
                     answer = { isConfirmed: Boolean(value?.trim()), value };
                 }
             } finally {
@@ -347,16 +349,16 @@
             if (!toggleButton) return;
 
             const isActive = toggleButton.classList.contains("shift-action-toggle-active");
-            const actionText = isActive ? "ngưng" : "kích hoạt";
+            const actionText = isActive ? t("Shift.Js.StopVerb") : t("Shift.Js.ActivateVerb");
 
             if (window.Swal) {
                 const answer = await Swal.fire({
-                    title: 'Xác nhận ' + actionText,
-                    text: 'Bạn có chắc chắn muốn ' + actionText + ' mẫu ca này không?',
+                    title: t("Shift.Js.ConfirmPrefix") + " " + actionText,
+                    text: t("Shift.Js.ConfirmToggle", { action: actionText }),
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonText: 'Đồng ý',
-                    cancelButtonText: 'Hủy bỏ',
+                    confirmButtonText: t("Shift.Js.Agree"),
+                    cancelButtonText: t("Shift.Js.CancelShort"),
                     reverseButtons: true,
                     customClass: {
                         confirmButton: 'btn btn-swal-confirm me-2',
@@ -366,7 +368,7 @@
                 });
                 if (!answer.isConfirmed) return;
             } else {
-                if (!confirm('Bạn có chắc chắn muốn ' + actionText + ' mẫu ca này không?')) return;
+                if (!confirm(t("Shift.Js.ConfirmToggle", { action: actionText }))) return;
             }
 
             await mutationGuard.run(`toggle-shift-template-${toggleButton.dataset.id}`, toggleButton, async () => {

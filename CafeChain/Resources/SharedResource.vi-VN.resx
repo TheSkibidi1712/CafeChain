@@ -1,0 +1,497 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="Theme.Label" xml:space="preserve"><value>Giao diện</value></data>
+  <data name="Theme.System" xml:space="preserve"><value>Hệ thống</value></data>
+  <data name="Theme.Light" xml:space="preserve"><value>Sáng</value></data>
+  <data name="Theme.Dark" xml:space="preserve"><value>Tối</value></data>
+  <data name="Theme.SwitchToLight" xml:space="preserve"><value>Chuyển sang sáng</value></data>
+  <data name="Theme.SwitchToDark" xml:space="preserve"><value>Chuyển sang tối</value></data>
+  <data name="Language.Label" xml:space="preserve"><value>Ngôn ngữ</value></data>
+  <data name="Navigation.Home" xml:space="preserve"><value>Trang chủ</value></data>
+  <data name="Navigation.Menu" xml:space="preserve"><value>Thực đơn</value></data>
+  <data name="Admin.Dashboard" xml:space="preserve"><value>Bảng điều khiển quản trị</value></data>
+  <data name="Common.Notifications" xml:space="preserve"><value>Thông báo</value></data>
+  <data name="Common.OpenNotifications" xml:space="preserve"><value>Mở danh sách thông báo</value></data>
+  <data name="Common.DisplayPreferences" xml:space="preserve"><value>Tùy chọn hiển thị</value></data>
+  <data name="Auth.Login.Title" xml:space="preserve"><value>Đăng nhập CafeChain</value></data>
+  <data name="Auth.Login.Subtitle" xml:space="preserve"><value>Nhập thông tin tài khoản của bạn để tiếp tục</value></data>
+  <data name="Auth.Login.Email" xml:space="preserve"><value>Email hoặc tên đăng nhập</value></data>
+  <data name="Auth.Login.Password" xml:space="preserve"><value>Mật khẩu</value></data>
+  <data name="Auth.Login.Remember" xml:space="preserve"><value>Ghi nhớ đăng nhập</value></data>
+  <data name="Auth.Login.Forgot" xml:space="preserve"><value>Quên mật khẩu?</value></data>
+  <data name="Auth.Login.Submit" xml:space="preserve"><value>Truy cập hệ thống</value></data>
+  <data name="Auth.Login.Locked" xml:space="preserve"><value>Đang bị khóa...</value></data>
+  <data name="Auth.Forgot.Title" xml:space="preserve"><value>Quên mật khẩu?</value></data>
+  <data name="Auth.Forgot.Subtitle" xml:space="preserve"><value>Nhập email đăng ký của bạn để nhận mã OTP xác minh</value></data>
+  <data name="Auth.Forgot.Email" xml:space="preserve"><value>Địa chỉ email đăng ký</value></data>
+  <data name="Auth.Forgot.Submit" xml:space="preserve"><value>Gửi mã OTP xác thực</value></data>
+  <data name="Auth.Forgot.Remembered" xml:space="preserve"><value>Đã nhớ lại mật khẩu?</value></data>
+  <data name="Auth.Login.Now" xml:space="preserve"><value>Đăng nhập ngay</value></data>
+  <data name="Auth.Otp.Title" xml:space="preserve"><value>Xác minh OTP</value></data>
+  <data name="Auth.Otp.Subtitle" xml:space="preserve"><value>Nhập mã 6 ký tự đã gửi đến email của bạn</value></data>
+  <data name="Auth.Otp.Expires" xml:space="preserve"><value>Thời hạn mã:</value></data>
+  <data name="Auth.Otp.Submit" xml:space="preserve"><value>Xác nhận mã OTP</value></data>
+  <data name="AppLauncher.Title" xml:space="preserve"><value>Chọn ứng dụng</value></data>
+  <data name="AppLauncher.Workspace" xml:space="preserve"><value>Không gian làm việc</value></data>
+  <data name="AppLauncher.Greeting" xml:space="preserve"><value>Xin chào, {0}</value></data>
+  <data name="AppLauncher.Instruction" xml:space="preserve"><value>Chọn ứng dụng bạn muốn sử dụng. Danh sách được giới hạn theo quyền của tài khoản.</value></data>
+  <data name="AppLauncher.AllowedApps" xml:space="preserve"><value>Ứng dụng được phép truy cập</value></data>
+  <data name="AppLauncher.OpenApp" xml:space="preserve"><value>Mở {0}</value></data>
+  <data name="AppLauncher.Access" xml:space="preserve"><value>Truy cập</value></data>
+  <data name="AppLauncher.Empty.Title" xml:space="preserve"><value>Chưa có ứng dụng được cấp quyền</value></data>
+  <data name="AppLauncher.Empty.Detail" xml:space="preserve"><value>Liên hệ quản trị viên để kiểm tra vai trò hoặc quyền ghi đè của tài khoản.</value></data>
+  <data name="AppLauncher.App.AdminDashboard.Title" xml:space="preserve"><value>Bảng điều khiển quản trị</value></data>
+  <data name="AppLauncher.App.AdminDashboard.Description" xml:space="preserve"><value>Theo dõi vận hành, doanh thu và các chỉ số quản trị.</value></data>
+  <data name="AppLauncher.App.StaffHub.Title" xml:space="preserve"><value>Không gian nhân viên</value></data>
+  <data name="AppLauncher.App.StaffHub.Description" xml:space="preserve"><value>Xem lịch dự kiến và truy cập các tác vụ hằng ngày của nhân viên.</value></data>
+  <data name="AppLauncher.App.Pos.Title" xml:space="preserve"><value>POS</value></data>
+  <data name="AppLauncher.App.Pos.Description" xml:space="preserve"><value>Khởi chạy giao diện bán hàng.</value></data>
+  <data name="AppLauncher.App.OperationalIce.Title" xml:space="preserve"><value>Vận hành đá</value></data>
+  <data name="AppLauncher.App.OperationalIce.Description" xml:space="preserve"><value>Theo dõi cấp đá, bổ sung, bàn giao và chốt ca được phân công.</value></data>
+  <data name="AppLauncher.App.ProductionOrders.Title" xml:space="preserve"><value>Lệnh sản xuất</value></data>
+  <data name="AppLauncher.App.ProductionOrders.Description" xml:space="preserve"><value>Theo dõi và thực hiện công đoạn sản xuất được phân công tại cửa hàng.</value></data>
+  <data name="AppLauncher.App.SystemAdministration.Title" xml:space="preserve"><value>Quản trị hệ thống</value></data>
+  <data name="AppLauncher.App.SystemAdministration.Description" xml:space="preserve"><value>Quản lý phân quyền, chẩn đoán và các công cụ kỹ thuật của hệ thống.</value></data>
+  <data name="AccessDenied.Forbidden.Title" xml:space="preserve"><value>Không có quyền truy cập</value></data>
+  <data name="AccessDenied.LoginRequired.Title" xml:space="preserve"><value>Cần đăng nhập</value></data>
+  <data name="AccessDenied.Forbidden.Heading" xml:space="preserve"><value>Bạn không có quyền truy cập chức năng này!</value></data>
+  <data name="AccessDenied.LoginRequired.Heading" xml:space="preserve"><value>Bạn cần đăng nhập để truy cập chức năng này!</value></data>
+  <data name="AccessDenied.Forbidden.Detail" xml:space="preserve"><value>Vui lòng liên hệ cấp trên hoặc quản trị viên để được cấp quyền.</value></data>
+  <data name="AccessDenied.LoginRequired.Detail" xml:space="preserve"><value>Vui lòng đăng nhập để tiếp tục.</value></data>
+  <data name="Common.Back" xml:space="preserve"><value>Quay lại</value></data>
+  <data name="Common.Login" xml:space="preserve"><value>Đăng nhập</value></data>
+  <data name="Auth.Reset.Title" xml:space="preserve"><value>Đặt lại mật khẩu</value></data>
+  <data name="Auth.Reset.Heading" xml:space="preserve"><value>Tạo mật khẩu mới</value></data>
+  <data name="Auth.Reset.Instruction" xml:space="preserve"><value>Vui lòng nhập mật khẩu mới cho tài khoản</value></data>
+  <data name="Auth.Reset.NewPassword" xml:space="preserve"><value>Mật khẩu mới</value></data>
+  <data name="Auth.Reset.NewPlaceholder" xml:space="preserve"><value>Ít nhất 8 ký tự...</value></data>
+  <data name="Auth.Reset.ConfirmPassword" xml:space="preserve"><value>Xác nhận mật khẩu mới</value></data>
+  <data name="Auth.Reset.ConfirmPlaceholder" xml:space="preserve"><value>Nhập lại mật khẩu mới</value></data>
+  <data name="Auth.Reset.Submit" xml:space="preserve"><value>Xác nhận đổi mật khẩu</value></data>
+  <data name="Auth.Reset.BackToLogin" xml:space="preserve"><value>Quay lại trang đăng nhập</value></data>
+  <data name="Auth.Reset.ModalDetail" xml:space="preserve"><value>Nội dung chi tiết...</value></data>
+  <data name="Common.Understood" xml:space="preserve"><value>Đã hiểu</value></data>
+  <data name="Common.Success" xml:space="preserve"><value>Thành công!</value></data>
+  <data name="Common.Processing" xml:space="preserve"><value>Đang xử lý...</value></data>
+  <data name="Auth.Reset.PasswordRule" xml:space="preserve"><value>Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và chữ số.</value></data>
+  <data name="Auth.Reset.PasswordMismatch" xml:space="preserve"><value>Xác nhận mật khẩu không trùng khớp.</value></data>
+  <data name="Auth.Reset.Required" xml:space="preserve"><value>Vui lòng điền đầy đủ các trường mật khẩu.</value></data>
+  <data name="Common.ConnectionError" xml:space="preserve"><value>Lỗi kết nối máy chủ. Vui lòng thử lại sau!</value></data>
+  <data name="Auth.Login.PlatformHeading" xml:space="preserve"><value>Hệ thống quản lý chuỗi cà phê</value></data>
+  <data name="Auth.Login.PlatformDetail" xml:space="preserve"><value>Giải pháp quản trị toàn diện dành cho chủ doanh nghiệp, quản lý và nhân viên vận hành chuỗi cà phê chuyên nghiệp.</value></data>
+  <data name="Auth.Login.Feature.MultiStore" xml:space="preserve"><value>Đa chi nhánh</value></data>
+  <data name="Auth.Login.Feature.Realtime" xml:space="preserve"><value>Đồng bộ thời gian thực</value></data>
+  <data name="Auth.Login.Feature.PosReport" xml:space="preserve"><value>Báo cáo POS</value></data>
+  <data name="Auth.Login.Feature.Revenue" xml:space="preserve"><value>Doanh thu và lợi nhuận</value></data>
+  <data name="Auth.Login.Feature.Inventory" xml:space="preserve"><value>Quản lý kho</value></data>
+  <data name="Auth.Login.Feature.Bom" xml:space="preserve"><value>BOM và định lượng chuẩn</value></data>
+  <data name="Auth.Login.Feature.Shift" xml:space="preserve"><value>Tối ưu ca</value></data>
+  <data name="Auth.Login.Feature.Schedule" xml:space="preserve"><value>Phân lịch tự động</value></data>
+  <data name="Auth.Login.Quote" xml:space="preserve"><value>Cà phê đậm đà, quản lý mượt mà — Nâng tầm chuỗi thương hiệu của bạn.</value></data>
+  <data name="Auth.Login.QuickAccounts" xml:space="preserve"><value>Tài khoản đăng nhập nhanh</value></data>
+  <data name="Auth.Login.Role.Owner" xml:space="preserve"><value>Chủ doanh nghiệp</value></data>
+  <data name="Auth.Login.Role.AreaManager" xml:space="preserve"><value>Quản lý vùng</value></data>
+  <data name="Auth.Login.Role.StoreManager" xml:space="preserve"><value>Quản lý chi nhánh</value></data>
+  <data name="Auth.Login.Role.Sales" xml:space="preserve"><value>Bán hàng</value></data>
+  <data name="Auth.Login.Role.Accountant" xml:space="preserve"><value>Kế toán / Kho</value></data>
+  <data name="Auth.Login.Role.ShiftSupervisor" xml:space="preserve"><value>Ca trưởng</value></data>
+  <data name="Auth.Login.ShowPassword" xml:space="preserve"><value>Hiện hoặc ẩn mật khẩu</value></data>
+  <data name="Auth.Login.RetryAfter" xml:space="preserve"><value>Thử lại sau {0} phút</value></data>
+  <data name="Auth.Login.Authenticating" xml:space="preserve"><value>Đang xác thực...</value></data>
+  <data name="Auth.Login.Footer" xml:space="preserve"><value>© 2026 CafeChain Enterprise • Nền tảng quản trị hiện đại</value></data>
+  <data name="Dashboard.Title" xml:space="preserve"><value>Tổng quan phân tích</value></data>
+  <data name="Dashboard.ScopeDescription" xml:space="preserve"><value>Dữ liệu được giới hạn theo phạm vi cửa hàng bạn được cấp quyền.</value></data>
+  <data name="Dashboard.Guide" xml:space="preserve"><value>Hướng dẫn bảng điều khiển &amp; AI</value></data>
+  <data name="Dashboard.Apply" xml:space="preserve"><value>Áp dụng</value></data>
+  <data name="Dashboard.Filter.Aria" xml:space="preserve"><value>Bộ lọc bảng điều khiển</value></data>
+  <data name="Dashboard.Filter.Scope" xml:space="preserve"><value>Phạm vi dữ liệu</value></data>
+  <data name="Dashboard.Filter.Title" xml:space="preserve"><value>Bộ lọc phân tích</value></data>
+  <data name="Dashboard.Filter.AccessScope" xml:space="preserve"><value>Theo phạm vi truy cập</value></data>
+  <data name="Dashboard.Filter.From" xml:space="preserve"><value>Từ ngày</value></data>
+  <data name="Dashboard.Filter.To" xml:space="preserve"><value>Đến ngày</value></data>
+  <data name="Dashboard.Filter.Province" xml:space="preserve"><value>Tỉnh/Thành</value></data>
+  <data name="Dashboard.Filter.Ward" xml:space="preserve"><value>Xã/Phường/Đặc khu</value></data>
+  <data name="Dashboard.Filter.Store" xml:space="preserve"><value>Cửa hàng</value></data>
+  <data name="Dashboard.Filter.All" xml:space="preserve"><value>Tất cả</value></data>
+  <data name="Dashboard.Filter.Granularity" xml:space="preserve"><value>Độ chi tiết</value></data>
+  <data name="Dashboard.Filter.Hour" xml:space="preserve"><value>Giờ</value></data>
+  <data name="Dashboard.Filter.Day" xml:space="preserve"><value>Ngày</value></data>
+  <data name="Dashboard.Filter.Week" xml:space="preserve"><value>Tuần</value></data>
+  <data name="Dashboard.Filter.Month" xml:space="preserve"><value>Tháng</value></data>
+  <data name="Dashboard.Filter.Top" xml:space="preserve"><value>Số kết quả xếp hạng</value></data>
+  <data name="Dashboard.Filter.Preset" xml:space="preserve"><value>Tùy chọn lọc</value></data>
+  <data name="Dashboard.Filter.Current" xml:space="preserve"><value>Tùy chọn hiện tại</value></data>
+  <data name="Dashboard.Filter.Today" xml:space="preserve"><value>Hôm nay</value></data>
+  <data name="Dashboard.Filter.Last7" xml:space="preserve"><value>7 ngày gần nhất</value></data>
+  <data name="Dashboard.Filter.Last30" xml:space="preserve"><value>30 ngày gần nhất</value></data>
+  <data name="Dashboard.Filter.ThisMonth" xml:space="preserve"><value>Tháng hiện tại</value></data>
+  <data name="Dashboard.Tabs.Aria" xml:space="preserve"><value>Nhóm phân tích</value></data>
+  <data name="Dashboard.Tab.Executive" xml:space="preserve"><value>Điều hành</value></data>
+  <data name="Dashboard.Tab.Operations" xml:space="preserve"><value>POS / Ca làm việc</value></data>
+  <data name="Dashboard.Tab.Inventory" xml:space="preserve"><value>Kho</value></data>
+  <data name="Dashboard.Tab.Procurement" xml:space="preserve"><value>Mua hàng</value></data>
+  <data name="Dashboard.Tab.Product" xml:space="preserve"><value>Sản phẩm</value></data>
+  <data name="Dashboard.Tab.Workforce" xml:space="preserve"><value>Nhân sự &amp; lịch dự kiến</value></data>
+  <data name="Dashboard.Tab.Ai" xml:space="preserve"><value>Hỏi AI</value></data>
+  <data name="Category.Title" xml:space="preserve"><value>Quản lý danh mục</value></data>
+  <data name="Category.Eyebrow" xml:space="preserve"><value>Cấu trúc thực đơn</value></data>
+  <data name="Category.Description" xml:space="preserve"><value>Quản lý và tổ chức các nhóm sản phẩm đồ uống của CafeChain.</value></data>
+  <data name="Category.Add" xml:space="preserve"><value>Thêm danh mục mới</value></data>
+  <data name="Category.Total" xml:space="preserve"><value>Tổng danh mục</value></data>
+  <data name="Category.VisiblePage" xml:space="preserve"><value>Đang hiển thị trang này</value></data>
+  <data name="Category.HiddenPage" xml:space="preserve"><value>Đang ẩn trang này</value></data>
+  <data name="Category.Search" xml:space="preserve"><value>Tìm kiếm</value></data>
+  <data name="Category.SearchAria" xml:space="preserve"><value>Tìm kiếm danh mục</value></data>
+  <data name="Category.SearchPlaceholder" xml:space="preserve"><value>Tìm theo mã danh mục hoặc tên danh mục...</value></data>
+  <data name="Category.Clear" xml:space="preserve"><value>Xóa lọc</value></data>
+  <data name="Category.List" xml:space="preserve"><value>Danh sách danh mục</value></data>
+  <data name="Category.ListDescription" xml:space="preserve"><value>Sắp xếp sản phẩm theo từng nhóm để khách hàng tìm món nhanh hơn.</value></data>
+  <data name="Category.Results" xml:space="preserve"><value>{0} kết quả</value></data>
+  <data name="Category.Code" xml:space="preserve"><value>Mã danh mục</value></data>
+  <data name="Category.Name" xml:space="preserve"><value>Tên danh mục</value></data>
+  <data name="Common.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Common.Actions" xml:space="preserve"><value>Hành động</value></data>
+  <data name="Common.Visible" xml:space="preserve"><value>Hiển thị</value></data>
+  <data name="Common.Hidden" xml:space="preserve"><value>Ẩn</value></data>
+  <data name="Admin.Nav.Overview" xml:space="preserve"><value>Tổng quan</value></data>
+  <data name="Admin.Nav.Products" xml:space="preserve"><value>Sản phẩm</value></data>
+  <data name="Admin.Nav.SmartImport" xml:space="preserve"><value>Nhập dữ liệu thông minh</value></data>
+  <data name="Admin.Nav.Production" xml:space="preserve"><value>Sản xuất / BOM</value></data>
+  <data name="Admin.Nav.Inventory" xml:space="preserve"><value>Kho &amp; Cung ứng</value></data>
+  <data name="Admin.Nav.InventoryDocuments" xml:space="preserve"><value>Phiếu Kho</value></data>
+  <data name="Admin.Nav.Orders" xml:space="preserve"><value>Đơn hàng</value></data>
+  <data name="Admin.Nav.Workforce" xml:space="preserve"><value>Nhân sự &amp; Vận hành</value></data>
+  <data name="Admin.Nav.Settings" xml:space="preserve"><value>Cài đặt hệ thống</value></data>
+  <data name="Admin.Nav.AppLauncher" xml:space="preserve"><value>Chọn ứng dụng</value></data>
+  <data name="Common.Logout" xml:space="preserve"><value>Đăng xuất</value></data>
+  <data name="Category.Empty.FilteredTitle" xml:space="preserve"><value>Không tìm thấy danh mục phù hợp</value></data>
+  <data name="Category.Empty.DefaultTitle" xml:space="preserve"><value>Chưa có danh mục nào</value></data>
+  <data name="Category.Empty.FilteredDetail" xml:space="preserve"><value>Thử một từ khóa khác hoặc xóa bộ lọc hiện tại.</value></data>
+  <data name="Category.Empty.DefaultDetail" xml:space="preserve"><value>Tạo danh mục đầu tiên để bắt đầu tổ chức thực đơn.</value></data>
+  <data name="Category.Footer.Count" xml:space="preserve"><value>Hiển thị {0} danh mục</value></data>
+  <data name="Category.Form.Edit.Title" xml:space="preserve"><value>Chỉnh sửa danh mục</value></data>
+  <data name="Category.Form.Code.Label" xml:space="preserve"><value>Mã danh mục</value></data>
+  <data name="Category.Form.Code.Placeholder" xml:space="preserve"><value>Nhập mã danh mục...</value></data>
+  <data name="Category.Form.Code.Help" xml:space="preserve"><value>Tối đa 50 ký tự.</value></data>
+  <data name="Category.Form.Code.Invalid" xml:space="preserve"><value>Mã danh mục không hợp lệ (tối đa 50 ký tự).</value></data>
+  <data name="Category.Form.Name.Label" xml:space="preserve"><value>Tên danh mục</value></data>
+  <data name="Category.Form.Name.Placeholder" xml:space="preserve"><value>Nhập tên danh mục...</value></data>
+  <data name="Category.Form.Name.Help" xml:space="preserve"><value>Không được nhập quá 100 ký tự.</value></data>
+  <data name="Category.Form.Name.Invalid" xml:space="preserve"><value>Tên danh mục không hợp lệ (tối đa 100 ký tự).</value></data>
+  <data name="Category.Form.Icon.Preview" xml:space="preserve"><value>Xem trước icon</value></data>
+  <data name="Category.Form.Icon.Example" xml:space="preserve"><value>Ví dụ: ☕</value></data>
+  <data name="Category.Form.Icon.Select" xml:space="preserve"><value>Chọn biểu tượng</value></data>
+  <data name="Category.Form.Icon.Clear" xml:space="preserve"><value>Xóa icon</value></data>
+  <data name="Category.Form.Icon.Help" xml:space="preserve"><value>Chọn hoặc nhập một biểu tượng Unicode.</value></data>
+  <data name="Category.Form.Icon.Search" xml:space="preserve"><value>Tìm cà phê, trà, trái cây...</value></data>
+  <data name="Category.Form.Active" xml:space="preserve"><value>Hoạt động</value></data>
+  <data name="Category.Form.Save" xml:space="preserve"><value>Lưu danh mục</value></data>
+  <data name="Category.Form.Update" xml:space="preserve"><value>Cập nhật danh mục</value></data>
+  <data name="Category.Form.NoCreatePermission" xml:space="preserve"><value>Bạn không có quyền thêm danh mục.</value></data>
+  <data name="Category.Form.NoUpdatePermission" xml:space="preserve"><value>Bạn không có quyền cập nhật danh mục.</value></data>
+  <data name="Category.Form.Create.Title" xml:space="preserve"><value>Thêm danh mục mới</value></data>
+  <data name="Category.Form.Create.Description" xml:space="preserve"><value>Tạo danh mục đồ uống mới cho CafeChain.</value></data>
+  <data name="Category.Form.Edit.Description" xml:space="preserve"><value>Cập nhật thông tin danh mục đồ uống.</value></data>
+  <data name="Category.Form.Back" xml:space="preserve"><value>Quay lại danh sách</value></data>
+  <data name="Category.Form.AiSuggest" xml:space="preserve"><value>AI gợi ý</value></data>
+  <data name="Category.Form.AiChoose" xml:space="preserve"><value>Chọn một gợi ý để điền vào form:</value></data>
+  <data name="Category.Form.Icon.Label" xml:space="preserve"><value>Biểu tượng</value></data>
+  <data name="Category.Form.Edit.Save" xml:space="preserve"><value>Lưu thay đổi</value></data>
+  <data name="Category.Js.Saving" xml:space="preserve"><value>Đang lưu...</value></data>
+  <data name="Category.Js.Entity" xml:space="preserve"><value>danh mục</value></data>
+  <data name="Category.Js.SaveFailed" xml:space="preserve"><value>Không thể lưu danh mục.</value></data>
+  <data name="Category.Js.NetworkError" xml:space="preserve"><value>Không thể kết nối đến máy chủ.</value></data>
+  <data name="Category.Js.Success" xml:space="preserve"><value>Thành công</value></data>
+  <data name="Category.Js.ActionFailed" xml:space="preserve"><value>Không thể thực hiện</value></data>
+  <data name="Category.Js.Close" xml:space="preserve"><value>Đóng</value></data>
+  <data name="Category.Js.IconLength" xml:space="preserve"><value>Icon tối đa 10 ký tự.</value></data>
+  <data name="Category.Js.IconHtml" xml:space="preserve"><value>Icon không được chứa HTML.</value></data>
+  <data name="Category.Js.IconSingle" xml:space="preserve"><value>Chỉ được chọn một biểu tượng Unicode.</value></data>
+  <data name="Category.Js.IconNotText" xml:space="preserve"><value>Icon phải là một biểu tượng Unicode, không phải chữ hoặc số.</value></data>
+  <data name="Category.Js.IconInvalid" xml:space="preserve"><value>Icon phải là một biểu tượng Unicode hợp lệ.</value></data>
+  <data name="Category.Js.IconEmpty" xml:space="preserve"><value>Không tìm thấy biểu tượng phù hợp.</value></data>
+  <data name="Category.Js.NameRequired" xml:space="preserve"><value>Tên danh mục không được để trống.</value></data>
+  <data name="Category.Js.NameMin" xml:space="preserve"><value>Tên danh mục phải từ 2 ký tự trở lên.</value></data>
+  <data name="Category.Js.NameMax" xml:space="preserve"><value>Tên danh mục tối đa 100 ký tự.</value></data>
+  <data name="Category.Js.CodeRequired" xml:space="preserve"><value>Mã danh mục không được để trống.</value></data>
+  <data name="Category.Js.CodeMin" xml:space="preserve"><value>Mã danh mục phải từ 2 ký tự trở lên.</value></data>
+  <data name="Category.Js.CodeMax" xml:space="preserve"><value>Mã danh mục tối đa 30 ký tự.</value></data>
+  <data name="Category.Js.CreateSuccess" xml:space="preserve"><value>Đã tạo danh mục.</value></data>
+  <data name="Category.Js.AiLoading" xml:space="preserve"><value>Đang gợi ý...</value></data>
+  <data name="Category.Js.AiFailed" xml:space="preserve"><value>Không thể tạo gợi ý.</value></data>
+  <data name="Category.Js.AiChoose" xml:space="preserve"><value>Chọn một gợi ý để điền vào form:</value></data>
+  <data name="Category.Js.AiChooseWarnings" xml:space="preserve"><value>Chọn một gợi ý để điền vào form. {warnings}</value></data>
+  <data name="Category.Js.AiApplied" xml:space="preserve"><value>Đã điền gợi ý. Vui lòng kiểm tra trước khi lưu.</value></data>
+  <data name="Category.Js.AiCategoryFailed" xml:space="preserve"><value>Không thể tạo gợi ý danh mục.</value></data>
+  <data name="Category.Js.UpdateSuccess" xml:space="preserve"><value>Đã cập nhật danh mục.</value></data>
+  <data name="Category.Js.NotFound" xml:space="preserve"><value>Không tìm thấy danh mục.</value></data>
+  <data name="Category.Js.GenericError" xml:space="preserve"><value>Có lỗi xảy ra.</value></data>
+  <data name="Category.Js.StatusConfirm" xml:space="preserve"><value>Bạn có chắc muốn thay đổi trạng thái danh mục này?</value></data>
+  <data name="Category.Js.Confirm" xml:space="preserve"><value>Đồng ý</value></data>
+  <data name="Category.Js.StatusEntity" xml:space="preserve"><value>trạng thái danh mục</value></data>
+  <data name="Category.Js.StatusSuccess" xml:space="preserve"><value>Thay đổi trạng thái thành công.</value></data>
+  <data name="Category.Js.Group.Drinks" xml:space="preserve"><value>Đồ uống</value></data>
+  <data name="Category.Js.Group.Fruit" xml:space="preserve"><value>Trái cây</value></data>
+  <data name="Category.Js.Group.Food" xml:space="preserve"><value>Đồ ăn</value></data>
+  <data name="Category.Js.Group.Dessert" xml:space="preserve"><value>Bánh và kem</value></data>
+  <data name="Category.Js.Group.Popular" xml:space="preserve"><value>Phổ biến</value></data>
+  <data name="Category.Js.Icon.Coffee" xml:space="preserve"><value>Cà phê</value></data>
+  <data name="Category.Js.Icon.MilkTea" xml:space="preserve"><value>Trà sữa</value></data>
+  <data name="Category.Js.Icon.Tea" xml:space="preserve"><value>Trà</value></data>
+  <data name="Category.Js.Icon.Drink" xml:space="preserve"><value>Nước uống</value></data>
+  <data name="Category.Js.Icon.Milk" xml:space="preserve"><value>Sữa</value></data>
+  <data name="Category.Js.Icon.Juice" xml:space="preserve"><value>Nước ép</value></data>
+  <data name="Category.Js.Icon.FruitDrink" xml:space="preserve"><value>Nước trái cây</value></data>
+  <data name="Category.Js.Icon.Mocktail" xml:space="preserve"><value>Mocktail</value></data>
+  <data name="Category.Js.Icon.ColdDrink" xml:space="preserve"><value>Đồ uống lạnh</value></data>
+  <data name="Category.Js.Icon.Strawberry" xml:space="preserve"><value>Dâu</value></data>
+  <data name="Category.Js.Icon.Orange" xml:space="preserve"><value>Cam</value></data>
+  <data name="Category.Js.Icon.Lemon" xml:space="preserve"><value>Chanh</value></data>
+  <data name="Category.Js.Icon.Apple" xml:space="preserve"><value>Táo</value></data>
+  <data name="Category.Js.Icon.Watermelon" xml:space="preserve"><value>Dưa hấu</value></data>
+  <data name="Category.Js.Icon.Mango" xml:space="preserve"><value>Xoài</value></data>
+  <data name="Category.Js.Icon.Peach" xml:space="preserve"><value>Đào</value></data>
+  <data name="Category.Js.Icon.Cherry" xml:space="preserve"><value>Anh đào</value></data>
+  <data name="Category.Js.Icon.Pineapple" xml:space="preserve"><value>Dứa</value></data>
+  <data name="Category.Js.Icon.Avocado" xml:space="preserve"><value>Bơ</value></data>
+  <data name="Category.Js.Icon.Coconut" xml:space="preserve"><value>Dừa</value></data>
+  <data name="Category.Js.Icon.Croissant" xml:space="preserve"><value>Bánh sừng bò</value></data>
+  <data name="Category.Js.Icon.Sandwich" xml:space="preserve"><value>Bánh mì kẹp</value></data>
+  <data name="Category.Js.Icon.Bread" xml:space="preserve"><value>Bánh mì</value></data>
+  <data name="Category.Js.Icon.Pretzel" xml:space="preserve"><value>Bánh xoắn</value></data>
+  <data name="Category.Js.Icon.Chocolate" xml:space="preserve"><value>Sô-cô-la</value></data>
+  <data name="Category.Js.Icon.Nuts" xml:space="preserve"><value>Hạt</value></data>
+  <data name="Category.Js.Icon.IceCreamBowl" xml:space="preserve"><value>Kem ly</value></data>
+  <data name="Category.Js.Icon.IceCream" xml:space="preserve"><value>Kem</value></data>
+  <data name="Category.Js.Icon.Cake" xml:space="preserve"><value>Bánh ngọt</value></data>
+  <data name="Category.Js.Icon.Cupcake" xml:space="preserve"><value>Bánh cupcake</value></data>
+  <data name="Category.Js.Icon.Cookie" xml:space="preserve"><value>Bánh quy</value></data>
+  <data name="Category.Js.Icon.Donut" xml:space="preserve"><value>Bánh vòng</value></data>
+  <data name="Category.Js.Icon.Featured" xml:space="preserve"><value>Nổi bật</value></data>
+  <data name="Category.Js.Icon.Bestseller" xml:space="preserve"><value>Bán chạy</value></data>
+  <data name="Category.Js.Icon.Herbal" xml:space="preserve"><value>Thảo mộc</value></data>
+  <data name="Category.Js.Icon.Favorite" xml:space="preserve"><value>Yêu thích</value></data>
+  <data name="Category.Js.Icon.Seasonal" xml:space="preserve"><value>Theo mùa</value></data>
+  <data name="Category.Js.Icon.Healthy" xml:space="preserve"><value>Tốt cho sức khỏe</value></data>
+  <data name="Category.Js.Icon.Blended" xml:space="preserve"><value>Đá xay</value></data>
+  <data name="Category.Js.Icon.HotDrink" xml:space="preserve"><value>Đồ uống nóng</value></data>
+  <data name="Common.Edit" xml:space="preserve"><value>Sửa</value></data>
+  <data name="Profile.Title" xml:space="preserve"><value>Hồ sơ của tôi</value></data>
+  <data name="Profile.Status.Probation" xml:space="preserve"><value>Thử việc</value></data>
+  <data name="Profile.Status.Official" xml:space="preserve"><value>Chính thức</value></data>
+  <data name="Profile.Status.Resigned" xml:space="preserve"><value>Đã nghỉ việc</value></data>
+  <data name="Profile.Status.Unknown" xml:space="preserve"><value>Không xác định</value></data>
+  <data name="Profile.Gender.Female" xml:space="preserve"><value>Nữ</value></data>
+  <data name="Profile.Gender.Male" xml:space="preserve"><value>Nam</value></data>
+  <data name="Profile.Gender.Other" xml:space="preserve"><value>Khác</value></data>
+  <data name="Profile.AvatarAlt" xml:space="preserve"><value>Ảnh đại diện của {0}</value></data>
+  <data name="Profile.Eyebrow" xml:space="preserve"><value>Hồ sơ quản trị</value></data>
+  <data name="Profile.Summary" xml:space="preserve"><value>Quản lý thông tin cá nhân, công việc và bảo mật tài khoản tại một nơi.</value></data>
+  <data name="Profile.Personal" xml:space="preserve"><value>Thông tin cá nhân</value></data>
+  <data name="Profile.FullName" xml:space="preserve"><value>Họ và tên</value></data>
+  <data name="Profile.BirthDate" xml:space="preserve"><value>Ngày sinh</value></data>
+  <data name="Profile.Gender" xml:space="preserve"><value>Giới tính</value></data>
+  <data name="Profile.Work" xml:space="preserve"><value>Thông tin công việc</value></data>
+  <data name="Profile.Role" xml:space="preserve"><value>Vai trò</value></data>
+  <data name="Profile.Store" xml:space="preserve"><value>Cửa hàng</value></data>
+  <data name="Profile.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Profile.StartDate" xml:space="preserve"><value>Ngày bắt đầu</value></data>
+  <data name="Profile.Contact" xml:space="preserve"><value>Liên hệ</value></data>
+  <data name="Profile.Phone" xml:space="preserve"><value>Số điện thoại</value></data>
+  <data name="Profile.PhonePlaceholder" xml:space="preserve"><value>Nhập số điện thoại...</value></data>
+  <data name="Profile.Save" xml:space="preserve"><value>Lưu</value></data>
+  <data name="Profile.Security" xml:space="preserve"><value>Bảo mật tài khoản</value></data>
+  <data name="Profile.Password" xml:space="preserve"><value>Mật khẩu</value></data>
+  <data name="Profile.ChangePassword" xml:space="preserve"><value>Đổi mật khẩu</value></data>
+  <data name="Profile.CurrentPassword" xml:space="preserve"><value>Mật khẩu hiện tại</value></data>
+  <data name="Profile.CurrentPasswordPlaceholder" xml:space="preserve"><value>Nhập mật khẩu hiện tại...</value></data>
+  <data name="Profile.NewPassword" xml:space="preserve"><value>Mật khẩu mới</value></data>
+  <data name="Profile.NewPasswordPlaceholder" xml:space="preserve"><value>Tối thiểu 6 ký tự...</value></data>
+  <data name="Profile.ConfirmPassword" xml:space="preserve"><value>Xác nhận mật khẩu mới</value></data>
+  <data name="Profile.ConfirmPasswordPlaceholder" xml:space="preserve"><value>Nhập lại mật khẩu mới...</value></data>
+  <data name="Profile.ConfirmChange" xml:space="preserve"><value>Xác nhận đổi</value></data>
+  <data name="Profile.Js.Invalid" xml:space="preserve"><value>Không hợp lệ</value></data>
+  <data name="Profile.Js.ImageType" xml:space="preserve"><value>Chỉ hỗ trợ ảnh JPG, JPEG, PNG hoặc WebP.</value></data>
+  <data name="Profile.Js.ImageLarge" xml:space="preserve"><value>Ảnh quá lớn</value></data>
+  <data name="Profile.Js.ImageSize" xml:space="preserve"><value>Ảnh đại diện không được vượt quá 2 MB.</value></data>
+  <data name="Profile.Js.Error" xml:space="preserve"><value>Lỗi</value></data>
+  <data name="Profile.Js.AvatarError" xml:space="preserve"><value>Không thể cập nhật ảnh đại diện.</value></data>
+  <data name="Profile.Js.Missing" xml:space="preserve"><value>Thiếu thông tin</value></data>
+  <data name="Profile.Js.PhoneRequired" xml:space="preserve"><value>Vui lòng nhập số điện thoại.</value></data>
+  <data name="Profile.Js.PhoneInvalid" xml:space="preserve"><value>Số điện thoại phải đúng 10 chữ số, bắt đầu bằng 03-09.</value></data>
+  <data name="Profile.Js.PhoneError" xml:space="preserve"><value>Không thể cập nhật số điện thoại.</value></data>
+  <data name="Profile.Js.FieldsRequired" xml:space="preserve"><value>Vui lòng điền đầy đủ các trường.</value></data>
+  <data name="Profile.Js.PasswordLength" xml:space="preserve"><value>Mật khẩu mới phải có ít nhất 6 ký tự.</value></data>
+  <data name="Profile.Js.Mismatch" xml:space="preserve"><value>Không khớp</value></data>
+  <data name="Profile.Js.PasswordMismatch" xml:space="preserve"><value>Mật khẩu xác nhận không trùng khớp.</value></data>
+  <data name="Profile.Js.Success" xml:space="preserve"><value>Thành công</value></data>
+  <data name="Profile.Js.SystemError" xml:space="preserve"><value>Lỗi hệ thống</value></data>
+  <data name="Profile.Js.PasswordError" xml:space="preserve"><value>Không thể đổi mật khẩu.</value></data>
+  <data name="Settings.Title" xml:space="preserve"><value>Cài đặt hệ thống</value></data>
+  <data name="Settings.Eyebrow" xml:space="preserve"><value>Quản trị</value></data>
+  <data name="Settings.Description" xml:space="preserve"><value>Cấu hình các chính sách vận hành và khả năng nhận dạng tài liệu.</value></data>
+  <data name="Settings.Tab.NegativeInventory" xml:space="preserve"><value>Cấu hình âm kho</value></data>
+  <data name="Settings.Tab.Ocr" xml:space="preserve"><value>OCR &amp; nhận dạng tài liệu</value></data>
+  <data name="Settings.Ocr.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Settings.Ocr.Ready" xml:space="preserve"><value>Sẵn sàng</value></data>
+  <data name="Settings.Ocr.InfrastructureUnavailable" xml:space="preserve"><value>Tesseract/model chưa sẵn sàng</value></data>
+  <data name="Settings.Ocr.Error" xml:space="preserve"><value>Đang lỗi</value></data>
+  <data name="Settings.Ocr.Pending" xml:space="preserve"><value>Đang chờ kiểm tra</value></data>
+  <data name="Settings.Ocr.PrivacyHint" xml:space="preserve"><value>OCR tự khả dụng khi Tesseract và model đạt trạng thái READY. Tài liệu không được gửi lên cloud và không cần khóa API.</value></data>
+  <data name="Settings.Ocr.Version" xml:space="preserve"><value>Phiên bản Tesseract</value></data>
+  <data name="Settings.Ocr.NotChecked" xml:space="preserve"><value>Chưa kiểm tra</value></data>
+  <data name="Settings.Ocr.NotReady" xml:space="preserve"><value>Chưa sẵn sàng</value></data>
+  <data name="Settings.Ocr.ModelReady" xml:space="preserve"><value>Đủ model</value></data>
+  <data name="Settings.Ocr.ModelMissing" xml:space="preserve"><value>Thiếu model</value></data>
+  <data name="Settings.Ocr.Languages" xml:space="preserve"><value>Ngôn ngữ Tesseract</value></data>
+  <data name="Settings.Ocr.Language.Bilingual" xml:space="preserve"><value>Tiếng Việt + English (vie+eng)</value></data>
+  <data name="Settings.Ocr.Language.Vietnamese" xml:space="preserve"><value>Tiếng Việt (vie)</value></data>
+  <data name="Settings.Ocr.ReviewThreshold" xml:space="preserve"><value>Ngưỡng review</value></data>
+  <data name="Settings.Ocr.MaxPages" xml:space="preserve"><value>Số trang tối đa</value></data>
+  <data name="Settings.Ocr.MaxPixelsPerPage" xml:space="preserve"><value>Pixel tối đa/trang</value></data>
+  <data name="Settings.Ocr.MaxTotalPixels" xml:space="preserve"><value>Tổng pixel tối đa</value></data>
+  <data name="Settings.Ocr.ConcurrentPages" xml:space="preserve"><value>Trang đồng thời</value></data>
+  <data name="Settings.Ocr.PageTimeout" xml:space="preserve"><value>Timeout mỗi trang (giây)</value></data>
+  <data name="Settings.Ocr.TotalTimeout" xml:space="preserve"><value>Timeout tổng (giây)</value></data>
+  <data name="Settings.Ocr.LastCheck" xml:space="preserve"><value>Lần kiểm tra</value></data>
+  <data name="Settings.Ocr.ConfigVersion" xml:space="preserve"><value>phiên bản</value></data>
+  <data name="Settings.Ocr.Check" xml:space="preserve"><value>Kiểm tra OCR</value></data>
+  <data name="Settings.Ocr.Save" xml:space="preserve"><value>Lưu cấu hình OCR</value></data>
+  <data name="Settings.Negative.Status.Invalid" xml:space="preserve"><value>Cấu hình lỗi</value></data>
+  <data name="Settings.Negative.Status.Enabled" xml:space="preserve"><value>Bật có kiểm soát</value></data>
+  <data name="Settings.Negative.Status.Disabled" xml:space="preserve"><value>Đang tắt</value></data>
+  <data name="Settings.Negative.Title" xml:space="preserve"><value>Cho phép xuất vượt tồn</value></data>
+  <data name="Settings.Negative.Description" xml:space="preserve"><value>Áp dụng cho phiếu xuất bán hàng và luôn yêu cầu người có thẩm quyền phê duyệt.</value></data>
+  <data name="Settings.Negative.ToggleAria" xml:space="preserve"><value>Cho phép gửi yêu cầu xuất âm kho</value></data>
+  <data name="Settings.Negative.Toggle" xml:space="preserve"><value>Cho phép tạo yêu cầu</value></data>
+  <data name="Settings.Negative.PendingPrefix" xml:space="preserve"><value>Hiện có</value></data>
+  <data name="Settings.Negative.PendingSuffix" xml:space="preserve"><value>yêu cầu đang chờ.</value></data>
+  <data name="Settings.Negative.PendingHint" xml:space="preserve"><value>Thay đổi policy hoặc hạn mức có thể khiến các yêu cầu này cần được tạo lại.</value></data>
+  <data name="Settings.Negative.Policy.Title" xml:space="preserve"><value>Thiết lập chính sách</value></data>
+  <data name="Settings.Negative.Policy.Hint" xml:space="preserve"><value>Hạn mức chung và nguyên tắc phê duyệt đang áp dụng.</value></data>
+  <data name="Settings.Negative.DefaultLimit" xml:space="preserve"><value>Hạn mức mặc định</value></data>
+  <data name="Settings.Negative.BaseUnit" xml:space="preserve"><value>Đơn vị gốc</value></data>
+  <data name="Settings.Negative.DefaultLimitHint" xml:space="preserve"><value>Tự động áp dụng khi item chưa có hạn mức riêng.</value></data>
+  <data name="Settings.Negative.TwoStep" xml:space="preserve"><value>Phê duyệt hai bước</value></data>
+  <data name="Settings.Negative.Required" xml:space="preserve"><value>Bắt buộc</value></data>
+  <data name="Settings.Negative.TwoStepHint" xml:space="preserve"><value>Không thể tắt trên giao diện.</value></data>
+  <data name="Settings.Negative.PolicyVersion" xml:space="preserve"><value>Phiên bản chính sách</value></data>
+  <data name="Settings.Negative.ManualExport" xml:space="preserve"><value>Xuất thủ công</value></data>
+  <data name="Settings.Negative.PolicyVersionHint" xml:space="preserve"><value>Tự cập nhật sau mỗi thay đổi.</value></data>
+  <data name="Settings.Negative.StoreLimits" xml:space="preserve"><value>Hạn mức theo cửa hàng</value></data>
+  <data name="Settings.Negative.StoreSummary" xml:space="preserve"><value>{0} cửa hàng · {1} item · {2} yêu cầu chờ duyệt</value></data>
+  <data name="Settings.Negative.StoresAria" xml:space="preserve"><value>Cửa hàng</value></data>
+  <data name="Settings.Negative.SearchPlaceholder" xml:space="preserve"><value>Mã, tên hoặc Item ID...</value></data>
+  <data name="Settings.Negative.Rows" xml:space="preserve"><value>{0} dòng</value></data>
+  <data name="Settings.Negative.Column.Code" xml:space="preserve"><value>Mã Item</value></data>
+  <data name="Settings.Negative.Column.Name" xml:space="preserve"><value>Tên Item</value></data>
+  <data name="Settings.Negative.Column.Available" xml:space="preserve"><value>Tồn khả dụng</value></data>
+  <data name="Settings.Negative.Column.Mode" xml:space="preserve"><value>Chế độ</value></data>
+  <data name="Settings.Negative.Column.CustomLimit" xml:space="preserve"><value>Hạn mức riêng</value></data>
+  <data name="Settings.Negative.Column.Effective" xml:space="preserve"><value>Hiệu lực</value></data>
+  <data name="Settings.Negative.Column.Status" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Settings.Negative.Reserved" xml:space="preserve"><value>Đã giữ</value></data>
+  <data name="Settings.Negative.Mode.Blocked" xml:space="preserve"><value>Chặn</value></data>
+  <data name="Settings.Negative.Mode.Default" xml:space="preserve"><value>Theo mặc định</value></data>
+  <data name="Settings.Negative.Mode.Custom" xml:space="preserve"><value>Hạn mức riêng</value></data>
+  <data name="Settings.Negative.Empty" xml:space="preserve"><value>Không có item phù hợp trong cửa hàng này.</value></data>
+  <data name="Settings.Negative.PageStatus" xml:space="preserve"><value>Trang {0} / {1}</value></data>
+  <data name="Settings.Negative.PaginationAria" xml:space="preserve"><value>Phân trang cấu hình âm kho</value></data>
+  <data name="Settings.Negative.Save" xml:space="preserve"><value>Lưu cấu hình âm kho</value></data>
+  <data name="Settings.Js.Mode.Blocked" xml:space="preserve"><value>Chặn</value></data>
+  <data name="Settings.Js.Mode.Default" xml:space="preserve"><value>Theo mặc định</value></data>
+  <data name="Settings.Js.Mode.Custom" xml:space="preserve"><value>Hạn mức riêng</value></data>
+  <data name="Settings.Js.PreviousPage" xml:space="preserve"><value>Trang trước</value></data>
+  <data name="Settings.Js.NextPage" xml:space="preserve"><value>Trang sau</value></data>
+  <data name="Settings.Js.PageStatus" xml:space="preserve"><value>Trang {page} / {total}</value></data>
+  <data name="Settings.Js.OcrReady" xml:space="preserve"><value>OCR sẵn sàng</value></data>
+  <data name="Settings.Js.SettingsSaved" xml:space="preserve"><value>Đã lưu cấu hình</value></data>
+  <data name="Settings.Js.OcrSaveFailed" xml:space="preserve"><value>Không thể lưu OCR</value></data>
+  <data name="Settings.Js.ConnectionError" xml:space="preserve"><value>Lỗi kết nối</value></data>
+  <data name="Settings.Js.OcrSendFailed" xml:space="preserve"><value>Không thể gửi cấu hình OCR.</value></data>
+  <data name="Settings.Js.OcrUnavailable" xml:space="preserve"><value>OCR không khả dụng</value></data>
+  <data name="Settings.Js.OcrCheckFailed" xml:space="preserve"><value>Không thể kiểm tra OCR provider.</value></data>
+  <data name="Settings.Js.InvalidData" xml:space="preserve"><value>Dữ liệu chưa hợp lệ</value></data>
+  <data name="Settings.Js.CustomLimitInvalid" xml:space="preserve"><value>Hạn mức riêng phải lớn hơn 0.</value></data>
+  <data name="Settings.Js.ConfigurationChanged" xml:space="preserve"><value>Cấu hình đã thay đổi</value></data>
+  <data name="Settings.Js.Forbidden" xml:space="preserve"><value>Không có quyền</value></data>
+  <data name="Settings.Js.SaveFailed" xml:space="preserve"><value>Không thể lưu cấu hình</value></data>
+  <data name="Settings.Js.Saved" xml:space="preserve"><value>Đã lưu</value></data>
+  <data name="Settings.Js.NegativeSaved" xml:space="preserve"><value>Đã cập nhật cấu hình âm kho.</value></data>
+  <data name="Settings.Js.UpdateSendFailed" xml:space="preserve"><value>Không thể gửi yêu cầu cập nhật cấu hình.</value></data>
+  <data name="Settings.Js.EnableTitle" xml:space="preserve"><value>Bật xuất âm có kiểm soát?</value></data>
+  <data name="Settings.Js.DisableTitle" xml:space="preserve"><value>Tắt xuất âm thủ công?</value></data>
+  <data name="Settings.Js.PendingText" xml:space="preserve"><value> Hiện có {count} yêu cầu đang chờ và có thể cần được tạo lại nếu policy thay đổi.</value></data>
+  <data name="Settings.Js.EnableText" xml:space="preserve"><value>Tính năng vẫn bắt buộc phê duyệt và không tự xác nhận phiếu.</value></data>
+  <data name="Settings.Js.DisableText" xml:space="preserve"><value>Đây là kill switch và sẽ chặn yêu cầu xuất âm mới từ request kế tiếp.</value></data>
+  <data name="Settings.Js.ConfirmEnable" xml:space="preserve"><value>Xác nhận bật/lưu</value></data>
+  <data name="Settings.Js.ConfirmDisable" xml:space="preserve"><value>Xác nhận tắt/lưu</value></data>
+  <data name="Settings.Js.Cancel" xml:space="preserve"><value>Quay lại</value></data>
+  <data name="Common.QuantityAndUnit" xml:space="preserve"><value>Số lượng và đơn vị</value></data>
+  <data name="Common.NoData" xml:space="preserve"><value>Chưa có dữ liệu</value></data>
+  <data name="Common.Responsible" xml:space="preserve"><value>Phụ trách</value></data>
+  <data name="Common.PageActions" xml:space="preserve"><value>Thao tác trang</value></data>
+  <data name="Common.Pagination.Range" xml:space="preserve"><value>Hiển thị {0}-{1} trong số {2}</value></data>
+  <data name="Common.Pagination.Aria" xml:space="preserve"><value>Phân trang danh sách</value></data>
+  <data name="Common.Pagination.Previous" xml:space="preserve"><value>Trang trước</value></data>
+  <data name="Common.Pagination.Next" xml:space="preserve"><value>Trang sau</value></data>
+  <data name="StoreScope.Title" xml:space="preserve"><value>Phạm vi cửa hàng</value></data>
+  <data name="StoreScope.ErrorTitle" xml:space="preserve"><value>Không thể xác định cửa hàng</value></data>
+  <data name="PosSessions.Title" xml:space="preserve"><value>Phiên truy cập POS</value></data>
+  <data name="PosSessions.Description" xml:space="preserve"><value>Mỗi thiết bị đầu cuối chỉ có một phiên hoạt động.</value></data>
+  <data name="PosSessions.Staff" xml:space="preserve"><value>Nhân viên</value></data>
+  <data name="PosSessions.WorkShift" xml:space="preserve"><value>Ca làm việc</value></data>
+  <data name="PosSessions.Expires" xml:space="preserve"><value>Hết hạn</value></data>
+  <data name="PosSessions.EndReason" xml:space="preserve"><value>Lý do kết thúc</value></data>
+  <data name="PosSessions.End" xml:space="preserve"><value>Kết thúc phiên</value></data>
+  <data name="Role.BusinessOwner" xml:space="preserve"><value>Chủ doanh nghiệp</value></data>
+  <data name="Role.AreaManager" xml:space="preserve"><value>Quản lý vùng</value></data>
+  <data name="Role.StoreManager" xml:space="preserve"><value>Quản lý chi nhánh</value></data>
+  <data name="Role.ShiftSupervisor" xml:space="preserve"><value>Ca trưởng</value></data>
+  <data name="Role.SalesStaff" xml:space="preserve"><value>Nhân viên bán hàng</value></data>
+  <data name="Role.AccountantWarehouse" xml:space="preserve"><value>Kế toán/kho</value></data>
+  <data name="Role.SystemAdmin" xml:space="preserve"><value>Quản trị hệ thống</value></data>
+  <data name="Role.Customer" xml:space="preserve"><value>Khách hàng</value></data>
+  <data name="Dashboard.Ai.Eyebrow" xml:space="preserve"><value>Trợ lý phân tích dựa trên bằng chứng</value></data>
+  <data name="Dashboard.Ai.Title" xml:space="preserve"><value>Hỏi dữ liệu bằng tiếng Việt</value></data>
+  <data name="Dashboard.Ai.Description" xml:space="preserve"><value>Đặt câu hỏi về dữ liệu trong bộ lọc hiện tại. Trợ lý chỉ đọc dữ liệu đã xác thực và luôn tuân theo phạm vi truy cập của nhân viên.</value></data>
+  <data name="Dashboard.Ai.ReadOnly" xml:space="preserve"><value>Chỉ đọc</value></data>
+  <data name="Dashboard.Ai.HideAnalysis" xml:space="preserve"><value>Ẩn phân tích</value></data>
+  <data name="Dashboard.Ai.Placeholder" xml:space="preserve"><value>Ví dụ: So sánh doanh thu 7 ngày gần đây với kỳ trước và chỉ ra cửa hàng cần chú ý</value></data>
+  <data name="Dashboard.Ai.Analyze" xml:space="preserve"><value>Phân tích</value></data>
+  <data name="Layout.HomeBrandAria" xml:space="preserve"><value>CafeChain - Trang chủ</value></data>
+  <data name="Layout.SearchPlaceholder" xml:space="preserve"><value>Tìm cà phê...</value></data>
+  <data name="Layout.OrderHistory" xml:space="preserve"><value>Lịch sử đơn hàng</value></data>
+  <data name="Layout.Cart" xml:space="preserve"><value>Giỏ hàng</value></data>
+  <data name="Layout.CartItems" xml:space="preserve"><value>sản phẩm trong giỏ</value></data>
+  <data name="Layout.BackToDashboard" xml:space="preserve"><value>Quay lại Dashboard</value></data>
+  <data name="Layout.ConfirmDefaultTitle" xml:space="preserve"><value>Xác nhận hành động</value></data>
+  <data name="Layout.ConfirmDefaultMessage" xml:space="preserve"><value>Bạn có chắc chắn muốn thực hiện thao tác này không?</value></data>
+  <data name="Layout.ConfirmOk" xml:space="preserve"><value>Xác nhận</value></data>
+  <data name="Layout.ConfirmCancel" xml:space="preserve"><value>Hủy bỏ</value></data>
+  <data name="Layout.Toast.Success" xml:space="preserve"><value>Thành công</value></data>
+  <data name="Layout.Toast.Error" xml:space="preserve"><value>Có lỗi xảy ra</value></data>
+  <data name="Layout.Toast.Warning" xml:space="preserve"><value>Lưu ý</value></data>
+  <data name="Layout.Toast.Info" xml:space="preserve"><value>Thông báo</value></data>
+  <data name="Layout.Toast.NoAccess" xml:space="preserve"><value>Không có quyền truy cập hoặc hệ thống gặp sự cố.</value></data>
+  <data name="Layout.Toast.GenericError" xml:space="preserve"><value>Có lỗi xảy ra.</value></data>
+  <data name="Layout.Toast.Close" xml:space="preserve"><value>Đóng</value></data>
+  <data name="Layout.Toast.CloseAria" xml:space="preserve"><value>Đóng thông báo</value></data>
+  <data name="Layout.Footer.TagLine" xml:space="preserve"><value>Hương vị cà phê nguyên bản từ những vùng nguyên liệu trứ danh, kết nối tâm hồn Việt.</value></data>
+  <data name="Layout.Footer.AboutUs" xml:space="preserve"><value>Về chúng tôi</value></data>
+  <data name="Layout.Footer.Recruitment" xml:space="preserve"><value>Tuyển dụng</value></data>
+  <data name="Layout.Footer.MemberBenefits" xml:space="preserve"><value>Ưu đãi thành viên</value></data>
+  <data name="Layout.Footer.PrivacyPolicy" xml:space="preserve"><value>Chính sách bảo mật</value></data>
+  <data name="Layout.Footer.Support" xml:space="preserve"><value>Hỗ trợ khách hàng</value></data>
+  <data name="Layout.Footer.Contact" xml:space="preserve"><value>Liên hệ</value></data>
+  <data name="Layout.Footer.QA" xml:space="preserve"><value>Q&amp;A</value></data>
+  <data name="Layout.Footer.Shipping" xml:space="preserve"><value>Vận chuyển</value></data>
+  <data name="Layout.Footer.ContactInfo" xml:space="preserve"><value>Thông tin liên hệ</value></data>
+  <data name="Layout.Footer.Rights" xml:space="preserve"><value>Tất cả quyền được bảo lưu.</value></data>
+  <data name="Layout.Footer.Terms" xml:space="preserve"><value>Điều khoản</value></data>
+  <data name="Layout.Footer.Policy" xml:space="preserve"><value>Chính sách</value></data>
+</root>
