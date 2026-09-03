@@ -28,6 +28,47 @@ public sealed class AuthenticationHostingConfigurationTests
     }
 
     [Fact]
+    public void Development_requires_an_explicit_ephemeral_key_opt_in_when_key_path_is_missing()
+    {
+        var services = new ServiceCollection();
+        var configuration = Configuration(new Dictionary<string, string?>());
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            services.AddCafeChainDataProtection(configuration, Environment(Environments.Development)));
+
+        Assert.Contains("AllowEphemeralKeysForDevelopment", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Development_can_explicitly_opt_in_to_ephemeral_keys()
+    {
+        var services = new ServiceCollection();
+        var configuration = Configuration(new Dictionary<string, string?>
+        {
+            ["DataProtection:AllowEphemeralKeysForDevelopment"] = "true"
+        });
+
+        services.AddCafeChainDataProtection(configuration, Environment(Environments.Development));
+
+        using var provider = services.BuildServiceProvider();
+        var state = provider.GetRequiredService<DataProtectionHostingState>();
+        Assert.False(state.UsesPersistentKeys);
+        Assert.False(state.KeyDirectoryReady);
+    }
+
+    [Fact]
+    public void Iis_publish_contract_forces_production_and_an_external_key_directory()
+    {
+        var webConfig = File.ReadAllText(Path.Combine(FindRepoRoot(), "CafeChain", "web.config"));
+
+        Assert.Contains("name=\"ASPNETCORE_ENVIRONMENT\" value=\"Production\"", webConfig, StringComparison.Ordinal);
+        Assert.Contains(
+            "name=\"DataProtection__KeysPath\" value=\"..\\private\\CafeChain\\DataProtectionKeys\"",
+            webConfig,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Shared_key_directory_survives_a_service_provider_restart()
     {
         var keyDirectory = Directory.CreateTempSubdirectory("cafechain-dp-");

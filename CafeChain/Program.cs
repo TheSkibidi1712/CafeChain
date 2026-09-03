@@ -61,13 +61,16 @@ var app = builder.Build();
 
 var dataProtectionHosting = app.Services.GetRequiredService<DataProtectionHostingState>();
 Log.Information(
-    "CafeChain host starting. Machine={MachineName} ProcessId={ProcessId} " +
+    "CafeChain host starting. EnvironmentName={EnvironmentName} Machine={MachineName} ProcessId={ProcessId} " +
     "PersistentDataProtectionKeys={PersistentDataProtectionKeys} KeyDirectoryReady={KeyDirectoryReady} " +
-    "SessionStore={SessionStore}",
+    "DataProtectionRepository={DataProtectionRepository} KeyDirectory={KeyDirectory} SessionStore={SessionStore}",
+    builder.Environment.EnvironmentName,
     Environment.MachineName,
     Environment.ProcessId,
     dataProtectionHosting.UsesPersistentKeys,
     dataProtectionHosting.KeyDirectoryReady,
+    dataProtectionHosting.RepositoryMode,
+    dataProtectionHosting.KeyDirectoryPath,
     "SqlServer");
 
 app.UseCafeChainPipeline();

@@ -4,7 +4,9 @@ namespace CafeChain.Extensions.Services;
 
 public sealed record DataProtectionHostingState(
     bool UsesPersistentKeys,
-    bool KeyDirectoryReady);
+    bool KeyDirectoryReady,
+    string RepositoryMode,
+    string? KeyDirectoryPath);
 
 public static class DataProtectionServiceExtensions
 {
@@ -16,15 +18,24 @@ public static class DataProtectionServiceExtensions
         var configuredPath = configuration["DataProtection:KeysPath"]?.Trim();
         if (string.IsNullOrWhiteSpace(configuredPath))
         {
-            if (environment.IsProduction())
+            var allowEphemeralDevelopmentKeys =
+                environment.IsDevelopment()
+                && configuration.GetValue<bool>(
+                    "DataProtection:AllowEphemeralKeysForDevelopment");
+            if (!allowEphemeralDevelopmentKeys)
             {
                 throw new InvalidOperationException(
-                    "DataProtection:KeysPath is required in Production. " +
-                    "Use a persistent directory outside the publish root and grant the application pool read/write access.");
+                    "DataProtection:KeysPath is required. Ephemeral keys are allowed only in Development " +
+                    "when DataProtection:AllowEphemeralKeysForDevelopment=true is explicitly configured. " +
+                    "Production must use a persistent directory outside the publish root with application-pool read/write access.");
             }
 
             services.AddDataProtection().SetApplicationName("CafeChain");
-            services.AddSingleton(new DataProtectionHostingState(false, false));
+            services.AddSingleton(new DataProtectionHostingState(
+                false,
+                false,
+                "EphemeralDevelopmentOptIn",
+                null));
             return services;
         }
 
@@ -46,7 +57,11 @@ public static class DataProtectionServiceExtensions
                 "Production Data Protection is configured for Windows DPAPI because CafeChain is hosted on Plesk/IIS.");
         }
 
-        services.AddSingleton(new DataProtectionHostingState(true, true));
+        services.AddSingleton(new DataProtectionHostingState(
+            true,
+            true,
+            OperatingSystem.IsWindows() ? "FileSystemDpapiMachine" : "FileSystem",
+            keyDirectoryPath));
         return services;
     }
 
