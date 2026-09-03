@@ -527,7 +527,6 @@
             position: $('#contactPosition').value.trim() || null,
             active: true
         };
-        const form = event.currentTarget;
         setBusy(form, true);
         try {
             await api(id ? '/UpdateContact' : '/AddContact', { method: 'POST', body });
