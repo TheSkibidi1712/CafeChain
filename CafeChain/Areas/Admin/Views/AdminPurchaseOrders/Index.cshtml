@@ -27,26 +27,27 @@
     @if (TempData["SuccessMessage"] != null) { <div class="ops-notice ops-notice-success" role="status">@TempData["SuccessMessage"]</div> }
     @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMessage"]</div> }
 
+    @if (stores.Count > 1)
+    {
+        <form method="get" class="po-filter-toolbar cc-warehouse-filter" aria-label="Lọc đơn đặt hàng theo chi nhánh">
+            <input type="hidden" name="status" value="@statusFilter" />
+            <div class="po-filter-grid">
+                <div class="po-field">
+                    <label class="ops-form-label mb-0" for="purchaseOrderStoreId">Chi nhánh</label>
+                    <select id="purchaseOrderStoreId" name="storeId" class="po-select" onchange="this.form.submit()">
+                        @foreach (var store in stores)
+                        {
+                            <option value="@store.StoreId" selected="@(store.StoreId == selectedStoreId)">@store.StoreName</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <noscript><button type="submit" class="ops-btn">Áp dụng</button></noscript>
+        </form>
+    }
+
     <!-- Main Module Panel -->
     <section class="po-panel">
-        @if (stores.Count > 1)
-        {
-            <form method="get" class="po-filter-toolbar cc-warehouse-filter" aria-label="Lọc đơn đặt hàng theo chi nhánh">
-                <input type="hidden" name="status" value="@statusFilter" />
-                <div class="po-filter-grid">
-                    <div class="po-field">
-                        <label class="ops-form-label mb-0" for="purchaseOrderStoreId">Chi nhánh</label>
-                        <select id="purchaseOrderStoreId" name="storeId" class="po-select" onchange="this.form.submit()">
-                            @foreach (var store in stores)
-                            {
-                                <option value="@store.StoreId" selected="@(store.StoreId == selectedStoreId)">@store.StoreName</option>
-                            }
-                        </select>
-                    </div>
-                </div>
-                <noscript><button type="submit" class="ops-btn">Áp dụng</button></noscript>
-            </form>
-        }
 
         @if (Model.Count == 0)
         {

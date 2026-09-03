@@ -2127,7 +2127,16 @@
 .purchase-order-index-page .po-filter-toolbar {
     padding: 18px 22px;
     background: #FFFDFB;
-    border-left: 3px solid var(--po-accent);
+    border: 1px solid var(--cc-border, #E9DED4);
+    border-left: 4px solid var(--cc-brown-600, #70482F);
+    border-radius: var(--cc-radius-card, 16px);
+    box-shadow: var(--cc-shadow-sm);
+    margin-top: 24px;
+    margin-bottom: 20px;
+}
+
+.purchase-order-index-page .po-filter-toolbar + .po-panel {
+    margin-top: 0;
 }
 
 .purchase-order-index-page .po-filter-grid {
@@ -2168,5 +2177,4 @@
 .purchase-order-index-page .po-table-wrap {
     overflow-x: auto;
     width: 100%;
-    border-top: 3px solid var(--cc-brown-600, #70482F);
 }
