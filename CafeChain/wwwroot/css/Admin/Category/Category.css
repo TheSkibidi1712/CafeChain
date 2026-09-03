@@ -200,15 +200,22 @@
     position: relative;
 }
 
-.category-icon-toolbar .category-input {
-    min-width: 90px;
+.category-icon-preview-wrap {
+    margin-bottom: 10px !important;
 }
 
 .category-icon-preview {
-    min-width: 48px;
+    display: inline-flex;
+    align-items: center;
     justify-content: center;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    border: 1px solid #fed7aa;
+    border-radius: var(--cc-radius-sm, 8px);
     background: #fff7ed;
-    border-color: #fed7aa;
+    color: #111827;
     font-size: 22px;
     line-height: 1;
 }
@@ -216,6 +223,30 @@
 .category-icon-preview.is-empty {
     color: #9ca3af;
     font-size: 14px;
+}
+
+.category-icon-toggle-btn {
+    border-radius: var(--cc-radius-control, 10px) !important;
+    font-size: 13px !important;
+    font-weight: 650 !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 14px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.category-icon-clear-btn {
+    border-radius: var(--cc-radius-control, 10px) !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 .category-icon-picker-panel {
@@ -286,26 +317,6 @@
 }
 
 @media (max-width: 575.98px) {
-    .category-icon-toolbar {
-        display: grid;
-        grid-template-columns: 48px minmax(0, 1fr) 48px;
-    }
-
-    .category-icon-toolbar .category-input {
-        width: auto;
-        min-width: 0;
-    }
-
-    .category-icon-toolbar [data-icon-toggle] {
-        grid-column: 1 / -1;
-        border-radius: var(--cc-radius-sm, 8px) !important;
-        margin-top: 6px;
-    }
-
-    .category-icon-toolbar [data-icon-clear] {
-        border-radius: 0 8px 8px 0 !important;
-    }
-
     .category-icon-grid {
         grid-template-columns: repeat(6, minmax(34px, 1fr));
     }
