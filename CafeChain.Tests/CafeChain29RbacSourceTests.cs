@@ -15,7 +15,7 @@ public sealed class CafeChain29RbacSourceTests
         ["CDN", "QLV", "QLCN", "NVBH", "KTK", "QTHT", "CT"];
 
     [Fact]
-    public void SeedAll_ReconcilesByCodeAndRoleName_WithoutMutatingOverrides()
+    public void SeedAll_ReconcilesByCodeAndRoleName_AndRetiresOperationalIceAuthorization()
     {
         var seed = Read("CafeChain", "Scripts", "SeedAll.sql");
 
@@ -26,7 +26,8 @@ public sealed class CafeChain29RbacSourceTests
         Assert.Contains("#OverrideBefore", seed, StringComparison.Ordinal);
         Assert.Contains("EXCEPT", seed, StringComparison.Ordinal);
         Assert.Contains("N'ReorderSuggestion.View',1,1,1,0,1,0,0,0", seed, StringComparison.Ordinal);
-        Assert.Contains("N'Restock.Create',1,0,1,0,1,0,0,0", seed, StringComparison.Ordinal);
+        Assert.Contains("N'Restock.Create',0,0,1,0,1,0,0,0", seed, StringComparison.Ordinal);
+        Assert.Contains("N'Restock.Approve',1,0,0,0,1,0,0,0", seed, StringComparison.Ordinal);
         Assert.Contains("N'REORDER_SUGGESTION'", seed, StringComparison.Ordinal);
         Assert.Contains("N'ReorderSuggestion.View',N'REORDER_SUGGESTION'", seed, StringComparison.Ordinal);
         Assert.Contains("N'App.AdminDashboard',1,1,1,0,1,0,0,0", seed, StringComparison.Ordinal);
@@ -34,6 +35,9 @@ public sealed class CafeChain29RbacSourceTests
         Assert.Contains("UPDATE #PermissionMatrix", seed, StringComparison.Ordinal);
         Assert.Contains("SET QTHT=0", seed, StringComparison.Ordinal);
         Assert.Contains("PermissionCode NOT LIKE N'System.%'", seed, StringComparison.Ordinal);
+        Assert.Contains("WHERE p.Code LIKE N'OperationalIce.%'", seed, StringComparison.Ordinal);
+        Assert.Contains("WHERE Code LIKE N'OperationalIce.%'", seed, StringComparison.Ordinal);
+        Assert.Contains("WHERE g.Code=N'OPERATIONAL_ICE'", seed, StringComparison.Ordinal);
         Assert.DoesNotContain("UnitConversion.Delete',N'UNIT_CONVERSION'", seed, StringComparison.Ordinal);
     }
 
@@ -78,11 +82,10 @@ public sealed class CafeChain29RbacSourceTests
                 @"\(N'([^']+)',[01],[01],[01],[01],[01],[01],[01],[01]\)")
             .Select(match => match.Groups[1].Value)
             .Where(code => code is not
-                ("Drink.Delete" or "Category.Delete" or "Size.Delete" or "Topping.Delete"
-                    or "OperationalIce.Manage" or "OperationalIce.Approve" or "OperationalIce.Policy"))
+                ("Drink.Delete" or "Category.Delete" or "Size.Delete" or "Topping.Delete"))
             .ToList();
 
-        Assert.True(codes.Count >= 186);
+        Assert.True(codes.Count >= 170);
         Assert.All(codes, code => Assert.Contains(code, constants));
     }
 
@@ -91,28 +94,24 @@ public sealed class CafeChain29RbacSourceTests
     {
         var seed = Read("CafeChain", "Scripts", "SeedAll.sql");
         var grants = ParseFinalManagedGrants(seed);
-        var expectedBlock = Regex.Match(
-            seed,
-            @"INSERT #ExpectedRoleCounts VALUES(?<rows>[\s\S]*?);",
-            RegexOptions.CultureInvariant);
+        var expectedCounts = new Dictionary<string, int>(StringComparer.Ordinal)
+        {
+            ["CDN"] = 175,
+            ["QLV"] = 98,
+            ["QLCN"] = 126,
+            ["NVBH"] = 12,
+            ["KTK"] = 120,
+            ["QTHT"] = 6,
+            ["CT"] = 30
+        };
 
-        Assert.True(expectedBlock.Success, "Không tìm thấy #ExpectedRoleCounts trong SeedAll.sql.");
-
-        var expectedCounts = Regex.Matches(
-                expectedBlock.Groups["rows"].Value,
-                @"\(N'(?<role>[^']+)',(?<count>\d+)\)",
-                RegexOptions.CultureInvariant)
-            .Cast<Match>()
-            .ToDictionary(
-                match => match.Groups["role"].Value,
-                match => int.Parse(match.Groups["count"].Value),
-                StringComparer.Ordinal);
-
-        Assert.Equal(SeededRoleKeys.Length - 1, expectedCounts.Count);
         Assert.Contains(
-            "INSERT #ExpectedRoleCounts(RoleKey,ExpectedCount)\n SELECT N'QTHT',COUNT(*)",
+            "INSERT #ExpectedRoleCounts(RoleKey,ExpectedCount)\n SELECT rm.RoleKey,COUNT(e.PermissionId)",
             seed.Replace("\r\n", "\n", StringComparison.Ordinal),
             StringComparison.Ordinal);
+        Assert.DoesNotMatch(
+            @"INSERT #ExpectedRoleCounts VALUES\s*\(",
+            seed);
 
         foreach (var (roleKey, expectedCount) in expectedCounts)
         {
@@ -123,6 +122,28 @@ public sealed class CafeChain29RbacSourceTests
                 actualCount == expectedCount,
                 $"Role {roleKey}: expected {expectedCount}, matrix tạo {actualCount} quyền.");
         }
+    }
+
+    [Fact]
+    public void SeedAll_RetiresEveryOperationalIcePermission_AndSwapsOwnerRestockDuties()
+    {
+        var seed = Read("CafeChain", "Scripts", "SeedAll.sql");
+        var grants = ParseFinalManagedGrants(seed);
+
+        Assert.DoesNotContain(grants.Keys, code =>
+            code.StartsWith("OperationalIce.", StringComparison.Ordinal));
+        Assert.Equal(new[] { 0, 0, 1, 0, 1, 0, 0, 0 }, grants["Restock.Create"]);
+        Assert.Equal(new[] { 1, 0, 0, 0, 1, 0, 0, 0 }, grants["Restock.Approve"]);
+
+        var catalogStart = seed.IndexOf("DECLARE @AdminPermissionSeed", StringComparison.Ordinal);
+        var catalogEnd = seed.IndexOf("DECLARE @AdminRolePermissionSeed", catalogStart, StringComparison.Ordinal);
+        Assert.True(catalogStart >= 0 && catalogEnd > catalogStart);
+        Assert.DoesNotContain("OperationalIce.", seed[catalogStart..catalogEnd], StringComparison.Ordinal);
+
+        var dynamicCatalogStart = seed.IndexOf("CREATE TABLE #NewPermissionCatalog", StringComparison.Ordinal);
+        var dynamicCatalogEnd = seed.IndexOf("/* Main catalog permissions", dynamicCatalogStart, StringComparison.Ordinal);
+        Assert.True(dynamicCatalogStart >= 0 && dynamicCatalogEnd > dynamicCatalogStart);
+        Assert.DoesNotContain("OperationalIce.", seed[dynamicCatalogStart..dynamicCatalogEnd], StringComparison.Ordinal);
     }
 
     [Fact]

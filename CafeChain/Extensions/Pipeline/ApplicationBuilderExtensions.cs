@@ -32,6 +32,8 @@ namespace CafeChain.Extensions.Pipeline
 
             app.UseAuthentication();
 
+            app.UseMiddleware<AuthenticationDiagnosticsMiddleware>();
+
             app.UseAuthorization();
 
             return app;
