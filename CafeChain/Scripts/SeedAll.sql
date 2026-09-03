@@ -1,7 +1,33 @@
 /* Run against the database selected by the caller/SSMS connection.
    Never silently switch to a similarly named production database, and never
    allow default seed data to be written to a SQL Server system database. */
-USE CafeChain
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET ARITHABORT ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET NUMERIC_ROUNDABORT OFF;
+GO
+
+IF DB_NAME() IN (N'master',N'model',N'msdb',N'tempdb')
+    THROW 53440,N'SEEDALL_DATABASE: khong duoc chay SeedAll tren SQL Server system database.',1;
+GO
+
+/* Distributed ASP.NET Session cache. Kept outside the EF model because the
+   Microsoft SQL cache provider owns this table contract. */
+IF OBJECT_ID(N'dbo.SessionCache',N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.SessionCache
+    (
+        Id nvarchar(449) NOT NULL CONSTRAINT PK_SessionCache PRIMARY KEY,
+        Value varbinary(max) NOT NULL,
+        ExpiresAtTime datetimeoffset NOT NULL,
+        SlidingExpirationInSeconds bigint NULL,
+        AbsoluteExpiration datetimeoffset NULL
+    );
+    CREATE INDEX IX_SessionCache_ExpiresAtTime ON dbo.SessionCache(ExpiresAtTime);
+END;
 GO
 
 /* Normalize the two deterministic EF foundation offers before SeedAll
@@ -7533,13 +7559,12 @@ GO
 /* ============================================================
    BATCH 12B - ACTIVE ADMIN PERMISSION CATALOG
    Expected clean totals after Batch 12 + 12B:
-   - 25 PermissionGroups
-   - 145 Permissions
-   - 418 RolePermissions
+   - 24 PermissionGroups
+   - 141 Permissions
+   - 411 RolePermissions
 
    PermissionId 100 is intentionally reserved for migration rollback.
-   PermissionGroupId 22 is reserved for OPERATIONAL_ICE.
-   PermissionIds 200-203 are reserved for Operational Ice permissions.
+   PermissionGroupId 22 and PermissionIds 147-150/200-203 are retired identifiers.
 
    This batch is insert-only and idempotent;
    contract conflicts abort the transaction.
@@ -7730,7 +7755,6 @@ BEGIN TRY
  (19,N'INVENTORY_TRANSFER',N'Chuyển kho',20,1),
  (20,N'STAFF',N'Nhân viên',21,1),
  (21,N'SHIFT',N'Lịch làm việc',22,1),
- (22,N'OPERATIONAL_ICE',N'Quản lý đá vận hành',23,1),
  (23,N'STORE',N'Cửa hàng',24,1),
  (24,N'SETTINGS',N'Cài đặt hệ thống',25,1),
  (25,N'BOM',N'BOM và sản xuất',26,1),
@@ -7857,11 +7881,6 @@ BEGIN TRY
  (101,21,N'Shift.Create',N'Tạo lịch làm việc',N'Create',N'Tạo lịch làm việc',1,'2026-01-01'),
  (102,21,N'Shift.Update',N'Cập nhật lịch làm việc',N'Update',N'Cập nhật lịch làm việc',1,'2026-01-01'),
  (103,21,N'Shift.Cancel',N'Hủy lịch làm việc',N'Cancel',N'Hủy lịch làm việc và giữ lịch sử',1,'2026-01-01'),
-
- (147,22, N'OperationalIce.View', N'Xem quản lý đá vận hành', N'View', N'Xem ca vận hành, phân bổ và đối soát đá', 1,'2026-07-29'),
- (148,22, N'OperationalIce.Manage', N'Vận hành phân bổ đá', N'Manage', N'Tạo ca, mở phân bổ, cấp bổ sung và bàn giao đá', 0,'2026-07-29'),
- (149,22, N'OperationalIce.Approve', N'Duyệt đối soát đá', N'Approve', N'Duyệt cấp bổ sung và chênh lệch đá cuối ca', 0,'2026-07-29'),
- (150,22, N'OperationalIce.Policy', N'Cấu hình chính sách đá', N'Policy', N'Cấu hình định mức và ngưỡng đối soát đá theo cửa hàng', 0,'2026-07-29'),
 
  (108,23,N'Store.View',N'Xem cửa hàng',N'View',N'Xem cửa hàng',1,'2026-01-01'),
  (109,23,N'Store.Create',N'Tạo cửa hàng',N'Create',N'Tạo cửa hàng',1,'2026-01-01'),
@@ -8033,7 +8052,6 @@ BEGIN TRY
  (1,142), -- PurchaseOrder.OverrideAllocation
  (1,143), -- PurchaseOrder.Export
  (1,146), -- Receipt.ViewCost
- (1,147),
  (2,28),
  (2,32),
  (2,36),
@@ -8069,7 +8087,6 @@ BEGIN TRY
  (2,129),
  (2,130),
  (2,146), -- Receipt.ViewCost
- (2,147),
  (3,36),
  (3,39),
  (3,40),
@@ -8119,8 +8136,6 @@ BEGIN TRY
  (3,133), -- Restock.Update
  (3,144), -- Receipt.UpdateDraft
  (3,145), -- Receipt.RecordSupplierIssue
- (3,147),
- (4,147),
  (5,28),
  (5,29),
  (5,30),
@@ -8201,7 +8216,6 @@ BEGIN TRY
  (5,139), -- PurchaseOrder.Submit
  (5,143), -- PurchaseOrder.Export
  (5,146), -- Receipt.ViewCost
- (5,147),
  (6,28),
  (6,29),
  (6,30),
@@ -8299,9 +8313,7 @@ BEGIN TRY
  (6,127),
  (6,128),
  (6,129),
- (6,130),
- (6,147),
- (8,147);
+ (6,130);
 
 
 IF EXISTS
@@ -8447,6 +8459,34 @@ BEGIN TRY
  DROP TABLE IF EXISTS #ManagedPermissionCodes;
  DROP TABLE IF EXISTS #ExpectedRoleCounts;
 
+ /* OperationalIce authorization has been retired. Delete only RBAC catalog
+    data; operational history/business tables remain untouched. */
+ DELETE rp
+ FROM dbo.RolePermissions rp
+ JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId
+ WHERE p.Code LIKE N'OperationalIce.%';
+
+ DELETE apo
+ FROM dbo.AccountPermissionOverrides apo
+ JOIN dbo.Permissions p ON p.PermissionId=apo.PermissionId
+ WHERE p.Code LIKE N'OperationalIce.%';
+
+ DELETE FROM dbo.Permissions
+ WHERE Code LIKE N'OperationalIce.%';
+
+ DELETE g
+ FROM dbo.PermissionGroups g
+ WHERE g.Code=N'OPERATIONAL_ICE'
+   AND NOT EXISTS
+   (
+    SELECT 1 FROM dbo.Permissions p
+    WHERE p.PermissionGroupId=g.PermissionGroupId
+   );
+
+ IF EXISTS(SELECT 1 FROM dbo.Permissions WHERE Code LIKE N'OperationalIce.%')
+  OR EXISTS(SELECT 1 FROM dbo.PermissionGroups WHERE Code=N'OPERATIONAL_ICE')
+  THROW 53350,N'RBAC_CAFECHAIN_FINAL_V3: không thể gỡ catalog OperationalIce.',1;
+
  SELECT AccountPermissionOverrideId,AccountId,PermissionId,Effect,Reason
  INTO #OverrideBefore
  FROM dbo.AccountPermissionOverrides;
@@ -8521,17 +8561,6 @@ BEGIN TRY
  INSERT #NewPermissionCatalog VALUES
   (N'ReorderSuggestion.View',N'REORDER_SUGGESTION',N'Xem gợi ý nhập hàng',N'View',N'Xem danh sách gợi ý nhập hàng trong phạm vi cửa hàng được phép truy cập'),
   (N'Restock.Create',N'RESTOCK',N'Tạo yêu cầu nhập hàng',N'Create',N'Tạo mới, tạo nháp hoặc bổ sung yêu cầu nhập hàng từ gợi ý nhập hàng trong phạm vi cửa hàng được phép thao tác'),
-  (N'OperationalIce.ConfigurePolicy',N'OPERATIONAL_ICE',N'Cấu hình chính sách đá',N'ConfigurePolicy',N'Cấu hình định mức và ngưỡng đối soát đá trong phạm vi cửa hàng'),
-  (N'OperationalIce.CreateShift',N'OPERATIONAL_ICE',N'Tạo ca vận hành đá',N'CreateShift',N'Tạo và cập nhật kế hoạch ca vận hành đá trong phạm vi cửa hàng'),
-  (N'OperationalIce.OpenShift',N'OPERATIONAL_ICE',N'Mở ca vận hành đá',N'OpenShift',N'Xác nhận cấp đầu ca và mở phân bổ đá'),
-  (N'OperationalIce.LinkWorkShift',N'OPERATIONAL_ICE',N'Liên kết WorkShift POS',N'LinkWorkShift',N'Liên kết WorkShift POS hợp lệ vào ca vận hành đá'),
-  (N'OperationalIce.RequestSupplement',N'OPERATIONAL_ICE',N'Yêu cầu cấp bổ sung đá',N'RequestSupplement',N'Gửi yêu cầu cấp bổ sung cho ca vận hành đá được phân công'),
-  (N'OperationalIce.ApproveSupplement',N'OPERATIONAL_ICE',N'Duyệt cấp bổ sung đá',N'ApproveSupplement',N'Duyệt hoặc từ chối yêu cầu cấp bổ sung đá'),
-  (N'OperationalIce.Handoff',N'OPERATIONAL_ICE',N'Bàn giao đá giữa ca',N'Handoff',N'Xác nhận bàn giao đá giữa các ca cùng ngày'),
-  (N'OperationalIce.SubmitClose',N'OPERATIONAL_ICE',N'Gửi chốt ca đá',N'SubmitClose',N'Gửi số liệu chốt ca vận hành đá'),
-  (N'OperationalIce.ApproveVariance',N'OPERATIONAL_ICE',N'Duyệt chênh lệch đá',N'ApproveVariance',N'Duyệt hao hụt hoặc hoàn tất đối soát chênh lệch đá'),
-  (N'OperationalIce.CancelScheduledShift',N'OPERATIONAL_ICE',N'Hủy ca đá chưa mở',N'CancelScheduledShift',N'Hủy ca vận hành đá còn ở trạng thái kế hoạch'),
-  (N'OperationalIce.ViewReport',N'OPERATIONAL_ICE',N'Xem báo cáo ca đá',N'ViewReport',N'Xem và tải báo cáo vận hành đá trong phạm vi được cấp'),
   (N'StoreMenu.OverridePrice',N'DRINK',N'Ghi đè giá menu cửa hàng',N'OverridePrice',N'Ghi đè giá bán tại menu cửa hàng'),
   (N'Profitability.UpdatePrice',N'DRINK',N'Cập nhật giá bán',N'UpdatePrice',N'Cập nhật giá bán toàn hệ thống'),
   (N'Profitability.UpdateToppingPolicy',N'DRINK',N'Cập nhật chính sách topping',N'UpdateToppingPolicy',N'Cập nhật chính sách topping theo món và size'),
@@ -8683,10 +8712,7 @@ BEGIN TRY
   N'StockAlert.Configure',
   N'StockAlert.Create',
   N'StockAlert.Export',
-  N'Supplier.ViewQuality',
-  N'OperationalIce.Manage',
-  N'OperationalIce.Approve',
-  N'OperationalIce.Policy'
+  N'Supplier.ViewQuality'
  );
 
  /* POS permission group and catalog. */
@@ -8836,9 +8862,9 @@ BEGIN TRY
   (N'StockAlert.Create',0,0,0,0,0,0,0,0),
   (N'StockAlert.CreateRestockRequest',0,0,1,0,0,0,0,0),
   (N'Restock.View',1,1,1,0,1,0,0,1),
-  (N'Restock.Create',1,0,1,0,1,0,0,0),
+  (N'Restock.Create',0,0,1,0,1,0,0,0),
   (N'Restock.Submit',0,0,1,0,1,0,0,0),
-  (N'Restock.Approve',0,0,0,0,1,0,0,0),
+  (N'Restock.Approve',1,0,0,0,1,0,0,0),
   (N'Restock.Reject',0,0,0,0,1,0,0,0),
   (N'Restock.Cancel',1,0,1,0,1,0,0,0),
   (N'ReorderSuggestion.View',1,1,1,0,1,0,0,0),
@@ -8934,21 +8960,6 @@ BEGIN TRY
   (N'ProductionOrder.ApproveVariance',1,0,0,0,0,0,0,0),
   (N'ProductionOrder.Cancel',0,0,1,0,0,0,0,0),
   (N'Restock.SelectProductionSource',0,0,0,0,1,0,0,0),
-  (N'OperationalIce.View',1,1,1,0,1,0,0,1),
-  (N'OperationalIce.Manage',0,0,0,0,0,0,0,0),
-  (N'OperationalIce.Approve',0,0,0,0,0,0,0,0),
-  (N'OperationalIce.Policy',0,0,0,0,0,0,0,0),
-  (N'OperationalIce.ConfigurePolicy',1,0,1,0,0,0,0,0),
-  (N'OperationalIce.CreateShift',1,0,1,0,0,0,0,0),
-  (N'OperationalIce.OpenShift',1,0,1,0,0,0,0,0),
-  (N'OperationalIce.LinkWorkShift',1,0,1,0,0,0,0,0),
-  (N'OperationalIce.RequestSupplement',1,0,1,0,0,0,0,1),
-  (N'OperationalIce.ApproveSupplement',1,0,1,0,0,0,0,0),
-  (N'OperationalIce.Handoff',1,0,1,0,0,0,0,1),
-  (N'OperationalIce.SubmitClose',1,0,1,0,0,0,0,1),
-  (N'OperationalIce.ApproveVariance',1,0,1,0,0,0,0,0),
-  (N'OperationalIce.CancelScheduledShift',1,0,1,0,0,0,0,0),
-  (N'OperationalIce.ViewReport',1,1,1,0,1,0,0,1),
   (N'StoreMenu.OverridePrice',1,0,0,0,0,0,0,0),
   (N'Profitability.UpdatePrice',1,0,0,0,0,0,0,0),
   (N'Profitability.UpdateToppingPolicy',1,0,0,0,0,0,0,0),
@@ -9241,19 +9252,11 @@ BEGIN TRY
   RoleKey nvarchar(10) NOT NULL PRIMARY KEY,
   ExpectedCount int NOT NULL
  );
-  INSERT #ExpectedRoleCounts VALUES
-  (N'CDN',187),
-  (N'QLV',100),
-  (N'QLCN',138),
-  (N'NVBH',12),
-  (N'KTK',122),
-  (N'CT',35);
-
  INSERT #ExpectedRoleCounts(RoleKey,ExpectedCount)
- SELECT N'QTHT',COUNT(*)
- FROM #ExpectedRolePermissions e
- JOIN #RoleMap rm ON rm.RoleId=e.RoleId
- WHERE rm.RoleKey=N'QTHT';
+ SELECT rm.RoleKey,COUNT(e.PermissionId)
+ FROM #RoleMap rm
+ LEFT JOIN #ExpectedRolePermissions e ON e.RoleId=rm.RoleId
+ GROUP BY rm.RoleKey;
 
  DECLARE @RoleCountMismatches TABLE
  (

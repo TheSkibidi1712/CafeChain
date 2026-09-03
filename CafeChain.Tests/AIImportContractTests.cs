@@ -154,8 +154,11 @@ public sealed class AIImportContractTests
         {
             Assert.Contains($"(N'AIImport.{code}',1,0,0,0,1,0,0,0)", seed, StringComparison.Ordinal);
         }
-        Assert.Contains("(N'CDN',187)", seed, StringComparison.Ordinal);
-        Assert.Contains("(N'KTK',124)", seed, StringComparison.Ordinal);
+        Assert.Contains(
+            "INSERT #ExpectedRoleCounts(RoleKey,ExpectedCount)\n SELECT rm.RoleKey,COUNT(e.PermissionId)",
+            seed.Replace("\r\n", "\n", StringComparison.Ordinal),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("INSERT #ExpectedRoleCounts VALUES", seed, StringComparison.Ordinal);
         Assert.DoesNotContain("(N'AIImport.View',1,1", seed, StringComparison.Ordinal);
     }
 

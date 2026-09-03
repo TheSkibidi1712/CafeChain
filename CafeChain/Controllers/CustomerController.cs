@@ -305,6 +305,8 @@ namespace CafeChain.Controllers
         private async Task RefreshAvatarClaimAsync(
             string avatarUrl)
         {
+            var authentication = await HttpContext.AuthenticateAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme);
             var identity =
                 (ClaimsIdentity)User.Identity!;
 
@@ -324,12 +326,15 @@ namespace CafeChain.Controllers
 
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(identity));
+                new ClaimsPrincipal(identity),
+                authentication.Properties ?? new AuthenticationProperties { AllowRefresh = true });
         }
 
         private async Task RefreshNameClaimAsync(
             string fullName)
         {
+            var authentication = await HttpContext.AuthenticateAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme);
             var identity =
                 (ClaimsIdentity)User.Identity!;
 
@@ -350,7 +355,8 @@ namespace CafeChain.Controllers
 
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(identity));
+                new ClaimsPrincipal(identity),
+                authentication.Properties ?? new AuthenticationProperties { AllowRefresh = true });
         }
     }
 }
