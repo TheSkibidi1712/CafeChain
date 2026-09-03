@@ -94,6 +94,21 @@ public sealed class PosAccessSessionServiceTests
     }
 
     [Fact]
+    public async Task Replaced_session_is_rejected_with_a_distinct_error_code()
+    {
+        var session = Session(PosAccessSessionStatuses.Replaced, Now.AddHours(1).UtcDateTime);
+        session.EndReason = "POS access session mới đã thay thế phiên này.";
+
+        var result = await new PosAccessSessionService(
+                RepositoryReturning(session).Object, timeProvider: new FixedTimeProvider(Now))
+            .ValidateAsync(session.PublicId, session.JwtId);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("POS_SESSION_REPLACED", result.ErrorCode);
+        Assert.Equal(session.EndReason, result.Message);
+    }
+
+    [Fact]
     public async Task Bound_closed_workshift_ends_session_and_denies_direct_pos_access()
     {
         var session = Session(PosAccessSessionStatuses.Active, Now.AddHours(1).UtcDateTime);

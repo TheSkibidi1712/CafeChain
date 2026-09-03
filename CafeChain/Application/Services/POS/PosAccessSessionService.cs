@@ -64,6 +64,14 @@ public sealed class PosAccessSessionService : IPosAccessSessionService
         try
         {
             replacedSessions = await _repository.CreateReplacingActiveAsync(session, nowUtc, cancellationToken);
+            if (replacedSessions.Count > 0)
+            {
+                _logger.LogWarning(
+                    "POS_SESSION_REPLACED TerminalId={TerminalId} ReplacedCount={ReplacedCount} NewSessionSuffix={NewSessionSuffix}",
+                    session.TerminalId,
+                    replacedSessions.Count,
+                    session.PublicId.ToString("N")[^8..]);
+            }
             if (_audit != null)
                 await _audit.WriteAsync("POS_SESSION_CREATED", workShiftId ?? 0, staffId, null,
                     new { session.PublicId, session.TerminalId, session.ExpiresAtUtc }, cancellationToken);
@@ -264,6 +272,13 @@ public sealed class PosAccessSessionService : IPosAccessSessionService
                 auditAction: "POS_SESSION_EXPIRED");
             if (transition.EndedNow) expiredCount++;
         }
+        if (expiredCount > 0)
+        {
+            _logger.LogInformation(
+                "POS_SESSION_EXPIRY_COMPLETED Utc={Utc} ExpiredCount={ExpiredCount}",
+                nowUtc,
+                expiredCount);
+        }
         return expiredCount;
     }
 
@@ -414,6 +429,7 @@ public sealed class PosAccessSessionService : IPosAccessSessionService
     private static string MapStatusError(string status) => status switch
     {
         PosAccessSessionStatuses.Expired => "POS_SESSION_EXPIRED",
+        PosAccessSessionStatuses.Replaced => "POS_SESSION_REPLACED",
         PosAccessSessionStatuses.TerminalLocked => "POS_TERMINAL_LOCKED",
         PosAccessSessionStatuses.LoggedOut => "POS_SESSION_ENDED",
         PosAccessSessionStatuses.AdminEnded => "POS_SESSION_ENDED",

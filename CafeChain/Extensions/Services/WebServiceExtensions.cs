@@ -5,7 +5,9 @@ namespace CafeChain.Extensions.Services
 {
     public static class WebServiceExtensions
     {
-        public static IServiceCollection AddCafeChainWeb(this IServiceCollection services)
+        public static IServiceCollection AddCafeChainWeb(
+            this IServiceCollection services,
+            IConfiguration configuration)
         {
             services
                 .AddControllersWithViews()
@@ -19,11 +21,25 @@ namespace CafeChain.Extensions.Services
 
             services.AddMemoryCache();
 
-            services.AddDistributedMemoryCache();
+            var sessionConnectionString = configuration.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrWhiteSpace(sessionConnectionString))
+            {
+                throw new InvalidOperationException(
+                    "ConnectionStrings:DefaultConnection is required for the distributed SQL session cache.");
+            }
+
+            services.AddDistributedSqlServerCache(options =>
+            {
+                options.ConnectionString = sessionConnectionString;
+                options.SchemaName = configuration["SessionCache:SchemaName"] ?? "dbo";
+                options.TableName = configuration["SessionCache:TableName"] ?? "SessionCache";
+                options.DefaultSlidingExpiration = TimeSpan.FromMinutes(30);
+            });
 
             services.AddSession(options =>
             {
                 options.IdleTimeout = TimeSpan.FromMinutes(30);
+                options.Cookie.Name = ".CafeChain.Session";
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
             });

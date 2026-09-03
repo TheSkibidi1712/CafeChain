@@ -40,6 +40,22 @@
 
 <link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/Admin/Recipe/recipe-workspace.css" asp-append-version="true" />
+<style>
+    /* Fix recipe hero card height to scale dynamically and avoid clipping the eyebrow badge */
+    body.admin-premium-shell .production-bom-page .cc-page-hero,
+    .production-bom-page .cc-page-hero {
+        height: auto !important;
+        min-height: 140px !important;
+        padding-top: 26px !important;
+        padding-bottom: 26px !important;
+    }
+
+    /* Keep breadcrumbs inline, aligned horizontally, preventing name from wrapping */
+    .production-bom-page .cc-page-hero__breadcrumbs {
+        flex-wrap: nowrap !important;
+        white-space: nowrap !important;
+    }
+</style>
 
 <main class="production-bom-page production-bom-shell bom-detail-page recipe-workspace-page">
     <div class="container-fluid px-0">

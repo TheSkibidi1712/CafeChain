@@ -47,8 +47,9 @@ builder.Services.Configure<POSPaymentOptions>(builder.Configuration.GetSection("
 builder.AddCafeChainSerilog();
 
 builder.Services
-    .AddCafeChainWeb()
+    .AddCafeChainWeb(builder.Configuration)
     .AddCafeChainDatabase(builder.Configuration)
+    .AddCafeChainDataProtection(builder.Configuration, builder.Environment)
     .AddCafeChainAuthentication(builder.Configuration, builder.Environment)
     .AddCafeChainAuthorization()
     .AddCafeChainThirdPartyServices(builder.Configuration, builder.Environment)
@@ -57,6 +58,17 @@ builder.Services
     .AddCafeChainWorkers();
 
 var app = builder.Build();
+
+var dataProtectionHosting = app.Services.GetRequiredService<DataProtectionHostingState>();
+Log.Information(
+    "CafeChain host starting. Machine={MachineName} ProcessId={ProcessId} " +
+    "PersistentDataProtectionKeys={PersistentDataProtectionKeys} KeyDirectoryReady={KeyDirectoryReady} " +
+    "SessionStore={SessionStore}",
+    Environment.MachineName,
+    Environment.ProcessId,
+    dataProtectionHosting.UsesPersistentKeys,
+    dataProtectionHosting.KeyDirectoryReady,
+    "SqlServer");
 
 app.UseCafeChainPipeline();
 app.MapCafeChainEndpoints();

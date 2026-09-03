@@ -81,8 +81,9 @@ namespace CafeChain.Extensions.Services
     {
         public static IServiceCollection AddCafeChainApplicationServices(this IServiceCollection services)
         {
-            services.AddDataProtection()
-                .SetApplicationName("CafeChain");
+            // Keeps minimal CLI hosts self-contained. The web host configures the
+            // persistent production key repository before registering this module.
+            services.AddDataProtection().SetApplicationName("CafeChain");
             services.AddSingleton(TimeProvider.System);
             services.AddOptions<WorkShiftOptions>()
                 .BindConfiguration(WorkShiftOptions.SectionName);

@@ -6990,8 +6990,7 @@ namespace CafeChain.Migrations
                 values: new object[,]
                 {
                     { 1, true, "COFFEE", "☕", "Coffee" },
-                    { 2, true, "TRASUA", "🧋", "Trà sữa" },
-                    { 3, true, "NUOCNGOT", "🥤", "Nước ngọt" }
+                    { 2, true, "TRASUA", "🧋", "Trà sữa" }
                 });
 
             migrationBuilder.InsertData(
@@ -7190,9 +7189,7 @@ namespace CafeChain.Migrations
                     { 1, true, 0m, 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Cà phê pha với sữa đặc.", "CF_Sua", "Cà phê sữa", 1 },
                     { 2, true, 0m, 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Cà phê pha với nước sôi, không có sữa.", "CF_Den", "Cà phê đen", 1 },
                     { 3, true, 0m, 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Trà sữa pha với trân châu đen và đá viên.", "TS_TruyenThong", "Trà sữa truyền thống", 1 },
-                    { 4, true, 0m, 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Trà sữa socola thơm ngon, béo ngậy.", "TS_Socola", "Trà sữa socola", 1 },
-                    { 5, true, 0m, 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Sting mát lạnh", "STING", "Sting", 2 },
-                    { 6, true, 0m, 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Coca-cola mát lạnh", "COCA", "Coca-cola", 2 }
+                    { 4, true, 0m, 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Trà sữa socola thơm ngon, béo ngậy.", "TS_Socola", "Trà sữa socola", 1 }
                 });
 
             migrationBuilder.InsertData(
@@ -7390,36 +7387,6 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.InsertData(
-                table: "DrinkImages",
-                columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "IsDefault", "PublicId" },
-                values: new object[] { 17, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 5, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803393/sting1_tcita4.jpg", true, "sting1_tcita4" });
-
-            migrationBuilder.InsertData(
-                table: "DrinkImages",
-                columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "PublicId" },
-                values: new object[,]
-                {
-                    { 18, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 5, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803314/sting2_axipva.jpg", "sting2_axipva" },
-                    { 19, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 5, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803314/sting3_rv03ev.jpg", "sting3_rv03ev" },
-                    { 20, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 5, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803316/sting4_yzaesh.jpg", "sting4_yzaesh" }
-                });
-
-            migrationBuilder.InsertData(
-                table: "DrinkImages",
-                columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "IsDefault", "PublicId" },
-                values: new object[] { 21, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 6, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803080/coca1_qum0eb.jpg", true, "coca1_qum0eb" });
-
-            migrationBuilder.InsertData(
-                table: "DrinkImages",
-                columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "PublicId" },
-                values: new object[,]
-                {
-                    { 22, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 6, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803081/coca2_ctcrt0.jpg", "coca2_ctcrt0" },
-                    { 23, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 6, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803082/coca3_mp28bz.jpg", "coca3_mp28bz" },
-                    { 24, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 6, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803082/coca4_xbh74i.jpg", "coca4_xbh74i" }
-                });
-
-            migrationBuilder.InsertData(
                 table: "DrinkSizes",
                 columns: new[] { "DrinkSizeId", "Active", "DrinkId", "Price", "SizeId" },
                 values: new object[,]
@@ -7431,14 +7398,7 @@ namespace CafeChain.Migrations
                     { 7, true, 3, 32000m, 3 },
                     { 8, true, 4, 25000m, 1 },
                     { 9, true, 4, 30000m, 2 },
-                    { 10, true, 4, 35000m, 3 },
-                    { 11, true, 5, 15000m, 5 },
-                    { 12, true, 5, 20000m, 6 },
-                    { 13, true, 5, 25000m, 7 },
-                    { 14, true, 6, 15000m, 5 },
-                    { 15, true, 6, 20000m, 6 },
-                    { 16, true, 6, 25000m, 7 },
-                    { 17, true, 6, 30000m, 8 }
+                    { 10, true, 4, 35000m, 3 }
                 });
 
             migrationBuilder.InsertData(

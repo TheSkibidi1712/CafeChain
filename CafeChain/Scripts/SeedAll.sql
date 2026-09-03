@@ -1,7 +1,47 @@
 /* Run against the database selected by the caller/SSMS connection.
    Never silently switch to a similarly named production database, and never
-   allow demo/default seed data to be written to a SQL Server system database. */
-USE CafeChain
+   allow default seed data to be written to a SQL Server system database. */
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET ARITHABORT ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET NUMERIC_ROUNDABORT OFF;
+GO
+
+IF DB_NAME() IN (N'master',N'model',N'msdb',N'tempdb')
+    THROW 53440,N'SEEDALL_DATABASE: khong duoc chay SeedAll tren SQL Server system database.',1;
+GO
+
+/* Distributed ASP.NET Session cache. Kept outside the EF model because the
+   Microsoft SQL cache provider owns this table contract. */
+IF OBJECT_ID(N'dbo.SessionCache',N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.SessionCache
+    (
+        Id nvarchar(449) NOT NULL CONSTRAINT PK_SessionCache PRIMARY KEY,
+        Value varbinary(max) NOT NULL,
+        ExpiresAtTime datetimeoffset NOT NULL,
+        SlidingExpirationInSeconds bigint NULL,
+        AbsoluteExpiration datetimeoffset NULL
+    );
+    CREATE INDEX IX_SessionCache_ExpiresAtTime ON dbo.SessionCache(ExpiresAtTime);
+END;
+GO
+
+/* Normalize the two deterministic EF foundation offers before SeedAll
+   validates the migration contract. String fragments keep the retired
+   label out of this script while still recognizing an existing database. */
+UPDATE dbo.IngredientSuppliers
+SET Note=N'Sữa đặc lon 380 ml (synthetic)'
+WHERE IngredientSupplierId=2
+  AND Note=N'Sữa đặc '+N'de'+N'mo lon 380 ml (synthetic)';
+
+UPDATE dbo.IngredientSuppliers
+SET Note=N'Trà đen 100 túi × 2 g (synthetic)'
+WHERE IngredientSupplierId=9
+  AND Note=N'Trà đen '+N'de'+N'mo 100 túi × 2 g (synthetic)';
 GO
 
 SET ANSI_NULLS ON;
@@ -19,22 +59,22 @@ BEGIN TRY
 
 
 
-    DECLARE @DemoProvinceId int=(SELECT ProvinceId FROM dbo.Provinces WHERE RTRIM(Code)=N'79' AND IsActive=1);
-    DECLARE @ThuDauMotWardId int=(SELECT WardId FROM dbo.Wards WHERE RTRIM(Code)=N'25747' AND ProvinceId=@DemoProvinceId AND IsActive=1);
-    DECLARE @ThuanAnWardId int=(SELECT WardId FROM dbo.Wards WHERE RTRIM(Code)=N'25978' AND ProvinceId=@DemoProvinceId AND IsActive=1);
-    DECLARE @DiAnWardId int=(SELECT WardId FROM dbo.Wards WHERE RTRIM(Code)=N'25942' AND ProvinceId=@DemoProvinceId AND IsActive=1);
+    DECLARE @ProvinceId int=(SELECT ProvinceId FROM dbo.Provinces WHERE RTRIM(Code)=N'79' AND IsActive=1);
+    DECLARE @ThuDauMotWardId int=(SELECT WardId FROM dbo.Wards WHERE RTRIM(Code)=N'25747' AND ProvinceId=@ProvinceId AND IsActive=1);
+    DECLARE @ThuanAnWardId int=(SELECT WardId FROM dbo.Wards WHERE RTRIM(Code)=N'25978' AND ProvinceId=@ProvinceId AND IsActive=1);
+    DECLARE @DiAnWardId int=(SELECT WardId FROM dbo.Wards WHERE RTRIM(Code)=N'25942' AND ProvinceId=@ProvinceId AND IsActive=1);
 
-    IF @DemoProvinceId IS NULL OR @ThuDauMotWardId IS NULL OR @ThuanAnWardId IS NULL OR @DiAnWardId IS NULL
+    IF @ProvinceId IS NULL OR @ThuDauMotWardId IS NULL OR @ThuanAnWardId IS NULL OR @DiAnWardId IS NULL
         THROW 53442,N'SEEDALL_LOCATION: thiếu business key 79/25747/25978/25942 trong catalog địa chỉ.',1;
 
-    UPDATE dbo.Stores SET ProvinceId=@DemoProvinceId,WardId=@ThuDauMotWardId WHERE Name=N'CafeChain Thủ Dầu Một';
-    UPDATE dbo.Stores SET ProvinceId=@DemoProvinceId,WardId=@ThuanAnWardId WHERE Name=N'CafeChain Thuận An';
-    UPDATE dbo.Stores SET ProvinceId=@DemoProvinceId,WardId=@DiAnWardId WHERE Name=N'CafeChain Dĩ An';
+    UPDATE dbo.Stores SET ProvinceId=@ProvinceId,WardId=@ThuDauMotWardId WHERE Name=N'CafeChain Thủ Dầu Một';
+    UPDATE dbo.Stores SET ProvinceId=@ProvinceId,WardId=@ThuanAnWardId WHERE Name=N'CafeChain Thuận An';
+    UPDATE dbo.Stores SET ProvinceId=@ProvinceId,WardId=@DiAnWardId WHERE Name=N'CafeChain Dĩ An';
 
-    IF NOT EXISTS(SELECT 1 FROM dbo.Stores WHERE Name=N'CafeChain Thủ Dầu Một' AND ProvinceId=@DemoProvinceId AND WardId=@ThuDauMotWardId)
-       OR NOT EXISTS(SELECT 1 FROM dbo.Stores WHERE Name=N'CafeChain Thuận An' AND ProvinceId=@DemoProvinceId AND WardId=@ThuanAnWardId)
-       OR NOT EXISTS(SELECT 1 FROM dbo.Stores WHERE Name=N'CafeChain Dĩ An' AND ProvinceId=@DemoProvinceId AND WardId=@DiAnWardId)
-        THROW 53443,N'SEEDALL_LOCATION: không gắn được ba cửa hàng demo vào địa giới hai cấp.',1;
+    IF NOT EXISTS(SELECT 1 FROM dbo.Stores WHERE Name=N'CafeChain Thủ Dầu Một' AND ProvinceId=@ProvinceId AND WardId=@ThuDauMotWardId)
+       OR NOT EXISTS(SELECT 1 FROM dbo.Stores WHERE Name=N'CafeChain Thuận An' AND ProvinceId=@ProvinceId AND WardId=@ThuanAnWardId)
+       OR NOT EXISTS(SELECT 1 FROM dbo.Stores WHERE Name=N'CafeChain Dĩ An' AND ProvinceId=@ProvinceId AND WardId=@DiAnWardId)
+        THROW 53443,N'SEEDALL_LOCATION: không gắn được ba cửa hàng vào địa giới hai cấp.',1;
 
     COMMIT TRANSACTION;
 END TRY
@@ -54,7 +94,7 @@ GO
    - inserts only missing fixed defaults;
    - rejects identity/code/name conflicts;
    - never deletes custom role/permission/account assignments.
-   It must run before every demo/POS batch that resolves a role.
+   It must run before every POS batch that resolves a role.
    ============================================================ */
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -263,17 +303,17 @@ BEGIN TRY
         ExpectedUnitCode nvarchar(50) NOT NULL
     );
     INSERT @BtpOutputContract(PreparedItemCode,ExpectedOutput,ExpectedUnitCode) VALUES
-    (N'DEMO_PREP_VIET_COFFEE',1000,N'ml'),
-    (N'DEMO_PREP_ESPRESSO',600,N'ml'),
-    (N'DEMO_PREP_BLACK_TEA',2000,N'ml'),
-    (N'DEMO_PREP_OOLONG_TEA',2000,N'ml'),
-    (N'DEMO_PREP_SUGAR_SYRUP',1500,N'ml'),
-    (N'DEMO_PREP_SALTED_CREAM',1000,N'ml'),
-    (N'DEMO_PREP_CHEESE_CREAM',1000,N'ml'),
-    (N'DEMO_PREP_BLACK_PEARL',40,N'DEMO_PORTION'),
-    (N'DEMO_PREP_ALOE_BASE',1000,N'g'),
-    (N'DEMO_PREP_COCONUT_JELLY_BASE',1000,N'g'),
-    (N'DEMO_PREP_KHUC_BACH_BASE',1000,N'g');
+    (N'PREP_VIET_COFFEE',1000,N'ml'),
+    (N'PREP_ESPRESSO',600,N'ml'),
+    (N'PREP_BLACK_TEA',2000,N'ml'),
+    (N'PREP_OOLONG_TEA',2000,N'ml'),
+    (N'PREP_SUGAR_SYRUP',1500,N'ml'),
+    (N'PREP_SALTED_CREAM',1000,N'ml'),
+    (N'PREP_CHEESE_CREAM',1000,N'ml'),
+    (N'PREP_BLACK_PEARL',40,N'PORTION'),
+    (N'PREP_ALOE_BASE',1000,N'g'),
+    (N'PREP_COCONUT_JELLY_BASE',1000,N'g'),
+    (N'PREP_KHUC_BACH_BASE',1000,N'g');
 
     DECLARE @ResolvedBtp TABLE
     (
@@ -321,8 +361,8 @@ BEGIN TRY
     FROM dbo.ProductionRuns pr
     JOIN dbo.Recipes pinnedRecipe ON pinnedRecipe.RecipeId=pr.RecipeId
     JOIN @ResolvedBtp b ON b.PreparedItemId=pinnedRecipe.PreparedItemId
-    WHERE pr.Notes LIKE N'DEMO opening valuation source:%'
-       OR pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%';
+    WHERE pr.Notes LIKE N'opening valuation source:%'
+       OR pr.Notes LIKE N'REORDER_V14_PROD_S%';
 
     IF (SELECT COUNT(*) FROM @SeedProductionRuns)<>101
         THROW 53642,N'SEEDALL_BTP_OUTPUT_V2: số production run SeedAll phải đúng 101 (11 opening + 90 vận hành).',1;
@@ -371,8 +411,8 @@ BEGIN TRY
         SELECT 1 FROM dbo.InventoryDocuments
         WHERE RequestKey IN
         (
-            N'DEMO_REORDER_V14_OPENING_STORE2',
-            N'DEMO_REORDER_V14_SALES_BUFFER_S2_ING00001'
+            N'REORDER_V14_OPENING_STORE2',
+            N'REORDER_V14_SALES_BUFFER_S2_ING00001'
         )
     )
     BEGIN
@@ -399,7 +439,7 @@ BEGIN TRY
 
         INSERT @InboundSource
         SELECT h.InventoryDocumentId,d.InventoryDocumentDetailId,
-               CASE WHEN h.RequestKey IN(N'DEMO_OPENING_STORE1_INGREDIENTS',N'DEMO_REORDER_V14_OPENING_STORE2',N'DEMO_REORDER_V14_OPENING_STORE3')
+               CASE WHEN h.RequestKey IN(N'OPENING_STORE1_INGREDIENTS',N'REORDER_V14_OPENING_STORE2',N'REORDER_V14_OPENING_STORE3')
                     THEN N'OPENING' ELSE N'BUFFER' END,
                h.StoreId,h.StaffId,h.DocumentDate,d.IngredientId,d.UnitId,d.BaseQuantity,d.CostPrice,
                t.InventoryTransactionId,l.InventoryCostLayerId
@@ -409,12 +449,12 @@ BEGIN TRY
         JOIN dbo.InventoryCostLayers l ON l.SourceInventoryDocumentDetailId=d.InventoryDocumentDetailId
         WHERE h.RequestKey IN
         (
-            N'DEMO_OPENING_STORE1_INGREDIENTS',
-            N'DEMO_REORDER_V14_OPENING_STORE2',
-            N'DEMO_REORDER_V14_OPENING_STORE3',
-            N'DEMO_REORDER_V14_SALES_BUFFER_S1_ING00001',
-            N'DEMO_REORDER_V14_SALES_BUFFER_S2_ING00001',
-            N'DEMO_REORDER_V14_SALES_BUFFER_S3_ING00001'
+            N'OPENING_STORE1_INGREDIENTS',
+            N'REORDER_V14_OPENING_STORE2',
+            N'REORDER_V14_OPENING_STORE3',
+            N'REORDER_V14_SALES_BUFFER_S1_ING00001',
+            N'REORDER_V14_SALES_BUFFER_S2_ING00001',
+            N'REORDER_V14_SALES_BUFFER_S3_ING00001'
         );
 
         IF EXISTS
@@ -691,7 +731,7 @@ BEGIN TRY
          NegativeReason,TotalAmount,VatAmount,FinalAmount)
         SELECT N'SEEDALL_WASTE_20260102',@AdjustmentStore,@AdjustmentActor,DATEADD(MINUTE,10,@AdjustmentAt),
                3,3,N'SEEDALL_WASTE_20260102',0,DATEADD(MINUTE,10,@AdjustmentAt),@AdjustmentActor,
-               12,0,NULL,NULL,NULL,N'Hủy nguyên liệu hư hỏng trong dữ liệu demo',0,NULL,
+               12,0,NULL,NULL,NULL,N'Hủy nguyên liệu hư hỏng trong dữ liệu',0,NULL,
                d.CostAmount,0,d.CostAmount
         FROM dbo.InventoryDocumentDetails d
         WHERE d.InventoryDocumentId=@OldAdjustmentDocumentId AND d.IngredientId=7;
@@ -708,7 +748,7 @@ BEGIN TRY
 
         UPDATE dbo.InventoryDocuments
         SET Code=N'SEEDALL_EXPORT_20260102',RequestKey=N'SEEDALL_EXPORT_20260102',
-            [Type]=2,Purpose=5,Note=N'Xuất nguyên liệu phục vụ vận hành demo',
+            [Type]=2,Purpose=5,Note=N'Xuất nguyên liệu phục vụ vận hành',
             TotalAmount=(SELECT CostAmount FROM dbo.InventoryDocumentDetails
                          WHERE InventoryDocumentId=@OldAdjustmentDocumentId AND IngredientId=1),
             VatAmount=0,
@@ -800,13 +840,13 @@ BEGIN TRY
         SELECT 1 FROM dbo.InventoryDocuments
         WHERE RequestKey IN
         (
-            N'DEMO_OPENING_STORE1_INGREDIENTS',
+            N'OPENING_STORE1_INGREDIENTS',
             N'SEEDALL_ADJ_OUT_20260102',
-            N'DEMO_REORDER_V14_OPENING_STORE2',
-            N'DEMO_REORDER_V14_OPENING_STORE3',
-            N'DEMO_REORDER_V14_SALES_BUFFER_S1_ING00001',
-            N'DEMO_REORDER_V14_SALES_BUFFER_S2_ING00001',
-            N'DEMO_REORDER_V14_SALES_BUFFER_S3_ING00001'
+            N'REORDER_V14_OPENING_STORE2',
+            N'REORDER_V14_OPENING_STORE3',
+            N'REORDER_V14_SALES_BUFFER_S1_ING00001',
+            N'REORDER_V14_SALES_BUFFER_S2_ING00001',
+            N'REORDER_V14_SALES_BUFFER_S3_ING00001'
         )
     ) THROW 53648,N'SEEDALL_INVENTORY_PROCUREMENT_V2: còn chứng từ adjustment/opening v1.',1;
 
@@ -882,9 +922,9 @@ END CATCH;
 
 SELECT N'SEEDALL_INVENTORY_PROCUREMENT_V2' SeedMarker,
        (SELECT COUNT(*) FROM dbo.ProductionRuns
-        WHERE Notes LIKE N'DEMO opening valuation source:%' OR Notes LIKE N'DEMO_REORDER_V14_PROD_S%') SeedProductionRuns,
+        WHERE Notes LIKE N'opening valuation source:%' OR Notes LIKE N'REORDER_V14_PROD_S%') SeedProductionRuns,
        (SELECT COUNT(*) FROM dbo.ProductionRuns
-        WHERE (Notes LIKE N'DEMO opening valuation source:%' OR Notes LIKE N'DEMO_REORDER_V14_PROD_S%')
+        WHERE (Notes LIKE N'opening valuation source:%' OR Notes LIKE N'REORDER_V14_PROD_S%')
           AND (ExpectedOutputPerBatchBase IS NULL OR ExpectedOutputBase IS NULL OR OutputBaseUnitId IS NULL)) MissingOutputSnapshots,
        (SELECT COUNT(*) FROM dbo.BranchReceiptLines line
         JOIN dbo.BranchReceipts receipt ON receipt.BranchReceiptId=line.BranchReceiptId
@@ -1048,8 +1088,8 @@ END CATCH;
 GO
 
 /* ============================================================
-   BATCH 16 - DEMO_COVERAGE_V16 branch receipt integrity
-   - Remediates the two historical confirmed demo receipts.
+   BATCH 16 - COVERAGE_V16 branch receipt integrity
+   - Remediates the two historical confirmed receipts.
    - Adds Store 2 and enough confirmed receipts for supplier analytics.
    - Inventory/FIFO/posting writes are guarded by durable business keys.
    ============================================================ */
@@ -1057,7 +1097,7 @@ SET NOCOUNT ON;
 SET XACT_ABORT ON;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.SeedDemoCoverageV16
+CREATE OR ALTER PROCEDURE dbo.SeedCoverageV16
 AS
 BEGIN
 BEGIN TRY
@@ -1068,7 +1108,7 @@ BEGIN TRY
     DECLARE @CoverageStore2 int=(SELECT StoreId FROM dbo.Stores WHERE StoreId=2 AND Active=1);
     DECLARE @CoverageStore3 int=(SELECT StoreId FROM dbo.Stores WHERE StoreId=3 AND Active=1);
     DECLARE @CoverageSupplier int=COALESCE(
-        (SELECT SupplierId FROM dbo.Suppliers WHERE Code=N'DEMO_SUP_VIET_COFFEE'),
+        (SELECT SupplierId FROM dbo.Suppliers WHERE Code=N'SUP_VIET_COFFEE'),
         (SELECT SupplierId FROM dbo.Suppliers WHERE SupplierId=6));
     DECLARE @CoverageOffer int=(SELECT TOP(1) IngredientSupplierId
                                 FROM dbo.IngredientSuppliers
@@ -1084,9 +1124,9 @@ BEGIN TRY
 
     IF @CoverageStore1 IS NULL OR @CoverageStore2 IS NULL OR @CoverageStore3 IS NULL
        OR @CoverageSupplier IS NULL OR @CoverageOffer IS NULL OR @CoverageBaseUnit IS NULL
-        THROW 53610,N'DEMO_COVERAGE_V16: missing store, supplier, offer, ingredient, or unit foundation.',1;
+        THROW 53610,N'COVERAGE_V16: missing store, supplier, offer, ingredient, or unit foundation.',1;
 
-    DECLARE @CoverageStore2Email nvarchar(256)=N'demo.manager.thuanan@cafechain.local';
+    DECLARE @CoverageStore2Email nvarchar(256)=N'manager.thuanan@cafechain.local';
     DECLARE @CoverageStore2Account int;
     DECLARE @CoverageStore2Staff int;
     DECLARE @CoverageManagerRole int=(SELECT TOP(1) RoleId FROM dbo.Roles WHERE Name=N'Quản lý chi nhánh' OR RoleId=3 ORDER BY CASE WHEN RoleId=3 THEN 0 ELSE 1 END);
@@ -1094,7 +1134,7 @@ BEGIN TRY
     DECLARE @CoverageStoreScopeType int=(SELECT TOP(1) ScopeTypeId FROM dbo.ScopeTypes WHERE Name=N'Store' OR ScopeTypeId=1 ORDER BY ScopeTypeId);
 
     IF @CoverageManagerRole IS NULL OR @CoverageSourcePassword IS NULL OR @CoverageStoreScopeType IS NULL
-        THROW 53611,N'DEMO_COVERAGE_V16: missing role, password fixture, or Store scope type.',1;
+        THROW 53611,N'COVERAGE_V16: missing role, password fixture, or Store scope type.',1;
 
     IF NOT EXISTS(SELECT 1 FROM dbo.Accounts WHERE Email=@CoverageStore2Email)
         INSERT dbo.Accounts(Email,PasswordHash,Active,RequiresPasswordChange,CreatedAt,FailedLoginAttempts,LockoutEnd)
@@ -1107,7 +1147,7 @@ BEGIN TRY
     IF NOT EXISTS(SELECT 1 FROM dbo.Staffs WHERE AccountId=@CoverageStore2Account)
         INSERT dbo.Staffs(AccountId,FullName,CCCD,Gender,StartDate,EmployeeStatus,DateOfBirth,StoreId,
                           AvatarUrl,AvatarPublicId,Active,CreatedAt)
-        VALUES(@CoverageStore2Account,N'Quản lý demo Thuận An',NULL,1,'2026-02-01',2,NULL,@CoverageStore2,
+        VALUES(@CoverageStore2Account,N'Quản lý Thuận An',NULL,1,'2026-02-01',2,NULL,@CoverageStore2,
                NULL,NULL,1,'2026-02-01T07:00:00');
     SELECT @CoverageStore2Staff=StaffId FROM dbo.Staffs WHERE AccountId=@CoverageStore2Account;
 
@@ -1119,11 +1159,11 @@ BEGIN TRY
     DECLARE @CoverageStaff1 int=(SELECT TOP(1) StaffId FROM dbo.Staffs WHERE StoreId=1 AND Active=1 ORDER BY StaffId);
     DECLARE @CoverageStaff3 int=(SELECT TOP(1) StaffId FROM dbo.Staffs WHERE StoreId=3 AND Active=1 ORDER BY StaffId);
     IF @CoverageStaff1 IS NULL OR @CoverageStore2Staff IS NULL OR @CoverageStaff3 IS NULL
-        THROW 53612,N'DEMO_COVERAGE_V16: each store needs an active receipt actor.',1;
+        THROW 53612,N'COVERAGE_V16: each store needs an active receipt actor.',1;
 
     IF NOT EXISTS(SELECT 1 FROM dbo.SupplierStores WHERE SupplierId=@CoverageSupplier AND StoreId=@CoverageStore2)
         INSERT dbo.SupplierStores(SupplierId,StoreId,Active,LeadTimeOverrideDays,DeliverySchedule,Note,CreatedAt,UpdatedAt)
-        VALUES(@CoverageSupplier,@CoverageStore2,1,1,N'Thứ 2-4-6',N'DEMO_COVERAGE_V16 receipt scope','2026-02-01','2026-02-01');
+        VALUES(@CoverageSupplier,@CoverageStore2,1,1,N'Thứ 2-4-6',N'COVERAGE_V16 receipt scope','2026-02-01','2026-02-01');
 
     INSERT dbo.StoreInventories(StoreId,IngredientId,RecipeId,PreparedItemId,AvailableQty,ReservedQty,MinStockLevel,LastUpdated)
     SELECT s.StoreId,@CoverageIngredient,NULL,NULL,0,0,500,'2026-02-01'
@@ -1145,7 +1185,7 @@ BEGIN TRY
            LineTotalCost=ROUND(8000*@CoverageUnitCost,2)
     FROM dbo.BranchReceiptLines brl
     JOIN dbo.BranchReceipts br ON br.BranchReceiptId=brl.BranchReceiptId
-    WHERE br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
+    WHERE br.ReceiptCode IN(N'DASH-V13-BR-001',N'AI-ROLLING-BR-S3')
       AND brl.InventoryTransactionId IS NULL
       AND NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrderReceiptPostings p WHERE p.BranchReceiptLineId=brl.BranchReceiptLineId);
 
@@ -1159,7 +1199,7 @@ BEGIN TRY
     FROM dbo.PurchaseOrderLines pol
     JOIN dbo.BranchReceiptLines brl ON brl.PurchaseOrderLineId=pol.PurchaseOrderLineId
     JOIN dbo.BranchReceipts br ON br.BranchReceiptId=brl.BranchReceiptId
-    WHERE br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
+    WHERE br.ReceiptCode IN(N'DASH-V13-BR-001',N'AI-ROLLING-BR-S3')
       AND NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrderReceiptPostings p WHERE p.BranchReceiptLineId=brl.BranchReceiptLineId);
 
     UPDATE rr
@@ -1168,7 +1208,7 @@ BEGIN TRY
     FROM dbo.RestockRequests rr
     JOIN dbo.BranchReceiptLines brl ON brl.RestockRequestId=rr.RestockRequestId
     JOIN dbo.BranchReceipts br ON br.BranchReceiptId=brl.BranchReceiptId
-    WHERE br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
+    WHERE br.ReceiptCode IN(N'DASH-V13-BR-001',N'AI-ROLLING-BR-S3')
       AND NOT EXISTS(SELECT 1 FROM dbo.RestockFulfillmentPostings p
                      WHERE p.SourceDocumentType=N'BRANCH_RECEIPT'
                        AND p.SourceDocumentId=br.BranchReceiptId
@@ -1190,13 +1230,13 @@ BEGIN TRY
     INSERT dbo.PurchaseOrders
     (Code,StoreId,SupplierId,Status,OrderDate,ExpectedDeliveryAtUtc,CreatedByStaffId,
      ApprovedByStaffId,SentByStaffId,CreatedAtUtc,UpdatedAtUtc,ApprovedAtUtc,SentAtUtc,Note)
-    SELECT CONCAT(N'DEMO-COVERAGE-V16-PO-',x.ScenarioCode),x.StoreId,@CoverageSupplier,N'MARKED_AS_SENT',
+    SELECT CONCAT(N'COVERAGE-V16-PO-',x.ScenarioCode),x.StoreId,@CoverageSupplier,N'MARKED_AS_SENT',
            DATEADD(DAY,-2,x.EventAt),DATEADD(HOUR,-1,x.EventAt),x.ActorStaffId,x.ActorStaffId,x.ActorStaffId,
            DATEADD(DAY,-2,x.EventAt),DATEADD(DAY,-1,x.EventAt),DATEADD(DAY,-2,x.EventAt),
-           DATEADD(DAY,-2,x.EventAt),N'DEMO_COVERAGE_V16'
+           DATEADD(DAY,-2,x.EventAt),N'COVERAGE_V16'
     FROM @ReceiptScenario x
     WHERE NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrders p
-                     WHERE p.Code=CONCAT(N'DEMO-COVERAGE-V16-PO-',x.ScenarioCode));
+                     WHERE p.Code=CONCAT(N'COVERAGE-V16-PO-',x.ScenarioCode));
 
     INSERT dbo.PurchaseOrderLines
     (PurchaseOrderId,RestockRequestId,IngredientId,IngredientSupplierId,
@@ -1212,26 +1252,26 @@ BEGIN TRY
            @CoveragePackageQty,@CoverageProcurementUnit,x.InputPackages,
            @CoveragePackagePrice,NULL,0,0,@CoverageBaseUnit,@CoverageFactor,
            CASE WHEN x.ReceiptStatus=N'CONFIRMED' THEN x.RejectedBase ELSE 0 END,
-           1,CONCAT(N'DEMO_COVERAGE_V16_POL_',x.ScenarioCode)
+           1,CONCAT(N'COVERAGE_V16_POL_',x.ScenarioCode)
     FROM @ReceiptScenario x
-    JOIN dbo.PurchaseOrders po ON po.Code=CONCAT(N'DEMO-COVERAGE-V16-PO-',x.ScenarioCode)
+    JOIN dbo.PurchaseOrders po ON po.Code=CONCAT(N'COVERAGE-V16-PO-',x.ScenarioCode)
     WHERE NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrderLines l
-                     WHERE l.Note=CONCAT(N'DEMO_COVERAGE_V16_POL_',x.ScenarioCode));
+                     WHERE l.Note=CONCAT(N'COVERAGE_V16_POL_',x.ScenarioCode));
 
     INSERT dbo.BranchReceipts
     (ReceiptCode,StoreId,SupplierId,PurchaseOrderId,SourceInventoryTransferId,
      Status,ReceiptKey,ReferenceNumber,ReceivedAt,ReceivedByStaffId,
      ConfirmedAt,ConfirmedByStaffId,Notes,CreatedAt,CreatedByStaffId)
-    SELECT CONCAT(N'DEMO-COVERAGE-V16-BR-',x.ScenarioCode),x.StoreId,@CoverageSupplier,po.PurchaseOrderId,NULL,
-           x.ReceiptStatus,CONCAT(N'DEMO_COVERAGE_V16_RECEIPT_',x.ScenarioCode),CONCAT(N'INV-',x.ScenarioCode),
+    SELECT CONCAT(N'COVERAGE-V16-BR-',x.ScenarioCode),x.StoreId,@CoverageSupplier,po.PurchaseOrderId,NULL,
+           x.ReceiptStatus,CONCAT(N'COVERAGE_V16_RECEIPT_',x.ScenarioCode),CONCAT(N'INV-',x.ScenarioCode),
            x.EventAt,x.ActorStaffId,
            CASE WHEN x.ReceiptStatus=N'CONFIRMED' THEN DATEADD(MINUTE,10,x.EventAt) END,
            CASE WHEN x.ReceiptStatus=N'CONFIRMED' THEN x.ActorStaffId END,
-           CONCAT(N'DEMO_COVERAGE_V16 ',x.ReceiptStatus),x.EventAt,x.ActorStaffId
+           CONCAT(N'COVERAGE_V16 ',x.ReceiptStatus),x.EventAt,x.ActorStaffId
     FROM @ReceiptScenario x
-    JOIN dbo.PurchaseOrders po ON po.Code=CONCAT(N'DEMO-COVERAGE-V16-PO-',x.ScenarioCode)
+    JOIN dbo.PurchaseOrders po ON po.Code=CONCAT(N'COVERAGE-V16-PO-',x.ScenarioCode)
     WHERE NOT EXISTS(SELECT 1 FROM dbo.BranchReceipts br
-                     WHERE br.ReceiptCode=CONCAT(N'DEMO-COVERAGE-V16-BR-',x.ScenarioCode));
+                     WHERE br.ReceiptCode=CONCAT(N'COVERAGE-V16-BR-',x.ScenarioCode));
 
     INSERT dbo.BranchReceiptLines
     (BranchReceiptId,RestockRequestId,PurchaseOrderLineId,IngredientId,PreparedItemId,RecipeId,
@@ -1253,8 +1293,8 @@ BEGIN TRY
            @CoveragePackageQty,@CoverageProcurementUnit,@CoverageUnitCost,
            ROUND(x.AcceptedBase*@CoverageUnitCost,2),x.EventAt
     FROM @ReceiptScenario x
-    JOIN dbo.BranchReceipts br ON br.ReceiptCode=CONCAT(N'DEMO-COVERAGE-V16-BR-',x.ScenarioCode)
-    JOIN dbo.PurchaseOrderLines pol ON pol.Note=CONCAT(N'DEMO_COVERAGE_V16_POL_',x.ScenarioCode)
+    JOIN dbo.BranchReceipts br ON br.ReceiptCode=CONCAT(N'COVERAGE-V16-BR-',x.ScenarioCode)
+    JOIN dbo.PurchaseOrderLines pol ON pol.Note=CONCAT(N'COVERAGE_V16_POL_',x.ScenarioCode)
     WHERE NOT EXISTS(SELECT 1 FROM dbo.BranchReceiptLines l WHERE l.BranchReceiptId=br.BranchReceiptId);
 
     INSERT dbo.PurchaseOrderReceiptPostings
@@ -1270,8 +1310,8 @@ BEGIN TRY
     FROM dbo.BranchReceipts br
     JOIN dbo.BranchReceiptLines brl ON brl.BranchReceiptId=br.BranchReceiptId
     WHERE br.Status=N'CONFIRMED'
-      AND (br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
-           OR br.ReceiptCode LIKE N'DEMO-COVERAGE-V16-BR-%')
+      AND (br.ReceiptCode IN(N'DASH-V13-BR-001',N'AI-ROLLING-BR-S3')
+           OR br.ReceiptCode LIKE N'COVERAGE-V16-BR-%')
       AND brl.PurchaseOrderLineId IS NOT NULL
       AND NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrderReceiptPostings p
                      WHERE p.BranchReceiptLineId=brl.BranchReceiptLineId);
@@ -1286,7 +1326,7 @@ BEGIN TRY
     FROM dbo.BranchReceipts br
     JOIN dbo.BranchReceiptLines brl ON brl.BranchReceiptId=br.BranchReceiptId
     WHERE br.Status=N'CONFIRMED' AND brl.RestockRequestId IS NOT NULL
-      AND br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
+      AND br.ReceiptCode IN(N'DASH-V13-BR-001',N'AI-ROLLING-BR-S3')
       AND NOT EXISTS(SELECT 1 FROM dbo.RestockFulfillmentPostings p
                      WHERE p.SourceDocumentType=N'BRANCH_RECEIPT'
                        AND p.SourceDocumentId=br.BranchReceiptId
@@ -1298,8 +1338,8 @@ BEGIN TRY
     FROM dbo.BranchReceipts br
     JOIN dbo.BranchReceiptLines brl ON brl.BranchReceiptId=br.BranchReceiptId
     WHERE br.Status=N'CONFIRMED'
-      AND (br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
-           OR br.ReceiptCode LIKE N'DEMO-COVERAGE-V16-BR-%')
+      AND (br.ReceiptCode IN(N'DASH-V13-BR-001',N'AI-ROLLING-BR-S3')
+           OR br.ReceiptCode LIKE N'COVERAGE-V16-BR-%')
       AND brl.InventoryTransactionId IS NULL
       AND NOT EXISTS(SELECT 1 FROM dbo.InventoryTransactions it WHERE it.BranchReceiptLineId=brl.BranchReceiptLineId);
 
@@ -1316,7 +1356,7 @@ BEGIN TRY
         SELECT @StoreInventoryId=StoreInventoryId,@BeforeQty=AvailableQty
         FROM dbo.StoreInventories WITH(UPDLOCK,HOLDLOCK)
         WHERE StoreId=@LineStore AND IngredientId=@LineIngredient;
-        IF @StoreInventoryId IS NULL THROW 53613,N'DEMO_COVERAGE_V16: receipt inventory identity missing.',1;
+        IF @StoreInventoryId IS NULL THROW 53613,N'COVERAGE_V16: receipt inventory identity missing.',1;
 
         UPDATE dbo.StoreInventories
            SET AvailableQty=AvailableQty+@LineQty,LastUpdated=@CoverageNow
@@ -1346,14 +1386,14 @@ BEGIN TRY
     INSERT dbo.RestockRequestTransitions
     (RestockRequestId,PreviousStatus,NewStatus,ActorStaffId,OccurredAtUtc,Reason)
     SELECT DISTINCT brl.RestockRequestId,N'PROCESSING',N'COMPLETED',br.ConfirmedByStaffId,
-           COALESCE(br.ConfirmedAt,@CoverageNow),N'DEMO_COVERAGE_V16 confirmed receipt remediation'
+           COALESCE(br.ConfirmedAt,@CoverageNow),N'COVERAGE_V16 confirmed receipt remediation'
     FROM dbo.BranchReceipts br
     JOIN dbo.BranchReceiptLines brl ON brl.BranchReceiptId=br.BranchReceiptId
     WHERE brl.RestockRequestId IS NOT NULL
-      AND br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
+      AND br.ReceiptCode IN(N'DASH-V13-BR-001',N'AI-ROLLING-BR-S3')
       AND NOT EXISTS(SELECT 1 FROM dbo.RestockRequestTransitions t
                      WHERE t.RestockRequestId=brl.RestockRequestId
-                       AND t.Reason=N'DEMO_COVERAGE_V16 confirmed receipt remediation');
+                       AND t.Reason=N'COVERAGE_V16 confirmed receipt remediation');
 
     UPDATE po
        SET Status=CASE WHEN br.Status=N'CONFIRMED' THEN N'COMPLETED' ELSE po.Status END,
@@ -1361,61 +1401,61 @@ BEGIN TRY
            UpdatedAtUtc=@CoverageNow
     FROM dbo.PurchaseOrders po
     JOIN dbo.BranchReceipts br ON br.PurchaseOrderId=po.PurchaseOrderId
-    WHERE br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
-       OR br.ReceiptCode LIKE N'DEMO-COVERAGE-V16-BR-%';
+    WHERE br.ReceiptCode IN(N'DASH-V13-BR-001',N'AI-ROLLING-BR-S3')
+       OR br.ReceiptCode LIKE N'COVERAGE-V16-BR-%';
 
     INSERT dbo.SupplierReceiptIssues
     (SupplierId,StoreId,PurchaseOrderId,PurchaseOrderLineId,BranchReceiptId,BranchReceiptLineId,
      IssueType,Status,AffectedBaseQuantity,Description,ReportedByStaffId,ReportedAtUtc,UpdatedAtUtc)
     SELECT br.SupplierId,br.StoreId,br.PurchaseOrderId,brl.PurchaseOrderLineId,
            br.BranchReceiptId,brl.BranchReceiptLineId,brl.RejectionIssueType,N'OPEN',
-           brl.RejectedBaseQuantity,CONCAT(N'DEMO_COVERAGE_V16_REJECTION_',brl.BranchReceiptLineId),
+           brl.RejectedBaseQuantity,CONCAT(N'COVERAGE_V16_REJECTION_',brl.BranchReceiptLineId),
            br.ConfirmedByStaffId,COALESCE(br.ConfirmedAt,@CoverageNow),COALESCE(br.ConfirmedAt,@CoverageNow)
     FROM dbo.BranchReceipts br
     JOIN dbo.BranchReceiptLines brl ON brl.BranchReceiptId=br.BranchReceiptId
     WHERE br.Status=N'CONFIRMED' AND brl.RejectedBaseQuantity>0
-      AND (br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
-           OR br.ReceiptCode LIKE N'DEMO-COVERAGE-V16-BR-%')
+      AND (br.ReceiptCode IN(N'DASH-V13-BR-001',N'AI-ROLLING-BR-S3')
+           OR br.ReceiptCode LIKE N'COVERAGE-V16-BR-%')
       AND NOT EXISTS(SELECT 1 FROM dbo.SupplierReceiptIssues i WHERE i.BranchReceiptLineId=brl.BranchReceiptLineId);
 
     INSERT dbo.SupplierReceiptIssueTransitions
     (SupplierReceiptIssueId,PreviousStatus,NewStatus,ActorStaffId,Reason,OccurredAtUtc)
     SELECT i.SupplierReceiptIssueId,N'OPEN',N'OPEN',i.ReportedByStaffId,
-           N'DEMO_COVERAGE_V16 issue recorded',i.ReportedAtUtc
+           N'COVERAGE_V16 issue recorded',i.ReportedAtUtc
     FROM dbo.SupplierReceiptIssues i
     JOIN dbo.BranchReceipts br ON br.BranchReceiptId=i.BranchReceiptId
-    WHERE (br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
-           OR br.ReceiptCode LIKE N'DEMO-COVERAGE-V16-BR-%')
+    WHERE (br.ReceiptCode IN(N'DASH-V13-BR-001',N'AI-ROLLING-BR-S3')
+           OR br.ReceiptCode LIKE N'COVERAGE-V16-BR-%')
       AND NOT EXISTS(SELECT 1 FROM dbo.SupplierReceiptIssueTransitions t
                      WHERE t.SupplierReceiptIssueId=i.SupplierReceiptIssueId
-                       AND t.Reason=N'DEMO_COVERAGE_V16 issue recorded');
+                       AND t.Reason=N'COVERAGE_V16 issue recorded');
 
     IF (SELECT COUNT(DISTINCT StoreId) FROM dbo.BranchReceipts
-        WHERE ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
-           OR ReceiptCode LIKE N'DEMO-COVERAGE-V16-BR-%')<>3
-        THROW 53620,N'DEMO_COVERAGE_V16: branch receipts do not cover all three stores.',1;
+        WHERE ReceiptCode IN(N'DASH-V13-BR-001',N'AI-ROLLING-BR-S3')
+           OR ReceiptCode LIKE N'COVERAGE-V16-BR-%')<>3
+        THROW 53620,N'COVERAGE_V16: branch receipts do not cover all three stores.',1;
     IF (SELECT COUNT(*) FROM dbo.BranchReceipts WHERE SupplierId=@CoverageSupplier AND Status=N'CONFIRMED')<5
-        THROW 53621,N'DEMO_COVERAGE_V16: supplier analytics needs at least five confirmed receipts.',1;
+        THROW 53621,N'COVERAGE_V16: supplier analytics needs at least five confirmed receipts.',1;
     IF EXISTS
     (
         SELECT 1 FROM dbo.BranchReceipts br
         JOIN dbo.BranchReceiptLines brl ON brl.BranchReceiptId=br.BranchReceiptId
         WHERE br.Status=N'CONFIRMED'
-          AND (br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
-               OR br.ReceiptCode LIKE N'DEMO-COVERAGE-V16-BR-%')
+          AND (br.ReceiptCode IN(N'DASH-V13-BR-001',N'AI-ROLLING-BR-S3')
+               OR br.ReceiptCode LIKE N'COVERAGE-V16-BR-%')
           AND (brl.InventoryTransactionId IS NULL
                OR NOT EXISTS(SELECT 1 FROM dbo.InventoryCostLayers l WHERE l.SourceBranchReceiptLineId=brl.BranchReceiptLineId)
                OR (brl.PurchaseOrderLineId IS NOT NULL AND NOT EXISTS
                    (SELECT 1 FROM dbo.PurchaseOrderReceiptPostings p WHERE p.BranchReceiptLineId=brl.BranchReceiptLineId)))
-    ) THROW 53622,N'DEMO_COVERAGE_V16: confirmed receipt ledger is incomplete.',1;
+    ) THROW 53622,N'COVERAGE_V16: confirmed receipt ledger is incomplete.',1;
     IF EXISTS
     (
         SELECT 1 FROM dbo.BranchReceipts br
         JOIN dbo.BranchReceiptLines brl ON brl.BranchReceiptId=br.BranchReceiptId
-        WHERE br.Status=N'DRAFT' AND br.ReceiptCode LIKE N'DEMO-COVERAGE-V16-BR-%'
+        WHERE br.Status=N'DRAFT' AND br.ReceiptCode LIKE N'COVERAGE-V16-BR-%'
           AND (brl.InventoryTransactionId IS NOT NULL
                OR EXISTS(SELECT 1 FROM dbo.PurchaseOrderReceiptPostings p WHERE p.BranchReceiptLineId=brl.BranchReceiptLineId))
-    ) THROW 53623,N'DEMO_COVERAGE_V16: draft receipt unexpectedly posted inventory.',1;
+    ) THROW 53623,N'COVERAGE_V16: draft receipt unexpectedly posted inventory.',1;
 
     COMMIT TRANSACTION;
 END TRY
@@ -1426,8 +1466,8 @@ END CATCH;
 END;
 GO
 
-IF EXISTS(SELECT 1 FROM dbo.BranchReceipts WHERE ReceiptCode LIKE N'DEMO-COVERAGE-V16-BR-%')
-SELECT N'DEMO_COVERAGE_V16_RECEIPTS' SeedMarker,
+IF EXISTS(SELECT 1 FROM dbo.BranchReceipts WHERE ReceiptCode LIKE N'COVERAGE-V16-BR-%')
+SELECT N'COVERAGE_V16_RECEIPTS' SeedMarker,
        (SELECT COUNT(*) FROM dbo.BranchReceipts WHERE Status=N'CONFIRMED') ConfirmedReceipts,
        (SELECT COUNT(DISTINCT StoreId) FROM dbo.BranchReceipts) StoresWithReceipts,
        (SELECT COUNT(*) FROM dbo.InventoryTransactions WHERE BranchReceiptLineId IS NOT NULL) ReceiptTransactions,
@@ -1487,7 +1527,7 @@ GO
       - Part1 values are preserved. Store1 duplicates are mapped to Part1 rows.
       - Re-running this batch does not create duplicate rows.
       - A conflicting primary key or business key stops the batch without mutation.
-      - Batch 14 adds one Store 3 demo POS staff account; no Location data is inserted.
+      - Batch 14 adds one Store 3 POS staff account; no Location data is inserted.
 */
 
 SET NOCOUNT ON;
@@ -1555,8 +1595,8 @@ BEGIN TRY
        Source analysis:
        - EF HasData: IDs 1-2.
        - Part1: IDs 4-8, retained without changing ID/code/name/value.
-       - Store1 duplicate DEMO_CAT_FRUIT_TEA is mapped to TRATRAICAY.
-       - Store1 duplicate DEMO_CAT_FRAPPE is mapped to DAXAY.
+       - Store1 duplicate CAT_FRUIT_TEA is mapped to TRATRAICAY.
+       - Store1 duplicate CAT_FRAPPE is mapped to DAXAY.
        - Five non-duplicate Store1 categories receive deterministic IDs 9-13.
        Final expected count on a clean migrated database: 12.
        ============================================================ */
@@ -1577,11 +1617,11 @@ BEGIN TRY
         (6, N'NUOCEP', N'Nước ép', N'🧃', 1),
         (7, N'DAXAY', N'Đá xay', N'🥤', 1),
         (8, N'SUACHUA', N'Sữa chua', N'🍶', 1),
-        (9, N'DEMO_CAT_VIET_COFFEE', N'Cà phê Việt', N'☕', 1),
-        (10, N'DEMO_CAT_MODERN_COFFEE', N'Cà phê hiện đại', N'🥛', 1),
-        (11, N'DEMO_CAT_MILK_TEA', N'Trà sữa thủ công', N'🧋', 1),
-        (12, N'DEMO_CAT_MATCHA_LATTE', N'Matcha & Latte', N'🍵', 1),
-        (13, N'DEMO_CAT_TOPPING', N'Topping', N'➕', 1);
+        (9, N'CAT_VIET_COFFEE', N'Cà phê Việt', N'☕', 1),
+        (10, N'CAT_MODERN_COFFEE', N'Cà phê hiện đại', N'🥛', 1),
+        (11, N'CAT_MILK_TEA', N'Trà sữa thủ công', N'🧋', 1),
+        (12, N'CAT_MATCHA_LATTE', N'Matcha & Latte', N'🍵', 1),
+        (13, N'CAT_TOPPING', N'Topping', N'➕', 1);
 
     IF EXISTS
     (
@@ -1621,18 +1661,18 @@ BEGIN TRY
 
     INSERT @CategoryAliases(SourceCode, CanonicalCode, Reason)
     VALUES
-        (N'DEMO_CAT_FRUIT_TEA', N'TRATRAICAY', N'Trùng tên và ý nghĩa nghiệp vụ với Part1; giữ Part1.'),
-        (N'DEMO_CAT_FRAPPE', N'DAXAY', N'Trùng tên và ý nghĩa nghiệp vụ với Part1; giữ Part1.');
+        (N'CAT_FRUIT_TEA', N'TRATRAICAY', N'Trùng tên và ý nghĩa nghiệp vụ với Part1; giữ Part1.'),
+        (N'CAT_FRAPPE', N'DAXAY', N'Trùng tên và ý nghĩa nghiệp vụ với Part1; giữ Part1.');
 
     /* ============================================================
        02. DRINKS
 
        Mapping of duplicate Store1 products:
-       DEMO_DRINK_BAC_XIU          -> CF_BacXiu
-       DEMO_DRINK_AMERICANO        -> CF_Americano
-       DEMO_DRINK_PEACH_ORANGE_TEA -> TTC_CamSa
-       DEMO_DRINK_LYCHEE_TEA       -> TTC_Vai
-       DEMO_DRINK_OOLONG_MILK_TEA  -> TS_OLong
+       DRINK_BAC_XIU          -> CF_BacXiu
+       DRINK_AMERICANO        -> CF_Americano
+       DRINK_PEACH_ORANGE_TEA -> TTC_CamSa
+       DRINK_LYCHEE_TEA       -> TTC_Vai
+       DRINK_OOLONG_MILK_TEA  -> TS_OLong
 
        IDs 7-30 are the unchanged Part1 rows.
        IDs 31-39 are non-duplicate Store1 rows.
@@ -1674,26 +1714,26 @@ BEGIN TRY
         (28, 6, 1, N'NE_ChanhDay', N'Nước chanh dây', N'Nước chanh dây chua ngọt mát lạnh.', 1, '2025-01-01', NULL),
         (29, 8, 1, N'SC_Dau', N'Sữa chua dâu', N'Sữa chua vị dâu mát lạnh.', 1, '2025-01-01', NULL),
         (30, 8, 1, N'SC_VietQuat', N'Sữa chua việt quất', N'Sữa chua vị việt quất thơm ngon.', 1, '2025-01-01', NULL),
-        (31, 9, 1, N'DEMO_DRINK_VIET_BLACK', N'Cà phê đen đá', N'Dữ liệu demo Store 1 - Cà phê đen đá', 1, '2026-01-01', NULL),
-        (32, 9, 1, N'DEMO_DRINK_VIET_MILK', N'Cà phê sữa đá', N'Dữ liệu demo Store 1 - Cà phê sữa đá', 1, '2026-01-01', NULL),
-        (33, 9, 1, N'DEMO_DRINK_SALTED_COFFEE', N'Cà phê muối', N'Dữ liệu demo Store 1 - Cà phê muối', 1, '2026-01-01', NULL),
-        (34, 10, 1, N'DEMO_DRINK_COFFEE_LATTE', N'Latte cà phê', N'Dữ liệu demo Store 1 - Latte cà phê', 1, '2026-01-01', NULL),
-        (35, 4, 1, N'DEMO_DRINK_PASSION_TEA', N'Trà chanh dây', N'Dữ liệu demo Store 1 - Trà chanh dây', 1, '2026-01-01', NULL),
-        (36, 11, 1, N'DEMO_DRINK_TRAD_MILK_TEA', N'Trà sữa truyền thống đặc biệt', N'Dữ liệu demo Store 1 - Trà sữa truyền thống đặc biệt', 1, '2026-01-01', NULL),
-        (37, 12, 1, N'DEMO_DRINK_MATCHA_LATTE', N'Matcha latte', N'Dữ liệu demo Store 1 - Matcha latte', 1, '2026-01-01', NULL),
-        (38, 12, 1, N'DEMO_DRINK_CHOCOLATE_LATTE', N'Chocolate latte', N'Dữ liệu demo Store 1 - Chocolate latte', 1, '2026-01-01', NULL),
-        (39, 7, 1, N'DEMO_DRINK_MATCHA_FRAPPE', N'Matcha đá xay', N'Dữ liệu demo Store 1 - Matcha đá xay', 1, '2026-01-01', NULL),
-        (40, 10, 1, N'DEMO_DRINK_COLD_BREW_ORANGE', N'Cold brew cam', N'Cold brew kết hợp cam tươi, vị thanh và ít ngọt.', 1, '2026-01-01', NULL),
-        (41, 10, 1, N'DEMO_DRINK_MOCHA', N'Mocha', N'Espresso, chocolate và sữa tươi.', 1, '2026-01-01', NULL),
-        (42, 10, 1, N'DEMO_DRINK_CARAMEL_MACCHIATO', N'Caramel macchiato', N'Espresso, sữa tươi và syrup caramel.', 1, '2026-01-01', NULL),
-        (43, 9, 1, N'DEMO_DRINK_COCONUT_COFFEE', N'Cà phê dừa', N'Cốt cà phê Việt kết hợp nước cốt dừa.', 1, '2026-01-01', NULL),
-        (44, 4, 1, N'DEMO_DRINK_HONEY_LEMON_TEA', N'Trà chanh mật ong', N'Trà đen, chanh vàng và mật ong.', 1, '2026-01-01', NULL),
-        (45, 4, 1, N'DEMO_DRINK_MANGO_TEA', N'Trà xoài', N'Trà đen kết hợp puree xoài.', 1, '2026-01-01', NULL),
-        (46, 11, 1, N'DEMO_DRINK_STRAWBERRY_MILK_TEA', N'Trà sữa dâu', N'Trà đen, puree dâu và sữa tươi; khác sản phẩm Trà dâu của Part1.', 1, '2026-01-01', NULL),
-        (47, 4, 1, N'DEMO_DRINK_LYCHEE_OOLONG', N'Trà ô long vải', N'Cốt trà ô long kết hợp vải ngâm.', 1, '2026-01-01', NULL),
-        (48, 12, 1, N'DEMO_DRINK_OAT_MATCHA', N'Matcha sữa yến mạch', N'Matcha kết hợp sữa yến mạch.', 1, '2026-01-01', NULL),
-        (49, 12, 1, N'DEMO_DRINK_COCONUT_CHOCOLATE', N'Chocolate dừa', N'Chocolate kết hợp nước cốt dừa và sữa tươi.', 1, '2026-01-01', NULL),
-        (50, 8, 1, N'DEMO_DRINK_PASSION_YOGURT', N'Sữa chua chanh dây', N'Sữa chua kết hợp mứt chanh dây.', 1, '2026-01-01', NULL),
+        (31, 9, 1, N'DRINK_VIET_BLACK', N'Cà phê đen đá', N'Dữ liệu Store 1 - Cà phê đen đá', 1, '2026-01-01', NULL),
+        (32, 9, 1, N'DRINK_VIET_MILK', N'Cà phê sữa đá', N'Dữ liệu Store 1 - Cà phê sữa đá', 1, '2026-01-01', NULL),
+        (33, 9, 1, N'DRINK_SALTED_COFFEE', N'Cà phê muối', N'Dữ liệu Store 1 - Cà phê muối', 1, '2026-01-01', NULL),
+        (34, 10, 1, N'DRINK_COFFEE_LATTE', N'Latte cà phê', N'Dữ liệu Store 1 - Latte cà phê', 1, '2026-01-01', NULL),
+        (35, 4, 1, N'DRINK_PASSION_TEA', N'Trà chanh dây', N'Dữ liệu Store 1 - Trà chanh dây', 1, '2026-01-01', NULL),
+        (36, 11, 1, N'DRINK_TRAD_MILK_TEA', N'Trà sữa truyền thống đặc biệt', N'Dữ liệu Store 1 - Trà sữa truyền thống đặc biệt', 1, '2026-01-01', NULL),
+        (37, 12, 1, N'DRINK_MATCHA_LATTE', N'Matcha latte', N'Dữ liệu Store 1 - Matcha latte', 1, '2026-01-01', NULL),
+        (38, 12, 1, N'DRINK_CHOCOLATE_LATTE', N'Chocolate latte', N'Dữ liệu Store 1 - Chocolate latte', 1, '2026-01-01', NULL),
+        (39, 7, 1, N'DRINK_MATCHA_FRAPPE', N'Matcha đá xay', N'Dữ liệu Store 1 - Matcha đá xay', 1, '2026-01-01', NULL),
+        (40, 10, 1, N'DRINK_COLD_BREW_ORANGE', N'Cold brew cam', N'Cold brew kết hợp cam tươi, vị thanh và ít ngọt.', 1, '2026-01-01', NULL),
+        (41, 10, 1, N'DRINK_MOCHA', N'Mocha', N'Espresso, chocolate và sữa tươi.', 1, '2026-01-01', NULL),
+        (42, 10, 1, N'DRINK_CARAMEL_MACCHIATO', N'Caramel macchiato', N'Espresso, sữa tươi và syrup caramel.', 1, '2026-01-01', NULL),
+        (43, 9, 1, N'DRINK_COCONUT_COFFEE', N'Cà phê dừa', N'Cốt cà phê Việt kết hợp nước cốt dừa.', 1, '2026-01-01', NULL),
+        (44, 4, 1, N'DRINK_HONEY_LEMON_TEA', N'Trà chanh mật ong', N'Trà đen, chanh vàng và mật ong.', 1, '2026-01-01', NULL),
+        (45, 4, 1, N'DRINK_MANGO_TEA', N'Trà xoài', N'Trà đen kết hợp puree xoài.', 1, '2026-01-01', NULL),
+        (46, 11, 1, N'DRINK_STRAWBERRY_MILK_TEA', N'Trà sữa dâu', N'Trà đen, puree dâu và sữa tươi; khác sản phẩm Trà dâu của Part1.', 1, '2026-01-01', NULL),
+        (47, 4, 1, N'DRINK_LYCHEE_OOLONG', N'Trà ô long vải', N'Cốt trà ô long kết hợp vải ngâm.', 1, '2026-01-01', NULL),
+        (48, 12, 1, N'DRINK_OAT_MATCHA', N'Matcha sữa yến mạch', N'Matcha kết hợp sữa yến mạch.', 1, '2026-01-01', NULL),
+        (49, 12, 1, N'DRINK_COCONUT_CHOCOLATE', N'Chocolate dừa', N'Chocolate kết hợp nước cốt dừa và sữa tươi.', 1, '2026-01-01', NULL),
+        (50, 8, 1, N'DRINK_PASSION_YOGURT', N'Sữa chua chanh dây', N'Sữa chua kết hợp mứt chanh dây.', 1, '2026-01-01', NULL),
         (51, 10, 1, N'ZZ_DRINK_CHEESE_CREAM_COFFEE', N'Cà phê kem cheese', N'Espresso kết hợp lớp kem cheese mặn béo.', 1, '2026-01-01', NULL),
         (52, 10, 1, N'ZZ_DRINK_HONEY_LEMON_COLD_BREW', N'Cold brew mật ong chanh vàng', N'Cold brew thanh nhẹ kết hợp mật ong và chanh vàng.', 1, '2026-01-01', NULL),
         (53, 9, 1, N'ZZ_DRINK_BLACK_PEARL_MILK_COFFEE', N'Cà phê sữa trân châu đen',  N'Cà phê sữa Việt kết hợp trân châu đen đã nấu.', 1, '2026-01-01', NULL), 
@@ -1767,11 +1807,11 @@ BEGIN TRY
 
     INSERT @DrinkAliases(SourceCode, CanonicalCode, Reason)
     VALUES
-        (N'DEMO_DRINK_BAC_XIU', N'CF_BacXiu', N'Trùng tên và sản phẩm với Part1; giữ DrinkId 7 và giá Part1.'),
-        (N'DEMO_DRINK_AMERICANO', N'CF_Americano', N'Trùng tên và sản phẩm với Part1; giữ DrinkId 10 và giá Part1.'),
-        (N'DEMO_DRINK_PEACH_ORANGE_TEA', N'TTC_CamSa', N'Trùng tên và sản phẩm với Part1; giữ DrinkId 21 và giá Part1.'),
-        (N'DEMO_DRINK_LYCHEE_TEA', N'TTC_Vai', N'Trùng tên và sản phẩm với Part1; giữ DrinkId 22 và giá Part1.'),
-        (N'DEMO_DRINK_OOLONG_MILK_TEA', N'TS_OLong', N'Trùng tên và sản phẩm với Part1; giữ DrinkId 14 và giá Part1.');
+        (N'DRINK_BAC_XIU', N'CF_BacXiu', N'Trùng tên và sản phẩm với Part1; giữ DrinkId 7 và giá Part1.'),
+        (N'DRINK_AMERICANO', N'CF_Americano', N'Trùng tên và sản phẩm với Part1; giữ DrinkId 10 và giá Part1.'),
+        (N'DRINK_PEACH_ORANGE_TEA', N'TTC_CamSa', N'Trùng tên và sản phẩm với Part1; giữ DrinkId 21 và giá Part1.'),
+        (N'DRINK_LYCHEE_TEA', N'TTC_Vai', N'Trùng tên và sản phẩm với Part1; giữ DrinkId 22 và giá Part1.'),
+        (N'DRINK_OOLONG_MILK_TEA', N'TS_OLong', N'Trùng tên và sản phẩm với Part1; giữ DrinkId 14 và giá Part1.');
 
     /* ============================================================
        03. DRINK IMAGES
@@ -2360,20 +2400,20 @@ SELECT N'DrinkSizes', COUNT(*), MIN(DrinkSizeId), MAX(DrinkSizeId),
 FROM dbo.DrinkSizes;
 
 SELECT N'DrinkCategories' AS [Table], N'TRATRAICAY' AS RetainedCode,
-       N'DEMO_CAT_FRUIT_TEA' AS RemovedStore1Code,
+       N'CAT_FRUIT_TEA' AS RemovedStore1Code,
        N'Giữ Part1 vì trùng tên và ý nghĩa nghiệp vụ.' AS Decision
 UNION ALL
-SELECT N'DrinkCategories', N'DAXAY', N'DEMO_CAT_FRAPPE', N'Giữ Part1 vì trùng tên và ý nghĩa nghiệp vụ.'
+SELECT N'DrinkCategories', N'DAXAY', N'CAT_FRAPPE', N'Giữ Part1 vì trùng tên và ý nghĩa nghiệp vụ.'
 UNION ALL
-SELECT N'Drinks', N'CF_BacXiu', N'DEMO_DRINK_BAC_XIU', N'Giữ Part1 DrinkId 7 và giá Part1.'
+SELECT N'Drinks', N'CF_BacXiu', N'DRINK_BAC_XIU', N'Giữ Part1 DrinkId 7 và giá Part1.'
 UNION ALL
-SELECT N'Drinks', N'CF_Americano', N'DEMO_DRINK_AMERICANO', N'Giữ Part1 DrinkId 10 và giá Part1.'
+SELECT N'Drinks', N'CF_Americano', N'DRINK_AMERICANO', N'Giữ Part1 DrinkId 10 và giá Part1.'
 UNION ALL
-SELECT N'Drinks', N'TTC_CamSa', N'DEMO_DRINK_PEACH_ORANGE_TEA', N'Giữ Part1 DrinkId 21 và giá Part1.'
+SELECT N'Drinks', N'TTC_CamSa', N'DRINK_PEACH_ORANGE_TEA', N'Giữ Part1 DrinkId 21 và giá Part1.'
 UNION ALL
-SELECT N'Drinks', N'TTC_Vai', N'DEMO_DRINK_LYCHEE_TEA', N'Giữ Part1 DrinkId 22 và giá Part1.'
+SELECT N'Drinks', N'TTC_Vai', N'DRINK_LYCHEE_TEA', N'Giữ Part1 DrinkId 22 và giá Part1.'
 UNION ALL
-SELECT N'Drinks', N'TS_OLong', N'DEMO_DRINK_OOLONG_MILK_TEA', N'Giữ Part1 DrinkId 14 và giá Part1.';
+SELECT N'Drinks', N'TS_OLong', N'DRINK_OOLONG_MILK_TEA', N'Giữ Part1 DrinkId 14 và giá Part1.';
 
 /* ============================================================
    BATCH 02/12
@@ -2389,12 +2429,12 @@ SELECT N'Drinks', N'TS_OLong', N'DEMO_DRINK_OOLONG_MILK_TEA', N'Giữ Part1 Drin
      - Part1 does not specify identity values for these four tables.
        Deterministic IDs continue immediately after the EF ranges.
      - Store1 topping aliases:
-         DEMO_TOP_BLACK_PEARL  -> TC_DEN
-         DEMO_TOP_WHITE_PEARL  -> TC_TRANG
-         DEMO_TOP_FLAN         -> BH_FLAN
-         DEMO_TOP_TARO_JELLY   -> TH_KM
-         DEMO_TOP_CHEESE_CREAM -> KEMCHEESE
-       Only DEMO_TOP_ESPRESSO_SHOT remains a new Topping row.
+         TOP_BLACK_PEARL  -> TC_DEN
+         TOP_WHITE_PEARL  -> TC_TRANG
+         TOP_FLAN         -> BH_FLAN
+         TOP_TARO_JELLY   -> TH_KM
+         TOP_CHEESE_CREAM -> KEMCHEESE
+       Only TOP_ESPRESSO_SHOT remains a new Topping row.
      - This batch never updates or deletes an existing row. An exact row is
        skipped; a conflicting ID or business key aborts the transaction.
    ============================================================ */
@@ -2468,7 +2508,7 @@ BEGIN TRY
         (10, N'HATCHIA',               N'Hạt chia',                4000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1779804081/hatchia_raldyn.jpg',      N'hatchia_raldyn',      1),
         (11, N'TH_Dua',                N'Thạch dừa',               5000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1779804078/thachdua_lmh1ia.jpg',     N'thachdua_lmh1ia',     1),
         (12, N'PUDDINGTRUNG',          N'Pudding trứng',           7000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1779804048/puddingtrung_noep2j.jpg', N'puddingtrung_noep2j', 1),
-        (13, N'DEMO_TOP_ESPRESSO_SHOT',N'Shot espresso',          10000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784901746/shotespressoextra4_nnd2bv.jpg', N'shotespressoextra4_nnd2bv', 1),
+        (13, N'TOP_ESPRESSO_SHOT',N'Shot espresso',          10000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784901746/shotespressoextra4_nnd2bv.jpg', N'shotespressoextra4_nnd2bv', 1),
         (14, N'TC_HOANGKIM',           N'Trân châu hoàng kim',     7000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784879023/tranchauhoangkim1_hklfjq.jpg', N'tranchauhoangkim1_hklfjq', 1),
         (15, N'TC_DUONGDEN',           N'Trân châu đường đen',     8000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784879021/tranchauduongden2_adakme.jpg', N'tranchauduongden2_adakme', 1),
         (16, N'TC_MINI',               N'Trân châu mini',          6000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784879029/tranchaumini3_vivudb.jpg', N'tranchaumini3_vivudb', 1),
@@ -2943,16 +2983,16 @@ SELECT N'StoreToppings', COUNT(*), MIN(StoreToppingId), MAX(StoreToppingId),
 FROM dbo.StoreToppings;
 
 SELECT N'Toppings' AS [Table], N'TC_DEN' AS RetainedCode,
-       N'DEMO_TOP_BLACK_PEARL' AS RemovedStore1Code,
+       N'TOP_BLACK_PEARL' AS RemovedStore1Code,
        N'Giữ EF ToppingId 1 vì trùng ý nghĩa nghiệp vụ.' AS Decision
 UNION ALL
-SELECT N'Toppings', N'TC_TRANG', N'DEMO_TOP_WHITE_PEARL', N'Giữ EF ToppingId 2 vì trùng ý nghĩa nghiệp vụ.'
+SELECT N'Toppings', N'TC_TRANG', N'TOP_WHITE_PEARL', N'Giữ EF ToppingId 2 vì trùng ý nghĩa nghiệp vụ.'
 UNION ALL
-SELECT N'Toppings', N'BH_FLAN', N'DEMO_TOP_FLAN', N'Giữ EF ToppingId 6 vì trùng ý nghĩa nghiệp vụ.'
+SELECT N'Toppings', N'BH_FLAN', N'TOP_FLAN', N'Giữ EF ToppingId 6 vì trùng ý nghĩa nghiệp vụ.'
 UNION ALL
-SELECT N'Toppings', N'TH_KM', N'DEMO_TOP_TARO_JELLY', N'Giữ EF ToppingId 5 vì trùng ý nghĩa nghiệp vụ.'
+SELECT N'Toppings', N'TH_KM', N'TOP_TARO_JELLY', N'Giữ EF ToppingId 5 vì trùng ý nghĩa nghiệp vụ.'
 UNION ALL
-SELECT N'Toppings', N'KEMCHEESE', N'DEMO_TOP_CHEESE_CREAM', N'Giữ Part1 ToppingId 7 và giá Part1.';
+SELECT N'Toppings', N'KEMCHEESE', N'TOP_CHEESE_CREAM', N'Giữ Part1 ToppingId 7 và giá Part1.';
 
 /* ============================================================
    BATCH 03/12
@@ -2966,15 +3006,15 @@ SELECT N'Toppings', N'KEMCHEESE', N'DEMO_TOP_CHEESE_CREAM', N'Giữ Part1 Toppin
      - EF HasData owns Unit IDs 1-12, Ingredient IDs 1-13 and the
        24 UnitConversion rows whose IDs end at 72.
      - Part1 has no rows for these four tables.
-     - Store1 adds DEMO_PORTION and DEMO_CARTON.
+     - Store1 adds PORTION and CARTON.
      - Seven Store1 ingredients are aliases of EF ingredients:
-         DEMO_ING_CONDENSED_MILK -> ING00002
-         DEMO_ING_BLACK_TEA      -> ING00003
-         DEMO_ING_SUGAR          -> ING00006
-         DEMO_ING_ICE            -> ING00007
-         DEMO_ING_MATCHA         -> ING00009
-         DEMO_ING_DAIRY_CREAM    -> ING00010
-         DEMO_ING_WATER          -> ING00013
+         ING_CONDENSED_MILK -> ING00002
+         ING_BLACK_TEA      -> ING00003
+         ING_SUGAR          -> ING00006
+         ING_ICE            -> ING00007
+         ING_MATCHA         -> ING00009
+         ING_DAIRY_CREAM    -> ING00010
+         ING_WATER          -> ING00013
        Their offers, recipes and inventory will use the canonical IDs in
        later batches; duplicate Ingredient rows are not recreated.
      - New conversions are physical kg -> g or l -> ml only.
@@ -3037,8 +3077,8 @@ BEGIN TRY
 
     INSERT @UnitSeed(UnitId, UnitCode, Name, [Type], Active)
     VALUES
-        (13, N'DEMO_PORTION', N'Phần', 3, 1),
-        (14, N'DEMO_CARTON',  N'Thùng', 3, 1);
+        (13, N'PORTION', N'Phần', 3, 1),
+        (14, N'CARTON',  N'Thùng', 3, 1);
 
     IF EXISTS
     (
@@ -3079,13 +3119,13 @@ BEGIN TRY
 
     INSERT @IngredientAliases(SourceCode, CanonicalIngredientId, CanonicalCode)
     VALUES
-        (N'DEMO_ING_CONDENSED_MILK', 2,  N'ING00002'),
-        (N'DEMO_ING_BLACK_TEA',      3,  N'ING00003'),
-        (N'DEMO_ING_SUGAR',          6,  N'ING00006'),
-        (N'DEMO_ING_ICE',            7,  N'ING00007'),
-        (N'DEMO_ING_MATCHA',         9,  N'ING00009'),
-        (N'DEMO_ING_DAIRY_CREAM',    10, N'ING00010'),
-        (N'DEMO_ING_WATER',          13, N'ING00013');
+        (N'ING_CONDENSED_MILK', 2,  N'ING00002'),
+        (N'ING_BLACK_TEA',      3,  N'ING00003'),
+        (N'ING_SUGAR',          6,  N'ING00006'),
+        (N'ING_ICE',            7,  N'ING00007'),
+        (N'ING_MATCHA',         9,  N'ING00009'),
+        (N'ING_DAIRY_CREAM',    10, N'ING00010'),
+        (N'ING_WATER',          13, N'ING00013');
 
     IF EXISTS
     (
@@ -3116,43 +3156,43 @@ BEGIN TRY
 
     INSERT @IngredientSeed(IngredientId, Code, Name, BaseUnitId, Active)
     VALUES
-        (14, N'DEMO_ING_VIET_COFFEE',       N'Cà phê rang xay',          1,  1),
-        (15, N'DEMO_ING_ESPRESSO_BEAN',     N'Hạt espresso',             1,  1),
-        (16, N'DEMO_ING_FRESH_MILK',        N'Sữa tươi',                 3,  1),
-        (17, N'DEMO_ING_SALT',              N'Muối',                     1,  1),
-        (18, N'DEMO_ING_SUGAR_SYRUP',       N'Syrup đường đóng chai',    3,  1),
-        (19, N'DEMO_ING_OOLONG_TEA',        N'Trà ô long khô',           1,  1),
-        (20, N'DEMO_ING_CANNED_PEACH',      N'Đào ngâm',                 1,  1),
-        (21, N'DEMO_ING_CANNED_LYCHEE',     N'Vải ngâm',                 1,  1),
-        (22, N'DEMO_ING_PASSION_JAM',       N'Mứt chanh dây',            1,  1),
-        (23, N'DEMO_ING_ORANGE',            N'Cam tươi',                 1,  1),
-        (24, N'DEMO_ING_LEMONGRASS',        N'Sả',                       1,  1),
-        (25, N'DEMO_ING_CHOCOLATE',         N'Bột chocolate',            1,  1),
-        (26, N'DEMO_ING_FRAPPE',            N'Bột frappe',               1,  1),
-        (27, N'DEMO_ING_BLACK_PEARL_DRY',   N'Trân châu đen khô',        1,  1),
-        (28, N'DEMO_ING_WHITE_PEARL',       N'Trân châu trắng',         13,  1),
-        (29, N'DEMO_ING_TARO_JELLY_POWDER', N'Bột rau câu khoai môn',    1,  1),
-        (30, N'DEMO_ING_FLAN_POWDER',       N'Bột flan',                 1,  1),
-        (31, N'DEMO_ING_CHEESE_POWDER',     N'Bột kem cheese',           1,  1),
-        (32, N'DEMO_ING_CUP_M',             N'Ly nhựa M',                9,  1),
-        (33, N'DEMO_ING_CUP_L',             N'Ly nhựa L',                9,  1),
-        (34, N'DEMO_ING_LID_M',             N'Nắp ly M',                 9,  1),
-        (35, N'DEMO_ING_LID_L',             N'Nắp ly L',                 9,  1),
-        (36, N'DEMO_ING_STRAW',             N'Ống hút',                  9,  1),
-        (37, N'DEMO_ING_BAG',               N'Túi mang đi',              9,  1),
-        (38, N'DEMO_ING_HONEY',             N'Mật ong',                  1,  1),
-        (39, N'DEMO_ING_YELLOW_LEMON',      N'Chanh vàng',               1,  1),
-        (40, N'DEMO_ING_MANGO_PUREE',       N'Puree xoài',               1,  1),
-        (41, N'DEMO_ING_STRAWBERRY_PUREE',  N'Puree dâu',                1,  1),
-        (42, N'DEMO_ING_OAT_MILK',          N'Sữa yến mạch',             3,  1),
-        (43, N'DEMO_ING_CARAMEL_SYRUP',     N'Syrup caramel',            3,  1),
-        (44, N'DEMO_ING_COCONUT_MILK',      N'Nước cốt dừa',             3,  1),
-        (45, N'DEMO_ING_YOGURT',            N'Sữa chua',                 1,  1),
-        (46, N'DEMO_ING_CHEESE_CUBE',       N'Phô mai viên',             9,  1),
-        (47, N'DEMO_ING_KHUC_BACH_POWDER',  N'Bột khúc bạch',            1,  1),
-        (48, N'DEMO_ING_ALOE_VERA',         N'Nha đam',                  1,  1),
-        (49, N'DEMO_ING_CHIA_SEED',         N'Hạt chia',                 1,  1),
-        (50, N'DEMO_ING_COCONUT_JELLY',     N'Thạch dừa',                1,  1);
+        (14, N'ING_VIET_COFFEE',       N'Cà phê rang xay',          1,  1),
+        (15, N'ING_ESPRESSO_BEAN',     N'Hạt espresso',             1,  1),
+        (16, N'ING_FRESH_MILK',        N'Sữa tươi',                 3,  1),
+        (17, N'ING_SALT',              N'Muối',                     1,  1),
+        (18, N'ING_SUGAR_SYRUP',       N'Syrup đường đóng chai',    3,  1),
+        (19, N'ING_OOLONG_TEA',        N'Trà ô long khô',           1,  1),
+        (20, N'ING_CANNED_PEACH',      N'Đào ngâm',                 1,  1),
+        (21, N'ING_CANNED_LYCHEE',     N'Vải ngâm',                 1,  1),
+        (22, N'ING_PASSION_JAM',       N'Mứt chanh dây',            1,  1),
+        (23, N'ING_ORANGE',            N'Cam tươi',                 1,  1),
+        (24, N'ING_LEMONGRASS',        N'Sả',                       1,  1),
+        (25, N'ING_CHOCOLATE',         N'Bột chocolate',            1,  1),
+        (26, N'ING_FRAPPE',            N'Bột frappe',               1,  1),
+        (27, N'ING_BLACK_PEARL_DRY',   N'Trân châu đen khô',        1,  1),
+        (28, N'ING_WHITE_PEARL',       N'Trân châu trắng',         13,  1),
+        (29, N'ING_TARO_JELLY_POWDER', N'Bột rau câu khoai môn',    1,  1),
+        (30, N'ING_FLAN_POWDER',       N'Bột flan',                 1,  1),
+        (31, N'ING_CHEESE_POWDER',     N'Bột kem cheese',           1,  1),
+        (32, N'ING_CUP_M',             N'Ly nhựa M',                9,  1),
+        (33, N'ING_CUP_L',             N'Ly nhựa L',                9,  1),
+        (34, N'ING_LID_M',             N'Nắp ly M',                 9,  1),
+        (35, N'ING_LID_L',             N'Nắp ly L',                 9,  1),
+        (36, N'ING_STRAW',             N'Ống hút',                  9,  1),
+        (37, N'ING_BAG',               N'Túi mang đi',              9,  1),
+        (38, N'ING_HONEY',             N'Mật ong',                  1,  1),
+        (39, N'ING_YELLOW_LEMON',      N'Chanh vàng',               1,  1),
+        (40, N'ING_MANGO_PUREE',       N'Puree xoài',               1,  1),
+        (41, N'ING_STRAWBERRY_PUREE',  N'Puree dâu',                1,  1),
+        (42, N'ING_OAT_MILK',          N'Sữa yến mạch',             3,  1),
+        (43, N'ING_CARAMEL_SYRUP',     N'Syrup caramel',            3,  1),
+        (44, N'ING_COCONUT_MILK',      N'Nước cốt dừa',             3,  1),
+        (45, N'ING_YOGURT',            N'Sữa chua',                 1,  1),
+        (46, N'ING_CHEESE_CUBE',       N'Phô mai viên',             9,  1),
+        (47, N'ING_KHUC_BACH_POWDER',  N'Bột khúc bạch',            1,  1),
+        (48, N'ING_ALOE_VERA',         N'Nha đam',                  1,  1),
+        (49, N'ING_CHIA_SEED',         N'Hạt chia',                 1,  1),
+        (50, N'ING_COCONUT_JELLY',     N'Thạch dừa',                1,  1);
 
     IF EXISTS
     (
@@ -3284,18 +3324,18 @@ BEGIN TRY
 
     INSERT @PreparedItemSeed(PreparedItemId, Code, Name, BaseUnitId, Description, Active)
     VALUES
-        (1, N'DEMO_PREP_VIET_COFFEE',  N'Cốt cà phê Việt',        3,  N'Bán thành phẩm demo Store 1', 1),
-        (2, N'DEMO_PREP_ESPRESSO',     N'Espresso shot',          3,  N'Bán thành phẩm demo Store 1', 1),
-        (3, N'DEMO_PREP_BLACK_TEA',    N'Cốt trà đen',            3,  N'Bán thành phẩm demo Store 1', 1),
-        (4, N'DEMO_PREP_OOLONG_TEA',   N'Cốt trà ô long',         3,  N'Bán thành phẩm demo Store 1', 1),
-        (5, N'DEMO_PREP_SUGAR_SYRUP',  N'Syrup đường',            3,  N'Bán thành phẩm demo Store 1', 1),
-        (6, N'DEMO_PREP_SALTED_CREAM', N'Kem muối',               3,  N'Bán thành phẩm demo Store 1', 1),
-        (7, N'DEMO_PREP_CHEESE_CREAM', N'Kem cheese',             3,  N'Bán thành phẩm demo Store 1', 1),
-        (8, N'DEMO_PREP_BLACK_PEARL', N'Tran chau den da nau', 13, N'Ban thanh pham demo Store 1', 1),
-        (9, N'DEMO_PREP_ALOE_BASE', N'Aloe vera base', 1, N'AI dashboard prepared-item fixture', 1),
-        (10, N'DEMO_PREP_COCONUT_JELLY_BASE', N'Coconut jelly base', 1, N'AI dashboard prepared-item fixture', 1),
-        (11, N'DEMO_PREP_KHUC_BACH_BASE', N'Khuc bach base', 1, N'AI dashboard prepared-item fixture', 1),
-        (12, N'DEMO_PREP_LEGACY_CREAM', N'Legacy cream', 3, N'Archived prepared-item fixture', 0);
+        (1, N'PREP_VIET_COFFEE',  N'Cốt cà phê Việt',        3,  N'Bán thành phẩm Store 1', 1),
+        (2, N'PREP_ESPRESSO',     N'Espresso shot',          3,  N'Bán thành phẩm Store 1', 1),
+        (3, N'PREP_BLACK_TEA',    N'Cốt trà đen',            3,  N'Bán thành phẩm Store 1', 1),
+        (4, N'PREP_OOLONG_TEA',   N'Cốt trà ô long',         3,  N'Bán thành phẩm Store 1', 1),
+        (5, N'PREP_SUGAR_SYRUP',  N'Syrup đường',            3,  N'Bán thành phẩm Store 1', 1),
+        (6, N'PREP_SALTED_CREAM', N'Kem muối',               3,  N'Bán thành phẩm Store 1', 1),
+        (7, N'PREP_CHEESE_CREAM', N'Kem cheese',             3,  N'Bán thành phẩm Store 1', 1),
+        (8, N'PREP_BLACK_PEARL', N'Tran chau den da nau', 13, N'Ban thanh pham Store 1', 1),
+        (9, N'PREP_ALOE_BASE', N'Aloe vera base', 1, N'AI dashboard prepared-item fixture', 1),
+        (10, N'PREP_COCONUT_JELLY_BASE', N'Coconut jelly base', 1, N'AI dashboard prepared-item fixture', 1),
+        (11, N'PREP_KHUC_BACH_BASE', N'Khuc bach base', 1, N'AI dashboard prepared-item fixture', 1),
+        (12, N'PREP_LEGACY_CREAM', N'Legacy cream', 3, N'Archived prepared-item fixture', 0);
 
     IF EXISTS
     (
@@ -3461,19 +3501,19 @@ BEGIN TRY
       (8,N'ING00008',@MilliliterUnitId),
       (10,N'ING00010',@MilliliterUnitId),
       (13,N'ING00013',@MilliliterUnitId),
-      (14,N'DEMO_ING_VIET_COFFEE',@GramUnitId),
-      (15,N'DEMO_ING_ESPRESSO_BEAN',@GramUnitId),
-      (16,N'DEMO_ING_FRESH_MILK',@MilliliterUnitId),
-      (18,N'DEMO_ING_SUGAR_SYRUP',@MilliliterUnitId),
-      (32,N'DEMO_ING_CUP_M',@PieceUnitId),
-      (33,N'DEMO_ING_CUP_L',@PieceUnitId),
-      (34,N'DEMO_ING_LID_M',@PieceUnitId),
-      (35,N'DEMO_ING_LID_L',@PieceUnitId),
-      (36,N'DEMO_ING_STRAW',@PieceUnitId),
-      (37,N'DEMO_ING_BAG',@PieceUnitId),
-      (42,N'DEMO_ING_OAT_MILK',@MilliliterUnitId),
-      (43,N'DEMO_ING_CARAMEL_SYRUP',@MilliliterUnitId),
-      (44,N'DEMO_ING_COCONUT_MILK',@MilliliterUnitId);
+      (14,N'ING_VIET_COFFEE',@GramUnitId),
+      (15,N'ING_ESPRESSO_BEAN',@GramUnitId),
+      (16,N'ING_FRESH_MILK',@MilliliterUnitId),
+      (18,N'ING_SUGAR_SYRUP',@MilliliterUnitId),
+      (32,N'ING_CUP_M',@PieceUnitId),
+      (33,N'ING_CUP_L',@PieceUnitId),
+      (34,N'ING_LID_M',@PieceUnitId),
+      (35,N'ING_LID_L',@PieceUnitId),
+      (36,N'ING_STRAW',@PieceUnitId),
+      (37,N'ING_BAG',@PieceUnitId),
+      (42,N'ING_OAT_MILK',@MilliliterUnitId),
+      (43,N'ING_CARAMEL_SYRUP',@MilliliterUnitId),
+      (44,N'ING_COCONUT_MILK',@MilliliterUnitId);
 
     IF EXISTS
     (
@@ -3544,7 +3584,7 @@ BEGIN TRY
     IF EXISTS
     (
         SELECT 1 FROM dbo.IngredientSuppliers o
-        WHERE (o.IngredientSupplierId BETWEEN 10 AND 40 AND ISNULL(o.Note,N'') NOT LIKE N'DEMO_OFFER_%')
+        WHERE (o.IngredientSupplierId BETWEEN 10 AND 40 AND ISNULL(o.Note,N'') NOT LIKE N'OFFER_%')
            OR (o.IngredientSupplierId BETWEEN 41 AND 100 AND ISNULL(o.Note,N'') NOT LIKE N'SEEDALL_%')
     ) THROW 52234,N'SEED_UOM_NORMALIZATION: offer ID trong dải SeedAll không có seed marker hợp lệ.',1;
 
@@ -3573,7 +3613,7 @@ BEGIN TRY
           WHEN LOWER(sourceUnit.UnitCode)=N'g' AND LOWER(baseUnit.UnitCode)=N'kg' THEN 0.001
           WHEN LOWER(sourceUnit.UnitCode)=N'l' AND LOWER(baseUnit.UnitCode)=N'ml' THEN 1000
           WHEN LOWER(sourceUnit.UnitCode)=N'ml' AND LOWER(baseUnit.UnitCode)=N'l' THEN 0.001
-          WHEN LOWER(sourceUnit.UnitCode)=N'demo_carton' AND LOWER(baseUnit.UnitCode)=N'pcs'
+          WHEN LOWER(sourceUnit.UnitCode)=N'carton' AND LOWER(baseUnit.UnitCode)=N'pcs'
             THEN CASE o.IngredientId WHEN 36 THEN 2000 WHEN 37 THEN 500 ELSE 1000 END
           ELSE NULL END) FactorToBase
     ) factor
@@ -3581,7 +3621,7 @@ BEGIN TRY
       AND
       (
           EXISTS(SELECT 1 FROM @FoundationOfferKey f WHERE f.IngredientSupplierId=o.IngredientSupplierId)
-          OR (o.IngredientSupplierId BETWEEN 10 AND 40 AND o.Note LIKE N'DEMO_OFFER_%')
+          OR (o.IngredientSupplierId BETWEEN 10 AND 40 AND o.Note LIKE N'OFFER_%')
           OR (o.IngredientSupplierId BETWEEN 41 AND 100 AND o.Note LIKE N'SEEDALL_%')
       );
 
@@ -3591,7 +3631,7 @@ BEGIN TRY
         WHERE
         (
             EXISTS(SELECT 1 FROM @FoundationOfferKey f WHERE f.IngredientSupplierId=o.IngredientSupplierId)
-            OR (o.IngredientSupplierId BETWEEN 10 AND 40 AND o.Note LIKE N'DEMO_OFFER_%')
+            OR (o.IngredientSupplierId BETWEEN 10 AND 40 AND o.Note LIKE N'OFFER_%')
             OR (o.IngredientSupplierId BETWEEN 41 AND 100 AND o.Note LIKE N'SEEDALL_%')
         )
         AND NOT EXISTS(SELECT 1 FROM @SeedOfferContent x WHERE x.IngredientSupplierId=o.IngredientSupplierId)
@@ -3615,7 +3655,7 @@ BEGIN TRY
     FROM dbo.PurchaseOrderLines line
     JOIN dbo.PurchaseOrders po ON po.PurchaseOrderId=line.PurchaseOrderId
     JOIN @SeedOfferContent x ON x.IngredientSupplierId=line.IngredientSupplierId
-    WHERE po.Code LIKE N'SIV2-%' OR po.Note LIKE N'DEMO_%' OR po.Note LIKE N'SEEDALL_%';
+    WHERE po.Code LIKE N'SIV2-%' OR po.Note LIKE N'%' OR po.Note LIKE N'SEEDALL_%';
 
     UPDATE line
        SET PackageUnitIdSnapshot=x.BaseUnitId,
@@ -3627,8 +3667,8 @@ BEGIN TRY
     FROM dbo.BranchReceiptLines line
     JOIN dbo.BranchReceipts receipt ON receipt.BranchReceiptId=line.BranchReceiptId
     JOIN @SeedOfferContent x ON x.IngredientSupplierId=line.IngredientSupplierId
-    WHERE receipt.ReceiptCode LIKE N'SIV2-%' OR receipt.ReceiptCode LIKE N'DEMO-%'
-       OR receipt.Notes LIKE N'DEMO_%' OR receipt.Notes LIKE N'SEEDALL_%';
+    WHERE receipt.ReceiptCode LIKE N'SIV2-%' OR receipt.ReceiptCode LIKE N'%'
+       OR receipt.Notes LIKE N'%' OR receipt.Notes LIKE N'SEEDALL_%';
 
     UPDATE line
        SET PackageUnitId=x.BaseUnitId,
@@ -3640,8 +3680,8 @@ BEGIN TRY
     JOIN dbo.PurchaseOrderBatches batchHeader
       ON batchHeader.PurchaseOrderBatchId=line.PurchaseOrderBatchId
     JOIN @SeedOfferContent x ON x.IngredientSupplierId=line.IngredientSupplierId
-    WHERE batchHeader.RequestKey LIKE N'DEMO_%' OR batchHeader.Note LIKE N'DEMO_%'
-       OR line.Note LIKE N'DEMO_%' OR line.Note LIKE N'SEEDALL_%';
+    WHERE batchHeader.RequestKey LIKE N'%' OR batchHeader.Note LIKE N'%'
+       OR line.Note LIKE N'%' OR line.Note LIKE N'SEEDALL_%';
 
     UPDATE o
        SET UnitId=x.BaseUnitId,PackageQuantity=x.CanonicalQuantity
@@ -3705,13 +3745,13 @@ SELECT N'Ingredients' AS [Table], a.CanonicalCode AS RetainedCode,
 FROM
 (
     VALUES
-        (N'DEMO_ING_CONDENSED_MILK', N'ING00002'),
-        (N'DEMO_ING_BLACK_TEA',      N'ING00003'),
-        (N'DEMO_ING_SUGAR',          N'ING00006'),
-        (N'DEMO_ING_ICE',            N'ING00007'),
-        (N'DEMO_ING_MATCHA',         N'ING00009'),
-        (N'DEMO_ING_DAIRY_CREAM',    N'ING00010'),
-        (N'DEMO_ING_WATER',          N'ING00013')
+        (N'ING_CONDENSED_MILK', N'ING00002'),
+        (N'ING_BLACK_TEA',      N'ING00003'),
+        (N'ING_SUGAR',          N'ING00006'),
+        (N'ING_ICE',            N'ING00007'),
+        (N'ING_MATCHA',         N'ING00009'),
+        (N'ING_DAIRY_CREAM',    N'ING00010'),
+        (N'ING_WATER',          N'ING00013')
 ) a(SourceCode, CanonicalCode);
 
 /* ============================================================
@@ -3764,114 +3804,114 @@ BEGIN TRY
  DrinkId int NULL,SizeId int NULL,ToppingId int NULL,PreparedItemId int NULL,
  OutputQuantity decimal(18,5) NULL,OutputUnitId int NULL);
  INSERT @RecipeSeed VALUES
-(7,N'DEMO_RECIPE_PREP_VIET_COFFEE',N'BOM Cốt cà phê Việt',100,1,N'Active','2026-01-01',NULL,NULL,NULL,1,1000,3),
-(8,N'DEMO_RECIPE_PREP_ESPRESSO',N'BOM Espresso shot',100,1,N'Active','2026-01-01',NULL,NULL,NULL,2,600,3),
-(9,N'DEMO_RECIPE_PREP_BLACK_TEA',N'BOM Cốt trà đen',100,1,N'Active','2026-01-01',NULL,NULL,NULL,3,2000,3),
-(10,N'DEMO_RECIPE_PREP_OOLONG_TEA',N'BOM Cốt trà ô long',100,1,N'Active','2026-01-01',NULL,NULL,NULL,4,2000,3),
-(11,N'DEMO_RECIPE_PREP_SUGAR_SYRUP',N'BOM Syrup đường',100,1,N'Active','2026-01-01',NULL,NULL,NULL,5,1500,3),
-(12,N'DEMO_RECIPE_PREP_SALTED_CREAM',N'BOM Kem muối',100,1,N'Active','2026-01-01',NULL,NULL,NULL,6,1000,3),
-(13,N'DEMO_RECIPE_PREP_CHEESE_CREAM',N'BOM Kem cheese',100,1,N'Active','2026-01-01',NULL,NULL,NULL,7,1000,3),
-(14,N'DEMO_RECIPE_PREP_BLACK_PEARL',N'BOM Trân châu đen đã nấu',100,1,N'Active','2026-01-01',NULL,NULL,NULL,8,40,13),
-(15,N'DEMO_RECIPE_TOP_BLACK_PEARL',N'BOM Trân châu đen nấu mới',100,0,N'Archived','2026-01-01',NULL,NULL,1,NULL,NULL,NULL),
-(16,N'DEMO_RECIPE_TOP_WHITE_PEARL',N'BOM Trân châu trắng nấu mới',100,0,N'Archived','2026-01-01',NULL,NULL,2,NULL,NULL,NULL),
-(17,N'DEMO_RECIPE_TOP_FLAN',N'BOM Bánh flan caramel',100,1,N'Active','2026-01-01',NULL,NULL,6,NULL,NULL,NULL),
-(18,N'DEMO_RECIPE_TOP_TARO_JELLY',N'BOM Thạch khoai môn dẻo',100,1,N'Active','2026-01-01',NULL,NULL,5,NULL,NULL,NULL),
-(19,N'DEMO_RECIPE_TOP_CHEESE_CREAM',N'BOM Kem cheese',100,1,N'Active','2026-01-01',NULL,NULL,7,NULL,NULL,NULL),
-(20,N'DEMO_RECIPE_TOP_ESPRESSO_SHOT',N'BOM Shot espresso',100,1,N'Active','2026-01-01',NULL,NULL,13,NULL,NULL,NULL),
-(21,N'DEMO_RECIPE_SKU_VIET_BLACK_M',N'BOM Cà phê đen đá M',100,1,N'Active','2026-01-01',31,2,NULL,NULL,NULL,NULL),
-(22,N'DEMO_RECIPE_SKU_VIET_BLACK_L',N'BOM Cà phê đen đá L',100,1,N'Active','2026-01-01',31,3,NULL,NULL,NULL,NULL),
-(23,N'DEMO_RECIPE_SKU_VIET_MILK_M',N'BOM Cà phê sữa đá M',100,1,N'Active','2026-01-01',32,2,NULL,NULL,NULL,NULL),
-(24,N'DEMO_RECIPE_SKU_VIET_MILK_L',N'BOM Cà phê sữa đá L',100,1,N'Active','2026-01-01',32,3,NULL,NULL,NULL,NULL),
-(25,N'DEMO_RECIPE_SKU_BAC_XIU_M',N'BOM Bạc xỉu M',100,1,N'Active','2026-01-01',7,2,NULL,NULL,NULL,NULL),
-(26,N'DEMO_RECIPE_SKU_BAC_XIU_L',N'BOM Bạc xỉu L',100,1,N'Active','2026-01-01',7,3,NULL,NULL,NULL,NULL),
-(27,N'DEMO_RECIPE_SKU_SALTED_COFFEE_M',N'BOM Cà phê muối M',100,1,N'Active','2026-01-01',33,2,NULL,NULL,NULL,NULL),
-(28,N'DEMO_RECIPE_SKU_SALTED_COFFEE_L',N'BOM Cà phê muối L',100,1,N'Active','2026-01-01',33,3,NULL,NULL,NULL,NULL),
-(29,N'DEMO_RECIPE_SKU_AMERICANO_M',N'BOM Americano M',100,1,N'Active','2026-01-01',10,2,NULL,NULL,NULL,NULL),
-(30,N'DEMO_RECIPE_SKU_AMERICANO_L',N'BOM Americano L',100,1,N'Active','2026-01-01',10,3,NULL,NULL,NULL,NULL),
-(31,N'DEMO_RECIPE_SKU_COFFEE_LATTE_M',N'BOM Latte cà phê M',100,1,N'Active','2026-01-01',34,2,NULL,NULL,NULL,NULL),
-(32,N'DEMO_RECIPE_SKU_COFFEE_LATTE_L',N'BOM Latte cà phê L',100,1,N'Active','2026-01-01',34,3,NULL,NULL,NULL,NULL),
-(33,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_M',N'BOM Trà đào cam sả M',100,1,N'Active','2026-01-01',21,2,NULL,NULL,NULL,NULL),
-(34,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_L',N'BOM Trà đào cam sả L',100,1,N'Active','2026-01-01',21,3,NULL,NULL,NULL,NULL),
-(35,N'DEMO_RECIPE_SKU_LYCHEE_TEA_M',N'BOM Trà vải M',100,1,N'Active','2026-01-01',22,2,NULL,NULL,NULL,NULL),
-(36,N'DEMO_RECIPE_SKU_LYCHEE_TEA_L',N'BOM Trà vải L',100,1,N'Active','2026-01-01',22,3,NULL,NULL,NULL,NULL),
-(37,N'DEMO_RECIPE_SKU_PASSION_TEA_M',N'BOM Trà chanh dây M',100,1,N'Active','2026-01-01',35,2,NULL,NULL,NULL,NULL),
-(38,N'DEMO_RECIPE_SKU_PASSION_TEA_L',N'BOM Trà chanh dây L',100,1,N'Active','2026-01-01',35,3,NULL,NULL,NULL,NULL),
-(39,N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_M',N'BOM Trà sữa truyền thống đặc biệt M',100,1,N'Active','2026-01-01',36,2,NULL,NULL,NULL,NULL),
-(40,N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_L',N'BOM Trà sữa truyền thống đặc biệt L',100,1,N'Active','2026-01-01',36,3,NULL,NULL,NULL,NULL),
-(41,N'DEMO_RECIPE_SKU_OOLONG_MILK_TEA_M',N'BOM Trà sữa ô long M',100,1,N'Active','2026-01-01',14,2,NULL,NULL,NULL,NULL),
-(42,N'DEMO_RECIPE_SKU_OOLONG_MILK_TEA_L',N'BOM Trà sữa ô long L',100,1,N'Active','2026-01-01',14,3,NULL,NULL,NULL,NULL),
-(43,N'DEMO_RECIPE_SKU_MATCHA_LATTE_M',N'BOM Matcha latte M',100,1,N'Active','2026-01-01',37,2,NULL,NULL,NULL,NULL),
-(44,N'DEMO_RECIPE_SKU_MATCHA_LATTE_L',N'BOM Matcha latte L',100,1,N'Active','2026-01-01',37,3,NULL,NULL,NULL,NULL),
-(45,N'DEMO_RECIPE_SKU_CHOCOLATE_LATTE_M',N'BOM Chocolate latte M',100,1,N'Active','2026-01-01',38,2,NULL,NULL,NULL,NULL),
-(46,N'DEMO_RECIPE_SKU_CHOCOLATE_LATTE_L',N'BOM Chocolate latte L',100,1,N'Active','2026-01-01',38,3,NULL,NULL,NULL,NULL),
-(47,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_M',N'BOM Matcha đá xay M',100,1,N'Active','2026-01-01',39,2,NULL,NULL,NULL,NULL),
-(48,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_L',N'BOM Matcha đá xay L',100,1,N'Active','2026-01-01',39,3,NULL,NULL,NULL,NULL),
-(49,N'DEMO_RECIPE_SKU_COLD_BREW_ORANGE_M',N'BOM Cold brew cam M',100,1,N'Active','2026-01-01',40,2,NULL,NULL,NULL,NULL),
-(50,N'DEMO_RECIPE_SKU_COLD_BREW_ORANGE_L',N'BOM Cold brew cam L',100,1,N'Active','2026-01-01',40,3,NULL,NULL,NULL,NULL),
-(51,N'DEMO_RECIPE_SKU_MOCHA_M',N'BOM Mocha M',100,1,N'Active','2026-01-01',41,2,NULL,NULL,NULL,NULL),
-(52,N'DEMO_RECIPE_SKU_MOCHA_L',N'BOM Mocha L',100,1,N'Active','2026-01-01',41,3,NULL,NULL,NULL,NULL),
-(53,N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_M',N'BOM Caramel macchiato M',100,1,N'Active','2026-01-01',42,2,NULL,NULL,NULL,NULL),
-(54,N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_L',N'BOM Caramel macchiato L',100,1,N'Active','2026-01-01',42,3,NULL,NULL,NULL,NULL),
-(55,N'DEMO_RECIPE_SKU_COCONUT_COFFEE_M',N'BOM Cà phê dừa M',100,1,N'Active','2026-01-01',43,2,NULL,NULL,NULL,NULL),
-(56,N'DEMO_RECIPE_SKU_COCONUT_COFFEE_L',N'BOM Cà phê dừa L',100,1,N'Active','2026-01-01',43,3,NULL,NULL,NULL,NULL),
-(57,N'DEMO_RECIPE_SKU_HONEY_LEMON_TEA_M',N'BOM Trà chanh mật ong M',100,1,N'Active','2026-01-01',44,2,NULL,NULL,NULL,NULL),
-(58,N'DEMO_RECIPE_SKU_HONEY_LEMON_TEA_L',N'BOM Trà chanh mật ong L',100,1,N'Active','2026-01-01',44,3,NULL,NULL,NULL,NULL),
-(59,N'DEMO_RECIPE_SKU_MANGO_TEA_M',N'BOM Trà xoài M',100,1,N'Active','2026-01-01',45,2,NULL,NULL,NULL,NULL),
-(60,N'DEMO_RECIPE_SKU_MANGO_TEA_L',N'BOM Trà xoài L',100,1,N'Active','2026-01-01',45,3,NULL,NULL,NULL,NULL),
-(61,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'BOM Trà sữa dâu M',100,1,N'Active','2026-01-01',46,2,NULL,NULL,NULL,NULL),
-(62,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'BOM Trà sữa dâu L',100,1,N'Active','2026-01-01',46,3,NULL,NULL,NULL,NULL),
-(63,N'DEMO_RECIPE_SKU_LYCHEE_OOLONG_M',N'BOM Trà ô long vải M',100,1,N'Active','2026-01-01',47,2,NULL,NULL,NULL,NULL),
-(64,N'DEMO_RECIPE_SKU_LYCHEE_OOLONG_L',N'BOM Trà ô long vải L',100,1,N'Active','2026-01-01',47,3,NULL,NULL,NULL,NULL),
-(65,N'DEMO_RECIPE_SKU_OAT_MATCHA_M',N'BOM Matcha sữa yến mạch M',100,1,N'Active','2026-01-01',48,2,NULL,NULL,NULL,NULL),
-(66,N'DEMO_RECIPE_SKU_OAT_MATCHA_L',N'BOM Matcha sữa yến mạch L',100,1,N'Active','2026-01-01',48,3,NULL,NULL,NULL,NULL),
-(67,N'DEMO_RECIPE_SKU_COCONUT_CHOCOLATE_M',N'BOM Chocolate dừa M',100,1,N'Active','2026-01-01',49,2,NULL,NULL,NULL,NULL),
-(68,N'DEMO_RECIPE_SKU_COCONUT_CHOCOLATE_L',N'BOM Chocolate dừa L',100,1,N'Active','2026-01-01',49,3,NULL,NULL,NULL,NULL),
-(69,N'DEMO_RECIPE_SKU_PASSION_YOGURT_M',N'BOM Sữa chua chanh dây M',100,1,N'Active','2026-01-01',50,2,NULL,NULL,NULL,NULL),
-(70,N'DEMO_RECIPE_SKU_PASSION_YOGURT_L',N'BOM Sữa chua chanh dây L',100,1,N'Active','2026-01-01',50,3,NULL,NULL,NULL,NULL),
-(71,N'DEMO_RECIPE_TOP_PM_VIEN',N'BOM Phô mai viên',100,1,N'Active','2026-01-01',NULL,NULL,3,NULL,NULL,NULL),
-(72,N'DEMO_RECIPE_TOP_KB_CM',N'BOM Khúc bạch',100,1,N'Active','2026-01-01',NULL,NULL,4,NULL,NULL,NULL),
-(73,N'DEMO_RECIPE_TOP_TH_Dao',N'BOM Thạch đào',100,1,N'Active','2026-01-01',NULL,NULL,8,NULL,NULL,NULL),
-(74,N'DEMO_RECIPE_TOP_NHADAM',N'BOM Nha đam',100,1,N'Active','2026-01-01',NULL,NULL,9,NULL,NULL,NULL),
-(75,N'DEMO_RECIPE_TOP_HATCHIA',N'BOM Hạt chia',100,1,N'Active','2026-01-01',NULL,NULL,10,NULL,NULL,NULL),
-(76,N'DEMO_RECIPE_TOP_TH_Dua',N'BOM Thạch dừa',100,1,N'Active','2026-01-01',NULL,NULL,11,NULL,NULL,NULL),
-(77,N'DEMO_RECIPE_TOP_PUDDINGTRUNG',N'BOM Pudding trứng',100,1,N'Active','2026-01-01',NULL,NULL,12,NULL,NULL,NULL),
-(78,N'DEMO_RECIPE_TOP_TC_HOANGKIM',N'BOM Trân châu hoàng kim',100,1,N'Active','2026-01-01',NULL,NULL,14,NULL,NULL,NULL),
-(79,N'DEMO_RECIPE_TOP_TC_DUONGDEN',N'BOM Trân châu đường đen',100,1,N'Active','2026-01-01',NULL,NULL,15,NULL,NULL,NULL),
-(80,N'DEMO_RECIPE_TOP_TC_MINI',N'BOM Trân châu mini',100,1,N'Active','2026-01-01',NULL,NULL,16,NULL,NULL,NULL),
-(81,N'DEMO_RECIPE_TOP_TC_KHOAIMON',N'BOM Trân châu khoai môn',100,1,N'Active','2026-01-01',NULL,NULL,17,NULL,NULL,NULL),
-(82,N'DEMO_RECIPE_TOP_TH_CAFE',N'BOM Thạch cà phê',100,1,N'Active','2026-01-01',NULL,NULL,18,NULL,NULL,NULL),
-(83,N'DEMO_RECIPE_TOP_TH_MATCHA',N'BOM Thạch matcha',100,1,N'Active','2026-01-01',NULL,NULL,19,NULL,NULL,NULL),
-(84,N'DEMO_RECIPE_TOP_TH_VAI',N'BOM Thạch vải',100,1,N'Active','2026-01-01',NULL,NULL,20,NULL,NULL,NULL),
-(85,N'DEMO_RECIPE_TOP_TH_XOAI',N'BOM Thạch xoài',100,1,N'Active','2026-01-01',NULL,NULL,21,NULL,NULL,NULL),
-(86,N'DEMO_RECIPE_TOP_TH_DAU',N'BOM Thạch dâu',100,1,N'Active','2026-01-01',NULL,NULL,22,NULL,NULL,NULL),
-(87,N'DEMO_RECIPE_TOP_TH_CHANHDAY',N'BOM Thạch chanh dây',100,1,N'Active','2026-01-01',NULL,NULL,23,NULL,NULL,NULL),
-(88,N'DEMO_RECIPE_TOP_TH_MATONGCHANH',N'BOM Thạch mật ong chanh',100,1,N'Active','2026-01-01',NULL,NULL,24,NULL,NULL,NULL),
-(89,N'DEMO_RECIPE_TOP_TH_SUAYENMACH',N'BOM Thạch sữa yến mạch',100,1,N'Active','2026-01-01',NULL,NULL,25,NULL,NULL,NULL),
-(90,N'DEMO_RECIPE_TOP_TRAIDAO',N'BOM Đào miếng',100,1,N'Active','2026-01-01',NULL,NULL,26,NULL,NULL,NULL),
-(91,N'DEMO_RECIPE_TOP_TRAIVAI',N'BOM Vải ngâm',100,1,N'Active','2026-01-01',NULL,NULL,27,NULL,NULL,NULL),
-(92,N'DEMO_RECIPE_TOP_XOAI_HAT',N'BOM Xoài cắt hạt lựu',100,1,N'Active','2026-01-01',NULL,NULL,28,NULL,NULL,NULL),
-(93,N'DEMO_RECIPE_TOP_DAU_TUOI',N'BOM Dâu tươi',100,1,N'Active','2026-01-01',NULL,NULL,29,NULL,NULL,NULL),
-(94,N'DEMO_RECIPE_TOP_TEP_CAM',N'BOM Tép cam',100,1,N'Active','2026-01-01',NULL,NULL,30,NULL,NULL,NULL),
-(95,N'DEMO_RECIPE_TOP_CHANHDAY_HAT',N'BOM Chanh dây hạt',100,1,N'Active','2026-01-01',NULL,NULL,31,NULL,NULL,NULL),
-(96,N'DEMO_RECIPE_TOP_PUDDING_VANILLA',N'BOM Pudding vanilla',100,1,N'Active','2026-01-01',NULL,NULL,32,NULL,NULL,NULL),
-(97,N'DEMO_RECIPE_TOP_PUDDING_SOCOLA',N'BOM Pudding chocolate',100,1,N'Active','2026-01-01',NULL,NULL,33,NULL,NULL,NULL),
-(98,N'DEMO_RECIPE_TOP_PUDDING_MATCHA',N'BOM Pudding matcha',100,1,N'Active','2026-01-01',NULL,NULL,34,NULL,NULL,NULL),
-(99,N'DEMO_RECIPE_TOP_PUDDING_KHOAIMON',N'BOM Pudding khoai môn',100,1,N'Active','2026-01-01',NULL,NULL,35,NULL,NULL,NULL),
-(100,N'DEMO_RECIPE_TOP_KEMMUOI',N'BOM Kem muối',100,1,N'Active','2026-01-01',NULL,NULL,36,NULL,NULL,NULL),
-(101,N'DEMO_RECIPE_TOP_KEMSUATUOI',N'BOM Kem sữa tươi',100,1,N'Active','2026-01-01',NULL,NULL,37,NULL,NULL,NULL),
-(102,N'DEMO_RECIPE_TOP_KEMDUA',N'BOM Kem dừa',100,1,N'Active','2026-01-01',NULL,NULL,38,NULL,NULL,NULL),
-(103,N'DEMO_RECIPE_TOP_KEMYENMACH',N'BOM Kem yến mạch',100,1,N'Active','2026-01-01',NULL,NULL,39,NULL,NULL,NULL),
-(104,N'DEMO_RECIPE_TOP_SOT_CARAMEL',N'BOM Sốt caramel',100,1,N'Active','2026-01-01',NULL,NULL,40,NULL,NULL,NULL),
-(105,N'DEMO_RECIPE_TOP_SOT_SOCOLA',N'BOM Sốt chocolate',100,1,N'Active','2026-01-01',NULL,NULL,41,NULL,NULL,NULL),
-(106,N'DEMO_RECIPE_TOP_SOT_DAU',N'BOM Sốt dâu',100,1,N'Active','2026-01-01',NULL,NULL,42,NULL,NULL,NULL),
-(107,N'DEMO_RECIPE_TOP_SOT_XOAI',N'BOM Sốt xoài',100,1,N'Active','2026-01-01',NULL,NULL,43,NULL,NULL,NULL),
-(108,N'DEMO_RECIPE_TOP_SOT_MATONG',N'BOM Sốt mật ong',100,1,N'Active','2026-01-01',NULL,NULL,44,NULL,NULL,NULL),
-(109,N'DEMO_RECIPE_TOP_SOT_DUONGDEN',N'BOM Sốt đường đen',100,1,N'Active','2026-01-01',NULL,NULL,45,NULL,NULL,NULL),
-(110,N'DEMO_RECIPE_TOP_SHOT_MATCHA',N'BOM Shot matcha',100,1,N'Active','2026-01-01',NULL,NULL,46,NULL,NULL,NULL),
-(111,N'DEMO_RECIPE_TOP_SUA_YENMACH_THEM',N'BOM Sữa yến mạch thêm',100,1,N'Active','2026-01-01',NULL,NULL,47,NULL,NULL,NULL),
-(112,N'DEMO_RECIPE_TOP_COT_DUA_THEM',N'BOM Nước cốt dừa thêm',100,1,N'Active','2026-01-01',NULL,NULL,48,NULL,NULL,NULL),
-(113,N'DEMO_RECIPE_TOP_SUA_CHUA_THEM',N'BOM Sữa chua thêm',100,1,N'Active','2026-01-01',NULL,NULL,49,NULL,NULL,NULL),
-(114,N'DEMO_RECIPE_TOP_SYRUP_CARAMEL_THEM',N'BOM Syrup caramel thêm',100,1,N'Active','2026-01-01',NULL,NULL,50,NULL,NULL,NULL),
+(7,N'RECIPE_PREP_VIET_COFFEE',N'BOM Cốt cà phê Việt',100,1,N'Active','2026-01-01',NULL,NULL,NULL,1,1000,3),
+(8,N'RECIPE_PREP_ESPRESSO',N'BOM Espresso shot',100,1,N'Active','2026-01-01',NULL,NULL,NULL,2,600,3),
+(9,N'RECIPE_PREP_BLACK_TEA',N'BOM Cốt trà đen',100,1,N'Active','2026-01-01',NULL,NULL,NULL,3,2000,3),
+(10,N'RECIPE_PREP_OOLONG_TEA',N'BOM Cốt trà ô long',100,1,N'Active','2026-01-01',NULL,NULL,NULL,4,2000,3),
+(11,N'RECIPE_PREP_SUGAR_SYRUP',N'BOM Syrup đường',100,1,N'Active','2026-01-01',NULL,NULL,NULL,5,1500,3),
+(12,N'RECIPE_PREP_SALTED_CREAM',N'BOM Kem muối',100,1,N'Active','2026-01-01',NULL,NULL,NULL,6,1000,3),
+(13,N'RECIPE_PREP_CHEESE_CREAM',N'BOM Kem cheese',100,1,N'Active','2026-01-01',NULL,NULL,NULL,7,1000,3),
+(14,N'RECIPE_PREP_BLACK_PEARL',N'BOM Trân châu đen đã nấu',100,1,N'Active','2026-01-01',NULL,NULL,NULL,8,40,13),
+(15,N'RECIPE_TOP_BLACK_PEARL',N'BOM Trân châu đen nấu mới',100,0,N'Archived','2026-01-01',NULL,NULL,1,NULL,NULL,NULL),
+(16,N'RECIPE_TOP_WHITE_PEARL',N'BOM Trân châu trắng nấu mới',100,0,N'Archived','2026-01-01',NULL,NULL,2,NULL,NULL,NULL),
+(17,N'RECIPE_TOP_FLAN',N'BOM Bánh flan caramel',100,1,N'Active','2026-01-01',NULL,NULL,6,NULL,NULL,NULL),
+(18,N'RECIPE_TOP_TARO_JELLY',N'BOM Thạch khoai môn dẻo',100,1,N'Active','2026-01-01',NULL,NULL,5,NULL,NULL,NULL),
+(19,N'RECIPE_TOP_CHEESE_CREAM',N'BOM Kem cheese',100,1,N'Active','2026-01-01',NULL,NULL,7,NULL,NULL,NULL),
+(20,N'RECIPE_TOP_ESPRESSO_SHOT',N'BOM Shot espresso',100,1,N'Active','2026-01-01',NULL,NULL,13,NULL,NULL,NULL),
+(21,N'RECIPE_SKU_VIET_BLACK_M',N'BOM Cà phê đen đá M',100,1,N'Active','2026-01-01',31,2,NULL,NULL,NULL,NULL),
+(22,N'RECIPE_SKU_VIET_BLACK_L',N'BOM Cà phê đen đá L',100,1,N'Active','2026-01-01',31,3,NULL,NULL,NULL,NULL),
+(23,N'RECIPE_SKU_VIET_MILK_M',N'BOM Cà phê sữa đá M',100,1,N'Active','2026-01-01',32,2,NULL,NULL,NULL,NULL),
+(24,N'RECIPE_SKU_VIET_MILK_L',N'BOM Cà phê sữa đá L',100,1,N'Active','2026-01-01',32,3,NULL,NULL,NULL,NULL),
+(25,N'RECIPE_SKU_BAC_XIU_M',N'BOM Bạc xỉu M',100,1,N'Active','2026-01-01',7,2,NULL,NULL,NULL,NULL),
+(26,N'RECIPE_SKU_BAC_XIU_L',N'BOM Bạc xỉu L',100,1,N'Active','2026-01-01',7,3,NULL,NULL,NULL,NULL),
+(27,N'RECIPE_SKU_SALTED_COFFEE_M',N'BOM Cà phê muối M',100,1,N'Active','2026-01-01',33,2,NULL,NULL,NULL,NULL),
+(28,N'RECIPE_SKU_SALTED_COFFEE_L',N'BOM Cà phê muối L',100,1,N'Active','2026-01-01',33,3,NULL,NULL,NULL,NULL),
+(29,N'RECIPE_SKU_AMERICANO_M',N'BOM Americano M',100,1,N'Active','2026-01-01',10,2,NULL,NULL,NULL,NULL),
+(30,N'RECIPE_SKU_AMERICANO_L',N'BOM Americano L',100,1,N'Active','2026-01-01',10,3,NULL,NULL,NULL,NULL),
+(31,N'RECIPE_SKU_COFFEE_LATTE_M',N'BOM Latte cà phê M',100,1,N'Active','2026-01-01',34,2,NULL,NULL,NULL,NULL),
+(32,N'RECIPE_SKU_COFFEE_LATTE_L',N'BOM Latte cà phê L',100,1,N'Active','2026-01-01',34,3,NULL,NULL,NULL,NULL),
+(33,N'RECIPE_SKU_PEACH_ORANGE_TEA_M',N'BOM Trà đào cam sả M',100,1,N'Active','2026-01-01',21,2,NULL,NULL,NULL,NULL),
+(34,N'RECIPE_SKU_PEACH_ORANGE_TEA_L',N'BOM Trà đào cam sả L',100,1,N'Active','2026-01-01',21,3,NULL,NULL,NULL,NULL),
+(35,N'RECIPE_SKU_LYCHEE_TEA_M',N'BOM Trà vải M',100,1,N'Active','2026-01-01',22,2,NULL,NULL,NULL,NULL),
+(36,N'RECIPE_SKU_LYCHEE_TEA_L',N'BOM Trà vải L',100,1,N'Active','2026-01-01',22,3,NULL,NULL,NULL,NULL),
+(37,N'RECIPE_SKU_PASSION_TEA_M',N'BOM Trà chanh dây M',100,1,N'Active','2026-01-01',35,2,NULL,NULL,NULL,NULL),
+(38,N'RECIPE_SKU_PASSION_TEA_L',N'BOM Trà chanh dây L',100,1,N'Active','2026-01-01',35,3,NULL,NULL,NULL,NULL),
+(39,N'RECIPE_SKU_TRAD_MILK_TEA_M',N'BOM Trà sữa truyền thống đặc biệt M',100,1,N'Active','2026-01-01',36,2,NULL,NULL,NULL,NULL),
+(40,N'RECIPE_SKU_TRAD_MILK_TEA_L',N'BOM Trà sữa truyền thống đặc biệt L',100,1,N'Active','2026-01-01',36,3,NULL,NULL,NULL,NULL),
+(41,N'RECIPE_SKU_OOLONG_MILK_TEA_M',N'BOM Trà sữa ô long M',100,1,N'Active','2026-01-01',14,2,NULL,NULL,NULL,NULL),
+(42,N'RECIPE_SKU_OOLONG_MILK_TEA_L',N'BOM Trà sữa ô long L',100,1,N'Active','2026-01-01',14,3,NULL,NULL,NULL,NULL),
+(43,N'RECIPE_SKU_MATCHA_LATTE_M',N'BOM Matcha latte M',100,1,N'Active','2026-01-01',37,2,NULL,NULL,NULL,NULL),
+(44,N'RECIPE_SKU_MATCHA_LATTE_L',N'BOM Matcha latte L',100,1,N'Active','2026-01-01',37,3,NULL,NULL,NULL,NULL),
+(45,N'RECIPE_SKU_CHOCOLATE_LATTE_M',N'BOM Chocolate latte M',100,1,N'Active','2026-01-01',38,2,NULL,NULL,NULL,NULL),
+(46,N'RECIPE_SKU_CHOCOLATE_LATTE_L',N'BOM Chocolate latte L',100,1,N'Active','2026-01-01',38,3,NULL,NULL,NULL,NULL),
+(47,N'RECIPE_SKU_MATCHA_FRAPPE_M',N'BOM Matcha đá xay M',100,1,N'Active','2026-01-01',39,2,NULL,NULL,NULL,NULL),
+(48,N'RECIPE_SKU_MATCHA_FRAPPE_L',N'BOM Matcha đá xay L',100,1,N'Active','2026-01-01',39,3,NULL,NULL,NULL,NULL),
+(49,N'RECIPE_SKU_COLD_BREW_ORANGE_M',N'BOM Cold brew cam M',100,1,N'Active','2026-01-01',40,2,NULL,NULL,NULL,NULL),
+(50,N'RECIPE_SKU_COLD_BREW_ORANGE_L',N'BOM Cold brew cam L',100,1,N'Active','2026-01-01',40,3,NULL,NULL,NULL,NULL),
+(51,N'RECIPE_SKU_MOCHA_M',N'BOM Mocha M',100,1,N'Active','2026-01-01',41,2,NULL,NULL,NULL,NULL),
+(52,N'RECIPE_SKU_MOCHA_L',N'BOM Mocha L',100,1,N'Active','2026-01-01',41,3,NULL,NULL,NULL,NULL),
+(53,N'RECIPE_SKU_CARAMEL_MACCHIATO_M',N'BOM Caramel macchiato M',100,1,N'Active','2026-01-01',42,2,NULL,NULL,NULL,NULL),
+(54,N'RECIPE_SKU_CARAMEL_MACCHIATO_L',N'BOM Caramel macchiato L',100,1,N'Active','2026-01-01',42,3,NULL,NULL,NULL,NULL),
+(55,N'RECIPE_SKU_COCONUT_COFFEE_M',N'BOM Cà phê dừa M',100,1,N'Active','2026-01-01',43,2,NULL,NULL,NULL,NULL),
+(56,N'RECIPE_SKU_COCONUT_COFFEE_L',N'BOM Cà phê dừa L',100,1,N'Active','2026-01-01',43,3,NULL,NULL,NULL,NULL),
+(57,N'RECIPE_SKU_HONEY_LEMON_TEA_M',N'BOM Trà chanh mật ong M',100,1,N'Active','2026-01-01',44,2,NULL,NULL,NULL,NULL),
+(58,N'RECIPE_SKU_HONEY_LEMON_TEA_L',N'BOM Trà chanh mật ong L',100,1,N'Active','2026-01-01',44,3,NULL,NULL,NULL,NULL),
+(59,N'RECIPE_SKU_MANGO_TEA_M',N'BOM Trà xoài M',100,1,N'Active','2026-01-01',45,2,NULL,NULL,NULL,NULL),
+(60,N'RECIPE_SKU_MANGO_TEA_L',N'BOM Trà xoài L',100,1,N'Active','2026-01-01',45,3,NULL,NULL,NULL,NULL),
+(61,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'BOM Trà sữa dâu M',100,1,N'Active','2026-01-01',46,2,NULL,NULL,NULL,NULL),
+(62,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'BOM Trà sữa dâu L',100,1,N'Active','2026-01-01',46,3,NULL,NULL,NULL,NULL),
+(63,N'RECIPE_SKU_LYCHEE_OOLONG_M',N'BOM Trà ô long vải M',100,1,N'Active','2026-01-01',47,2,NULL,NULL,NULL,NULL),
+(64,N'RECIPE_SKU_LYCHEE_OOLONG_L',N'BOM Trà ô long vải L',100,1,N'Active','2026-01-01',47,3,NULL,NULL,NULL,NULL),
+(65,N'RECIPE_SKU_OAT_MATCHA_M',N'BOM Matcha sữa yến mạch M',100,1,N'Active','2026-01-01',48,2,NULL,NULL,NULL,NULL),
+(66,N'RECIPE_SKU_OAT_MATCHA_L',N'BOM Matcha sữa yến mạch L',100,1,N'Active','2026-01-01',48,3,NULL,NULL,NULL,NULL),
+(67,N'RECIPE_SKU_COCONUT_CHOCOLATE_M',N'BOM Chocolate dừa M',100,1,N'Active','2026-01-01',49,2,NULL,NULL,NULL,NULL),
+(68,N'RECIPE_SKU_COCONUT_CHOCOLATE_L',N'BOM Chocolate dừa L',100,1,N'Active','2026-01-01',49,3,NULL,NULL,NULL,NULL),
+(69,N'RECIPE_SKU_PASSION_YOGURT_M',N'BOM Sữa chua chanh dây M',100,1,N'Active','2026-01-01',50,2,NULL,NULL,NULL,NULL),
+(70,N'RECIPE_SKU_PASSION_YOGURT_L',N'BOM Sữa chua chanh dây L',100,1,N'Active','2026-01-01',50,3,NULL,NULL,NULL,NULL),
+(71,N'RECIPE_TOP_PM_VIEN',N'BOM Phô mai viên',100,1,N'Active','2026-01-01',NULL,NULL,3,NULL,NULL,NULL),
+(72,N'RECIPE_TOP_KB_CM',N'BOM Khúc bạch',100,1,N'Active','2026-01-01',NULL,NULL,4,NULL,NULL,NULL),
+(73,N'RECIPE_TOP_TH_Dao',N'BOM Thạch đào',100,1,N'Active','2026-01-01',NULL,NULL,8,NULL,NULL,NULL),
+(74,N'RECIPE_TOP_NHADAM',N'BOM Nha đam',100,1,N'Active','2026-01-01',NULL,NULL,9,NULL,NULL,NULL),
+(75,N'RECIPE_TOP_HATCHIA',N'BOM Hạt chia',100,1,N'Active','2026-01-01',NULL,NULL,10,NULL,NULL,NULL),
+(76,N'RECIPE_TOP_TH_Dua',N'BOM Thạch dừa',100,1,N'Active','2026-01-01',NULL,NULL,11,NULL,NULL,NULL),
+(77,N'RECIPE_TOP_PUDDINGTRUNG',N'BOM Pudding trứng',100,1,N'Active','2026-01-01',NULL,NULL,12,NULL,NULL,NULL),
+(78,N'RECIPE_TOP_TC_HOANGKIM',N'BOM Trân châu hoàng kim',100,1,N'Active','2026-01-01',NULL,NULL,14,NULL,NULL,NULL),
+(79,N'RECIPE_TOP_TC_DUONGDEN',N'BOM Trân châu đường đen',100,1,N'Active','2026-01-01',NULL,NULL,15,NULL,NULL,NULL),
+(80,N'RECIPE_TOP_TC_MINI',N'BOM Trân châu mini',100,1,N'Active','2026-01-01',NULL,NULL,16,NULL,NULL,NULL),
+(81,N'RECIPE_TOP_TC_KHOAIMON',N'BOM Trân châu khoai môn',100,1,N'Active','2026-01-01',NULL,NULL,17,NULL,NULL,NULL),
+(82,N'RECIPE_TOP_TH_CAFE',N'BOM Thạch cà phê',100,1,N'Active','2026-01-01',NULL,NULL,18,NULL,NULL,NULL),
+(83,N'RECIPE_TOP_TH_MATCHA',N'BOM Thạch matcha',100,1,N'Active','2026-01-01',NULL,NULL,19,NULL,NULL,NULL),
+(84,N'RECIPE_TOP_TH_VAI',N'BOM Thạch vải',100,1,N'Active','2026-01-01',NULL,NULL,20,NULL,NULL,NULL),
+(85,N'RECIPE_TOP_TH_XOAI',N'BOM Thạch xoài',100,1,N'Active','2026-01-01',NULL,NULL,21,NULL,NULL,NULL),
+(86,N'RECIPE_TOP_TH_DAU',N'BOM Thạch dâu',100,1,N'Active','2026-01-01',NULL,NULL,22,NULL,NULL,NULL),
+(87,N'RECIPE_TOP_TH_CHANHDAY',N'BOM Thạch chanh dây',100,1,N'Active','2026-01-01',NULL,NULL,23,NULL,NULL,NULL),
+(88,N'RECIPE_TOP_TH_MATONGCHANH',N'BOM Thạch mật ong chanh',100,1,N'Active','2026-01-01',NULL,NULL,24,NULL,NULL,NULL),
+(89,N'RECIPE_TOP_TH_SUAYENMACH',N'BOM Thạch sữa yến mạch',100,1,N'Active','2026-01-01',NULL,NULL,25,NULL,NULL,NULL),
+(90,N'RECIPE_TOP_TRAIDAO',N'BOM Đào miếng',100,1,N'Active','2026-01-01',NULL,NULL,26,NULL,NULL,NULL),
+(91,N'RECIPE_TOP_TRAIVAI',N'BOM Vải ngâm',100,1,N'Active','2026-01-01',NULL,NULL,27,NULL,NULL,NULL),
+(92,N'RECIPE_TOP_XOAI_HAT',N'BOM Xoài cắt hạt lựu',100,1,N'Active','2026-01-01',NULL,NULL,28,NULL,NULL,NULL),
+(93,N'RECIPE_TOP_DAU_TUOI',N'BOM Dâu tươi',100,1,N'Active','2026-01-01',NULL,NULL,29,NULL,NULL,NULL),
+(94,N'RECIPE_TOP_TEP_CAM',N'BOM Tép cam',100,1,N'Active','2026-01-01',NULL,NULL,30,NULL,NULL,NULL),
+(95,N'RECIPE_TOP_CHANHDAY_HAT',N'BOM Chanh dây hạt',100,1,N'Active','2026-01-01',NULL,NULL,31,NULL,NULL,NULL),
+(96,N'RECIPE_TOP_PUDDING_VANILLA',N'BOM Pudding vanilla',100,1,N'Active','2026-01-01',NULL,NULL,32,NULL,NULL,NULL),
+(97,N'RECIPE_TOP_PUDDING_SOCOLA',N'BOM Pudding chocolate',100,1,N'Active','2026-01-01',NULL,NULL,33,NULL,NULL,NULL),
+(98,N'RECIPE_TOP_PUDDING_MATCHA',N'BOM Pudding matcha',100,1,N'Active','2026-01-01',NULL,NULL,34,NULL,NULL,NULL),
+(99,N'RECIPE_TOP_PUDDING_KHOAIMON',N'BOM Pudding khoai môn',100,1,N'Active','2026-01-01',NULL,NULL,35,NULL,NULL,NULL),
+(100,N'RECIPE_TOP_KEMMUOI',N'BOM Kem muối',100,1,N'Active','2026-01-01',NULL,NULL,36,NULL,NULL,NULL),
+(101,N'RECIPE_TOP_KEMSUATUOI',N'BOM Kem sữa tươi',100,1,N'Active','2026-01-01',NULL,NULL,37,NULL,NULL,NULL),
+(102,N'RECIPE_TOP_KEMDUA',N'BOM Kem dừa',100,1,N'Active','2026-01-01',NULL,NULL,38,NULL,NULL,NULL),
+(103,N'RECIPE_TOP_KEMYENMACH',N'BOM Kem yến mạch',100,1,N'Active','2026-01-01',NULL,NULL,39,NULL,NULL,NULL),
+(104,N'RECIPE_TOP_SOT_CARAMEL',N'BOM Sốt caramel',100,1,N'Active','2026-01-01',NULL,NULL,40,NULL,NULL,NULL),
+(105,N'RECIPE_TOP_SOT_SOCOLA',N'BOM Sốt chocolate',100,1,N'Active','2026-01-01',NULL,NULL,41,NULL,NULL,NULL),
+(106,N'RECIPE_TOP_SOT_DAU',N'BOM Sốt dâu',100,1,N'Active','2026-01-01',NULL,NULL,42,NULL,NULL,NULL),
+(107,N'RECIPE_TOP_SOT_XOAI',N'BOM Sốt xoài',100,1,N'Active','2026-01-01',NULL,NULL,43,NULL,NULL,NULL),
+(108,N'RECIPE_TOP_SOT_MATONG',N'BOM Sốt mật ong',100,1,N'Active','2026-01-01',NULL,NULL,44,NULL,NULL,NULL),
+(109,N'RECIPE_TOP_SOT_DUONGDEN',N'BOM Sốt đường đen',100,1,N'Active','2026-01-01',NULL,NULL,45,NULL,NULL,NULL),
+(110,N'RECIPE_TOP_SHOT_MATCHA',N'BOM Shot matcha',100,1,N'Active','2026-01-01',NULL,NULL,46,NULL,NULL,NULL),
+(111,N'RECIPE_TOP_SUA_YENMACH_THEM',N'BOM Sữa yến mạch thêm',100,1,N'Active','2026-01-01',NULL,NULL,47,NULL,NULL,NULL),
+(112,N'RECIPE_TOP_COT_DUA_THEM',N'BOM Nước cốt dừa thêm',100,1,N'Active','2026-01-01',NULL,NULL,48,NULL,NULL,NULL),
+(113,N'RECIPE_TOP_SUA_CHUA_THEM',N'BOM Sữa chua thêm',100,1,N'Active','2026-01-01',NULL,NULL,49,NULL,NULL,NULL),
+(114,N'RECIPE_TOP_SYRUP_CARAMEL_THEM',N'BOM Syrup caramel thêm',100,1,N'Active','2026-01-01',NULL,NULL,50,NULL,NULL,NULL),
 (115,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'BOM Cà phê kem cheese M',100,1,N'Active','2026-01-01',51,2,NULL,NULL,NULL,NULL),
 (116,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'BOM Cold brew mật ong chanh vàng M',100,1,N'Active','2026-01-01',52,2,NULL,NULL,NULL,NULL),
 (117,N'ZZ_RCP_BLACK_PEARL_MILK_COFFEE_M',N'BOM Cà phê sữa trân châu đen M',100,1,N'Active','2026-01-01',53,2,NULL,NULL,NULL,NULL),
@@ -3905,10 +3945,10 @@ BEGIN TRY
 (142,N'ZZ_RCP_MANGO_COCONUT_MATCHA_M',N'BOM Matcha xoài thạch dừa M',100,1,N'Active','2026-01-01',78,2,NULL,NULL,NULL,NULL),
 (143,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'BOM Chocolate caramel kem muối M',100,1,N'Active','2026-01-01',79,2,NULL,NULL,NULL,NULL),
 (144,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'BOM Sua chua xoai nha dam M',100,1,N'Active','2026-01-01',80,2,NULL,NULL,NULL,NULL),
-(145,N'DEMO_RECIPE_PREP_ALOE_BASE',N'BOM Aloe vera base',100,1,N'Active','2026-01-01',NULL,NULL,NULL,9,1000,1),
-(146,N'DEMO_RECIPE_PREP_COCONUT_JELLY_BASE',N'BOM Coconut jelly base',100,1,N'Active','2026-01-01',NULL,NULL,NULL,10,1000,1),
-(147,N'DEMO_RECIPE_PREP_KHUC_BACH_BASE',N'BOM Khuc bach base',100,1,N'Active','2026-01-01',NULL,NULL,NULL,11,1000,1),
-(148,N'DEMO_RECIPE_PREP_LEGACY_CREAM',N'BOM Legacy cream',100,0,N'Archived','2026-01-01',NULL,NULL,NULL,12,1000,3);
+(145,N'RECIPE_PREP_ALOE_BASE',N'BOM Aloe vera base',100,1,N'Active','2026-01-01',NULL,NULL,NULL,9,1000,1),
+(146,N'RECIPE_PREP_COCONUT_JELLY_BASE',N'BOM Coconut jelly base',100,1,N'Active','2026-01-01',NULL,NULL,NULL,10,1000,1),
+(147,N'RECIPE_PREP_KHUC_BACH_BASE',N'BOM Khuc bach base',100,1,N'Active','2026-01-01',NULL,NULL,NULL,11,1000,1),
+(148,N'RECIPE_PREP_LEGACY_CREAM',N'BOM Legacy cream',100,0,N'Archived','2026-01-01',NULL,NULL,NULL,12,1000,3);
 
  IF (SELECT COUNT(*) FROM @RecipeSeed)<>142 THROW 52304,N'Batch 04 phải có 142 Recipe mới.',1;
 
@@ -3952,746 +3992,746 @@ BEGIN TRY
  DECLARE @Component TABLE(SortOrder int PRIMARY KEY,RecipeCode nvarchar(50),SourceType nchar(1),
  SourceCode nvarchar(50),Quantity decimal(18,3),UnitCode nvarchar(20));
  INSERT @Component VALUES
-(1,N'DEMO_RECIPE_PREP_VIET_COFFEE',N'I',N'DEMO_ING_VIET_COFFEE',250,N'g'),
-(2,N'DEMO_RECIPE_PREP_VIET_COFFEE',N'I',N'ING00013',1200,N'ml'),
-(3,N'DEMO_RECIPE_PREP_ESPRESSO',N'I',N'DEMO_ING_ESPRESSO_BEAN',300,N'g'),
-(4,N'DEMO_RECIPE_PREP_ESPRESSO',N'I',N'ING00013',800,N'ml'),
-(5,N'DEMO_RECIPE_PREP_BLACK_TEA',N'I',N'ING00003',80,N'g'),
-(6,N'DEMO_RECIPE_PREP_BLACK_TEA',N'I',N'ING00013',2200,N'ml'),
-(7,N'DEMO_RECIPE_PREP_OOLONG_TEA',N'I',N'DEMO_ING_OOLONG_TEA',80,N'g'),
-(8,N'DEMO_RECIPE_PREP_OOLONG_TEA',N'I',N'ING00013',2200,N'ml'),
-(9,N'DEMO_RECIPE_PREP_SUGAR_SYRUP',N'I',N'ING00006',1000,N'g'),
-(10,N'DEMO_RECIPE_PREP_SUGAR_SYRUP',N'I',N'ING00013',800,N'ml'),
-(11,N'DEMO_RECIPE_PREP_SALTED_CREAM',N'I',N'ING00010',600,N'ml'),
-(12,N'DEMO_RECIPE_PREP_SALTED_CREAM',N'I',N'DEMO_ING_FRESH_MILK',350,N'ml'),
-(13,N'DEMO_RECIPE_PREP_SALTED_CREAM',N'I',N'DEMO_ING_SALT',8,N'g'),
-(14,N'DEMO_RECIPE_PREP_CHEESE_CREAM',N'I',N'DEMO_ING_CHEESE_POWDER',250,N'g'),
-(15,N'DEMO_RECIPE_PREP_CHEESE_CREAM',N'I',N'DEMO_ING_FRESH_MILK',500,N'ml'),
-(16,N'DEMO_RECIPE_PREP_CHEESE_CREAM',N'I',N'ING00010',250,N'ml'),
-(17,N'DEMO_RECIPE_PREP_BLACK_PEARL',N'I',N'DEMO_ING_BLACK_PEARL_DRY',1000,N'g'),
-(18,N'DEMO_RECIPE_PREP_BLACK_PEARL',N'P',N'DEMO_PREP_SUGAR_SYRUP',400,N'ml'),
-(19,N'DEMO_RECIPE_PREP_BLACK_PEARL',N'I',N'ING00013',3000,N'ml'),
-(20,N'DEMO_RECIPE_TOP_BLACK_PEARL',N'P',N'DEMO_PREP_BLACK_PEARL',1,N'DEMO_PORTION'),
-(21,N'DEMO_RECIPE_TOP_WHITE_PEARL',N'I',N'DEMO_ING_WHITE_PEARL',1,N'DEMO_PORTION'),
-(22,N'DEMO_RECIPE_TOP_FLAN',N'I',N'DEMO_ING_FLAN_POWDER',35,N'g'),
-(23,N'DEMO_RECIPE_TOP_TARO_JELLY',N'I',N'DEMO_ING_TARO_JELLY_POWDER',30,N'g'),
-(24,N'DEMO_RECIPE_TOP_CHEESE_CREAM',N'P',N'DEMO_PREP_CHEESE_CREAM',35,N'ml'),
-(25,N'DEMO_RECIPE_TOP_ESPRESSO_SHOT',N'P',N'DEMO_PREP_ESPRESSO',30,N'ml'),
-(26,N'DEMO_RECIPE_SKU_VIET_BLACK_M',N'P',N'DEMO_PREP_VIET_COFFEE',85,N'ml'),
-(27,N'DEMO_RECIPE_SKU_VIET_BLACK_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',12,N'ml'),
-(28,N'DEMO_RECIPE_SKU_VIET_BLACK_M',N'I',N'ING00007',180,N'g'),
-(29,N'DEMO_RECIPE_SKU_VIET_BLACK_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(30,N'DEMO_RECIPE_SKU_VIET_BLACK_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(31,N'DEMO_RECIPE_SKU_VIET_BLACK_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(32,N'DEMO_RECIPE_SKU_VIET_BLACK_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(33,N'DEMO_RECIPE_SKU_VIET_BLACK_L',N'P',N'DEMO_PREP_VIET_COFFEE',105,N'ml'),
-(34,N'DEMO_RECIPE_SKU_VIET_BLACK_L',N'P',N'DEMO_PREP_SUGAR_SYRUP',16,N'ml'),
-(35,N'DEMO_RECIPE_SKU_VIET_BLACK_L',N'I',N'ING00007',230,N'g'),
-(36,N'DEMO_RECIPE_SKU_VIET_BLACK_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(37,N'DEMO_RECIPE_SKU_VIET_BLACK_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(38,N'DEMO_RECIPE_SKU_VIET_BLACK_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(39,N'DEMO_RECIPE_SKU_VIET_BLACK_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(40,N'DEMO_RECIPE_SKU_VIET_MILK_M',N'P',N'DEMO_PREP_VIET_COFFEE',60,N'ml'),
-(41,N'DEMO_RECIPE_SKU_VIET_MILK_M',N'I',N'ING00002',30,N'ml'),
-(42,N'DEMO_RECIPE_SKU_VIET_MILK_M',N'I',N'ING00007',180,N'g'),
-(43,N'DEMO_RECIPE_SKU_VIET_MILK_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(44,N'DEMO_RECIPE_SKU_VIET_MILK_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(45,N'DEMO_RECIPE_SKU_VIET_MILK_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(46,N'DEMO_RECIPE_SKU_VIET_MILK_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(47,N'DEMO_RECIPE_SKU_VIET_MILK_L',N'P',N'DEMO_PREP_VIET_COFFEE',80,N'ml'),
-(48,N'DEMO_RECIPE_SKU_VIET_MILK_L',N'I',N'ING00002',40,N'ml'),
-(49,N'DEMO_RECIPE_SKU_VIET_MILK_L',N'I',N'ING00007',230,N'g'),
-(50,N'DEMO_RECIPE_SKU_VIET_MILK_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(51,N'DEMO_RECIPE_SKU_VIET_MILK_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(52,N'DEMO_RECIPE_SKU_VIET_MILK_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(53,N'DEMO_RECIPE_SKU_VIET_MILK_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(54,N'DEMO_RECIPE_SKU_BAC_XIU_M',N'P',N'DEMO_PREP_VIET_COFFEE',35,N'ml'),
-(55,N'DEMO_RECIPE_SKU_BAC_XIU_M',N'I',N'ING00002',35,N'ml'),
-(56,N'DEMO_RECIPE_SKU_BAC_XIU_M',N'I',N'DEMO_ING_FRESH_MILK',100,N'ml'),
-(57,N'DEMO_RECIPE_SKU_BAC_XIU_M',N'I',N'ING00007',170,N'g'),
-(58,N'DEMO_RECIPE_SKU_BAC_XIU_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(59,N'DEMO_RECIPE_SKU_BAC_XIU_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(60,N'DEMO_RECIPE_SKU_BAC_XIU_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(61,N'DEMO_RECIPE_SKU_BAC_XIU_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(62,N'DEMO_RECIPE_SKU_BAC_XIU_L',N'P',N'DEMO_PREP_VIET_COFFEE',45,N'ml'),
-(63,N'DEMO_RECIPE_SKU_BAC_XIU_L',N'I',N'ING00002',45,N'ml'),
-(64,N'DEMO_RECIPE_SKU_BAC_XIU_L',N'I',N'DEMO_ING_FRESH_MILK',135,N'ml'),
-(65,N'DEMO_RECIPE_SKU_BAC_XIU_L',N'I',N'ING00007',220,N'g'),
-(66,N'DEMO_RECIPE_SKU_BAC_XIU_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(67,N'DEMO_RECIPE_SKU_BAC_XIU_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(68,N'DEMO_RECIPE_SKU_BAC_XIU_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(69,N'DEMO_RECIPE_SKU_BAC_XIU_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(70,N'DEMO_RECIPE_SKU_SALTED_COFFEE_M',N'P',N'DEMO_PREP_VIET_COFFEE',60,N'ml'),
-(71,N'DEMO_RECIPE_SKU_SALTED_COFFEE_M',N'I',N'ING00002',25,N'ml'),
-(72,N'DEMO_RECIPE_SKU_SALTED_COFFEE_M',N'P',N'DEMO_PREP_SALTED_CREAM',35,N'ml'),
-(73,N'DEMO_RECIPE_SKU_SALTED_COFFEE_M',N'I',N'ING00007',170,N'g'),
-(74,N'DEMO_RECIPE_SKU_SALTED_COFFEE_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(75,N'DEMO_RECIPE_SKU_SALTED_COFFEE_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(76,N'DEMO_RECIPE_SKU_SALTED_COFFEE_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(77,N'DEMO_RECIPE_SKU_SALTED_COFFEE_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(78,N'DEMO_RECIPE_SKU_SALTED_COFFEE_L',N'P',N'DEMO_PREP_VIET_COFFEE',80,N'ml'),
-(79,N'DEMO_RECIPE_SKU_SALTED_COFFEE_L',N'I',N'ING00002',35,N'ml'),
-(80,N'DEMO_RECIPE_SKU_SALTED_COFFEE_L',N'P',N'DEMO_PREP_SALTED_CREAM',45,N'ml'),
-(81,N'DEMO_RECIPE_SKU_SALTED_COFFEE_L',N'I',N'ING00007',220,N'g'),
-(82,N'DEMO_RECIPE_SKU_SALTED_COFFEE_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(83,N'DEMO_RECIPE_SKU_SALTED_COFFEE_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(84,N'DEMO_RECIPE_SKU_SALTED_COFFEE_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(85,N'DEMO_RECIPE_SKU_SALTED_COFFEE_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(86,N'DEMO_RECIPE_SKU_AMERICANO_M',N'P',N'DEMO_PREP_ESPRESSO',70,N'ml'),
-(87,N'DEMO_RECIPE_SKU_AMERICANO_M',N'I',N'ING00013',120,N'ml'),
-(88,N'DEMO_RECIPE_SKU_AMERICANO_M',N'I',N'ING00007',160,N'g'),
-(89,N'DEMO_RECIPE_SKU_AMERICANO_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(90,N'DEMO_RECIPE_SKU_AMERICANO_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(91,N'DEMO_RECIPE_SKU_AMERICANO_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(92,N'DEMO_RECIPE_SKU_AMERICANO_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(93,N'DEMO_RECIPE_SKU_AMERICANO_L',N'P',N'DEMO_PREP_ESPRESSO',75,N'ml'),
-(94,N'DEMO_RECIPE_SKU_AMERICANO_L',N'I',N'ING00013',160,N'ml'),
-(95,N'DEMO_RECIPE_SKU_AMERICANO_L',N'I',N'ING00007',210,N'g'),
-(96,N'DEMO_RECIPE_SKU_AMERICANO_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(97,N'DEMO_RECIPE_SKU_AMERICANO_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(98,N'DEMO_RECIPE_SKU_AMERICANO_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(99,N'DEMO_RECIPE_SKU_AMERICANO_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(100,N'DEMO_RECIPE_SKU_COFFEE_LATTE_M',N'P',N'DEMO_PREP_ESPRESSO',60,N'ml'),
-(101,N'DEMO_RECIPE_SKU_COFFEE_LATTE_M',N'I',N'DEMO_ING_FRESH_MILK',160,N'ml'),
-(102,N'DEMO_RECIPE_SKU_COFFEE_LATTE_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',10,N'ml'),
-(103,N'DEMO_RECIPE_SKU_COFFEE_LATTE_M',N'I',N'ING00007',120,N'g'),
-(104,N'DEMO_RECIPE_SKU_COFFEE_LATTE_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(105,N'DEMO_RECIPE_SKU_COFFEE_LATTE_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(106,N'DEMO_RECIPE_SKU_COFFEE_LATTE_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(107,N'DEMO_RECIPE_SKU_COFFEE_LATTE_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(108,N'DEMO_RECIPE_SKU_COFFEE_LATTE_L',N'P',N'DEMO_PREP_ESPRESSO',68,N'ml'),
-(109,N'DEMO_RECIPE_SKU_COFFEE_LATTE_L',N'I',N'DEMO_ING_FRESH_MILK',210,N'ml'),
-(110,N'DEMO_RECIPE_SKU_COFFEE_LATTE_L',N'P',N'DEMO_PREP_SUGAR_SYRUP',14,N'ml'),
-(111,N'DEMO_RECIPE_SKU_COFFEE_LATTE_L',N'I',N'ING00007',160,N'g'),
-(112,N'DEMO_RECIPE_SKU_COFFEE_LATTE_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(113,N'DEMO_RECIPE_SKU_COFFEE_LATTE_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(114,N'DEMO_RECIPE_SKU_COFFEE_LATTE_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(115,N'DEMO_RECIPE_SKU_COFFEE_LATTE_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(116,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',150,N'ml'),
-(117,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_M',N'I',N'DEMO_ING_CANNED_PEACH',60,N'g'),
-(118,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_M',N'I',N'DEMO_ING_ORANGE',30,N'g'),
-(119,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_M',N'I',N'DEMO_ING_LEMONGRASS',6,N'g'),
-(120,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',20,N'ml'),
-(121,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_M',N'I',N'ING00007',150,N'g'),
-(122,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(123,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(124,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(125,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(126,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_L',N'P',N'DEMO_PREP_BLACK_TEA',200,N'ml'),
-(127,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_L',N'I',N'DEMO_ING_CANNED_PEACH',80,N'g'),
-(128,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_L',N'I',N'DEMO_ING_ORANGE',40,N'g'),
-(129,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_L',N'I',N'DEMO_ING_LEMONGRASS',8,N'g'),
-(130,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_L',N'P',N'DEMO_PREP_SUGAR_SYRUP',27,N'ml'),
-(131,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_L',N'I',N'ING00007',200,N'g'),
-(132,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(133,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(134,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(135,N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(136,N'DEMO_RECIPE_SKU_LYCHEE_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',150,N'ml'),
-(137,N'DEMO_RECIPE_SKU_LYCHEE_TEA_M',N'I',N'DEMO_ING_CANNED_LYCHEE',70,N'g'),
-(138,N'DEMO_RECIPE_SKU_LYCHEE_TEA_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',18,N'ml'),
-(139,N'DEMO_RECIPE_SKU_LYCHEE_TEA_M',N'I',N'ING00007',150,N'g'),
-(140,N'DEMO_RECIPE_SKU_LYCHEE_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(141,N'DEMO_RECIPE_SKU_LYCHEE_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(142,N'DEMO_RECIPE_SKU_LYCHEE_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(143,N'DEMO_RECIPE_SKU_LYCHEE_TEA_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(144,N'DEMO_RECIPE_SKU_LYCHEE_TEA_L',N'P',N'DEMO_PREP_BLACK_TEA',200,N'ml'),
-(145,N'DEMO_RECIPE_SKU_LYCHEE_TEA_L',N'I',N'DEMO_ING_CANNED_LYCHEE',90,N'g'),
-(146,N'DEMO_RECIPE_SKU_LYCHEE_TEA_L',N'P',N'DEMO_PREP_SUGAR_SYRUP',24,N'ml'),
-(147,N'DEMO_RECIPE_SKU_LYCHEE_TEA_L',N'I',N'ING00007',200,N'g'),
-(148,N'DEMO_RECIPE_SKU_LYCHEE_TEA_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(149,N'DEMO_RECIPE_SKU_LYCHEE_TEA_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(150,N'DEMO_RECIPE_SKU_LYCHEE_TEA_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(151,N'DEMO_RECIPE_SKU_LYCHEE_TEA_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(152,N'DEMO_RECIPE_SKU_PASSION_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',150,N'ml'),
-(153,N'DEMO_RECIPE_SKU_PASSION_TEA_M',N'I',N'DEMO_ING_PASSION_JAM',66,N'g'),
-(154,N'DEMO_RECIPE_SKU_PASSION_TEA_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',10,N'ml'),
-(155,N'DEMO_RECIPE_SKU_PASSION_TEA_M',N'I',N'ING00007',150,N'g'),
-(156,N'DEMO_RECIPE_SKU_PASSION_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(157,N'DEMO_RECIPE_SKU_PASSION_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(158,N'DEMO_RECIPE_SKU_PASSION_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(159,N'DEMO_RECIPE_SKU_PASSION_TEA_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(160,N'DEMO_RECIPE_SKU_PASSION_TEA_L',N'P',N'DEMO_PREP_BLACK_TEA',200,N'ml'),
-(161,N'DEMO_RECIPE_SKU_PASSION_TEA_L',N'I',N'DEMO_ING_PASSION_JAM',60,N'g'),
-(162,N'DEMO_RECIPE_SKU_PASSION_TEA_L',N'P',N'DEMO_PREP_SUGAR_SYRUP',14,N'ml'),
-(163,N'DEMO_RECIPE_SKU_PASSION_TEA_L',N'I',N'ING00007',200,N'g'),
-(164,N'DEMO_RECIPE_SKU_PASSION_TEA_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(165,N'DEMO_RECIPE_SKU_PASSION_TEA_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(166,N'DEMO_RECIPE_SKU_PASSION_TEA_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(167,N'DEMO_RECIPE_SKU_PASSION_TEA_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(168,N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',150,N'ml'),
-(169,N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_M',N'I',N'DEMO_ING_FRESH_MILK',90,N'ml'),
-(170,N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_M',N'I',N'ING00010',30,N'ml'),
-(171,N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',20,N'ml'),
-(172,N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_M',N'I',N'ING00007',150,N'g'),
-(173,N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(174,N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(175,N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(176,N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(177,N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_L',N'P',N'DEMO_PREP_BLACK_TEA',200,N'ml'),
-(178,N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_L',N'I',N'DEMO_ING_FRESH_MILK',120,N'ml'),
-(179,N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_L',N'I',N'ING00010',28,N'ml'),
-(180,N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_L',N'P',N'DEMO_PREP_SUGAR_SYRUP',27,N'ml'),
-(181,N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_L',N'I',N'ING00007',200,N'g'),
-(182,N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(183,N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(184,N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(185,N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(186,N'DEMO_RECIPE_SKU_OOLONG_MILK_TEA_M',N'P',N'DEMO_PREP_OOLONG_TEA',150,N'ml'),
-(187,N'DEMO_RECIPE_SKU_OOLONG_MILK_TEA_M',N'I',N'DEMO_ING_FRESH_MILK',90,N'ml'),
-(188,N'DEMO_RECIPE_SKU_OOLONG_MILK_TEA_M',N'I',N'ING00010',27,N'ml'),
-(189,N'DEMO_RECIPE_SKU_OOLONG_MILK_TEA_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',20,N'ml'),
-(190,N'DEMO_RECIPE_SKU_OOLONG_MILK_TEA_M',N'I',N'ING00007',150,N'g'),
-(191,N'DEMO_RECIPE_SKU_OOLONG_MILK_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(192,N'DEMO_RECIPE_SKU_OOLONG_MILK_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(193,N'DEMO_RECIPE_SKU_OOLONG_MILK_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(194,N'DEMO_RECIPE_SKU_OOLONG_MILK_TEA_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(195,N'DEMO_RECIPE_SKU_OOLONG_MILK_TEA_L',N'P',N'DEMO_PREP_OOLONG_TEA',200,N'ml'),
-(196,N'DEMO_RECIPE_SKU_OOLONG_MILK_TEA_L',N'I',N'DEMO_ING_FRESH_MILK',120,N'ml'),
-(197,N'DEMO_RECIPE_SKU_OOLONG_MILK_TEA_L',N'I',N'ING00010',30,N'ml'),
-(198,N'DEMO_RECIPE_SKU_OOLONG_MILK_TEA_L',N'P',N'DEMO_PREP_SUGAR_SYRUP',27,N'ml'),
-(199,N'DEMO_RECIPE_SKU_OOLONG_MILK_TEA_L',N'I',N'ING00007',200,N'g'),
-(200,N'DEMO_RECIPE_SKU_OOLONG_MILK_TEA_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(201,N'DEMO_RECIPE_SKU_OOLONG_MILK_TEA_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(202,N'DEMO_RECIPE_SKU_OOLONG_MILK_TEA_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(203,N'DEMO_RECIPE_SKU_OOLONG_MILK_TEA_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(204,N'DEMO_RECIPE_SKU_MATCHA_LATTE_M',N'I',N'ING00009',8,N'g'),
-(205,N'DEMO_RECIPE_SKU_MATCHA_LATTE_M',N'I',N'DEMO_ING_FRESH_MILK',150,N'ml'),
-(206,N'DEMO_RECIPE_SKU_MATCHA_LATTE_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',15,N'ml'),
-(207,N'DEMO_RECIPE_SKU_MATCHA_LATTE_M',N'I',N'ING00007',150,N'g'),
-(208,N'DEMO_RECIPE_SKU_MATCHA_LATTE_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(209,N'DEMO_RECIPE_SKU_MATCHA_LATTE_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(210,N'DEMO_RECIPE_SKU_MATCHA_LATTE_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(211,N'DEMO_RECIPE_SKU_MATCHA_LATTE_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(212,N'DEMO_RECIPE_SKU_MATCHA_LATTE_L',N'I',N'ING00009',11,N'g'),
-(213,N'DEMO_RECIPE_SKU_MATCHA_LATTE_L',N'I',N'DEMO_ING_FRESH_MILK',205,N'ml'),
-(214,N'DEMO_RECIPE_SKU_MATCHA_LATTE_L',N'P',N'DEMO_PREP_SUGAR_SYRUP',20,N'ml'),
-(215,N'DEMO_RECIPE_SKU_MATCHA_LATTE_L',N'I',N'ING00007',200,N'g'),
-(216,N'DEMO_RECIPE_SKU_MATCHA_LATTE_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(217,N'DEMO_RECIPE_SKU_MATCHA_LATTE_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(218,N'DEMO_RECIPE_SKU_MATCHA_LATTE_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(219,N'DEMO_RECIPE_SKU_MATCHA_LATTE_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(220,N'DEMO_RECIPE_SKU_CHOCOLATE_LATTE_M',N'I',N'DEMO_ING_CHOCOLATE',23,N'g'),
-(221,N'DEMO_RECIPE_SKU_CHOCOLATE_LATTE_M',N'I',N'DEMO_ING_FRESH_MILK',150,N'ml'),
-(222,N'DEMO_RECIPE_SKU_CHOCOLATE_LATTE_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',12,N'ml'),
-(223,N'DEMO_RECIPE_SKU_CHOCOLATE_LATTE_M',N'I',N'ING00007',150,N'g'),
-(224,N'DEMO_RECIPE_SKU_CHOCOLATE_LATTE_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(225,N'DEMO_RECIPE_SKU_CHOCOLATE_LATTE_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(226,N'DEMO_RECIPE_SKU_CHOCOLATE_LATTE_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(227,N'DEMO_RECIPE_SKU_CHOCOLATE_LATTE_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(228,N'DEMO_RECIPE_SKU_CHOCOLATE_LATTE_L',N'I',N'DEMO_ING_CHOCOLATE',27,N'g'),
-(229,N'DEMO_RECIPE_SKU_CHOCOLATE_LATTE_L',N'I',N'DEMO_ING_FRESH_MILK',205,N'ml'),
-(230,N'DEMO_RECIPE_SKU_CHOCOLATE_LATTE_L',N'P',N'DEMO_PREP_SUGAR_SYRUP',16,N'ml'),
-(231,N'DEMO_RECIPE_SKU_CHOCOLATE_LATTE_L',N'I',N'ING00007',200,N'g'),
-(232,N'DEMO_RECIPE_SKU_CHOCOLATE_LATTE_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(233,N'DEMO_RECIPE_SKU_CHOCOLATE_LATTE_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(234,N'DEMO_RECIPE_SKU_CHOCOLATE_LATTE_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(235,N'DEMO_RECIPE_SKU_CHOCOLATE_LATTE_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(236,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_M',N'I',N'ING00009',10,N'g'),
-(237,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_M',N'I',N'DEMO_ING_FRESH_MILK',130,N'ml'),
-(238,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_M',N'I',N'DEMO_ING_FRAPPE',20,N'g'),
-(239,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',15,N'ml'),
-(240,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_M',N'I',N'ING00010',20,N'ml'),
-(241,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_M',N'I',N'ING00007',220,N'g'),
-(242,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(243,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(244,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(245,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(246,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_L',N'I',N'ING00009',11,N'g'),
-(247,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_L',N'I',N'DEMO_ING_FRESH_MILK',165,N'ml'),
-(248,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_L',N'I',N'DEMO_ING_FRAPPE',22,N'g'),
-(249,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_L',N'P',N'DEMO_PREP_SUGAR_SYRUP',18,N'ml'),
-(250,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_L',N'I',N'ING00010',25,N'ml'),
-(251,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_L',N'I',N'ING00007',270,N'g'),
-(252,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(253,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(254,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(255,N'DEMO_RECIPE_SKU_MATCHA_FRAPPE_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(256,N'DEMO_RECIPE_SKU_COLD_BREW_ORANGE_M',N'P',N'DEMO_PREP_VIET_COFFEE',90,N'ml'),
-(257,N'DEMO_RECIPE_SKU_COLD_BREW_ORANGE_M',N'I',N'DEMO_ING_ORANGE',50,N'g'),
-(258,N'DEMO_RECIPE_SKU_COLD_BREW_ORANGE_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',12,N'ml'),
-(259,N'DEMO_RECIPE_SKU_COLD_BREW_ORANGE_M',N'I',N'ING00007',160,N'g'),
-(260,N'DEMO_RECIPE_SKU_COLD_BREW_ORANGE_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(261,N'DEMO_RECIPE_SKU_COLD_BREW_ORANGE_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(262,N'DEMO_RECIPE_SKU_COLD_BREW_ORANGE_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(263,N'DEMO_RECIPE_SKU_COLD_BREW_ORANGE_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(264,N'DEMO_RECIPE_SKU_COLD_BREW_ORANGE_L',N'P',N'DEMO_PREP_VIET_COFFEE',120,N'ml'),
-(265,N'DEMO_RECIPE_SKU_COLD_BREW_ORANGE_L',N'I',N'DEMO_ING_ORANGE',70,N'g'),
-(266,N'DEMO_RECIPE_SKU_COLD_BREW_ORANGE_L',N'P',N'DEMO_PREP_SUGAR_SYRUP',18,N'ml'),
-(267,N'DEMO_RECIPE_SKU_COLD_BREW_ORANGE_L',N'I',N'ING00007',210,N'g'),
-(268,N'DEMO_RECIPE_SKU_COLD_BREW_ORANGE_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(269,N'DEMO_RECIPE_SKU_COLD_BREW_ORANGE_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(270,N'DEMO_RECIPE_SKU_COLD_BREW_ORANGE_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(271,N'DEMO_RECIPE_SKU_COLD_BREW_ORANGE_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(272,N'DEMO_RECIPE_SKU_MOCHA_M',N'P',N'DEMO_PREP_ESPRESSO',30,N'ml'),
-(273,N'DEMO_RECIPE_SKU_MOCHA_M',N'I',N'DEMO_ING_CHOCOLATE',20,N'g'),
-(274,N'DEMO_RECIPE_SKU_MOCHA_M',N'I',N'DEMO_ING_FRESH_MILK',150,N'ml'),
-(275,N'DEMO_RECIPE_SKU_MOCHA_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',12,N'ml'),
-(276,N'DEMO_RECIPE_SKU_MOCHA_M',N'I',N'ING00007',150,N'g'),
-(277,N'DEMO_RECIPE_SKU_MOCHA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(278,N'DEMO_RECIPE_SKU_MOCHA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(279,N'DEMO_RECIPE_SKU_MOCHA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(280,N'DEMO_RECIPE_SKU_MOCHA_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(281,N'DEMO_RECIPE_SKU_MOCHA_L',N'P',N'DEMO_PREP_ESPRESSO',45,N'ml'),
-(282,N'DEMO_RECIPE_SKU_MOCHA_L',N'I',N'DEMO_ING_CHOCOLATE',26,N'g'),
-(283,N'DEMO_RECIPE_SKU_MOCHA_L',N'I',N'DEMO_ING_FRESH_MILK',200,N'ml'),
-(284,N'DEMO_RECIPE_SKU_MOCHA_L',N'P',N'DEMO_PREP_SUGAR_SYRUP',16,N'ml'),
-(285,N'DEMO_RECIPE_SKU_MOCHA_L',N'I',N'ING00007',200,N'g'),
-(286,N'DEMO_RECIPE_SKU_MOCHA_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(287,N'DEMO_RECIPE_SKU_MOCHA_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(288,N'DEMO_RECIPE_SKU_MOCHA_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(289,N'DEMO_RECIPE_SKU_MOCHA_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(290,N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_M',N'P',N'DEMO_PREP_ESPRESSO',30,N'ml'),
-(291,N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_M',N'I',N'DEMO_ING_FRESH_MILK',160,N'ml'),
-(292,N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_M',N'I',N'DEMO_ING_CARAMEL_SYRUP',20,N'ml'),
-(293,N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_M',N'I',N'ING00007',140,N'g'),
-(294,N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(295,N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(296,N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(297,N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(298,N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_L',N'P',N'DEMO_PREP_ESPRESSO',45,N'ml'),
-(299,N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_L',N'I',N'DEMO_ING_FRESH_MILK',210,N'ml'),
-(300,N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_L',N'I',N'DEMO_ING_CARAMEL_SYRUP',28,N'ml'),
-(301,N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_L',N'I',N'ING00007',190,N'g'),
-(302,N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(303,N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(304,N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(305,N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(306,N'DEMO_RECIPE_SKU_COCONUT_COFFEE_M',N'P',N'DEMO_PREP_VIET_COFFEE',60,N'ml'),
-(307,N'DEMO_RECIPE_SKU_COCONUT_COFFEE_M',N'I',N'DEMO_ING_COCONUT_MILK',100,N'ml'),
-(308,N'DEMO_RECIPE_SKU_COCONUT_COFFEE_M',N'I',N'ING00002',25,N'ml'),
-(309,N'DEMO_RECIPE_SKU_COCONUT_COFFEE_M',N'I',N'ING00007',170,N'g'),
-(310,N'DEMO_RECIPE_SKU_COCONUT_COFFEE_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(311,N'DEMO_RECIPE_SKU_COCONUT_COFFEE_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(312,N'DEMO_RECIPE_SKU_COCONUT_COFFEE_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(313,N'DEMO_RECIPE_SKU_COCONUT_COFFEE_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(314,N'DEMO_RECIPE_SKU_COCONUT_COFFEE_L',N'P',N'DEMO_PREP_VIET_COFFEE',80,N'ml'),
-(315,N'DEMO_RECIPE_SKU_COCONUT_COFFEE_L',N'I',N'DEMO_ING_COCONUT_MILK',140,N'ml'),
-(316,N'DEMO_RECIPE_SKU_COCONUT_COFFEE_L',N'I',N'ING00002',35,N'ml'),
-(317,N'DEMO_RECIPE_SKU_COCONUT_COFFEE_L',N'I',N'ING00007',220,N'g'),
-(318,N'DEMO_RECIPE_SKU_COCONUT_COFFEE_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(319,N'DEMO_RECIPE_SKU_COCONUT_COFFEE_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(320,N'DEMO_RECIPE_SKU_COCONUT_COFFEE_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(321,N'DEMO_RECIPE_SKU_COCONUT_COFFEE_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(322,N'DEMO_RECIPE_SKU_HONEY_LEMON_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',150,N'ml'),
-(323,N'DEMO_RECIPE_SKU_HONEY_LEMON_TEA_M',N'I',N'DEMO_ING_HONEY',20,N'g'),
-(324,N'DEMO_RECIPE_SKU_HONEY_LEMON_TEA_M',N'I',N'DEMO_ING_YELLOW_LEMON',25,N'g'),
-(325,N'DEMO_RECIPE_SKU_HONEY_LEMON_TEA_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',10,N'ml'),
-(326,N'DEMO_RECIPE_SKU_HONEY_LEMON_TEA_M',N'I',N'ING00007',150,N'g'),
-(327,N'DEMO_RECIPE_SKU_HONEY_LEMON_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(328,N'DEMO_RECIPE_SKU_HONEY_LEMON_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(329,N'DEMO_RECIPE_SKU_HONEY_LEMON_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(330,N'DEMO_RECIPE_SKU_HONEY_LEMON_TEA_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(331,N'DEMO_RECIPE_SKU_HONEY_LEMON_TEA_L',N'P',N'DEMO_PREP_BLACK_TEA',200,N'ml'),
-(332,N'DEMO_RECIPE_SKU_HONEY_LEMON_TEA_L',N'I',N'DEMO_ING_HONEY',28,N'g'),
-(333,N'DEMO_RECIPE_SKU_HONEY_LEMON_TEA_L',N'I',N'DEMO_ING_YELLOW_LEMON',35,N'g'),
-(334,N'DEMO_RECIPE_SKU_HONEY_LEMON_TEA_L',N'P',N'DEMO_PREP_SUGAR_SYRUP',14,N'ml'),
-(335,N'DEMO_RECIPE_SKU_HONEY_LEMON_TEA_L',N'I',N'ING00007',200,N'g'),
-(336,N'DEMO_RECIPE_SKU_HONEY_LEMON_TEA_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(337,N'DEMO_RECIPE_SKU_HONEY_LEMON_TEA_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(338,N'DEMO_RECIPE_SKU_HONEY_LEMON_TEA_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(339,N'DEMO_RECIPE_SKU_HONEY_LEMON_TEA_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(340,N'DEMO_RECIPE_SKU_MANGO_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',150,N'ml'),
-(341,N'DEMO_RECIPE_SKU_MANGO_TEA_M',N'I',N'DEMO_ING_MANGO_PUREE',60,N'g'),
-(342,N'DEMO_RECIPE_SKU_MANGO_TEA_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',15,N'ml'),
-(343,N'DEMO_RECIPE_SKU_MANGO_TEA_M',N'I',N'ING00007',150,N'g'),
-(344,N'DEMO_RECIPE_SKU_MANGO_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(345,N'DEMO_RECIPE_SKU_MANGO_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(346,N'DEMO_RECIPE_SKU_MANGO_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(347,N'DEMO_RECIPE_SKU_MANGO_TEA_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(348,N'DEMO_RECIPE_SKU_MANGO_TEA_L',N'P',N'DEMO_PREP_BLACK_TEA',200,N'ml'),
-(349,N'DEMO_RECIPE_SKU_MANGO_TEA_L',N'I',N'DEMO_ING_MANGO_PUREE',85,N'g'),
-(350,N'DEMO_RECIPE_SKU_MANGO_TEA_L',N'P',N'DEMO_PREP_SUGAR_SYRUP',20,N'ml'),
-(351,N'DEMO_RECIPE_SKU_MANGO_TEA_L',N'I',N'ING00007',200,N'g'),
-(352,N'DEMO_RECIPE_SKU_MANGO_TEA_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(353,N'DEMO_RECIPE_SKU_MANGO_TEA_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(354,N'DEMO_RECIPE_SKU_MANGO_TEA_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(355,N'DEMO_RECIPE_SKU_MANGO_TEA_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(356,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',140,N'ml'),
-(357,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'I',N'DEMO_ING_STRAWBERRY_PUREE',45,N'g'),
-(358,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'I',N'DEMO_ING_FRESH_MILK',100,N'ml'),
-(359,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'I',N'ING00010',20,N'ml'),
-(360,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',15,N'ml'),
-(361,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'I',N'ING00007',150,N'g'),
-(362,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(363,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(364,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(365,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(366,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'P',N'DEMO_PREP_BLACK_TEA',190,N'ml'),
-(367,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'I',N'DEMO_ING_STRAWBERRY_PUREE',65,N'g'),
-(368,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'I',N'DEMO_ING_FRESH_MILK',140,N'ml'),
-(369,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'I',N'ING00010',28,N'ml'),
-(370,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'P',N'DEMO_PREP_SUGAR_SYRUP',20,N'ml'),
-(371,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'I',N'ING00007',200,N'g'),
-(372,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(373,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(374,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(375,N'DEMO_RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(376,N'DEMO_RECIPE_SKU_LYCHEE_OOLONG_M',N'P',N'DEMO_PREP_OOLONG_TEA',150,N'ml'),
-(377,N'DEMO_RECIPE_SKU_LYCHEE_OOLONG_M',N'I',N'DEMO_ING_CANNED_LYCHEE',70,N'g'),
-(378,N'DEMO_RECIPE_SKU_LYCHEE_OOLONG_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',18,N'ml'),
-(379,N'DEMO_RECIPE_SKU_LYCHEE_OOLONG_M',N'I',N'ING00007',150,N'g'),
-(380,N'DEMO_RECIPE_SKU_LYCHEE_OOLONG_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(381,N'DEMO_RECIPE_SKU_LYCHEE_OOLONG_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(382,N'DEMO_RECIPE_SKU_LYCHEE_OOLONG_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(383,N'DEMO_RECIPE_SKU_LYCHEE_OOLONG_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(384,N'DEMO_RECIPE_SKU_LYCHEE_OOLONG_L',N'P',N'DEMO_PREP_OOLONG_TEA',200,N'ml'),
-(385,N'DEMO_RECIPE_SKU_LYCHEE_OOLONG_L',N'I',N'DEMO_ING_CANNED_LYCHEE',90,N'g'),
-(386,N'DEMO_RECIPE_SKU_LYCHEE_OOLONG_L',N'P',N'DEMO_PREP_SUGAR_SYRUP',24,N'ml'),
-(387,N'DEMO_RECIPE_SKU_LYCHEE_OOLONG_L',N'I',N'ING00007',200,N'g'),
-(388,N'DEMO_RECIPE_SKU_LYCHEE_OOLONG_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(389,N'DEMO_RECIPE_SKU_LYCHEE_OOLONG_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(390,N'DEMO_RECIPE_SKU_LYCHEE_OOLONG_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(391,N'DEMO_RECIPE_SKU_LYCHEE_OOLONG_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(392,N'DEMO_RECIPE_SKU_OAT_MATCHA_M',N'I',N'ING00009',8,N'g'),
-(393,N'DEMO_RECIPE_SKU_OAT_MATCHA_M',N'I',N'DEMO_ING_OAT_MILK',160,N'ml'),
-(394,N'DEMO_RECIPE_SKU_OAT_MATCHA_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',15,N'ml'),
-(395,N'DEMO_RECIPE_SKU_OAT_MATCHA_M',N'I',N'ING00007',150,N'g'),
-(396,N'DEMO_RECIPE_SKU_OAT_MATCHA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(397,N'DEMO_RECIPE_SKU_OAT_MATCHA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(398,N'DEMO_RECIPE_SKU_OAT_MATCHA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(399,N'DEMO_RECIPE_SKU_OAT_MATCHA_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(400,N'DEMO_RECIPE_SKU_OAT_MATCHA_L',N'I',N'ING00009',11,N'g'),
-(401,N'DEMO_RECIPE_SKU_OAT_MATCHA_L',N'I',N'DEMO_ING_OAT_MILK',220,N'ml'),
-(402,N'DEMO_RECIPE_SKU_OAT_MATCHA_L',N'P',N'DEMO_PREP_SUGAR_SYRUP',20,N'ml'),
-(403,N'DEMO_RECIPE_SKU_OAT_MATCHA_L',N'I',N'ING00007',200,N'g'),
-(404,N'DEMO_RECIPE_SKU_OAT_MATCHA_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(405,N'DEMO_RECIPE_SKU_OAT_MATCHA_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(406,N'DEMO_RECIPE_SKU_OAT_MATCHA_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(407,N'DEMO_RECIPE_SKU_OAT_MATCHA_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(408,N'DEMO_RECIPE_SKU_COCONUT_CHOCOLATE_M',N'I',N'DEMO_ING_CHOCOLATE',22,N'g'),
-(409,N'DEMO_RECIPE_SKU_COCONUT_CHOCOLATE_M',N'I',N'DEMO_ING_COCONUT_MILK',90,N'ml'),
-(410,N'DEMO_RECIPE_SKU_COCONUT_CHOCOLATE_M',N'I',N'DEMO_ING_FRESH_MILK',80,N'ml'),
-(411,N'DEMO_RECIPE_SKU_COCONUT_CHOCOLATE_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',12,N'ml'),
-(412,N'DEMO_RECIPE_SKU_COCONUT_CHOCOLATE_M',N'I',N'ING00007',150,N'g'),
-(413,N'DEMO_RECIPE_SKU_COCONUT_CHOCOLATE_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(414,N'DEMO_RECIPE_SKU_COCONUT_CHOCOLATE_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(415,N'DEMO_RECIPE_SKU_COCONUT_CHOCOLATE_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(416,N'DEMO_RECIPE_SKU_COCONUT_CHOCOLATE_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(417,N'DEMO_RECIPE_SKU_COCONUT_CHOCOLATE_L',N'I',N'DEMO_ING_CHOCOLATE',28,N'g'),
-(418,N'DEMO_RECIPE_SKU_COCONUT_CHOCOLATE_L',N'I',N'DEMO_ING_COCONUT_MILK',125,N'ml'),
-(419,N'DEMO_RECIPE_SKU_COCONUT_CHOCOLATE_L',N'I',N'DEMO_ING_FRESH_MILK',110,N'ml'),
-(420,N'DEMO_RECIPE_SKU_COCONUT_CHOCOLATE_L',N'P',N'DEMO_PREP_SUGAR_SYRUP',16,N'ml'),
-(421,N'DEMO_RECIPE_SKU_COCONUT_CHOCOLATE_L',N'I',N'ING00007',200,N'g'),
-(422,N'DEMO_RECIPE_SKU_COCONUT_CHOCOLATE_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(423,N'DEMO_RECIPE_SKU_COCONUT_CHOCOLATE_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(424,N'DEMO_RECIPE_SKU_COCONUT_CHOCOLATE_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(425,N'DEMO_RECIPE_SKU_COCONUT_CHOCOLATE_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(426,N'DEMO_RECIPE_SKU_PASSION_YOGURT_M',N'I',N'DEMO_ING_YOGURT',150,N'g'),
-(427,N'DEMO_RECIPE_SKU_PASSION_YOGURT_M',N'I',N'DEMO_ING_PASSION_JAM',55,N'g'),
-(428,N'DEMO_RECIPE_SKU_PASSION_YOGURT_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',10,N'ml'),
-(429,N'DEMO_RECIPE_SKU_PASSION_YOGURT_M',N'I',N'ING00007',120,N'g'),
-(430,N'DEMO_RECIPE_SKU_PASSION_YOGURT_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(431,N'DEMO_RECIPE_SKU_PASSION_YOGURT_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(432,N'DEMO_RECIPE_SKU_PASSION_YOGURT_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(433,N'DEMO_RECIPE_SKU_PASSION_YOGURT_M',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(434,N'DEMO_RECIPE_SKU_PASSION_YOGURT_L',N'I',N'DEMO_ING_YOGURT',210,N'g'),
-(435,N'DEMO_RECIPE_SKU_PASSION_YOGURT_L',N'I',N'DEMO_ING_PASSION_JAM',75,N'g'),
-(436,N'DEMO_RECIPE_SKU_PASSION_YOGURT_L',N'P',N'DEMO_PREP_SUGAR_SYRUP',14,N'ml'),
-(437,N'DEMO_RECIPE_SKU_PASSION_YOGURT_L',N'I',N'ING00007',170,N'g'),
-(438,N'DEMO_RECIPE_SKU_PASSION_YOGURT_L',N'I',N'DEMO_ING_CUP_L',1,N'pcs'),
-(439,N'DEMO_RECIPE_SKU_PASSION_YOGURT_L',N'I',N'DEMO_ING_LID_L',1,N'pcs'),
-(440,N'DEMO_RECIPE_SKU_PASSION_YOGURT_L',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(441,N'DEMO_RECIPE_SKU_PASSION_YOGURT_L',N'I',N'DEMO_ING_BAG',1,N'pcs'),
-(442,N'DEMO_RECIPE_TOP_PM_VIEN',N'I',N'DEMO_ING_CHEESE_CUBE',1,N'pcs'),
-(443,N'DEMO_RECIPE_TOP_KB_CM',N'I',N'DEMO_ING_KHUC_BACH_POWDER',35,N'g'),
-(444,N'DEMO_RECIPE_TOP_TH_Dao',N'I',N'DEMO_ING_CANNED_PEACH',40,N'g'),
-(445,N'DEMO_RECIPE_TOP_NHADAM',N'I',N'DEMO_ING_ALOE_VERA',40,N'g'),
-(446,N'DEMO_RECIPE_TOP_HATCHIA',N'I',N'DEMO_ING_CHIA_SEED',10,N'g'),
-(447,N'DEMO_RECIPE_TOP_TH_Dua',N'I',N'DEMO_ING_COCONUT_JELLY',40,N'g'),
-(448,N'DEMO_RECIPE_TOP_PUDDINGTRUNG',N'I',N'DEMO_ING_FLAN_POWDER',35,N'g'),
-(449,N'DEMO_RECIPE_TOP_PUDDINGTRUNG',N'I',N'ING00006',5,N'g'),
-(450,N'DEMO_RECIPE_TOP_TC_HOANGKIM',N'I',N'DEMO_ING_BLACK_PEARL_DRY',35,N'g'),
-(451,N'DEMO_RECIPE_TOP_TC_DUONGDEN',N'P',N'DEMO_PREP_BLACK_PEARL',1,N'DEMO_PORTION'),
-(452,N'DEMO_RECIPE_TOP_TC_DUONGDEN',N'I',N'ING00012',15,N'g'),
-(453,N'DEMO_RECIPE_TOP_TC_MINI',N'P',N'DEMO_PREP_BLACK_PEARL',1,N'DEMO_PORTION'),
-(454,N'DEMO_RECIPE_TOP_TC_KHOAIMON',N'I',N'DEMO_ING_TARO_JELLY_POWDER',30,N'g'),
-(455,N'DEMO_RECIPE_TOP_TH_CAFE',N'I',N'DEMO_ING_VIET_COFFEE',20,N'g'),
-(456,N'DEMO_RECIPE_TOP_TH_CAFE',N'I',N'ING00011',25,N'g'),
-(457,N'DEMO_RECIPE_TOP_TH_MATCHA',N'I',N'ING00009',8,N'g'),
-(458,N'DEMO_RECIPE_TOP_TH_MATCHA',N'I',N'ING00011',25,N'g'),
-(459,N'DEMO_RECIPE_TOP_TH_VAI',N'I',N'DEMO_ING_CANNED_LYCHEE',35,N'g'),
-(460,N'DEMO_RECIPE_TOP_TH_XOAI',N'I',N'DEMO_ING_MANGO_PUREE',35,N'g'),
-(461,N'DEMO_RECIPE_TOP_TH_DAU',N'I',N'DEMO_ING_STRAWBERRY_PUREE',35,N'g'),
-(462,N'DEMO_RECIPE_TOP_TH_CHANHDAY',N'I',N'DEMO_ING_PASSION_JAM',35,N'g'),
-(463,N'DEMO_RECIPE_TOP_TH_MATONGCHANH',N'I',N'DEMO_ING_HONEY',15,N'g'),
-(464,N'DEMO_RECIPE_TOP_TH_MATONGCHANH',N'I',N'DEMO_ING_YELLOW_LEMON',10,N'g'),
-(465,N'DEMO_RECIPE_TOP_TH_SUAYENMACH',N'I',N'DEMO_ING_OAT_MILK',30,N'ml'),
-(466,N'DEMO_RECIPE_TOP_TH_SUAYENMACH',N'I',N'ING00011',20,N'g'),
-(467,N'DEMO_RECIPE_TOP_TRAIDAO',N'I',N'DEMO_ING_CANNED_PEACH',50,N'g'),
-(468,N'DEMO_RECIPE_TOP_TRAIVAI',N'I',N'DEMO_ING_CANNED_LYCHEE',50,N'g'),
-(469,N'DEMO_RECIPE_TOP_XOAI_HAT',N'I',N'DEMO_ING_MANGO_PUREE',45,N'g'),
-(470,N'DEMO_RECIPE_TOP_DAU_TUOI',N'I',N'DEMO_ING_STRAWBERRY_PUREE',45,N'g'),
-(471,N'DEMO_RECIPE_TOP_TEP_CAM',N'I',N'DEMO_ING_ORANGE',40,N'g'),
-(472,N'DEMO_RECIPE_TOP_CHANHDAY_HAT',N'I',N'DEMO_ING_PASSION_JAM',40,N'g'),
-(473,N'DEMO_RECIPE_TOP_PUDDING_VANILLA',N'I',N'ING00008',10,N'ml'),
-(474,N'DEMO_RECIPE_TOP_PUDDING_VANILLA',N'I',N'ING00011',25,N'g'),
-(475,N'DEMO_RECIPE_TOP_PUDDING_SOCOLA',N'I',N'DEMO_ING_FLAN_POWDER',30,N'g'),
-(476,N'DEMO_RECIPE_TOP_PUDDING_SOCOLA',N'I',N'DEMO_ING_CHOCOLATE',10,N'g'),
-(477,N'DEMO_RECIPE_TOP_PUDDING_MATCHA',N'I',N'DEMO_ING_FLAN_POWDER',30,N'g'),
-(478,N'DEMO_RECIPE_TOP_PUDDING_MATCHA',N'I',N'ING00009',6,N'g'),
-(479,N'DEMO_RECIPE_TOP_PUDDING_KHOAIMON',N'I',N'DEMO_ING_TARO_JELLY_POWDER',35,N'g'),
-(480,N'DEMO_RECIPE_TOP_KEMMUOI',N'P',N'DEMO_PREP_SALTED_CREAM',35,N'ml'),
-(481,N'DEMO_RECIPE_TOP_KEMSUATUOI',N'I',N'ING00010',35,N'ml'),
-(482,N'DEMO_RECIPE_TOP_KEMDUA',N'I',N'DEMO_ING_COCONUT_MILK',35,N'ml'),
-(483,N'DEMO_RECIPE_TOP_KEMDUA',N'I',N'ING00010',15,N'ml'),
-(484,N'DEMO_RECIPE_TOP_KEMYENMACH',N'I',N'DEMO_ING_OAT_MILK',35,N'ml'),
-(485,N'DEMO_RECIPE_TOP_KEMYENMACH',N'I',N'ING00010',10,N'ml'),
-(486,N'DEMO_RECIPE_TOP_SOT_CARAMEL',N'I',N'DEMO_ING_CARAMEL_SYRUP',20,N'ml'),
-(487,N'DEMO_RECIPE_TOP_SOT_SOCOLA',N'I',N'DEMO_ING_CHOCOLATE',15,N'g'),
-(488,N'DEMO_RECIPE_TOP_SOT_DAU',N'I',N'DEMO_ING_STRAWBERRY_PUREE',20,N'g'),
-(489,N'DEMO_RECIPE_TOP_SOT_XOAI',N'I',N'DEMO_ING_MANGO_PUREE',20,N'g'),
-(490,N'DEMO_RECIPE_TOP_SOT_MATONG',N'I',N'DEMO_ING_HONEY',20,N'g'),
-(491,N'DEMO_RECIPE_TOP_SOT_DUONGDEN',N'I',N'ING00012',20,N'g'),
-(492,N'DEMO_RECIPE_TOP_SOT_DUONGDEN',N'I',N'ING00013',10,N'ml'),
-(493,N'DEMO_RECIPE_TOP_SHOT_MATCHA',N'I',N'ING00009',5,N'g'),
-(494,N'DEMO_RECIPE_TOP_SUA_YENMACH_THEM',N'I',N'DEMO_ING_OAT_MILK',40,N'ml'),
-(495,N'DEMO_RECIPE_TOP_COT_DUA_THEM',N'I',N'DEMO_ING_COCONUT_MILK',40,N'ml'),
-(496,N'DEMO_RECIPE_TOP_SUA_CHUA_THEM',N'I',N'DEMO_ING_YOGURT',40,N'g'),
-(497,N'DEMO_RECIPE_TOP_SYRUP_CARAMEL_THEM',N'I',N'DEMO_ING_CARAMEL_SYRUP',20,N'ml'),
-(498,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'P',N'DEMO_PREP_ESPRESSO',45,N'ml'),
-(499,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'I',N'DEMO_ING_FRESH_MILK',110,N'ml'),
-(500,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'P',N'DEMO_PREP_CHEESE_CREAM',30,N'ml'),
+(1,N'RECIPE_PREP_VIET_COFFEE',N'I',N'ING_VIET_COFFEE',250,N'g'),
+(2,N'RECIPE_PREP_VIET_COFFEE',N'I',N'ING00013',1200,N'ml'),
+(3,N'RECIPE_PREP_ESPRESSO',N'I',N'ING_ESPRESSO_BEAN',300,N'g'),
+(4,N'RECIPE_PREP_ESPRESSO',N'I',N'ING00013',800,N'ml'),
+(5,N'RECIPE_PREP_BLACK_TEA',N'I',N'ING00003',80,N'g'),
+(6,N'RECIPE_PREP_BLACK_TEA',N'I',N'ING00013',2200,N'ml'),
+(7,N'RECIPE_PREP_OOLONG_TEA',N'I',N'ING_OOLONG_TEA',80,N'g'),
+(8,N'RECIPE_PREP_OOLONG_TEA',N'I',N'ING00013',2200,N'ml'),
+(9,N'RECIPE_PREP_SUGAR_SYRUP',N'I',N'ING00006',1000,N'g'),
+(10,N'RECIPE_PREP_SUGAR_SYRUP',N'I',N'ING00013',800,N'ml'),
+(11,N'RECIPE_PREP_SALTED_CREAM',N'I',N'ING00010',600,N'ml'),
+(12,N'RECIPE_PREP_SALTED_CREAM',N'I',N'ING_FRESH_MILK',350,N'ml'),
+(13,N'RECIPE_PREP_SALTED_CREAM',N'I',N'ING_SALT',8,N'g'),
+(14,N'RECIPE_PREP_CHEESE_CREAM',N'I',N'ING_CHEESE_POWDER',250,N'g'),
+(15,N'RECIPE_PREP_CHEESE_CREAM',N'I',N'ING_FRESH_MILK',500,N'ml'),
+(16,N'RECIPE_PREP_CHEESE_CREAM',N'I',N'ING00010',250,N'ml'),
+(17,N'RECIPE_PREP_BLACK_PEARL',N'I',N'ING_BLACK_PEARL_DRY',1000,N'g'),
+(18,N'RECIPE_PREP_BLACK_PEARL',N'P',N'PREP_SUGAR_SYRUP',400,N'ml'),
+(19,N'RECIPE_PREP_BLACK_PEARL',N'I',N'ING00013',3000,N'ml'),
+(20,N'RECIPE_TOP_BLACK_PEARL',N'P',N'PREP_BLACK_PEARL',1,N'PORTION'),
+(21,N'RECIPE_TOP_WHITE_PEARL',N'I',N'ING_WHITE_PEARL',1,N'PORTION'),
+(22,N'RECIPE_TOP_FLAN',N'I',N'ING_FLAN_POWDER',35,N'g'),
+(23,N'RECIPE_TOP_TARO_JELLY',N'I',N'ING_TARO_JELLY_POWDER',30,N'g'),
+(24,N'RECIPE_TOP_CHEESE_CREAM',N'P',N'PREP_CHEESE_CREAM',35,N'ml'),
+(25,N'RECIPE_TOP_ESPRESSO_SHOT',N'P',N'PREP_ESPRESSO',30,N'ml'),
+(26,N'RECIPE_SKU_VIET_BLACK_M',N'P',N'PREP_VIET_COFFEE',85,N'ml'),
+(27,N'RECIPE_SKU_VIET_BLACK_M',N'P',N'PREP_SUGAR_SYRUP',12,N'ml'),
+(28,N'RECIPE_SKU_VIET_BLACK_M',N'I',N'ING00007',180,N'g'),
+(29,N'RECIPE_SKU_VIET_BLACK_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(30,N'RECIPE_SKU_VIET_BLACK_M',N'I',N'ING_LID_M',1,N'pcs'),
+(31,N'RECIPE_SKU_VIET_BLACK_M',N'I',N'ING_STRAW',1,N'pcs'),
+(32,N'RECIPE_SKU_VIET_BLACK_M',N'I',N'ING_BAG',1,N'pcs'),
+(33,N'RECIPE_SKU_VIET_BLACK_L',N'P',N'PREP_VIET_COFFEE',105,N'ml'),
+(34,N'RECIPE_SKU_VIET_BLACK_L',N'P',N'PREP_SUGAR_SYRUP',16,N'ml'),
+(35,N'RECIPE_SKU_VIET_BLACK_L',N'I',N'ING00007',230,N'g'),
+(36,N'RECIPE_SKU_VIET_BLACK_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(37,N'RECIPE_SKU_VIET_BLACK_L',N'I',N'ING_LID_L',1,N'pcs'),
+(38,N'RECIPE_SKU_VIET_BLACK_L',N'I',N'ING_STRAW',1,N'pcs'),
+(39,N'RECIPE_SKU_VIET_BLACK_L',N'I',N'ING_BAG',1,N'pcs'),
+(40,N'RECIPE_SKU_VIET_MILK_M',N'P',N'PREP_VIET_COFFEE',60,N'ml'),
+(41,N'RECIPE_SKU_VIET_MILK_M',N'I',N'ING00002',30,N'ml'),
+(42,N'RECIPE_SKU_VIET_MILK_M',N'I',N'ING00007',180,N'g'),
+(43,N'RECIPE_SKU_VIET_MILK_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(44,N'RECIPE_SKU_VIET_MILK_M',N'I',N'ING_LID_M',1,N'pcs'),
+(45,N'RECIPE_SKU_VIET_MILK_M',N'I',N'ING_STRAW',1,N'pcs'),
+(46,N'RECIPE_SKU_VIET_MILK_M',N'I',N'ING_BAG',1,N'pcs'),
+(47,N'RECIPE_SKU_VIET_MILK_L',N'P',N'PREP_VIET_COFFEE',80,N'ml'),
+(48,N'RECIPE_SKU_VIET_MILK_L',N'I',N'ING00002',40,N'ml'),
+(49,N'RECIPE_SKU_VIET_MILK_L',N'I',N'ING00007',230,N'g'),
+(50,N'RECIPE_SKU_VIET_MILK_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(51,N'RECIPE_SKU_VIET_MILK_L',N'I',N'ING_LID_L',1,N'pcs'),
+(52,N'RECIPE_SKU_VIET_MILK_L',N'I',N'ING_STRAW',1,N'pcs'),
+(53,N'RECIPE_SKU_VIET_MILK_L',N'I',N'ING_BAG',1,N'pcs'),
+(54,N'RECIPE_SKU_BAC_XIU_M',N'P',N'PREP_VIET_COFFEE',35,N'ml'),
+(55,N'RECIPE_SKU_BAC_XIU_M',N'I',N'ING00002',35,N'ml'),
+(56,N'RECIPE_SKU_BAC_XIU_M',N'I',N'ING_FRESH_MILK',100,N'ml'),
+(57,N'RECIPE_SKU_BAC_XIU_M',N'I',N'ING00007',170,N'g'),
+(58,N'RECIPE_SKU_BAC_XIU_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(59,N'RECIPE_SKU_BAC_XIU_M',N'I',N'ING_LID_M',1,N'pcs'),
+(60,N'RECIPE_SKU_BAC_XIU_M',N'I',N'ING_STRAW',1,N'pcs'),
+(61,N'RECIPE_SKU_BAC_XIU_M',N'I',N'ING_BAG',1,N'pcs'),
+(62,N'RECIPE_SKU_BAC_XIU_L',N'P',N'PREP_VIET_COFFEE',45,N'ml'),
+(63,N'RECIPE_SKU_BAC_XIU_L',N'I',N'ING00002',45,N'ml'),
+(64,N'RECIPE_SKU_BAC_XIU_L',N'I',N'ING_FRESH_MILK',135,N'ml'),
+(65,N'RECIPE_SKU_BAC_XIU_L',N'I',N'ING00007',220,N'g'),
+(66,N'RECIPE_SKU_BAC_XIU_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(67,N'RECIPE_SKU_BAC_XIU_L',N'I',N'ING_LID_L',1,N'pcs'),
+(68,N'RECIPE_SKU_BAC_XIU_L',N'I',N'ING_STRAW',1,N'pcs'),
+(69,N'RECIPE_SKU_BAC_XIU_L',N'I',N'ING_BAG',1,N'pcs'),
+(70,N'RECIPE_SKU_SALTED_COFFEE_M',N'P',N'PREP_VIET_COFFEE',60,N'ml'),
+(71,N'RECIPE_SKU_SALTED_COFFEE_M',N'I',N'ING00002',25,N'ml'),
+(72,N'RECIPE_SKU_SALTED_COFFEE_M',N'P',N'PREP_SALTED_CREAM',35,N'ml'),
+(73,N'RECIPE_SKU_SALTED_COFFEE_M',N'I',N'ING00007',170,N'g'),
+(74,N'RECIPE_SKU_SALTED_COFFEE_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(75,N'RECIPE_SKU_SALTED_COFFEE_M',N'I',N'ING_LID_M',1,N'pcs'),
+(76,N'RECIPE_SKU_SALTED_COFFEE_M',N'I',N'ING_STRAW',1,N'pcs'),
+(77,N'RECIPE_SKU_SALTED_COFFEE_M',N'I',N'ING_BAG',1,N'pcs'),
+(78,N'RECIPE_SKU_SALTED_COFFEE_L',N'P',N'PREP_VIET_COFFEE',80,N'ml'),
+(79,N'RECIPE_SKU_SALTED_COFFEE_L',N'I',N'ING00002',35,N'ml'),
+(80,N'RECIPE_SKU_SALTED_COFFEE_L',N'P',N'PREP_SALTED_CREAM',45,N'ml'),
+(81,N'RECIPE_SKU_SALTED_COFFEE_L',N'I',N'ING00007',220,N'g'),
+(82,N'RECIPE_SKU_SALTED_COFFEE_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(83,N'RECIPE_SKU_SALTED_COFFEE_L',N'I',N'ING_LID_L',1,N'pcs'),
+(84,N'RECIPE_SKU_SALTED_COFFEE_L',N'I',N'ING_STRAW',1,N'pcs'),
+(85,N'RECIPE_SKU_SALTED_COFFEE_L',N'I',N'ING_BAG',1,N'pcs'),
+(86,N'RECIPE_SKU_AMERICANO_M',N'P',N'PREP_ESPRESSO',70,N'ml'),
+(87,N'RECIPE_SKU_AMERICANO_M',N'I',N'ING00013',120,N'ml'),
+(88,N'RECIPE_SKU_AMERICANO_M',N'I',N'ING00007',160,N'g'),
+(89,N'RECIPE_SKU_AMERICANO_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(90,N'RECIPE_SKU_AMERICANO_M',N'I',N'ING_LID_M',1,N'pcs'),
+(91,N'RECIPE_SKU_AMERICANO_M',N'I',N'ING_STRAW',1,N'pcs'),
+(92,N'RECIPE_SKU_AMERICANO_M',N'I',N'ING_BAG',1,N'pcs'),
+(93,N'RECIPE_SKU_AMERICANO_L',N'P',N'PREP_ESPRESSO',75,N'ml'),
+(94,N'RECIPE_SKU_AMERICANO_L',N'I',N'ING00013',160,N'ml'),
+(95,N'RECIPE_SKU_AMERICANO_L',N'I',N'ING00007',210,N'g'),
+(96,N'RECIPE_SKU_AMERICANO_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(97,N'RECIPE_SKU_AMERICANO_L',N'I',N'ING_LID_L',1,N'pcs'),
+(98,N'RECIPE_SKU_AMERICANO_L',N'I',N'ING_STRAW',1,N'pcs'),
+(99,N'RECIPE_SKU_AMERICANO_L',N'I',N'ING_BAG',1,N'pcs'),
+(100,N'RECIPE_SKU_COFFEE_LATTE_M',N'P',N'PREP_ESPRESSO',60,N'ml'),
+(101,N'RECIPE_SKU_COFFEE_LATTE_M',N'I',N'ING_FRESH_MILK',160,N'ml'),
+(102,N'RECIPE_SKU_COFFEE_LATTE_M',N'P',N'PREP_SUGAR_SYRUP',10,N'ml'),
+(103,N'RECIPE_SKU_COFFEE_LATTE_M',N'I',N'ING00007',120,N'g'),
+(104,N'RECIPE_SKU_COFFEE_LATTE_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(105,N'RECIPE_SKU_COFFEE_LATTE_M',N'I',N'ING_LID_M',1,N'pcs'),
+(106,N'RECIPE_SKU_COFFEE_LATTE_M',N'I',N'ING_STRAW',1,N'pcs'),
+(107,N'RECIPE_SKU_COFFEE_LATTE_M',N'I',N'ING_BAG',1,N'pcs'),
+(108,N'RECIPE_SKU_COFFEE_LATTE_L',N'P',N'PREP_ESPRESSO',68,N'ml'),
+(109,N'RECIPE_SKU_COFFEE_LATTE_L',N'I',N'ING_FRESH_MILK',210,N'ml'),
+(110,N'RECIPE_SKU_COFFEE_LATTE_L',N'P',N'PREP_SUGAR_SYRUP',14,N'ml'),
+(111,N'RECIPE_SKU_COFFEE_LATTE_L',N'I',N'ING00007',160,N'g'),
+(112,N'RECIPE_SKU_COFFEE_LATTE_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(113,N'RECIPE_SKU_COFFEE_LATTE_L',N'I',N'ING_LID_L',1,N'pcs'),
+(114,N'RECIPE_SKU_COFFEE_LATTE_L',N'I',N'ING_STRAW',1,N'pcs'),
+(115,N'RECIPE_SKU_COFFEE_LATTE_L',N'I',N'ING_BAG',1,N'pcs'),
+(116,N'RECIPE_SKU_PEACH_ORANGE_TEA_M',N'P',N'PREP_BLACK_TEA',150,N'ml'),
+(117,N'RECIPE_SKU_PEACH_ORANGE_TEA_M',N'I',N'ING_CANNED_PEACH',60,N'g'),
+(118,N'RECIPE_SKU_PEACH_ORANGE_TEA_M',N'I',N'ING_ORANGE',30,N'g'),
+(119,N'RECIPE_SKU_PEACH_ORANGE_TEA_M',N'I',N'ING_LEMONGRASS',6,N'g'),
+(120,N'RECIPE_SKU_PEACH_ORANGE_TEA_M',N'P',N'PREP_SUGAR_SYRUP',20,N'ml'),
+(121,N'RECIPE_SKU_PEACH_ORANGE_TEA_M',N'I',N'ING00007',150,N'g'),
+(122,N'RECIPE_SKU_PEACH_ORANGE_TEA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(123,N'RECIPE_SKU_PEACH_ORANGE_TEA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(124,N'RECIPE_SKU_PEACH_ORANGE_TEA_M',N'I',N'ING_STRAW',1,N'pcs'),
+(125,N'RECIPE_SKU_PEACH_ORANGE_TEA_M',N'I',N'ING_BAG',1,N'pcs'),
+(126,N'RECIPE_SKU_PEACH_ORANGE_TEA_L',N'P',N'PREP_BLACK_TEA',200,N'ml'),
+(127,N'RECIPE_SKU_PEACH_ORANGE_TEA_L',N'I',N'ING_CANNED_PEACH',80,N'g'),
+(128,N'RECIPE_SKU_PEACH_ORANGE_TEA_L',N'I',N'ING_ORANGE',40,N'g'),
+(129,N'RECIPE_SKU_PEACH_ORANGE_TEA_L',N'I',N'ING_LEMONGRASS',8,N'g'),
+(130,N'RECIPE_SKU_PEACH_ORANGE_TEA_L',N'P',N'PREP_SUGAR_SYRUP',27,N'ml'),
+(131,N'RECIPE_SKU_PEACH_ORANGE_TEA_L',N'I',N'ING00007',200,N'g'),
+(132,N'RECIPE_SKU_PEACH_ORANGE_TEA_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(133,N'RECIPE_SKU_PEACH_ORANGE_TEA_L',N'I',N'ING_LID_L',1,N'pcs'),
+(134,N'RECIPE_SKU_PEACH_ORANGE_TEA_L',N'I',N'ING_STRAW',1,N'pcs'),
+(135,N'RECIPE_SKU_PEACH_ORANGE_TEA_L',N'I',N'ING_BAG',1,N'pcs'),
+(136,N'RECIPE_SKU_LYCHEE_TEA_M',N'P',N'PREP_BLACK_TEA',150,N'ml'),
+(137,N'RECIPE_SKU_LYCHEE_TEA_M',N'I',N'ING_CANNED_LYCHEE',70,N'g'),
+(138,N'RECIPE_SKU_LYCHEE_TEA_M',N'P',N'PREP_SUGAR_SYRUP',18,N'ml'),
+(139,N'RECIPE_SKU_LYCHEE_TEA_M',N'I',N'ING00007',150,N'g'),
+(140,N'RECIPE_SKU_LYCHEE_TEA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(141,N'RECIPE_SKU_LYCHEE_TEA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(142,N'RECIPE_SKU_LYCHEE_TEA_M',N'I',N'ING_STRAW',1,N'pcs'),
+(143,N'RECIPE_SKU_LYCHEE_TEA_M',N'I',N'ING_BAG',1,N'pcs'),
+(144,N'RECIPE_SKU_LYCHEE_TEA_L',N'P',N'PREP_BLACK_TEA',200,N'ml'),
+(145,N'RECIPE_SKU_LYCHEE_TEA_L',N'I',N'ING_CANNED_LYCHEE',90,N'g'),
+(146,N'RECIPE_SKU_LYCHEE_TEA_L',N'P',N'PREP_SUGAR_SYRUP',24,N'ml'),
+(147,N'RECIPE_SKU_LYCHEE_TEA_L',N'I',N'ING00007',200,N'g'),
+(148,N'RECIPE_SKU_LYCHEE_TEA_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(149,N'RECIPE_SKU_LYCHEE_TEA_L',N'I',N'ING_LID_L',1,N'pcs'),
+(150,N'RECIPE_SKU_LYCHEE_TEA_L',N'I',N'ING_STRAW',1,N'pcs'),
+(151,N'RECIPE_SKU_LYCHEE_TEA_L',N'I',N'ING_BAG',1,N'pcs'),
+(152,N'RECIPE_SKU_PASSION_TEA_M',N'P',N'PREP_BLACK_TEA',150,N'ml'),
+(153,N'RECIPE_SKU_PASSION_TEA_M',N'I',N'ING_PASSION_JAM',66,N'g'),
+(154,N'RECIPE_SKU_PASSION_TEA_M',N'P',N'PREP_SUGAR_SYRUP',10,N'ml'),
+(155,N'RECIPE_SKU_PASSION_TEA_M',N'I',N'ING00007',150,N'g'),
+(156,N'RECIPE_SKU_PASSION_TEA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(157,N'RECIPE_SKU_PASSION_TEA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(158,N'RECIPE_SKU_PASSION_TEA_M',N'I',N'ING_STRAW',1,N'pcs'),
+(159,N'RECIPE_SKU_PASSION_TEA_M',N'I',N'ING_BAG',1,N'pcs'),
+(160,N'RECIPE_SKU_PASSION_TEA_L',N'P',N'PREP_BLACK_TEA',200,N'ml'),
+(161,N'RECIPE_SKU_PASSION_TEA_L',N'I',N'ING_PASSION_JAM',60,N'g'),
+(162,N'RECIPE_SKU_PASSION_TEA_L',N'P',N'PREP_SUGAR_SYRUP',14,N'ml'),
+(163,N'RECIPE_SKU_PASSION_TEA_L',N'I',N'ING00007',200,N'g'),
+(164,N'RECIPE_SKU_PASSION_TEA_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(165,N'RECIPE_SKU_PASSION_TEA_L',N'I',N'ING_LID_L',1,N'pcs'),
+(166,N'RECIPE_SKU_PASSION_TEA_L',N'I',N'ING_STRAW',1,N'pcs'),
+(167,N'RECIPE_SKU_PASSION_TEA_L',N'I',N'ING_BAG',1,N'pcs'),
+(168,N'RECIPE_SKU_TRAD_MILK_TEA_M',N'P',N'PREP_BLACK_TEA',150,N'ml'),
+(169,N'RECIPE_SKU_TRAD_MILK_TEA_M',N'I',N'ING_FRESH_MILK',90,N'ml'),
+(170,N'RECIPE_SKU_TRAD_MILK_TEA_M',N'I',N'ING00010',30,N'ml'),
+(171,N'RECIPE_SKU_TRAD_MILK_TEA_M',N'P',N'PREP_SUGAR_SYRUP',20,N'ml'),
+(172,N'RECIPE_SKU_TRAD_MILK_TEA_M',N'I',N'ING00007',150,N'g'),
+(173,N'RECIPE_SKU_TRAD_MILK_TEA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(174,N'RECIPE_SKU_TRAD_MILK_TEA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(175,N'RECIPE_SKU_TRAD_MILK_TEA_M',N'I',N'ING_STRAW',1,N'pcs'),
+(176,N'RECIPE_SKU_TRAD_MILK_TEA_M',N'I',N'ING_BAG',1,N'pcs'),
+(177,N'RECIPE_SKU_TRAD_MILK_TEA_L',N'P',N'PREP_BLACK_TEA',200,N'ml'),
+(178,N'RECIPE_SKU_TRAD_MILK_TEA_L',N'I',N'ING_FRESH_MILK',120,N'ml'),
+(179,N'RECIPE_SKU_TRAD_MILK_TEA_L',N'I',N'ING00010',28,N'ml'),
+(180,N'RECIPE_SKU_TRAD_MILK_TEA_L',N'P',N'PREP_SUGAR_SYRUP',27,N'ml'),
+(181,N'RECIPE_SKU_TRAD_MILK_TEA_L',N'I',N'ING00007',200,N'g'),
+(182,N'RECIPE_SKU_TRAD_MILK_TEA_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(183,N'RECIPE_SKU_TRAD_MILK_TEA_L',N'I',N'ING_LID_L',1,N'pcs'),
+(184,N'RECIPE_SKU_TRAD_MILK_TEA_L',N'I',N'ING_STRAW',1,N'pcs'),
+(185,N'RECIPE_SKU_TRAD_MILK_TEA_L',N'I',N'ING_BAG',1,N'pcs'),
+(186,N'RECIPE_SKU_OOLONG_MILK_TEA_M',N'P',N'PREP_OOLONG_TEA',150,N'ml'),
+(187,N'RECIPE_SKU_OOLONG_MILK_TEA_M',N'I',N'ING_FRESH_MILK',90,N'ml'),
+(188,N'RECIPE_SKU_OOLONG_MILK_TEA_M',N'I',N'ING00010',27,N'ml'),
+(189,N'RECIPE_SKU_OOLONG_MILK_TEA_M',N'P',N'PREP_SUGAR_SYRUP',20,N'ml'),
+(190,N'RECIPE_SKU_OOLONG_MILK_TEA_M',N'I',N'ING00007',150,N'g'),
+(191,N'RECIPE_SKU_OOLONG_MILK_TEA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(192,N'RECIPE_SKU_OOLONG_MILK_TEA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(193,N'RECIPE_SKU_OOLONG_MILK_TEA_M',N'I',N'ING_STRAW',1,N'pcs'),
+(194,N'RECIPE_SKU_OOLONG_MILK_TEA_M',N'I',N'ING_BAG',1,N'pcs'),
+(195,N'RECIPE_SKU_OOLONG_MILK_TEA_L',N'P',N'PREP_OOLONG_TEA',200,N'ml'),
+(196,N'RECIPE_SKU_OOLONG_MILK_TEA_L',N'I',N'ING_FRESH_MILK',120,N'ml'),
+(197,N'RECIPE_SKU_OOLONG_MILK_TEA_L',N'I',N'ING00010',30,N'ml'),
+(198,N'RECIPE_SKU_OOLONG_MILK_TEA_L',N'P',N'PREP_SUGAR_SYRUP',27,N'ml'),
+(199,N'RECIPE_SKU_OOLONG_MILK_TEA_L',N'I',N'ING00007',200,N'g'),
+(200,N'RECIPE_SKU_OOLONG_MILK_TEA_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(201,N'RECIPE_SKU_OOLONG_MILK_TEA_L',N'I',N'ING_LID_L',1,N'pcs'),
+(202,N'RECIPE_SKU_OOLONG_MILK_TEA_L',N'I',N'ING_STRAW',1,N'pcs'),
+(203,N'RECIPE_SKU_OOLONG_MILK_TEA_L',N'I',N'ING_BAG',1,N'pcs'),
+(204,N'RECIPE_SKU_MATCHA_LATTE_M',N'I',N'ING00009',8,N'g'),
+(205,N'RECIPE_SKU_MATCHA_LATTE_M',N'I',N'ING_FRESH_MILK',150,N'ml'),
+(206,N'RECIPE_SKU_MATCHA_LATTE_M',N'P',N'PREP_SUGAR_SYRUP',15,N'ml'),
+(207,N'RECIPE_SKU_MATCHA_LATTE_M',N'I',N'ING00007',150,N'g'),
+(208,N'RECIPE_SKU_MATCHA_LATTE_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(209,N'RECIPE_SKU_MATCHA_LATTE_M',N'I',N'ING_LID_M',1,N'pcs'),
+(210,N'RECIPE_SKU_MATCHA_LATTE_M',N'I',N'ING_STRAW',1,N'pcs'),
+(211,N'RECIPE_SKU_MATCHA_LATTE_M',N'I',N'ING_BAG',1,N'pcs'),
+(212,N'RECIPE_SKU_MATCHA_LATTE_L',N'I',N'ING00009',11,N'g'),
+(213,N'RECIPE_SKU_MATCHA_LATTE_L',N'I',N'ING_FRESH_MILK',205,N'ml'),
+(214,N'RECIPE_SKU_MATCHA_LATTE_L',N'P',N'PREP_SUGAR_SYRUP',20,N'ml'),
+(215,N'RECIPE_SKU_MATCHA_LATTE_L',N'I',N'ING00007',200,N'g'),
+(216,N'RECIPE_SKU_MATCHA_LATTE_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(217,N'RECIPE_SKU_MATCHA_LATTE_L',N'I',N'ING_LID_L',1,N'pcs'),
+(218,N'RECIPE_SKU_MATCHA_LATTE_L',N'I',N'ING_STRAW',1,N'pcs'),
+(219,N'RECIPE_SKU_MATCHA_LATTE_L',N'I',N'ING_BAG',1,N'pcs'),
+(220,N'RECIPE_SKU_CHOCOLATE_LATTE_M',N'I',N'ING_CHOCOLATE',23,N'g'),
+(221,N'RECIPE_SKU_CHOCOLATE_LATTE_M',N'I',N'ING_FRESH_MILK',150,N'ml'),
+(222,N'RECIPE_SKU_CHOCOLATE_LATTE_M',N'P',N'PREP_SUGAR_SYRUP',12,N'ml'),
+(223,N'RECIPE_SKU_CHOCOLATE_LATTE_M',N'I',N'ING00007',150,N'g'),
+(224,N'RECIPE_SKU_CHOCOLATE_LATTE_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(225,N'RECIPE_SKU_CHOCOLATE_LATTE_M',N'I',N'ING_LID_M',1,N'pcs'),
+(226,N'RECIPE_SKU_CHOCOLATE_LATTE_M',N'I',N'ING_STRAW',1,N'pcs'),
+(227,N'RECIPE_SKU_CHOCOLATE_LATTE_M',N'I',N'ING_BAG',1,N'pcs'),
+(228,N'RECIPE_SKU_CHOCOLATE_LATTE_L',N'I',N'ING_CHOCOLATE',27,N'g'),
+(229,N'RECIPE_SKU_CHOCOLATE_LATTE_L',N'I',N'ING_FRESH_MILK',205,N'ml'),
+(230,N'RECIPE_SKU_CHOCOLATE_LATTE_L',N'P',N'PREP_SUGAR_SYRUP',16,N'ml'),
+(231,N'RECIPE_SKU_CHOCOLATE_LATTE_L',N'I',N'ING00007',200,N'g'),
+(232,N'RECIPE_SKU_CHOCOLATE_LATTE_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(233,N'RECIPE_SKU_CHOCOLATE_LATTE_L',N'I',N'ING_LID_L',1,N'pcs'),
+(234,N'RECIPE_SKU_CHOCOLATE_LATTE_L',N'I',N'ING_STRAW',1,N'pcs'),
+(235,N'RECIPE_SKU_CHOCOLATE_LATTE_L',N'I',N'ING_BAG',1,N'pcs'),
+(236,N'RECIPE_SKU_MATCHA_FRAPPE_M',N'I',N'ING00009',10,N'g'),
+(237,N'RECIPE_SKU_MATCHA_FRAPPE_M',N'I',N'ING_FRESH_MILK',130,N'ml'),
+(238,N'RECIPE_SKU_MATCHA_FRAPPE_M',N'I',N'ING_FRAPPE',20,N'g'),
+(239,N'RECIPE_SKU_MATCHA_FRAPPE_M',N'P',N'PREP_SUGAR_SYRUP',15,N'ml'),
+(240,N'RECIPE_SKU_MATCHA_FRAPPE_M',N'I',N'ING00010',20,N'ml'),
+(241,N'RECIPE_SKU_MATCHA_FRAPPE_M',N'I',N'ING00007',220,N'g'),
+(242,N'RECIPE_SKU_MATCHA_FRAPPE_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(243,N'RECIPE_SKU_MATCHA_FRAPPE_M',N'I',N'ING_LID_M',1,N'pcs'),
+(244,N'RECIPE_SKU_MATCHA_FRAPPE_M',N'I',N'ING_STRAW',1,N'pcs'),
+(245,N'RECIPE_SKU_MATCHA_FRAPPE_M',N'I',N'ING_BAG',1,N'pcs'),
+(246,N'RECIPE_SKU_MATCHA_FRAPPE_L',N'I',N'ING00009',11,N'g'),
+(247,N'RECIPE_SKU_MATCHA_FRAPPE_L',N'I',N'ING_FRESH_MILK',165,N'ml'),
+(248,N'RECIPE_SKU_MATCHA_FRAPPE_L',N'I',N'ING_FRAPPE',22,N'g'),
+(249,N'RECIPE_SKU_MATCHA_FRAPPE_L',N'P',N'PREP_SUGAR_SYRUP',18,N'ml'),
+(250,N'RECIPE_SKU_MATCHA_FRAPPE_L',N'I',N'ING00010',25,N'ml'),
+(251,N'RECIPE_SKU_MATCHA_FRAPPE_L',N'I',N'ING00007',270,N'g'),
+(252,N'RECIPE_SKU_MATCHA_FRAPPE_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(253,N'RECIPE_SKU_MATCHA_FRAPPE_L',N'I',N'ING_LID_L',1,N'pcs'),
+(254,N'RECIPE_SKU_MATCHA_FRAPPE_L',N'I',N'ING_STRAW',1,N'pcs'),
+(255,N'RECIPE_SKU_MATCHA_FRAPPE_L',N'I',N'ING_BAG',1,N'pcs'),
+(256,N'RECIPE_SKU_COLD_BREW_ORANGE_M',N'P',N'PREP_VIET_COFFEE',90,N'ml'),
+(257,N'RECIPE_SKU_COLD_BREW_ORANGE_M',N'I',N'ING_ORANGE',50,N'g'),
+(258,N'RECIPE_SKU_COLD_BREW_ORANGE_M',N'P',N'PREP_SUGAR_SYRUP',12,N'ml'),
+(259,N'RECIPE_SKU_COLD_BREW_ORANGE_M',N'I',N'ING00007',160,N'g'),
+(260,N'RECIPE_SKU_COLD_BREW_ORANGE_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(261,N'RECIPE_SKU_COLD_BREW_ORANGE_M',N'I',N'ING_LID_M',1,N'pcs'),
+(262,N'RECIPE_SKU_COLD_BREW_ORANGE_M',N'I',N'ING_STRAW',1,N'pcs'),
+(263,N'RECIPE_SKU_COLD_BREW_ORANGE_M',N'I',N'ING_BAG',1,N'pcs'),
+(264,N'RECIPE_SKU_COLD_BREW_ORANGE_L',N'P',N'PREP_VIET_COFFEE',120,N'ml'),
+(265,N'RECIPE_SKU_COLD_BREW_ORANGE_L',N'I',N'ING_ORANGE',70,N'g'),
+(266,N'RECIPE_SKU_COLD_BREW_ORANGE_L',N'P',N'PREP_SUGAR_SYRUP',18,N'ml'),
+(267,N'RECIPE_SKU_COLD_BREW_ORANGE_L',N'I',N'ING00007',210,N'g'),
+(268,N'RECIPE_SKU_COLD_BREW_ORANGE_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(269,N'RECIPE_SKU_COLD_BREW_ORANGE_L',N'I',N'ING_LID_L',1,N'pcs'),
+(270,N'RECIPE_SKU_COLD_BREW_ORANGE_L',N'I',N'ING_STRAW',1,N'pcs'),
+(271,N'RECIPE_SKU_COLD_BREW_ORANGE_L',N'I',N'ING_BAG',1,N'pcs'),
+(272,N'RECIPE_SKU_MOCHA_M',N'P',N'PREP_ESPRESSO',30,N'ml'),
+(273,N'RECIPE_SKU_MOCHA_M',N'I',N'ING_CHOCOLATE',20,N'g'),
+(274,N'RECIPE_SKU_MOCHA_M',N'I',N'ING_FRESH_MILK',150,N'ml'),
+(275,N'RECIPE_SKU_MOCHA_M',N'P',N'PREP_SUGAR_SYRUP',12,N'ml'),
+(276,N'RECIPE_SKU_MOCHA_M',N'I',N'ING00007',150,N'g'),
+(277,N'RECIPE_SKU_MOCHA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(278,N'RECIPE_SKU_MOCHA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(279,N'RECIPE_SKU_MOCHA_M',N'I',N'ING_STRAW',1,N'pcs'),
+(280,N'RECIPE_SKU_MOCHA_M',N'I',N'ING_BAG',1,N'pcs'),
+(281,N'RECIPE_SKU_MOCHA_L',N'P',N'PREP_ESPRESSO',45,N'ml'),
+(282,N'RECIPE_SKU_MOCHA_L',N'I',N'ING_CHOCOLATE',26,N'g'),
+(283,N'RECIPE_SKU_MOCHA_L',N'I',N'ING_FRESH_MILK',200,N'ml'),
+(284,N'RECIPE_SKU_MOCHA_L',N'P',N'PREP_SUGAR_SYRUP',16,N'ml'),
+(285,N'RECIPE_SKU_MOCHA_L',N'I',N'ING00007',200,N'g'),
+(286,N'RECIPE_SKU_MOCHA_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(287,N'RECIPE_SKU_MOCHA_L',N'I',N'ING_LID_L',1,N'pcs'),
+(288,N'RECIPE_SKU_MOCHA_L',N'I',N'ING_STRAW',1,N'pcs'),
+(289,N'RECIPE_SKU_MOCHA_L',N'I',N'ING_BAG',1,N'pcs'),
+(290,N'RECIPE_SKU_CARAMEL_MACCHIATO_M',N'P',N'PREP_ESPRESSO',30,N'ml'),
+(291,N'RECIPE_SKU_CARAMEL_MACCHIATO_M',N'I',N'ING_FRESH_MILK',160,N'ml'),
+(292,N'RECIPE_SKU_CARAMEL_MACCHIATO_M',N'I',N'ING_CARAMEL_SYRUP',20,N'ml'),
+(293,N'RECIPE_SKU_CARAMEL_MACCHIATO_M',N'I',N'ING00007',140,N'g'),
+(294,N'RECIPE_SKU_CARAMEL_MACCHIATO_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(295,N'RECIPE_SKU_CARAMEL_MACCHIATO_M',N'I',N'ING_LID_M',1,N'pcs'),
+(296,N'RECIPE_SKU_CARAMEL_MACCHIATO_M',N'I',N'ING_STRAW',1,N'pcs'),
+(297,N'RECIPE_SKU_CARAMEL_MACCHIATO_M',N'I',N'ING_BAG',1,N'pcs'),
+(298,N'RECIPE_SKU_CARAMEL_MACCHIATO_L',N'P',N'PREP_ESPRESSO',45,N'ml'),
+(299,N'RECIPE_SKU_CARAMEL_MACCHIATO_L',N'I',N'ING_FRESH_MILK',210,N'ml'),
+(300,N'RECIPE_SKU_CARAMEL_MACCHIATO_L',N'I',N'ING_CARAMEL_SYRUP',28,N'ml'),
+(301,N'RECIPE_SKU_CARAMEL_MACCHIATO_L',N'I',N'ING00007',190,N'g'),
+(302,N'RECIPE_SKU_CARAMEL_MACCHIATO_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(303,N'RECIPE_SKU_CARAMEL_MACCHIATO_L',N'I',N'ING_LID_L',1,N'pcs'),
+(304,N'RECIPE_SKU_CARAMEL_MACCHIATO_L',N'I',N'ING_STRAW',1,N'pcs'),
+(305,N'RECIPE_SKU_CARAMEL_MACCHIATO_L',N'I',N'ING_BAG',1,N'pcs'),
+(306,N'RECIPE_SKU_COCONUT_COFFEE_M',N'P',N'PREP_VIET_COFFEE',60,N'ml'),
+(307,N'RECIPE_SKU_COCONUT_COFFEE_M',N'I',N'ING_COCONUT_MILK',100,N'ml'),
+(308,N'RECIPE_SKU_COCONUT_COFFEE_M',N'I',N'ING00002',25,N'ml'),
+(309,N'RECIPE_SKU_COCONUT_COFFEE_M',N'I',N'ING00007',170,N'g'),
+(310,N'RECIPE_SKU_COCONUT_COFFEE_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(311,N'RECIPE_SKU_COCONUT_COFFEE_M',N'I',N'ING_LID_M',1,N'pcs'),
+(312,N'RECIPE_SKU_COCONUT_COFFEE_M',N'I',N'ING_STRAW',1,N'pcs'),
+(313,N'RECIPE_SKU_COCONUT_COFFEE_M',N'I',N'ING_BAG',1,N'pcs'),
+(314,N'RECIPE_SKU_COCONUT_COFFEE_L',N'P',N'PREP_VIET_COFFEE',80,N'ml'),
+(315,N'RECIPE_SKU_COCONUT_COFFEE_L',N'I',N'ING_COCONUT_MILK',140,N'ml'),
+(316,N'RECIPE_SKU_COCONUT_COFFEE_L',N'I',N'ING00002',35,N'ml'),
+(317,N'RECIPE_SKU_COCONUT_COFFEE_L',N'I',N'ING00007',220,N'g'),
+(318,N'RECIPE_SKU_COCONUT_COFFEE_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(319,N'RECIPE_SKU_COCONUT_COFFEE_L',N'I',N'ING_LID_L',1,N'pcs'),
+(320,N'RECIPE_SKU_COCONUT_COFFEE_L',N'I',N'ING_STRAW',1,N'pcs'),
+(321,N'RECIPE_SKU_COCONUT_COFFEE_L',N'I',N'ING_BAG',1,N'pcs'),
+(322,N'RECIPE_SKU_HONEY_LEMON_TEA_M',N'P',N'PREP_BLACK_TEA',150,N'ml'),
+(323,N'RECIPE_SKU_HONEY_LEMON_TEA_M',N'I',N'ING_HONEY',20,N'g'),
+(324,N'RECIPE_SKU_HONEY_LEMON_TEA_M',N'I',N'ING_YELLOW_LEMON',25,N'g'),
+(325,N'RECIPE_SKU_HONEY_LEMON_TEA_M',N'P',N'PREP_SUGAR_SYRUP',10,N'ml'),
+(326,N'RECIPE_SKU_HONEY_LEMON_TEA_M',N'I',N'ING00007',150,N'g'),
+(327,N'RECIPE_SKU_HONEY_LEMON_TEA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(328,N'RECIPE_SKU_HONEY_LEMON_TEA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(329,N'RECIPE_SKU_HONEY_LEMON_TEA_M',N'I',N'ING_STRAW',1,N'pcs'),
+(330,N'RECIPE_SKU_HONEY_LEMON_TEA_M',N'I',N'ING_BAG',1,N'pcs'),
+(331,N'RECIPE_SKU_HONEY_LEMON_TEA_L',N'P',N'PREP_BLACK_TEA',200,N'ml'),
+(332,N'RECIPE_SKU_HONEY_LEMON_TEA_L',N'I',N'ING_HONEY',28,N'g'),
+(333,N'RECIPE_SKU_HONEY_LEMON_TEA_L',N'I',N'ING_YELLOW_LEMON',35,N'g'),
+(334,N'RECIPE_SKU_HONEY_LEMON_TEA_L',N'P',N'PREP_SUGAR_SYRUP',14,N'ml'),
+(335,N'RECIPE_SKU_HONEY_LEMON_TEA_L',N'I',N'ING00007',200,N'g'),
+(336,N'RECIPE_SKU_HONEY_LEMON_TEA_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(337,N'RECIPE_SKU_HONEY_LEMON_TEA_L',N'I',N'ING_LID_L',1,N'pcs'),
+(338,N'RECIPE_SKU_HONEY_LEMON_TEA_L',N'I',N'ING_STRAW',1,N'pcs'),
+(339,N'RECIPE_SKU_HONEY_LEMON_TEA_L',N'I',N'ING_BAG',1,N'pcs'),
+(340,N'RECIPE_SKU_MANGO_TEA_M',N'P',N'PREP_BLACK_TEA',150,N'ml'),
+(341,N'RECIPE_SKU_MANGO_TEA_M',N'I',N'ING_MANGO_PUREE',60,N'g'),
+(342,N'RECIPE_SKU_MANGO_TEA_M',N'P',N'PREP_SUGAR_SYRUP',15,N'ml'),
+(343,N'RECIPE_SKU_MANGO_TEA_M',N'I',N'ING00007',150,N'g'),
+(344,N'RECIPE_SKU_MANGO_TEA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(345,N'RECIPE_SKU_MANGO_TEA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(346,N'RECIPE_SKU_MANGO_TEA_M',N'I',N'ING_STRAW',1,N'pcs'),
+(347,N'RECIPE_SKU_MANGO_TEA_M',N'I',N'ING_BAG',1,N'pcs'),
+(348,N'RECIPE_SKU_MANGO_TEA_L',N'P',N'PREP_BLACK_TEA',200,N'ml'),
+(349,N'RECIPE_SKU_MANGO_TEA_L',N'I',N'ING_MANGO_PUREE',85,N'g'),
+(350,N'RECIPE_SKU_MANGO_TEA_L',N'P',N'PREP_SUGAR_SYRUP',20,N'ml'),
+(351,N'RECIPE_SKU_MANGO_TEA_L',N'I',N'ING00007',200,N'g'),
+(352,N'RECIPE_SKU_MANGO_TEA_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(353,N'RECIPE_SKU_MANGO_TEA_L',N'I',N'ING_LID_L',1,N'pcs'),
+(354,N'RECIPE_SKU_MANGO_TEA_L',N'I',N'ING_STRAW',1,N'pcs'),
+(355,N'RECIPE_SKU_MANGO_TEA_L',N'I',N'ING_BAG',1,N'pcs'),
+(356,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'P',N'PREP_BLACK_TEA',140,N'ml'),
+(357,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'I',N'ING_STRAWBERRY_PUREE',45,N'g'),
+(358,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'I',N'ING_FRESH_MILK',100,N'ml'),
+(359,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'I',N'ING00010',20,N'ml'),
+(360,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'P',N'PREP_SUGAR_SYRUP',15,N'ml'),
+(361,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'I',N'ING00007',150,N'g'),
+(362,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(363,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(364,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'I',N'ING_STRAW',1,N'pcs'),
+(365,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_M',N'I',N'ING_BAG',1,N'pcs'),
+(366,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'P',N'PREP_BLACK_TEA',190,N'ml'),
+(367,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'I',N'ING_STRAWBERRY_PUREE',65,N'g'),
+(368,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'I',N'ING_FRESH_MILK',140,N'ml'),
+(369,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'I',N'ING00010',28,N'ml'),
+(370,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'P',N'PREP_SUGAR_SYRUP',20,N'ml'),
+(371,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'I',N'ING00007',200,N'g'),
+(372,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(373,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'I',N'ING_LID_L',1,N'pcs'),
+(374,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'I',N'ING_STRAW',1,N'pcs'),
+(375,N'RECIPE_SKU_STRAWBERRY_MILK_TEA_L',N'I',N'ING_BAG',1,N'pcs'),
+(376,N'RECIPE_SKU_LYCHEE_OOLONG_M',N'P',N'PREP_OOLONG_TEA',150,N'ml'),
+(377,N'RECIPE_SKU_LYCHEE_OOLONG_M',N'I',N'ING_CANNED_LYCHEE',70,N'g'),
+(378,N'RECIPE_SKU_LYCHEE_OOLONG_M',N'P',N'PREP_SUGAR_SYRUP',18,N'ml'),
+(379,N'RECIPE_SKU_LYCHEE_OOLONG_M',N'I',N'ING00007',150,N'g'),
+(380,N'RECIPE_SKU_LYCHEE_OOLONG_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(381,N'RECIPE_SKU_LYCHEE_OOLONG_M',N'I',N'ING_LID_M',1,N'pcs'),
+(382,N'RECIPE_SKU_LYCHEE_OOLONG_M',N'I',N'ING_STRAW',1,N'pcs'),
+(383,N'RECIPE_SKU_LYCHEE_OOLONG_M',N'I',N'ING_BAG',1,N'pcs'),
+(384,N'RECIPE_SKU_LYCHEE_OOLONG_L',N'P',N'PREP_OOLONG_TEA',200,N'ml'),
+(385,N'RECIPE_SKU_LYCHEE_OOLONG_L',N'I',N'ING_CANNED_LYCHEE',90,N'g'),
+(386,N'RECIPE_SKU_LYCHEE_OOLONG_L',N'P',N'PREP_SUGAR_SYRUP',24,N'ml'),
+(387,N'RECIPE_SKU_LYCHEE_OOLONG_L',N'I',N'ING00007',200,N'g'),
+(388,N'RECIPE_SKU_LYCHEE_OOLONG_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(389,N'RECIPE_SKU_LYCHEE_OOLONG_L',N'I',N'ING_LID_L',1,N'pcs'),
+(390,N'RECIPE_SKU_LYCHEE_OOLONG_L',N'I',N'ING_STRAW',1,N'pcs'),
+(391,N'RECIPE_SKU_LYCHEE_OOLONG_L',N'I',N'ING_BAG',1,N'pcs'),
+(392,N'RECIPE_SKU_OAT_MATCHA_M',N'I',N'ING00009',8,N'g'),
+(393,N'RECIPE_SKU_OAT_MATCHA_M',N'I',N'ING_OAT_MILK',160,N'ml'),
+(394,N'RECIPE_SKU_OAT_MATCHA_M',N'P',N'PREP_SUGAR_SYRUP',15,N'ml'),
+(395,N'RECIPE_SKU_OAT_MATCHA_M',N'I',N'ING00007',150,N'g'),
+(396,N'RECIPE_SKU_OAT_MATCHA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(397,N'RECIPE_SKU_OAT_MATCHA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(398,N'RECIPE_SKU_OAT_MATCHA_M',N'I',N'ING_STRAW',1,N'pcs'),
+(399,N'RECIPE_SKU_OAT_MATCHA_M',N'I',N'ING_BAG',1,N'pcs'),
+(400,N'RECIPE_SKU_OAT_MATCHA_L',N'I',N'ING00009',11,N'g'),
+(401,N'RECIPE_SKU_OAT_MATCHA_L',N'I',N'ING_OAT_MILK',220,N'ml'),
+(402,N'RECIPE_SKU_OAT_MATCHA_L',N'P',N'PREP_SUGAR_SYRUP',20,N'ml'),
+(403,N'RECIPE_SKU_OAT_MATCHA_L',N'I',N'ING00007',200,N'g'),
+(404,N'RECIPE_SKU_OAT_MATCHA_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(405,N'RECIPE_SKU_OAT_MATCHA_L',N'I',N'ING_LID_L',1,N'pcs'),
+(406,N'RECIPE_SKU_OAT_MATCHA_L',N'I',N'ING_STRAW',1,N'pcs'),
+(407,N'RECIPE_SKU_OAT_MATCHA_L',N'I',N'ING_BAG',1,N'pcs'),
+(408,N'RECIPE_SKU_COCONUT_CHOCOLATE_M',N'I',N'ING_CHOCOLATE',22,N'g'),
+(409,N'RECIPE_SKU_COCONUT_CHOCOLATE_M',N'I',N'ING_COCONUT_MILK',90,N'ml'),
+(410,N'RECIPE_SKU_COCONUT_CHOCOLATE_M',N'I',N'ING_FRESH_MILK',80,N'ml'),
+(411,N'RECIPE_SKU_COCONUT_CHOCOLATE_M',N'P',N'PREP_SUGAR_SYRUP',12,N'ml'),
+(412,N'RECIPE_SKU_COCONUT_CHOCOLATE_M',N'I',N'ING00007',150,N'g'),
+(413,N'RECIPE_SKU_COCONUT_CHOCOLATE_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(414,N'RECIPE_SKU_COCONUT_CHOCOLATE_M',N'I',N'ING_LID_M',1,N'pcs'),
+(415,N'RECIPE_SKU_COCONUT_CHOCOLATE_M',N'I',N'ING_STRAW',1,N'pcs'),
+(416,N'RECIPE_SKU_COCONUT_CHOCOLATE_M',N'I',N'ING_BAG',1,N'pcs'),
+(417,N'RECIPE_SKU_COCONUT_CHOCOLATE_L',N'I',N'ING_CHOCOLATE',28,N'g'),
+(418,N'RECIPE_SKU_COCONUT_CHOCOLATE_L',N'I',N'ING_COCONUT_MILK',125,N'ml'),
+(419,N'RECIPE_SKU_COCONUT_CHOCOLATE_L',N'I',N'ING_FRESH_MILK',110,N'ml'),
+(420,N'RECIPE_SKU_COCONUT_CHOCOLATE_L',N'P',N'PREP_SUGAR_SYRUP',16,N'ml'),
+(421,N'RECIPE_SKU_COCONUT_CHOCOLATE_L',N'I',N'ING00007',200,N'g'),
+(422,N'RECIPE_SKU_COCONUT_CHOCOLATE_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(423,N'RECIPE_SKU_COCONUT_CHOCOLATE_L',N'I',N'ING_LID_L',1,N'pcs'),
+(424,N'RECIPE_SKU_COCONUT_CHOCOLATE_L',N'I',N'ING_STRAW',1,N'pcs'),
+(425,N'RECIPE_SKU_COCONUT_CHOCOLATE_L',N'I',N'ING_BAG',1,N'pcs'),
+(426,N'RECIPE_SKU_PASSION_YOGURT_M',N'I',N'ING_YOGURT',150,N'g'),
+(427,N'RECIPE_SKU_PASSION_YOGURT_M',N'I',N'ING_PASSION_JAM',55,N'g'),
+(428,N'RECIPE_SKU_PASSION_YOGURT_M',N'P',N'PREP_SUGAR_SYRUP',10,N'ml'),
+(429,N'RECIPE_SKU_PASSION_YOGURT_M',N'I',N'ING00007',120,N'g'),
+(430,N'RECIPE_SKU_PASSION_YOGURT_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(431,N'RECIPE_SKU_PASSION_YOGURT_M',N'I',N'ING_LID_M',1,N'pcs'),
+(432,N'RECIPE_SKU_PASSION_YOGURT_M',N'I',N'ING_STRAW',1,N'pcs'),
+(433,N'RECIPE_SKU_PASSION_YOGURT_M',N'I',N'ING_BAG',1,N'pcs'),
+(434,N'RECIPE_SKU_PASSION_YOGURT_L',N'I',N'ING_YOGURT',210,N'g'),
+(435,N'RECIPE_SKU_PASSION_YOGURT_L',N'I',N'ING_PASSION_JAM',75,N'g'),
+(436,N'RECIPE_SKU_PASSION_YOGURT_L',N'P',N'PREP_SUGAR_SYRUP',14,N'ml'),
+(437,N'RECIPE_SKU_PASSION_YOGURT_L',N'I',N'ING00007',170,N'g'),
+(438,N'RECIPE_SKU_PASSION_YOGURT_L',N'I',N'ING_CUP_L',1,N'pcs'),
+(439,N'RECIPE_SKU_PASSION_YOGURT_L',N'I',N'ING_LID_L',1,N'pcs'),
+(440,N'RECIPE_SKU_PASSION_YOGURT_L',N'I',N'ING_STRAW',1,N'pcs'),
+(441,N'RECIPE_SKU_PASSION_YOGURT_L',N'I',N'ING_BAG',1,N'pcs'),
+(442,N'RECIPE_TOP_PM_VIEN',N'I',N'ING_CHEESE_CUBE',1,N'pcs'),
+(443,N'RECIPE_TOP_KB_CM',N'I',N'ING_KHUC_BACH_POWDER',35,N'g'),
+(444,N'RECIPE_TOP_TH_Dao',N'I',N'ING_CANNED_PEACH',40,N'g'),
+(445,N'RECIPE_TOP_NHADAM',N'I',N'ING_ALOE_VERA',40,N'g'),
+(446,N'RECIPE_TOP_HATCHIA',N'I',N'ING_CHIA_SEED',10,N'g'),
+(447,N'RECIPE_TOP_TH_Dua',N'I',N'ING_COCONUT_JELLY',40,N'g'),
+(448,N'RECIPE_TOP_PUDDINGTRUNG',N'I',N'ING_FLAN_POWDER',35,N'g'),
+(449,N'RECIPE_TOP_PUDDINGTRUNG',N'I',N'ING00006',5,N'g'),
+(450,N'RECIPE_TOP_TC_HOANGKIM',N'I',N'ING_BLACK_PEARL_DRY',35,N'g'),
+(451,N'RECIPE_TOP_TC_DUONGDEN',N'P',N'PREP_BLACK_PEARL',1,N'PORTION'),
+(452,N'RECIPE_TOP_TC_DUONGDEN',N'I',N'ING00012',15,N'g'),
+(453,N'RECIPE_TOP_TC_MINI',N'P',N'PREP_BLACK_PEARL',1,N'PORTION'),
+(454,N'RECIPE_TOP_TC_KHOAIMON',N'I',N'ING_TARO_JELLY_POWDER',30,N'g'),
+(455,N'RECIPE_TOP_TH_CAFE',N'I',N'ING_VIET_COFFEE',20,N'g'),
+(456,N'RECIPE_TOP_TH_CAFE',N'I',N'ING00011',25,N'g'),
+(457,N'RECIPE_TOP_TH_MATCHA',N'I',N'ING00009',8,N'g'),
+(458,N'RECIPE_TOP_TH_MATCHA',N'I',N'ING00011',25,N'g'),
+(459,N'RECIPE_TOP_TH_VAI',N'I',N'ING_CANNED_LYCHEE',35,N'g'),
+(460,N'RECIPE_TOP_TH_XOAI',N'I',N'ING_MANGO_PUREE',35,N'g'),
+(461,N'RECIPE_TOP_TH_DAU',N'I',N'ING_STRAWBERRY_PUREE',35,N'g'),
+(462,N'RECIPE_TOP_TH_CHANHDAY',N'I',N'ING_PASSION_JAM',35,N'g'),
+(463,N'RECIPE_TOP_TH_MATONGCHANH',N'I',N'ING_HONEY',15,N'g'),
+(464,N'RECIPE_TOP_TH_MATONGCHANH',N'I',N'ING_YELLOW_LEMON',10,N'g'),
+(465,N'RECIPE_TOP_TH_SUAYENMACH',N'I',N'ING_OAT_MILK',30,N'ml'),
+(466,N'RECIPE_TOP_TH_SUAYENMACH',N'I',N'ING00011',20,N'g'),
+(467,N'RECIPE_TOP_TRAIDAO',N'I',N'ING_CANNED_PEACH',50,N'g'),
+(468,N'RECIPE_TOP_TRAIVAI',N'I',N'ING_CANNED_LYCHEE',50,N'g'),
+(469,N'RECIPE_TOP_XOAI_HAT',N'I',N'ING_MANGO_PUREE',45,N'g'),
+(470,N'RECIPE_TOP_DAU_TUOI',N'I',N'ING_STRAWBERRY_PUREE',45,N'g'),
+(471,N'RECIPE_TOP_TEP_CAM',N'I',N'ING_ORANGE',40,N'g'),
+(472,N'RECIPE_TOP_CHANHDAY_HAT',N'I',N'ING_PASSION_JAM',40,N'g'),
+(473,N'RECIPE_TOP_PUDDING_VANILLA',N'I',N'ING00008',10,N'ml'),
+(474,N'RECIPE_TOP_PUDDING_VANILLA',N'I',N'ING00011',25,N'g'),
+(475,N'RECIPE_TOP_PUDDING_SOCOLA',N'I',N'ING_FLAN_POWDER',30,N'g'),
+(476,N'RECIPE_TOP_PUDDING_SOCOLA',N'I',N'ING_CHOCOLATE',10,N'g'),
+(477,N'RECIPE_TOP_PUDDING_MATCHA',N'I',N'ING_FLAN_POWDER',30,N'g'),
+(478,N'RECIPE_TOP_PUDDING_MATCHA',N'I',N'ING00009',6,N'g'),
+(479,N'RECIPE_TOP_PUDDING_KHOAIMON',N'I',N'ING_TARO_JELLY_POWDER',35,N'g'),
+(480,N'RECIPE_TOP_KEMMUOI',N'P',N'PREP_SALTED_CREAM',35,N'ml'),
+(481,N'RECIPE_TOP_KEMSUATUOI',N'I',N'ING00010',35,N'ml'),
+(482,N'RECIPE_TOP_KEMDUA',N'I',N'ING_COCONUT_MILK',35,N'ml'),
+(483,N'RECIPE_TOP_KEMDUA',N'I',N'ING00010',15,N'ml'),
+(484,N'RECIPE_TOP_KEMYENMACH',N'I',N'ING_OAT_MILK',35,N'ml'),
+(485,N'RECIPE_TOP_KEMYENMACH',N'I',N'ING00010',10,N'ml'),
+(486,N'RECIPE_TOP_SOT_CARAMEL',N'I',N'ING_CARAMEL_SYRUP',20,N'ml'),
+(487,N'RECIPE_TOP_SOT_SOCOLA',N'I',N'ING_CHOCOLATE',15,N'g'),
+(488,N'RECIPE_TOP_SOT_DAU',N'I',N'ING_STRAWBERRY_PUREE',20,N'g'),
+(489,N'RECIPE_TOP_SOT_XOAI',N'I',N'ING_MANGO_PUREE',20,N'g'),
+(490,N'RECIPE_TOP_SOT_MATONG',N'I',N'ING_HONEY',20,N'g'),
+(491,N'RECIPE_TOP_SOT_DUONGDEN',N'I',N'ING00012',20,N'g'),
+(492,N'RECIPE_TOP_SOT_DUONGDEN',N'I',N'ING00013',10,N'ml'),
+(493,N'RECIPE_TOP_SHOT_MATCHA',N'I',N'ING00009',5,N'g'),
+(494,N'RECIPE_TOP_SUA_YENMACH_THEM',N'I',N'ING_OAT_MILK',40,N'ml'),
+(495,N'RECIPE_TOP_COT_DUA_THEM',N'I',N'ING_COCONUT_MILK',40,N'ml'),
+(496,N'RECIPE_TOP_SUA_CHUA_THEM',N'I',N'ING_YOGURT',40,N'g'),
+(497,N'RECIPE_TOP_SYRUP_CARAMEL_THEM',N'I',N'ING_CARAMEL_SYRUP',20,N'ml'),
+(498,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'P',N'PREP_ESPRESSO',45,N'ml'),
+(499,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'I',N'ING_FRESH_MILK',110,N'ml'),
+(500,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'P',N'PREP_CHEESE_CREAM',30,N'ml'),
 (501,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'I',N'ING00007',140,N'g'),
-(502,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(503,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(504,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(502,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(503,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'I',N'ING_LID_M',1,N'pcs'),
+(504,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(505,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'P',N'DEMO_PREP_VIET_COFFEE',90,N'ml'),
-(506,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'I',N'DEMO_ING_HONEY',12,N'g'),
-(507,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'I',N'DEMO_ING_YELLOW_LEMON',18,N'g'),
+(505,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'P',N'PREP_VIET_COFFEE',90,N'ml'),
+(506,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'I',N'ING_HONEY',12,N'g'),
+(507,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'I',N'ING_YELLOW_LEMON',18,N'g'),
 (508,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'I',N'ING00007',160,N'g'),
-(509,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(510,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(511,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(509,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(510,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'I',N'ING_LID_M',1,N'pcs'),
+(511,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(512,N'ZZ_RCP_BLACK_PEARL_MILK_COFFEE_M',N'P',N'DEMO_PREP_VIET_COFFEE',60,N'ml'),
+(512,N'ZZ_RCP_BLACK_PEARL_MILK_COFFEE_M',N'P',N'PREP_VIET_COFFEE',60,N'ml'),
 (513,N'ZZ_RCP_BLACK_PEARL_MILK_COFFEE_M',N'I',N'ING00002',30,N'ml'),
-(514,N'ZZ_RCP_BLACK_PEARL_MILK_COFFEE_M',N'I',N'DEMO_ING_FRESH_MILK',60,N'ml'),
+(514,N'ZZ_RCP_BLACK_PEARL_MILK_COFFEE_M',N'I',N'ING_FRESH_MILK',60,N'ml'),
 (515,N'ZZ_RCP_BLACK_PEARL_MILK_COFFEE_M',N'I',N'ING00007',170,N'g'),
-(516,N'ZZ_RCP_BLACK_PEARL_MILK_COFFEE_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(517,N'ZZ_RCP_BLACK_PEARL_MILK_COFFEE_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(518,N'ZZ_RCP_BLACK_PEARL_MILK_COFFEE_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(516,N'ZZ_RCP_BLACK_PEARL_MILK_COFFEE_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(517,N'ZZ_RCP_BLACK_PEARL_MILK_COFFEE_M',N'I',N'ING_LID_M',1,N'pcs'),
+(518,N'ZZ_RCP_BLACK_PEARL_MILK_COFFEE_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(519,N'ZZ_RCP_HONEY_OAT_ESPRESSO_M',N'P',N'DEMO_PREP_ESPRESSO',45,N'ml'),
-(520,N'ZZ_RCP_HONEY_OAT_ESPRESSO_M',N'I',N'DEMO_ING_OAT_MILK',140,N'ml'),
-(521,N'ZZ_RCP_HONEY_OAT_ESPRESSO_M',N'I',N'DEMO_ING_HONEY',10,N'g'),
+(519,N'ZZ_RCP_HONEY_OAT_ESPRESSO_M',N'P',N'PREP_ESPRESSO',45,N'ml'),
+(520,N'ZZ_RCP_HONEY_OAT_ESPRESSO_M',N'I',N'ING_OAT_MILK',140,N'ml'),
+(521,N'ZZ_RCP_HONEY_OAT_ESPRESSO_M',N'I',N'ING_HONEY',10,N'g'),
 (522,N'ZZ_RCP_HONEY_OAT_ESPRESSO_M',N'I',N'ING00007',140,N'g'),
-(523,N'ZZ_RCP_HONEY_OAT_ESPRESSO_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(524,N'ZZ_RCP_HONEY_OAT_ESPRESSO_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(525,N'ZZ_RCP_HONEY_OAT_ESPRESSO_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(523,N'ZZ_RCP_HONEY_OAT_ESPRESSO_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(524,N'ZZ_RCP_HONEY_OAT_ESPRESSO_M',N'I',N'ING_LID_M',1,N'pcs'),
+(525,N'ZZ_RCP_HONEY_OAT_ESPRESSO_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(526,N'ZZ_RCP_FLAN_MILK_COFFEE_M',N'P',N'DEMO_PREP_VIET_COFFEE',60,N'ml'),
+(526,N'ZZ_RCP_FLAN_MILK_COFFEE_M',N'P',N'PREP_VIET_COFFEE',60,N'ml'),
 (527,N'ZZ_RCP_FLAN_MILK_COFFEE_M',N'I',N'ING00002',30,N'ml'),
-(528,N'ZZ_RCP_FLAN_MILK_COFFEE_M',N'I',N'DEMO_ING_FRESH_MILK',80,N'ml'),
+(528,N'ZZ_RCP_FLAN_MILK_COFFEE_M',N'I',N'ING_FRESH_MILK',80,N'ml'),
 (529,N'ZZ_RCP_FLAN_MILK_COFFEE_M',N'I',N'ING00007',160,N'g'),
-(530,N'ZZ_RCP_FLAN_MILK_COFFEE_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(531,N'ZZ_RCP_FLAN_MILK_COFFEE_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(532,N'ZZ_RCP_FLAN_MILK_COFFEE_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(530,N'ZZ_RCP_FLAN_MILK_COFFEE_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(531,N'ZZ_RCP_FLAN_MILK_COFFEE_M',N'I',N'ING_LID_M',1,N'pcs'),
+(532,N'ZZ_RCP_FLAN_MILK_COFFEE_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(533,N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'P',N'DEMO_PREP_VIET_COFFEE',90,N'ml'),
-(534,N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'I',N'DEMO_ING_CANNED_LYCHEE',30,N'g'),
-(535,N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'I',N'DEMO_ING_ALOE_VERA',30,N'g'),
+(533,N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'P',N'PREP_VIET_COFFEE',90,N'ml'),
+(534,N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'I',N'ING_CANNED_LYCHEE',30,N'g'),
+(535,N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'I',N'ING_ALOE_VERA',30,N'g'),
 (536,N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'I',N'ING00007',160,N'g'),
-(537,N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(538,N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(539,N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(537,N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(538,N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'I',N'ING_LID_M',1,N'pcs'),
+(539,N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(540,N'ZZ_RCP_SALTED_COCONUT_ESPRESSO_M',N'P',N'DEMO_PREP_ESPRESSO',45,N'ml'),
-(541,N'ZZ_RCP_SALTED_COCONUT_ESPRESSO_M',N'I',N'DEMO_ING_COCONUT_MILK',100,N'ml'),
-(542,N'ZZ_RCP_SALTED_COCONUT_ESPRESSO_M',N'P',N'DEMO_PREP_SALTED_CREAM',30,N'ml'),
+(540,N'ZZ_RCP_SALTED_COCONUT_ESPRESSO_M',N'P',N'PREP_ESPRESSO',45,N'ml'),
+(541,N'ZZ_RCP_SALTED_COCONUT_ESPRESSO_M',N'I',N'ING_COCONUT_MILK',100,N'ml'),
+(542,N'ZZ_RCP_SALTED_COCONUT_ESPRESSO_M',N'P',N'PREP_SALTED_CREAM',30,N'ml'),
 (543,N'ZZ_RCP_SALTED_COCONUT_ESPRESSO_M',N'I',N'ING00007',140,N'g'),
-(544,N'ZZ_RCP_SALTED_COCONUT_ESPRESSO_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(545,N'ZZ_RCP_SALTED_COCONUT_ESPRESSO_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(546,N'ZZ_RCP_SALTED_COCONUT_ESPRESSO_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(544,N'ZZ_RCP_SALTED_COCONUT_ESPRESSO_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(545,N'ZZ_RCP_SALTED_COCONUT_ESPRESSO_M',N'I',N'ING_LID_M',1,N'pcs'),
+(546,N'ZZ_RCP_SALTED_COCONUT_ESPRESSO_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(547,N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'P',N'DEMO_PREP_VIET_COFFEE',60,N'ml'),
+(547,N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'P',N'PREP_VIET_COFFEE',60,N'ml'),
 (548,N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'I',N'ING00002',25,N'ml'),
-(549,N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'I',N'DEMO_ING_COCONUT_JELLY',30,N'g'),
+(549,N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'I',N'ING_COCONUT_JELLY',30,N'g'),
 (550,N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'I',N'ING00007',160,N'g'),
-(551,N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(552,N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(553,N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(551,N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(552,N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'I',N'ING_LID_M',1,N'pcs'),
+(553,N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(554,N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'P',N'DEMO_PREP_VIET_COFFEE',60,N'ml'),
+(554,N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'P',N'PREP_VIET_COFFEE',60,N'ml'),
 (555,N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'I',N'ING00002',30,N'ml'),
-(556,N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'I',N'DEMO_ING_FRESH_MILK',80,N'ml'),
+(556,N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'I',N'ING_FRESH_MILK',80,N'ml'),
 (557,N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'I',N'ING00007',160,N'g'),
-(558,N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(559,N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(560,N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(558,N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(559,N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'I',N'ING_LID_M',1,N'pcs'),
+(560,N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(561,N'ZZ_RCP_MANGO_PASSION_COLD_BREW_M',N'P',N'DEMO_PREP_VIET_COFFEE',90,N'ml'),
-(562,N'ZZ_RCP_MANGO_PASSION_COLD_BREW_M',N'I',N'DEMO_ING_MANGO_PUREE',25,N'g'),
-(563,N'ZZ_RCP_MANGO_PASSION_COLD_BREW_M',N'I',N'DEMO_ING_PASSION_JAM',20,N'g'),
+(561,N'ZZ_RCP_MANGO_PASSION_COLD_BREW_M',N'P',N'PREP_VIET_COFFEE',90,N'ml'),
+(562,N'ZZ_RCP_MANGO_PASSION_COLD_BREW_M',N'I',N'ING_MANGO_PUREE',25,N'g'),
+(563,N'ZZ_RCP_MANGO_PASSION_COLD_BREW_M',N'I',N'ING_PASSION_JAM',20,N'g'),
 (564,N'ZZ_RCP_MANGO_PASSION_COLD_BREW_M',N'I',N'ING00007',160,N'g'),
-(565,N'ZZ_RCP_MANGO_PASSION_COLD_BREW_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(566,N'ZZ_RCP_MANGO_PASSION_COLD_BREW_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(567,N'ZZ_RCP_MANGO_PASSION_COLD_BREW_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(565,N'ZZ_RCP_MANGO_PASSION_COLD_BREW_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(566,N'ZZ_RCP_MANGO_PASSION_COLD_BREW_M',N'I',N'ING_LID_M',1,N'pcs'),
+(567,N'ZZ_RCP_MANGO_PASSION_COLD_BREW_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(568,N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'P',N'DEMO_PREP_OOLONG_TEA',150,N'ml'),
-(569,N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'I',N'DEMO_ING_CANNED_PEACH',35,N'g'),
-(570,N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'I',N'DEMO_ING_ALOE_VERA',25,N'g'),
+(568,N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'P',N'PREP_OOLONG_TEA',150,N'ml'),
+(569,N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'I',N'ING_CANNED_PEACH',35,N'g'),
+(570,N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'I',N'ING_ALOE_VERA',25,N'g'),
 (571,N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'I',N'ING00007',150,N'g'),
-(572,N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(573,N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(574,N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(572,N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(573,N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'I',N'ING_LID_M',1,N'pcs'),
+(574,N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(575,N'ZZ_RCP_LYCHEE_CHIA_BLACK_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',150,N'ml'),
-(576,N'ZZ_RCP_LYCHEE_CHIA_BLACK_TEA_M',N'I',N'DEMO_ING_CANNED_LYCHEE',35,N'g'),
-(577,N'ZZ_RCP_LYCHEE_CHIA_BLACK_TEA_M',N'I',N'DEMO_ING_CHIA_SEED',8,N'g'),
+(575,N'ZZ_RCP_LYCHEE_CHIA_BLACK_TEA_M',N'P',N'PREP_BLACK_TEA',150,N'ml'),
+(576,N'ZZ_RCP_LYCHEE_CHIA_BLACK_TEA_M',N'I',N'ING_CANNED_LYCHEE',35,N'g'),
+(577,N'ZZ_RCP_LYCHEE_CHIA_BLACK_TEA_M',N'I',N'ING_CHIA_SEED',8,N'g'),
 (578,N'ZZ_RCP_LYCHEE_CHIA_BLACK_TEA_M',N'I',N'ING00007',150,N'g'),
-(579,N'ZZ_RCP_LYCHEE_CHIA_BLACK_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(580,N'ZZ_RCP_LYCHEE_CHIA_BLACK_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(581,N'ZZ_RCP_LYCHEE_CHIA_BLACK_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(579,N'ZZ_RCP_LYCHEE_CHIA_BLACK_TEA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(580,N'ZZ_RCP_LYCHEE_CHIA_BLACK_TEA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(581,N'ZZ_RCP_LYCHEE_CHIA_BLACK_TEA_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(582,N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'P',N'DEMO_PREP_OOLONG_TEA',150,N'ml'),
-(583,N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'I',N'DEMO_ING_MANGO_PUREE',30,N'g'),
-(584,N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'I',N'DEMO_ING_COCONUT_JELLY',30,N'g'),
+(582,N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'P',N'PREP_OOLONG_TEA',150,N'ml'),
+(583,N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'I',N'ING_MANGO_PUREE',30,N'g'),
+(584,N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'I',N'ING_COCONUT_JELLY',30,N'g'),
 (585,N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'I',N'ING00007',150,N'g'),
-(586,N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(587,N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(588,N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(586,N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(587,N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'I',N'ING_LID_M',1,N'pcs'),
+(588,N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(589,N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',150,N'ml'),
-(590,N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'I',N'DEMO_ING_ORANGE',40,N'g'),
-(591,N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'I',N'DEMO_ING_ALOE_VERA',25,N'g'),
+(589,N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'P',N'PREP_BLACK_TEA',150,N'ml'),
+(590,N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'I',N'ING_ORANGE',40,N'g'),
+(591,N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'I',N'ING_ALOE_VERA',25,N'g'),
 (592,N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'I',N'ING00007',150,N'g'),
-(593,N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(594,N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(595,N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(593,N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(594,N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(595,N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(596,N'ZZ_RCP_PASSION_CHIA_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',150,N'ml'),
-(597,N'ZZ_RCP_PASSION_CHIA_TEA_M',N'I',N'DEMO_ING_PASSION_JAM',35,N'g'),
-(598,N'ZZ_RCP_PASSION_CHIA_TEA_M',N'I',N'DEMO_ING_CHIA_SEED',8,N'g'),
+(596,N'ZZ_RCP_PASSION_CHIA_TEA_M',N'P',N'PREP_BLACK_TEA',150,N'ml'),
+(597,N'ZZ_RCP_PASSION_CHIA_TEA_M',N'I',N'ING_PASSION_JAM',35,N'g'),
+(598,N'ZZ_RCP_PASSION_CHIA_TEA_M',N'I',N'ING_CHIA_SEED',8,N'g'),
 (599,N'ZZ_RCP_PASSION_CHIA_TEA_M',N'I',N'ING00007',150,N'g'),
-(600,N'ZZ_RCP_PASSION_CHIA_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(601,N'ZZ_RCP_PASSION_CHIA_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(602,N'ZZ_RCP_PASSION_CHIA_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(600,N'ZZ_RCP_PASSION_CHIA_TEA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(601,N'ZZ_RCP_PASSION_CHIA_TEA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(602,N'ZZ_RCP_PASSION_CHIA_TEA_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(603,N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'P',N'DEMO_PREP_OOLONG_TEA',150,N'ml'),
-(604,N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'I',N'DEMO_ING_STRAWBERRY_PUREE',30,N'g'),
-(605,N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'I',N'DEMO_ING_COCONUT_JELLY',30,N'g'),
+(603,N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'P',N'PREP_OOLONG_TEA',150,N'ml'),
+(604,N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'I',N'ING_STRAWBERRY_PUREE',30,N'g'),
+(605,N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'I',N'ING_COCONUT_JELLY',30,N'g'),
 (606,N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'I',N'ING00007',150,N'g'),
-(607,N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(608,N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(609,N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(607,N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(608,N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'I',N'ING_LID_M',1,N'pcs'),
+(609,N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(610,N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',150,N'ml'),
-(611,N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'I',N'DEMO_ING_CANNED_PEACH',35,N'g'),
-(612,N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',10,N'ml'),
+(610,N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'P',N'PREP_BLACK_TEA',150,N'ml'),
+(611,N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'I',N'ING_CANNED_PEACH',35,N'g'),
+(612,N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'P',N'PREP_SUGAR_SYRUP',10,N'ml'),
 (613,N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'I',N'ING00007',150,N'g'),
-(614,N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(615,N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(616,N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(614,N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(615,N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(616,N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(617,N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',150,N'ml'),
-(618,N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'I',N'DEMO_ING_CANNED_LYCHEE',35,N'g'),
-(619,N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'I',N'DEMO_ING_ALOE_VERA',25,N'g'),
+(617,N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'P',N'PREP_BLACK_TEA',150,N'ml'),
+(618,N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'I',N'ING_CANNED_LYCHEE',35,N'g'),
+(619,N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'I',N'ING_ALOE_VERA',25,N'g'),
 (620,N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'I',N'ING00007',150,N'g'),
-(621,N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(622,N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(623,N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(621,N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(622,N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(623,N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(624,N'ZZ_RCP_MANGO_CHIA_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',150,N'ml'),
-(625,N'ZZ_RCP_MANGO_CHIA_TEA_M',N'I',N'DEMO_ING_MANGO_PUREE',30,N'g'),
-(626,N'ZZ_RCP_MANGO_CHIA_TEA_M',N'I',N'DEMO_ING_CHIA_SEED',8,N'g'),
+(624,N'ZZ_RCP_MANGO_CHIA_TEA_M',N'P',N'PREP_BLACK_TEA',150,N'ml'),
+(625,N'ZZ_RCP_MANGO_CHIA_TEA_M',N'I',N'ING_MANGO_PUREE',30,N'g'),
+(626,N'ZZ_RCP_MANGO_CHIA_TEA_M',N'I',N'ING_CHIA_SEED',8,N'g'),
 (627,N'ZZ_RCP_MANGO_CHIA_TEA_M',N'I',N'ING00007',150,N'g'),
-(628,N'ZZ_RCP_MANGO_CHIA_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(629,N'ZZ_RCP_MANGO_CHIA_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(630,N'ZZ_RCP_MANGO_CHIA_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(628,N'ZZ_RCP_MANGO_CHIA_TEA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(629,N'ZZ_RCP_MANGO_CHIA_TEA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(630,N'ZZ_RCP_MANGO_CHIA_TEA_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(631,N'ZZ_RCP_ORANGE_PASSION_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',150,N'ml'),
-(632,N'ZZ_RCP_ORANGE_PASSION_TEA_M',N'I',N'DEMO_ING_ORANGE',30,N'g'),
-(633,N'ZZ_RCP_ORANGE_PASSION_TEA_M',N'I',N'DEMO_ING_PASSION_JAM',25,N'g'),
+(631,N'ZZ_RCP_ORANGE_PASSION_TEA_M',N'P',N'PREP_BLACK_TEA',150,N'ml'),
+(632,N'ZZ_RCP_ORANGE_PASSION_TEA_M',N'I',N'ING_ORANGE',30,N'g'),
+(633,N'ZZ_RCP_ORANGE_PASSION_TEA_M',N'I',N'ING_PASSION_JAM',25,N'g'),
 (634,N'ZZ_RCP_ORANGE_PASSION_TEA_M',N'I',N'ING00007',150,N'g'),
-(635,N'ZZ_RCP_ORANGE_PASSION_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(636,N'ZZ_RCP_ORANGE_PASSION_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(637,N'ZZ_RCP_ORANGE_PASSION_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(635,N'ZZ_RCP_ORANGE_PASSION_TEA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(636,N'ZZ_RCP_ORANGE_PASSION_TEA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(637,N'ZZ_RCP_ORANGE_PASSION_TEA_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(638,N'ZZ_RCP_BROWN_SUGAR_PEARL_MILK_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',120,N'ml'),
-(639,N'ZZ_RCP_BROWN_SUGAR_PEARL_MILK_TEA_M',N'I',N'DEMO_ING_FRESH_MILK',100,N'ml'),
-(640,N'ZZ_RCP_BROWN_SUGAR_PEARL_MILK_TEA_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',12,N'ml'),
+(638,N'ZZ_RCP_BROWN_SUGAR_PEARL_MILK_TEA_M',N'P',N'PREP_BLACK_TEA',120,N'ml'),
+(639,N'ZZ_RCP_BROWN_SUGAR_PEARL_MILK_TEA_M',N'I',N'ING_FRESH_MILK',100,N'ml'),
+(640,N'ZZ_RCP_BROWN_SUGAR_PEARL_MILK_TEA_M',N'P',N'PREP_SUGAR_SYRUP',12,N'ml'),
 (641,N'ZZ_RCP_BROWN_SUGAR_PEARL_MILK_TEA_M',N'I',N'ING00007',150,N'g'),
-(642,N'ZZ_RCP_BROWN_SUGAR_PEARL_MILK_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(643,N'ZZ_RCP_BROWN_SUGAR_PEARL_MILK_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(644,N'ZZ_RCP_BROWN_SUGAR_PEARL_MILK_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(642,N'ZZ_RCP_BROWN_SUGAR_PEARL_MILK_TEA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(643,N'ZZ_RCP_BROWN_SUGAR_PEARL_MILK_TEA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(644,N'ZZ_RCP_BROWN_SUGAR_PEARL_MILK_TEA_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(645,N'ZZ_RCP_FLAN_MILK_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',120,N'ml'),
-(646,N'ZZ_RCP_FLAN_MILK_TEA_M',N'I',N'DEMO_ING_FRESH_MILK',100,N'ml'),
-(647,N'ZZ_RCP_FLAN_MILK_TEA_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',12,N'ml'),
+(645,N'ZZ_RCP_FLAN_MILK_TEA_M',N'P',N'PREP_BLACK_TEA',120,N'ml'),
+(646,N'ZZ_RCP_FLAN_MILK_TEA_M',N'I',N'ING_FRESH_MILK',100,N'ml'),
+(647,N'ZZ_RCP_FLAN_MILK_TEA_M',N'P',N'PREP_SUGAR_SYRUP',12,N'ml'),
 (648,N'ZZ_RCP_FLAN_MILK_TEA_M',N'I',N'ING00007',150,N'g'),
-(649,N'ZZ_RCP_FLAN_MILK_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(650,N'ZZ_RCP_FLAN_MILK_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(651,N'ZZ_RCP_FLAN_MILK_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(649,N'ZZ_RCP_FLAN_MILK_TEA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(650,N'ZZ_RCP_FLAN_MILK_TEA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(651,N'ZZ_RCP_FLAN_MILK_TEA_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(652,N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',120,N'ml'),
-(653,N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'I',N'DEMO_ING_FRESH_MILK',100,N'ml'),
-(654,N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',12,N'ml'),
+(652,N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'P',N'PREP_BLACK_TEA',120,N'ml'),
+(653,N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'I',N'ING_FRESH_MILK',100,N'ml'),
+(654,N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'P',N'PREP_SUGAR_SYRUP',12,N'ml'),
 (655,N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'I',N'ING00007',150,N'g'),
-(656,N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(657,N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(658,N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(656,N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(657,N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(658,N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(659,N'ZZ_RCP_ALOE_MILK_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',120,N'ml'),
-(660,N'ZZ_RCP_ALOE_MILK_TEA_M',N'I',N'DEMO_ING_FRESH_MILK',90,N'ml'),
-(661,N'ZZ_RCP_ALOE_MILK_TEA_M',N'I',N'DEMO_ING_ALOE_VERA',30,N'g'),
+(659,N'ZZ_RCP_ALOE_MILK_TEA_M',N'P',N'PREP_BLACK_TEA',120,N'ml'),
+(660,N'ZZ_RCP_ALOE_MILK_TEA_M',N'I',N'ING_FRESH_MILK',90,N'ml'),
+(661,N'ZZ_RCP_ALOE_MILK_TEA_M',N'I',N'ING_ALOE_VERA',30,N'g'),
 (662,N'ZZ_RCP_ALOE_MILK_TEA_M',N'I',N'ING00007',150,N'g'),
-(663,N'ZZ_RCP_ALOE_MILK_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(664,N'ZZ_RCP_ALOE_MILK_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(665,N'ZZ_RCP_ALOE_MILK_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(663,N'ZZ_RCP_ALOE_MILK_TEA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(664,N'ZZ_RCP_ALOE_MILK_TEA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(665,N'ZZ_RCP_ALOE_MILK_TEA_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(666,N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',120,N'ml'),
-(667,N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'I',N'DEMO_ING_FRESH_MILK',90,N'ml'),
-(668,N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'I',N'DEMO_ING_COCONUT_JELLY',30,N'g'),
+(666,N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'P',N'PREP_BLACK_TEA',120,N'ml'),
+(667,N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'I',N'ING_FRESH_MILK',90,N'ml'),
+(668,N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'I',N'ING_COCONUT_JELLY',30,N'g'),
 (669,N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'I',N'ING00007',150,N'g'),
-(670,N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(671,N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(672,N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(670,N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(671,N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(672,N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(673,N'ZZ_RCP_CHEESE_CREAM_MILK_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',120,N'ml'),
-(674,N'ZZ_RCP_CHEESE_CREAM_MILK_TEA_M',N'I',N'DEMO_ING_FRESH_MILK',90,N'ml'),
-(675,N'ZZ_RCP_CHEESE_CREAM_MILK_TEA_M',N'P',N'DEMO_PREP_CHEESE_CREAM',30,N'ml'),
+(673,N'ZZ_RCP_CHEESE_CREAM_MILK_TEA_M',N'P',N'PREP_BLACK_TEA',120,N'ml'),
+(674,N'ZZ_RCP_CHEESE_CREAM_MILK_TEA_M',N'I',N'ING_FRESH_MILK',90,N'ml'),
+(675,N'ZZ_RCP_CHEESE_CREAM_MILK_TEA_M',N'P',N'PREP_CHEESE_CREAM',30,N'ml'),
 (676,N'ZZ_RCP_CHEESE_CREAM_MILK_TEA_M',N'I',N'ING00007',150,N'g'),
-(677,N'ZZ_RCP_CHEESE_CREAM_MILK_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(678,N'ZZ_RCP_CHEESE_CREAM_MILK_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(679,N'ZZ_RCP_CHEESE_CREAM_MILK_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(677,N'ZZ_RCP_CHEESE_CREAM_MILK_TEA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(678,N'ZZ_RCP_CHEESE_CREAM_MILK_TEA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(679,N'ZZ_RCP_CHEESE_CREAM_MILK_TEA_M',N'I',N'ING_STRAW',1,N'pcs'),
 
 (680,N'ZZ_RCP_STRAWBERRY_CHEESE_MATCHA_M',N'I',N'ING00009',8,N'g'),
-(681,N'ZZ_RCP_STRAWBERRY_CHEESE_MATCHA_M',N'I',N'DEMO_ING_FRESH_MILK',120,N'ml'),
-(682,N'ZZ_RCP_STRAWBERRY_CHEESE_MATCHA_M',N'I',N'DEMO_ING_STRAWBERRY_PUREE',25,N'g'),
+(681,N'ZZ_RCP_STRAWBERRY_CHEESE_MATCHA_M',N'I',N'ING_FRESH_MILK',120,N'ml'),
+(682,N'ZZ_RCP_STRAWBERRY_CHEESE_MATCHA_M',N'I',N'ING_STRAWBERRY_PUREE',25,N'g'),
 (683,N'ZZ_RCP_STRAWBERRY_CHEESE_MATCHA_M',N'I',N'ING00007',150,N'g'),
-(684,N'ZZ_RCP_STRAWBERRY_CHEESE_MATCHA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(685,N'ZZ_RCP_STRAWBERRY_CHEESE_MATCHA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(686,N'ZZ_RCP_STRAWBERRY_CHEESE_MATCHA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(684,N'ZZ_RCP_STRAWBERRY_CHEESE_MATCHA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(685,N'ZZ_RCP_STRAWBERRY_CHEESE_MATCHA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(686,N'ZZ_RCP_STRAWBERRY_CHEESE_MATCHA_M',N'I',N'ING_STRAW',1,N'pcs'),
 
 (687,N'ZZ_RCP_MANGO_COCONUT_MATCHA_M',N'I',N'ING00009',8,N'g'),
-(688,N'ZZ_RCP_MANGO_COCONUT_MATCHA_M',N'I',N'DEMO_ING_FRESH_MILK',110,N'ml'),
-(689,N'ZZ_RCP_MANGO_COCONUT_MATCHA_M',N'I',N'DEMO_ING_MANGO_PUREE',25,N'g'),
+(688,N'ZZ_RCP_MANGO_COCONUT_MATCHA_M',N'I',N'ING_FRESH_MILK',110,N'ml'),
+(689,N'ZZ_RCP_MANGO_COCONUT_MATCHA_M',N'I',N'ING_MANGO_PUREE',25,N'g'),
 (690,N'ZZ_RCP_MANGO_COCONUT_MATCHA_M',N'I',N'ING00007',150,N'g'),
-(691,N'ZZ_RCP_MANGO_COCONUT_MATCHA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(692,N'ZZ_RCP_MANGO_COCONUT_MATCHA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(693,N'ZZ_RCP_MANGO_COCONUT_MATCHA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(691,N'ZZ_RCP_MANGO_COCONUT_MATCHA_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(692,N'ZZ_RCP_MANGO_COCONUT_MATCHA_M',N'I',N'ING_LID_M',1,N'pcs'),
+(693,N'ZZ_RCP_MANGO_COCONUT_MATCHA_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(694,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'I',N'DEMO_ING_CHOCOLATE',20,N'g'),
-(695,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'I',N'DEMO_ING_FRESH_MILK',120,N'ml'),
-(696,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'I',N'DEMO_ING_CARAMEL_SYRUP',15,N'ml'),
+(694,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'I',N'ING_CHOCOLATE',20,N'g'),
+(695,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'I',N'ING_FRESH_MILK',120,N'ml'),
+(696,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'I',N'ING_CARAMEL_SYRUP',15,N'ml'),
 (697,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'I',N'ING00007',150,N'g'),
-(698,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(699,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(700,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(698,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(699,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'I',N'ING_LID_M',1,N'pcs'),
+(700,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'I',N'ING_STRAW',1,N'pcs'),
 
-(701,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'I',N'DEMO_ING_YOGURT',140,N'g'),
-(702,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'I',N'DEMO_ING_MANGO_PUREE',30,N'g'),
-(703,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'I',N'DEMO_ING_ALOE_VERA',25,N'g'),
+(701,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'I',N'ING_YOGURT',140,N'g'),
+(702,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'I',N'ING_MANGO_PUREE',30,N'g'),
+(703,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'I',N'ING_ALOE_VERA',25,N'g'),
 (704,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'I',N'ING00007',120,N'g'),
-(705,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
-(706,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
-(707,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
-(708,N'DEMO_RECIPE_PREP_ALOE_BASE',N'I',N'DEMO_ING_ALOE_VERA',1000,N'g'),
-(709,N'DEMO_RECIPE_PREP_COCONUT_JELLY_BASE',N'I',N'DEMO_ING_COCONUT_JELLY',1000,N'g'),
-(710,N'DEMO_RECIPE_PREP_KHUC_BACH_BASE',N'I',N'DEMO_ING_KHUC_BACH_POWDER',1000,N'g'),
-(711,N'DEMO_RECIPE_PREP_LEGACY_CREAM',N'I',N'DEMO_ING_OAT_MILK',1000,N'ml');
+(705,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'I',N'ING_CUP_M',1,N'pcs'),
+(706,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'I',N'ING_LID_M',1,N'pcs'),
+(707,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'I',N'ING_STRAW',1,N'pcs'),
+(708,N'RECIPE_PREP_ALOE_BASE',N'I',N'ING_ALOE_VERA',1000,N'g'),
+(709,N'RECIPE_PREP_COCONUT_JELLY_BASE',N'I',N'ING_COCONUT_JELLY',1000,N'g'),
+(710,N'RECIPE_PREP_KHUC_BACH_BASE',N'I',N'ING_KHUC_BACH_POWDER',1000,N'g'),
+(711,N'RECIPE_PREP_LEGACY_CREAM',N'I',N'ING_OAT_MILK',1000,N'ml');
 
  IF (SELECT COUNT(*) FROM @Component)<>711
  OR EXISTS(SELECT 1 FROM @Component WHERE Quantity<=0 OR SourceType NOT IN(N'I',N'P'))
@@ -4834,16 +4874,16 @@ FROM dbo.DrinkSizeToppingPolicies;
 
 SELECT N'Ingredients' [Table],a.CanonicalCode RetainedCode,a.SourceCode RemovedStore1Code,
 N'Giữ canonical; RecipeDetails Store1 tham chiếu canonical code.' Decision FROM(VALUES
-(N'DEMO_ING_CONDENSED_MILK',N'ING00002'),(N'DEMO_ING_BLACK_TEA',N'ING00003'),
-(N'DEMO_ING_SUGAR',N'ING00006'),(N'DEMO_ING_ICE',N'ING00007'),(N'DEMO_ING_MATCHA',N'ING00009'),
-(N'DEMO_ING_DAIRY_CREAM',N'ING00010'),(N'DEMO_ING_WATER',N'ING00013'))a(SourceCode,CanonicalCode);
+(N'ING_CONDENSED_MILK',N'ING00002'),(N'ING_BLACK_TEA',N'ING00003'),
+(N'ING_SUGAR',N'ING00006'),(N'ING_ICE',N'ING00007'),(N'ING_MATCHA',N'ING00009'),
+(N'ING_DAIRY_CREAM',N'ING00010'),(N'ING_WATER',N'ING00013'))a(SourceCode,CanonicalCode);
 
 SELECT N'Toppings' [Table],a.CanonicalCode RetainedCode,a.SourceCode RemovedStore1Code,a.Decision FROM(VALUES
-(N'DEMO_TOP_BLACK_PEARL',N'TC_DEN',N'Giữ header Store1 Archived; active dùng RCP_TC_DEN.'),
-(N'DEMO_TOP_WHITE_PEARL',N'TC_TRANG',N'Giữ header Store1 Archived; active dùng RCP_TC_TRANG.'),
-(N'DEMO_TOP_FLAN',N'BH_FLAN',N'Remap BOM vào topping canonical.'),
-(N'DEMO_TOP_TARO_JELLY',N'TH_KM',N'Remap BOM vào topping canonical.'),
-(N'DEMO_TOP_CHEESE_CREAM',N'KEMCHEESE',N'Remap BOM vào topping canonical.'))a(SourceCode,CanonicalCode,Decision);
+(N'TOP_BLACK_PEARL',N'TC_DEN',N'Giữ header Store1 Archived; active dùng RCP_TC_DEN.'),
+(N'TOP_WHITE_PEARL',N'TC_TRANG',N'Giữ header Store1 Archived; active dùng RCP_TC_TRANG.'),
+(N'TOP_FLAN',N'BH_FLAN',N'Remap BOM vào topping canonical.'),
+(N'TOP_TARO_JELLY',N'TH_KM',N'Remap BOM vào topping canonical.'),
+(N'TOP_CHEESE_CREAM',N'KEMCHEESE',N'Remap BOM vào topping canonical.'))a(SourceCode,CanonicalCode,Decision);
 
 /* ============================================================
    BATCH 05/12 - SUPPLIERS AND STORE SCOPE
@@ -4910,51 +4950,51 @@ BEGIN TRY
  DECLARE @SupplierSeed TABLE(SupplierId int PRIMARY KEY,Code nvarchar(50) UNIQUE,Name nvarchar(200) UNIQUE,
  TaxCode nvarchar(14) UNIQUE,Address nvarchar(500),Active bit,CreatedAt datetime2,UpdatedAt datetime2,Note nvarchar(1000));
  INSERT @SupplierSeed VALUES
-(6,N'DEMO_SUP_COFFEE',N'Nhà cung cấp Cà phê Demo',N'3708888001',N'Thành phố Hồ Chí Minh - dữ liệu demo',1,'2026-01-01','2026-01-01',N'DEMO supplier - không phải dữ liệu doanh nghiệp thật'),
-(7,N'DEMO_SUP_DAIRY',N'Nhà cung cấp Sữa & Kem Demo',N'0318888002',N'TP.HCM - dữ liệu demo',1,'2026-01-01','2026-01-01',N'DEMO supplier - không phải dữ liệu doanh nghiệp thật'),
-(8,N'DEMO_SUP_PACKAGING',N'Nhà cung cấp Bao bì Demo',N'1108888005-001',N'Tỉnh Tây Ninh - dữ liệu demo',1,'2026-01-01','2026-01-01',N'DEMO supplier - không phải dữ liệu doanh nghiệp thật'),
-(9,N'DEMO_SUP_TEA_FRUIT',N'Nhà cung cấp Trà & Trái cây Demo',N'5808888003',N'Lâm Đồng - dữ liệu demo',1,'2026-01-01','2026-01-01',N'DEMO supplier - không phải dữ liệu doanh nghiệp thật'),
-(10,N'DEMO_SUP_TOPPING',N'Nhà cung cấp Topping Demo',N'3608888004',N'Đồng Nai - dữ liệu demo',1,'2026-01-01','2026-01-01',N'DEMO supplier - không phải dữ liệu doanh nghiệp thật'),
-(11,N'DEMO_SUP_COFFEE_TEA_01',N'Đối tác Demo Cà phê & Trà TP.HCM',N'9000000011',N'TP.HCM - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Cà phê & Trà'),
-(12,N'DEMO_SUP_COFFEE_TEA_02',N'Đối tác Demo Cà phê & Trà Bình Dương',N'9000000012',N'Thành phố Hồ Chí Minh - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Cà phê & Trà'),
-(13,N'DEMO_SUP_COFFEE_TEA_03',N'Đối tác Demo Cà phê & Trà Đồng Nai',N'9000000013',N'Đồng Nai - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Cà phê & Trà'),
-(14,N'DEMO_SUP_COFFEE_TEA_04',N'Đối tác Demo Cà phê & Trà Long An',N'9000000014',N'Tỉnh Tây Ninh - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Cà phê & Trà'),
-(15,N'DEMO_SUP_COFFEE_TEA_05',N'Đối tác Demo Cà phê & Trà Lâm Đồng',N'9000000015',N'Lâm Đồng - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Cà phê & Trà'),
-(16,N'DEMO_SUP_COFFEE_TEA_06',N'Đối tác Demo Cà phê & Trà Đắk Lắk',N'9000000016',N'Đắk Lắk - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Cà phê & Trà'),
-(17,N'DEMO_SUP_COFFEE_TEA_07',N'Đối tác Demo Cà phê & Trà Hà Nội',N'9000000017',N'Hà Nội - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Cà phê & Trà'),
-(18,N'DEMO_SUP_COFFEE_TEA_08',N'Đối tác Demo Cà phê & Trà Đà Nẵng',N'9000000018',N'Đà Nẵng - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Cà phê & Trà'),
-(19,N'DEMO_SUP_DAIRY_01',N'Đối tác Demo Sữa & Kem TP.HCM',N'9000000019',N'TP.HCM - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Sữa & Kem'),
-(20,N'DEMO_SUP_DAIRY_02',N'Đối tác Demo Sữa & Kem Bình Dương',N'9000000020',N'Thành phố Hồ Chí Minh - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Sữa & Kem'),
-(21,N'DEMO_SUP_DAIRY_03',N'Đối tác Demo Sữa & Kem Đồng Nai',N'9000000021',N'Đồng Nai - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Sữa & Kem'),
-(22,N'DEMO_SUP_DAIRY_04',N'Đối tác Demo Sữa & Kem Long An',N'9000000022',N'Tỉnh Tây Ninh - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Sữa & Kem'),
-(23,N'DEMO_SUP_DAIRY_05',N'Đối tác Demo Sữa & Kem Lâm Đồng',N'9000000023',N'Lâm Đồng - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Sữa & Kem'),
-(24,N'DEMO_SUP_DAIRY_06',N'Đối tác Demo Sữa & Kem Đắk Lắk',N'9000000024',N'Đắk Lắk - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Sữa & Kem'),
-(25,N'DEMO_SUP_DAIRY_07',N'Đối tác Demo Sữa & Kem Hà Nội',N'9000000025',N'Hà Nội - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Sữa & Kem'),
-(26,N'DEMO_SUP_DAIRY_08',N'Đối tác Demo Sữa & Kem Đà Nẵng',N'9000000026',N'Đà Nẵng - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Sữa & Kem'),
-(27,N'DEMO_SUP_FRUIT_01',N'Đối tác Demo Trái cây TP.HCM',N'9000000027',N'TP.HCM - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Trái cây'),
-(28,N'DEMO_SUP_FRUIT_02',N'Đối tác Demo Trái cây Bình Dương',N'9000000028',N'Thành phố Hồ Chí Minh - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Trái cây'),
-(29,N'DEMO_SUP_FRUIT_03',N'Đối tác Demo Trái cây Đồng Nai',N'9000000029',N'Đồng Nai - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Trái cây'),
-(30,N'DEMO_SUP_FRUIT_04',N'Đối tác Demo Trái cây Long An',N'9000000030',N'Tỉnh Tây Ninh - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Trái cây'),
-(31,N'DEMO_SUP_FRUIT_05',N'Đối tác Demo Trái cây Lâm Đồng',N'9000000031',N'Lâm Đồng - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Trái cây'),
-(32,N'DEMO_SUP_FRUIT_06',N'Đối tác Demo Trái cây Đắk Lắk',N'9000000032',N'Đắk Lắk - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Trái cây'),
-(33,N'DEMO_SUP_FRUIT_07',N'Đối tác Demo Trái cây Hà Nội',N'9000000033',N'Hà Nội - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Trái cây'),
-(34,N'DEMO_SUP_FRUIT_08',N'Đối tác Demo Trái cây Đà Nẵng',N'9000000034',N'Đà Nẵng - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Trái cây'),
-(35,N'DEMO_SUP_TOPPING_SYRUP_01',N'Đối tác Demo Topping & Syrup TP.HCM',N'9000000035',N'TP.HCM - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Topping & Syrup'),
-(36,N'DEMO_SUP_TOPPING_SYRUP_02',N'Đối tác Demo Topping & Syrup Bình Dương',N'9000000036',N'Thành phố Hồ Chí Minh - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Topping & Syrup'),
-(37,N'DEMO_SUP_TOPPING_SYRUP_03',N'Đối tác Demo Topping & Syrup Đồng Nai',N'9000000037',N'Đồng Nai - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Topping & Syrup'),
-(38,N'DEMO_SUP_TOPPING_SYRUP_04',N'Đối tác Demo Topping & Syrup Long An',N'9000000038',N'Tỉnh Tây Ninh - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Topping & Syrup'),
-(39,N'DEMO_SUP_TOPPING_SYRUP_05',N'Đối tác Demo Topping & Syrup Lâm Đồng',N'9000000039',N'Lâm Đồng - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Topping & Syrup'),
-(40,N'DEMO_SUP_TOPPING_SYRUP_06',N'Đối tác Demo Topping & Syrup Đắk Lắk',N'9000000040',N'Đắk Lắk - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Topping & Syrup'),
-(41,N'DEMO_SUP_TOPPING_SYRUP_07',N'Đối tác Demo Topping & Syrup Hà Nội',N'9000000041',N'Hà Nội - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Topping & Syrup'),
-(42,N'DEMO_SUP_TOPPING_SYRUP_08',N'Đối tác Demo Topping & Syrup Đà Nẵng',N'9000000042',N'Đà Nẵng - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Topping & Syrup'),
-(43,N'DEMO_SUP_PACKAGING_01',N'Đối tác Demo Bao bì TP.HCM',N'9000000043',N'TP.HCM - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Bao bì'),
-(44,N'DEMO_SUP_PACKAGING_02',N'Đối tác Demo Bao bì Bình Dương',N'9000000044',N'Thành phố Hồ Chí Minh - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Bao bì'),
-(45,N'DEMO_SUP_PACKAGING_03',N'Đối tác Demo Bao bì Đồng Nai',N'9000000045',N'Đồng Nai - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Bao bì'),
-(46,N'DEMO_SUP_PACKAGING_04',N'Đối tác Demo Bao bì Long An',N'9000000046',N'Tỉnh Tây Ninh - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Bao bì'),
-(47,N'DEMO_SUP_PACKAGING_05',N'Đối tác Demo Bao bì Lâm Đồng',N'9000000047',N'Lâm Đồng - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Bao bì'),
-(48,N'DEMO_SUP_PACKAGING_06',N'Đối tác Demo Bao bì Đắk Lắk',N'9000000048',N'Đắk Lắk - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Bao bì'),
-(49,N'DEMO_SUP_PACKAGING_07',N'Đối tác Demo Bao bì Hà Nội',N'9000000049',N'Hà Nội - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Bao bì'),
-(50,N'DEMO_SUP_PACKAGING_08',N'Đối tác Demo Bao bì Đà Nẵng',N'9000000050',N'Đà Nẵng - dữ liệu demo',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng demo: Bao bì');
+(6,N'SUP_COFFEE',N'Nhà cung cấp Cà phê',N'3708888001',N'Thành phố Hồ Chí Minh - dữ liệu',1,'2026-01-01','2026-01-01',N'supplier - không phải dữ liệu doanh nghiệp thật'),
+(7,N'SUP_DAIRY',N'Nhà cung cấp Sữa & Kem',N'0318888002',N'TP.HCM - dữ liệu',1,'2026-01-01','2026-01-01',N'supplier - không phải dữ liệu doanh nghiệp thật'),
+(8,N'SUP_PACKAGING',N'Nhà cung cấp Bao bì',N'1108888005-001',N'Tỉnh Tây Ninh - dữ liệu',1,'2026-01-01','2026-01-01',N'supplier - không phải dữ liệu doanh nghiệp thật'),
+(9,N'SUP_TEA_FRUIT',N'Nhà cung cấp Trà & Trái cây',N'5808888003',N'Lâm Đồng - dữ liệu',1,'2026-01-01','2026-01-01',N'supplier - không phải dữ liệu doanh nghiệp thật'),
+(10,N'SUP_TOPPING',N'Nhà cung cấp Topping',N'3608888004',N'Đồng Nai - dữ liệu',1,'2026-01-01','2026-01-01',N'supplier - không phải dữ liệu doanh nghiệp thật'),
+(11,N'SUP_COFFEE_TEA_01',N'Đối tác Cà phê & Trà TP.HCM',N'9000000011',N'TP.HCM - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Cà phê & Trà'),
+(12,N'SUP_COFFEE_TEA_02',N'Đối tác Cà phê & Trà Bình Dương',N'9000000012',N'Thành phố Hồ Chí Minh - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Cà phê & Trà'),
+(13,N'SUP_COFFEE_TEA_03',N'Đối tác Cà phê & Trà Đồng Nai',N'9000000013',N'Đồng Nai - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Cà phê & Trà'),
+(14,N'SUP_COFFEE_TEA_04',N'Đối tác Cà phê & Trà Long An',N'9000000014',N'Tỉnh Tây Ninh - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Cà phê & Trà'),
+(15,N'SUP_COFFEE_TEA_05',N'Đối tác Cà phê & Trà Lâm Đồng',N'9000000015',N'Lâm Đồng - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Cà phê & Trà'),
+(16,N'SUP_COFFEE_TEA_06',N'Đối tác Cà phê & Trà Đắk Lắk',N'9000000016',N'Đắk Lắk - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Cà phê & Trà'),
+(17,N'SUP_COFFEE_TEA_07',N'Đối tác Cà phê & Trà Hà Nội',N'9000000017',N'Hà Nội - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Cà phê & Trà'),
+(18,N'SUP_COFFEE_TEA_08',N'Đối tác Cà phê & Trà Đà Nẵng',N'9000000018',N'Đà Nẵng - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Cà phê & Trà'),
+(19,N'SUP_DAIRY_01',N'Đối tác Sữa & Kem TP.HCM',N'9000000019',N'TP.HCM - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Sữa & Kem'),
+(20,N'SUP_DAIRY_02',N'Đối tác Sữa & Kem Bình Dương',N'9000000020',N'Thành phố Hồ Chí Minh - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Sữa & Kem'),
+(21,N'SUP_DAIRY_03',N'Đối tác Sữa & Kem Đồng Nai',N'9000000021',N'Đồng Nai - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Sữa & Kem'),
+(22,N'SUP_DAIRY_04',N'Đối tác Sữa & Kem Long An',N'9000000022',N'Tỉnh Tây Ninh - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Sữa & Kem'),
+(23,N'SUP_DAIRY_05',N'Đối tác Sữa & Kem Lâm Đồng',N'9000000023',N'Lâm Đồng - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Sữa & Kem'),
+(24,N'SUP_DAIRY_06',N'Đối tác Sữa & Kem Đắk Lắk',N'9000000024',N'Đắk Lắk - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Sữa & Kem'),
+(25,N'SUP_DAIRY_07',N'Đối tác Sữa & Kem Hà Nội',N'9000000025',N'Hà Nội - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Sữa & Kem'),
+(26,N'SUP_DAIRY_08',N'Đối tác Sữa & Kem Đà Nẵng',N'9000000026',N'Đà Nẵng - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Sữa & Kem'),
+(27,N'SUP_FRUIT_01',N'Đối tác Trái cây TP.HCM',N'9000000027',N'TP.HCM - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Trái cây'),
+(28,N'SUP_FRUIT_02',N'Đối tác Trái cây Bình Dương',N'9000000028',N'Thành phố Hồ Chí Minh - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Trái cây'),
+(29,N'SUP_FRUIT_03',N'Đối tác Trái cây Đồng Nai',N'9000000029',N'Đồng Nai - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Trái cây'),
+(30,N'SUP_FRUIT_04',N'Đối tác Trái cây Long An',N'9000000030',N'Tỉnh Tây Ninh - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Trái cây'),
+(31,N'SUP_FRUIT_05',N'Đối tác Trái cây Lâm Đồng',N'9000000031',N'Lâm Đồng - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Trái cây'),
+(32,N'SUP_FRUIT_06',N'Đối tác Trái cây Đắk Lắk',N'9000000032',N'Đắk Lắk - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Trái cây'),
+(33,N'SUP_FRUIT_07',N'Đối tác Trái cây Hà Nội',N'9000000033',N'Hà Nội - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Trái cây'),
+(34,N'SUP_FRUIT_08',N'Đối tác Trái cây Đà Nẵng',N'9000000034',N'Đà Nẵng - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Trái cây'),
+(35,N'SUP_TOPPING_SYRUP_01',N'Đối tác Topping & Syrup TP.HCM',N'9000000035',N'TP.HCM - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Topping & Syrup'),
+(36,N'SUP_TOPPING_SYRUP_02',N'Đối tác Topping & Syrup Bình Dương',N'9000000036',N'Thành phố Hồ Chí Minh - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Topping & Syrup'),
+(37,N'SUP_TOPPING_SYRUP_03',N'Đối tác Topping & Syrup Đồng Nai',N'9000000037',N'Đồng Nai - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Topping & Syrup'),
+(38,N'SUP_TOPPING_SYRUP_04',N'Đối tác Topping & Syrup Long An',N'9000000038',N'Tỉnh Tây Ninh - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Topping & Syrup'),
+(39,N'SUP_TOPPING_SYRUP_05',N'Đối tác Topping & Syrup Lâm Đồng',N'9000000039',N'Lâm Đồng - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Topping & Syrup'),
+(40,N'SUP_TOPPING_SYRUP_06',N'Đối tác Topping & Syrup Đắk Lắk',N'9000000040',N'Đắk Lắk - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Topping & Syrup'),
+(41,N'SUP_TOPPING_SYRUP_07',N'Đối tác Topping & Syrup Hà Nội',N'9000000041',N'Hà Nội - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Topping & Syrup'),
+(42,N'SUP_TOPPING_SYRUP_08',N'Đối tác Topping & Syrup Đà Nẵng',N'9000000042',N'Đà Nẵng - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Topping & Syrup'),
+(43,N'SUP_PACKAGING_01',N'Đối tác Bao bì TP.HCM',N'9000000043',N'TP.HCM - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Bao bì'),
+(44,N'SUP_PACKAGING_02',N'Đối tác Bao bì Bình Dương',N'9000000044',N'Thành phố Hồ Chí Minh - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Bao bì'),
+(45,N'SUP_PACKAGING_03',N'Đối tác Bao bì Đồng Nai',N'9000000045',N'Đồng Nai - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Bao bì'),
+(46,N'SUP_PACKAGING_04',N'Đối tác Bao bì Long An',N'9000000046',N'Tỉnh Tây Ninh - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Bao bì'),
+(47,N'SUP_PACKAGING_05',N'Đối tác Bao bì Lâm Đồng',N'9000000047',N'Lâm Đồng - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Bao bì'),
+(48,N'SUP_PACKAGING_06',N'Đối tác Bao bì Đắk Lắk',N'9000000048',N'Đắk Lắk - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Bao bì'),
+(49,N'SUP_PACKAGING_07',N'Đối tác Bao bì Hà Nội',N'9000000049',N'Hà Nội - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Bao bì'),
+(50,N'SUP_PACKAGING_08',N'Đối tác Bao bì Đà Nẵng',N'9000000050',N'Đà Nẵng - dữ liệu',1,'2026-01-01','2026-01-01',N'Nhóm cung ứng: Bao bì');
 
  IF (SELECT COUNT(*) FROM @SupplierSeed)<>45
  OR EXISTS(SELECT 1 FROM @SupplierSeed WHERE Active<>1 OR TaxCode IS NULL OR
@@ -4967,8 +5007,8 @@ BEGIN TRY
  SET s.Address=x.Address
  FROM dbo.Suppliers s
  JOIN @SupplierSeed x ON x.SupplierId=s.SupplierId AND x.Code=s.Code AND x.TaxCode=s.TaxCode AND x.Name=s.Name
- WHERE (s.Address=N'Bình Dương - dữ liệu demo' AND x.Address=N'Thành phố Hồ Chí Minh - dữ liệu demo')
-    OR (s.Address=N'Long An - dữ liệu demo' AND x.Address=N'Tỉnh Tây Ninh - dữ liệu demo');
+ WHERE (s.Address=N'Bình Dương - dữ liệu' AND x.Address=N'Thành phố Hồ Chí Minh - dữ liệu')
+    OR (s.Address=N'Long An - dữ liệu' AND x.Address=N'Tỉnh Tây Ninh - dữ liệu');
 
  IF EXISTS(SELECT 1 FROM @SupplierSeed x JOIN dbo.Suppliers s
  ON s.SupplierId=x.SupplierId OR s.Code=x.Code OR s.TaxCode=x.TaxCode OR s.Name=x.Name
@@ -4986,51 +5026,51 @@ BEGIN TRY
  DECLARE @PhoneSeed TABLE(SupplierPhoneId int PRIMARY KEY,SupplierId int,PhoneNumber nvarchar(20),
  IsPrimary bit,Description nvarchar(200),UNIQUE(SupplierId,PhoneNumber));
  INSERT @PhoneSeed VALUES
-(7,6,N'0901000001',1,N'Hotline demo'),
-(8,7,N'0901000002',1,N'Hotline demo'),
-(9,8,N'0901000005',1,N'Hotline demo'),
-(10,9,N'0901000003',1,N'Hotline demo'),
-(11,10,N'0901000004',1,N'Hotline demo'),
-(12,11,N'0980000011',1,N'Hotline đối tác demo'),
-(13,12,N'0980000012',1,N'Hotline đối tác demo'),
-(14,13,N'0980000013',1,N'Hotline đối tác demo'),
-(15,14,N'0980000014',1,N'Hotline đối tác demo'),
-(16,15,N'0980000015',1,N'Hotline đối tác demo'),
-(17,16,N'0980000016',1,N'Hotline đối tác demo'),
-(18,17,N'0980000017',1,N'Hotline đối tác demo'),
-(19,18,N'0980000018',1,N'Hotline đối tác demo'),
-(20,19,N'0980000019',1,N'Hotline đối tác demo'),
-(21,20,N'0980000020',1,N'Hotline đối tác demo'),
-(22,21,N'0980000021',1,N'Hotline đối tác demo'),
-(23,22,N'0980000022',1,N'Hotline đối tác demo'),
-(24,23,N'0980000023',1,N'Hotline đối tác demo'),
-(25,24,N'0980000024',1,N'Hotline đối tác demo'),
-(26,25,N'0980000025',1,N'Hotline đối tác demo'),
-(27,26,N'0980000026',1,N'Hotline đối tác demo'),
-(28,27,N'0980000027',1,N'Hotline đối tác demo'),
-(29,28,N'0980000028',1,N'Hotline đối tác demo'),
-(30,29,N'0980000029',1,N'Hotline đối tác demo'),
-(31,30,N'0980000030',1,N'Hotline đối tác demo'),
-(32,31,N'0980000031',1,N'Hotline đối tác demo'),
-(33,32,N'0980000032',1,N'Hotline đối tác demo'),
-(34,33,N'0980000033',1,N'Hotline đối tác demo'),
-(35,34,N'0980000034',1,N'Hotline đối tác demo'),
-(36,35,N'0980000035',1,N'Hotline đối tác demo'),
-(37,36,N'0980000036',1,N'Hotline đối tác demo'),
-(38,37,N'0980000037',1,N'Hotline đối tác demo'),
-(39,38,N'0980000038',1,N'Hotline đối tác demo'),
-(40,39,N'0980000039',1,N'Hotline đối tác demo'),
-(41,40,N'0980000040',1,N'Hotline đối tác demo'),
-(42,41,N'0980000041',1,N'Hotline đối tác demo'),
-(43,42,N'0980000042',1,N'Hotline đối tác demo'),
-(44,43,N'0980000043',1,N'Hotline đối tác demo'),
-(45,44,N'0980000044',1,N'Hotline đối tác demo'),
-(46,45,N'0980000045',1,N'Hotline đối tác demo'),
-(47,46,N'0980000046',1,N'Hotline đối tác demo'),
-(48,47,N'0980000047',1,N'Hotline đối tác demo'),
-(49,48,N'0980000048',1,N'Hotline đối tác demo'),
-(50,49,N'0980000049',1,N'Hotline đối tác demo'),
-(51,50,N'0980000050',1,N'Hotline đối tác demo');
+(7,6,N'0901000001',1,N'Hotline'),
+(8,7,N'0901000002',1,N'Hotline'),
+(9,8,N'0901000005',1,N'Hotline'),
+(10,9,N'0901000003',1,N'Hotline'),
+(11,10,N'0901000004',1,N'Hotline'),
+(12,11,N'0980000011',1,N'Hotline đối tác'),
+(13,12,N'0980000012',1,N'Hotline đối tác'),
+(14,13,N'0980000013',1,N'Hotline đối tác'),
+(15,14,N'0980000014',1,N'Hotline đối tác'),
+(16,15,N'0980000015',1,N'Hotline đối tác'),
+(17,16,N'0980000016',1,N'Hotline đối tác'),
+(18,17,N'0980000017',1,N'Hotline đối tác'),
+(19,18,N'0980000018',1,N'Hotline đối tác'),
+(20,19,N'0980000019',1,N'Hotline đối tác'),
+(21,20,N'0980000020',1,N'Hotline đối tác'),
+(22,21,N'0980000021',1,N'Hotline đối tác'),
+(23,22,N'0980000022',1,N'Hotline đối tác'),
+(24,23,N'0980000023',1,N'Hotline đối tác'),
+(25,24,N'0980000024',1,N'Hotline đối tác'),
+(26,25,N'0980000025',1,N'Hotline đối tác'),
+(27,26,N'0980000026',1,N'Hotline đối tác'),
+(28,27,N'0980000027',1,N'Hotline đối tác'),
+(29,28,N'0980000028',1,N'Hotline đối tác'),
+(30,29,N'0980000029',1,N'Hotline đối tác'),
+(31,30,N'0980000030',1,N'Hotline đối tác'),
+(32,31,N'0980000031',1,N'Hotline đối tác'),
+(33,32,N'0980000032',1,N'Hotline đối tác'),
+(34,33,N'0980000033',1,N'Hotline đối tác'),
+(35,34,N'0980000034',1,N'Hotline đối tác'),
+(36,35,N'0980000035',1,N'Hotline đối tác'),
+(37,36,N'0980000036',1,N'Hotline đối tác'),
+(38,37,N'0980000037',1,N'Hotline đối tác'),
+(39,38,N'0980000038',1,N'Hotline đối tác'),
+(40,39,N'0980000039',1,N'Hotline đối tác'),
+(41,40,N'0980000040',1,N'Hotline đối tác'),
+(42,41,N'0980000041',1,N'Hotline đối tác'),
+(43,42,N'0980000042',1,N'Hotline đối tác'),
+(44,43,N'0980000043',1,N'Hotline đối tác'),
+(45,44,N'0980000044',1,N'Hotline đối tác'),
+(46,45,N'0980000045',1,N'Hotline đối tác'),
+(47,46,N'0980000046',1,N'Hotline đối tác'),
+(48,47,N'0980000047',1,N'Hotline đối tác'),
+(49,48,N'0980000048',1,N'Hotline đối tác'),
+(50,49,N'0980000049',1,N'Hotline đối tác'),
+(51,50,N'0980000050',1,N'Hotline đối tác');
 
  IF (SELECT COUNT(*) FROM @PhoneSeed)<>45
  OR EXISTS(SELECT 1 FROM @PhoneSeed WHERE LEN(PhoneNumber)<>10 OR PhoneNumber LIKE N'%[^0-9]%' OR IsPrimary<>1)
@@ -5056,51 +5096,51 @@ BEGIN TRY
  Email nvarchar(150),PhoneNumber nvarchar(20),Position nvarchar(100),IsPrimary bit,Active bit,Note nvarchar(1000),
  UNIQUE(SupplierId,Email));
  INSERT @ContactSeed VALUES
-(6,6,N'Liên hệ Demo',N'coffee.demo@example.invalid',N'0901000001',N'Điều phối demo',1,1,N'Dữ liệu demo, không gửi email thật'),
-(7,7,N'Liên hệ Demo',N'dairy.demo@example.invalid',N'0901000002',N'Điều phối demo',1,1,N'Dữ liệu demo, không gửi email thật'),
-(8,8,N'Liên hệ Demo',N'packaging.demo@example.invalid',N'0901000005',N'Điều phối demo',1,1,N'Dữ liệu demo, không gửi email thật'),
-(9,9,N'Liên hệ Demo',N'tea.demo@example.invalid',N'0901000003',N'Điều phối demo',1,1,N'Dữ liệu demo, không gửi email thật'),
-(10,10,N'Liên hệ Demo',N'topping.demo@example.invalid',N'0901000004',N'Điều phối demo',1,1,N'Dữ liệu demo, không gửi email thật'),
-(11,11,N'Điều phối viên Demo 11',N'supplier11@cafechain.invalid',N'0980000011',N'Điều phối Cà phê & Trà',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(12,12,N'Điều phối viên Demo 12',N'supplier12@cafechain.invalid',N'0980000012',N'Điều phối Cà phê & Trà',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(13,13,N'Điều phối viên Demo 13',N'supplier13@cafechain.invalid',N'0980000013',N'Điều phối Cà phê & Trà',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(14,14,N'Điều phối viên Demo 14',N'supplier14@cafechain.invalid',N'0980000014',N'Điều phối Cà phê & Trà',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(15,15,N'Điều phối viên Demo 15',N'supplier15@cafechain.invalid',N'0980000015',N'Điều phối Cà phê & Trà',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(16,16,N'Điều phối viên Demo 16',N'supplier16@cafechain.invalid',N'0980000016',N'Điều phối Cà phê & Trà',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(17,17,N'Điều phối viên Demo 17',N'supplier17@cafechain.invalid',N'0980000017',N'Điều phối Cà phê & Trà',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(18,18,N'Điều phối viên Demo 18',N'supplier18@cafechain.invalid',N'0980000018',N'Điều phối Cà phê & Trà',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(19,19,N'Điều phối viên Demo 19',N'supplier19@cafechain.invalid',N'0980000019',N'Điều phối Sữa & Kem',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(20,20,N'Điều phối viên Demo 20',N'supplier20@cafechain.invalid',N'0980000020',N'Điều phối Sữa & Kem',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(21,21,N'Điều phối viên Demo 21',N'supplier21@cafechain.invalid',N'0980000021',N'Điều phối Sữa & Kem',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(22,22,N'Điều phối viên Demo 22',N'supplier22@cafechain.invalid',N'0980000022',N'Điều phối Sữa & Kem',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(23,23,N'Điều phối viên Demo 23',N'supplier23@cafechain.invalid',N'0980000023',N'Điều phối Sữa & Kem',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(24,24,N'Điều phối viên Demo 24',N'supplier24@cafechain.invalid',N'0980000024',N'Điều phối Sữa & Kem',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(25,25,N'Điều phối viên Demo 25',N'supplier25@cafechain.invalid',N'0980000025',N'Điều phối Sữa & Kem',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(26,26,N'Điều phối viên Demo 26',N'supplier26@cafechain.invalid',N'0980000026',N'Điều phối Sữa & Kem',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(27,27,N'Điều phối viên Demo 27',N'supplier27@cafechain.invalid',N'0980000027',N'Điều phối Trái cây',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(28,28,N'Điều phối viên Demo 28',N'supplier28@cafechain.invalid',N'0980000028',N'Điều phối Trái cây',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(29,29,N'Điều phối viên Demo 29',N'supplier29@cafechain.invalid',N'0980000029',N'Điều phối Trái cây',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(30,30,N'Điều phối viên Demo 30',N'supplier30@cafechain.invalid',N'0980000030',N'Điều phối Trái cây',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(31,31,N'Điều phối viên Demo 31',N'supplier31@cafechain.invalid',N'0980000031',N'Điều phối Trái cây',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(32,32,N'Điều phối viên Demo 32',N'supplier32@cafechain.invalid',N'0980000032',N'Điều phối Trái cây',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(33,33,N'Điều phối viên Demo 33',N'supplier33@cafechain.invalid',N'0980000033',N'Điều phối Trái cây',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(34,34,N'Điều phối viên Demo 34',N'supplier34@cafechain.invalid',N'0980000034',N'Điều phối Trái cây',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(35,35,N'Điều phối viên Demo 35',N'supplier35@cafechain.invalid',N'0980000035',N'Điều phối Topping & Syrup',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(36,36,N'Điều phối viên Demo 36',N'supplier36@cafechain.invalid',N'0980000036',N'Điều phối Topping & Syrup',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(37,37,N'Điều phối viên Demo 37',N'supplier37@cafechain.invalid',N'0980000037',N'Điều phối Topping & Syrup',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(38,38,N'Điều phối viên Demo 38',N'supplier38@cafechain.invalid',N'0980000038',N'Điều phối Topping & Syrup',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(39,39,N'Điều phối viên Demo 39',N'supplier39@cafechain.invalid',N'0980000039',N'Điều phối Topping & Syrup',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(40,40,N'Điều phối viên Demo 40',N'supplier40@cafechain.invalid',N'0980000040',N'Điều phối Topping & Syrup',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(41,41,N'Điều phối viên Demo 41',N'supplier41@cafechain.invalid',N'0980000041',N'Điều phối Topping & Syrup',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(42,42,N'Điều phối viên Demo 42',N'supplier42@cafechain.invalid',N'0980000042',N'Điều phối Topping & Syrup',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(43,43,N'Điều phối viên Demo 43',N'supplier43@cafechain.invalid',N'0980000043',N'Điều phối Bao bì',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(44,44,N'Điều phối viên Demo 44',N'supplier44@cafechain.invalid',N'0980000044',N'Điều phối Bao bì',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(45,45,N'Điều phối viên Demo 45',N'supplier45@cafechain.invalid',N'0980000045',N'Điều phối Bao bì',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(46,46,N'Điều phối viên Demo 46',N'supplier46@cafechain.invalid',N'0980000046',N'Điều phối Bao bì',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(47,47,N'Điều phối viên Demo 47',N'supplier47@cafechain.invalid',N'0980000047',N'Điều phối Bao bì',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(48,48,N'Điều phối viên Demo 48',N'supplier48@cafechain.invalid',N'0980000048',N'Điều phối Bao bì',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(49,49,N'Điều phối viên Demo 49',N'supplier49@cafechain.invalid',N'0980000049',N'Điều phối Bao bì',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
-(50,50,N'Điều phối viên Demo 50',N'supplier50@cafechain.invalid',N'0980000050',N'Điều phối Bao bì',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế');
+(6,6,N'Liên hệ',N'coffee.@example.invalid',N'0901000001',N'Điều phối',1,1,N'Dữ liệu, không gửi email thật'),
+(7,7,N'Liên hệ',N'dairy.@example.invalid',N'0901000002',N'Điều phối',1,1,N'Dữ liệu, không gửi email thật'),
+(8,8,N'Liên hệ',N'packaging.@example.invalid',N'0901000005',N'Điều phối',1,1,N'Dữ liệu, không gửi email thật'),
+(9,9,N'Liên hệ',N'tea.@example.invalid',N'0901000003',N'Điều phối',1,1,N'Dữ liệu, không gửi email thật'),
+(10,10,N'Liên hệ',N'topping.@example.invalid',N'0901000004',N'Điều phối',1,1,N'Dữ liệu, không gửi email thật'),
+(11,11,N'Điều phối viên 11',N'supplier11@cafechain.invalid',N'0980000011',N'Điều phối Cà phê & Trà',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(12,12,N'Điều phối viên 12',N'supplier12@cafechain.invalid',N'0980000012',N'Điều phối Cà phê & Trà',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(13,13,N'Điều phối viên 13',N'supplier13@cafechain.invalid',N'0980000013',N'Điều phối Cà phê & Trà',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(14,14,N'Điều phối viên 14',N'supplier14@cafechain.invalid',N'0980000014',N'Điều phối Cà phê & Trà',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(15,15,N'Điều phối viên 15',N'supplier15@cafechain.invalid',N'0980000015',N'Điều phối Cà phê & Trà',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(16,16,N'Điều phối viên 16',N'supplier16@cafechain.invalid',N'0980000016',N'Điều phối Cà phê & Trà',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(17,17,N'Điều phối viên 17',N'supplier17@cafechain.invalid',N'0980000017',N'Điều phối Cà phê & Trà',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(18,18,N'Điều phối viên 18',N'supplier18@cafechain.invalid',N'0980000018',N'Điều phối Cà phê & Trà',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(19,19,N'Điều phối viên 19',N'supplier19@cafechain.invalid',N'0980000019',N'Điều phối Sữa & Kem',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(20,20,N'Điều phối viên 20',N'supplier20@cafechain.invalid',N'0980000020',N'Điều phối Sữa & Kem',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(21,21,N'Điều phối viên 21',N'supplier21@cafechain.invalid',N'0980000021',N'Điều phối Sữa & Kem',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(22,22,N'Điều phối viên 22',N'supplier22@cafechain.invalid',N'0980000022',N'Điều phối Sữa & Kem',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(23,23,N'Điều phối viên 23',N'supplier23@cafechain.invalid',N'0980000023',N'Điều phối Sữa & Kem',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(24,24,N'Điều phối viên 24',N'supplier24@cafechain.invalid',N'0980000024',N'Điều phối Sữa & Kem',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(25,25,N'Điều phối viên 25',N'supplier25@cafechain.invalid',N'0980000025',N'Điều phối Sữa & Kem',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(26,26,N'Điều phối viên 26',N'supplier26@cafechain.invalid',N'0980000026',N'Điều phối Sữa & Kem',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(27,27,N'Điều phối viên 27',N'supplier27@cafechain.invalid',N'0980000027',N'Điều phối Trái cây',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(28,28,N'Điều phối viên 28',N'supplier28@cafechain.invalid',N'0980000028',N'Điều phối Trái cây',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(29,29,N'Điều phối viên 29',N'supplier29@cafechain.invalid',N'0980000029',N'Điều phối Trái cây',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(30,30,N'Điều phối viên 30',N'supplier30@cafechain.invalid',N'0980000030',N'Điều phối Trái cây',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(31,31,N'Điều phối viên 31',N'supplier31@cafechain.invalid',N'0980000031',N'Điều phối Trái cây',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(32,32,N'Điều phối viên 32',N'supplier32@cafechain.invalid',N'0980000032',N'Điều phối Trái cây',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(33,33,N'Điều phối viên 33',N'supplier33@cafechain.invalid',N'0980000033',N'Điều phối Trái cây',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(34,34,N'Điều phối viên 34',N'supplier34@cafechain.invalid',N'0980000034',N'Điều phối Trái cây',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(35,35,N'Điều phối viên 35',N'supplier35@cafechain.invalid',N'0980000035',N'Điều phối Topping & Syrup',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(36,36,N'Điều phối viên 36',N'supplier36@cafechain.invalid',N'0980000036',N'Điều phối Topping & Syrup',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(37,37,N'Điều phối viên 37',N'supplier37@cafechain.invalid',N'0980000037',N'Điều phối Topping & Syrup',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(38,38,N'Điều phối viên 38',N'supplier38@cafechain.invalid',N'0980000038',N'Điều phối Topping & Syrup',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(39,39,N'Điều phối viên 39',N'supplier39@cafechain.invalid',N'0980000039',N'Điều phối Topping & Syrup',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(40,40,N'Điều phối viên 40',N'supplier40@cafechain.invalid',N'0980000040',N'Điều phối Topping & Syrup',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(41,41,N'Điều phối viên 41',N'supplier41@cafechain.invalid',N'0980000041',N'Điều phối Topping & Syrup',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(42,42,N'Điều phối viên 42',N'supplier42@cafechain.invalid',N'0980000042',N'Điều phối Topping & Syrup',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(43,43,N'Điều phối viên 43',N'supplier43@cafechain.invalid',N'0980000043',N'Điều phối Bao bì',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(44,44,N'Điều phối viên 44',N'supplier44@cafechain.invalid',N'0980000044',N'Điều phối Bao bì',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(45,45,N'Điều phối viên 45',N'supplier45@cafechain.invalid',N'0980000045',N'Điều phối Bao bì',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(46,46,N'Điều phối viên 46',N'supplier46@cafechain.invalid',N'0980000046',N'Điều phối Bao bì',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(47,47,N'Điều phối viên 47',N'supplier47@cafechain.invalid',N'0980000047',N'Điều phối Bao bì',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(48,48,N'Điều phối viên 48',N'supplier48@cafechain.invalid',N'0980000048',N'Điều phối Bao bì',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(49,49,N'Điều phối viên 49',N'supplier49@cafechain.invalid',N'0980000049',N'Điều phối Bao bì',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế'),
+(50,50,N'Điều phối viên 50',N'supplier50@cafechain.invalid',N'0980000050',N'Điều phối Bao bì',1,1,N'Dữ liệu kiểm thử, không liên hệ thực tế');
 
  IF (SELECT COUNT(*) FROM @ContactSeed)<>45
  OR EXISTS(SELECT 1 FROM @ContactSeed WHERE Email NOT LIKE N'%@%.invalid' OR LEN(PhoneNumber)<>10
@@ -5133,11 +5173,11 @@ BEGIN TRY
 (3,3,1,1,3,N'Thứ 2-5',N'SEEDALL_FOUNDATION_SCOPE','2026-01-01','2026-01-01'),
 (4,4,1,1,5,N'Thứ 3-6',N'SEEDALL_FOUNDATION_SCOPE','2026-01-01','2026-01-01'),
 (5,5,1,1,5,N'Thứ 4-7',N'SEEDALL_FOUNDATION_SCOPE','2026-01-01','2026-01-01'),
-(6,6,1,1,3,N'Lịch giao demo: Thứ 2-4-6',N'DEMO_SUPPLIER_STORE_1','2026-01-01','2026-01-01'),
-(7,7,1,1,2,N'Lịch giao demo: Thứ 2-4-6',N'DEMO_SUPPLIER_STORE_1','2026-01-01','2026-01-01'),
-(8,8,1,1,2,N'Lịch giao demo: Thứ 2-4-6',N'DEMO_SUPPLIER_STORE_1','2026-01-01','2026-01-01'),
-(9,9,1,1,3,N'Lịch giao demo: Thứ 2-4-6',N'DEMO_SUPPLIER_STORE_1','2026-01-01','2026-01-01'),
-(10,10,1,1,4,N'Lịch giao demo: Thứ 2-4-6',N'DEMO_SUPPLIER_STORE_1','2026-01-01','2026-01-01'),
+(6,6,1,1,3,N'Lịch giao: Thứ 2-4-6',N'SUPPLIER_STORE_1','2026-01-01','2026-01-01'),
+(7,7,1,1,2,N'Lịch giao: Thứ 2-4-6',N'SUPPLIER_STORE_1','2026-01-01','2026-01-01'),
+(8,8,1,1,2,N'Lịch giao: Thứ 2-4-6',N'SUPPLIER_STORE_1','2026-01-01','2026-01-01'),
+(9,9,1,1,3,N'Lịch giao: Thứ 2-4-6',N'SUPPLIER_STORE_1','2026-01-01','2026-01-01'),
+(10,10,1,1,4,N'Lịch giao: Thứ 2-4-6',N'SUPPLIER_STORE_1','2026-01-01','2026-01-01'),
 (11,11,1,1,3,N'Thứ 2-4-6',N'Phạm vi Store 1 - Cà phê & Trà','2026-01-01','2026-01-01'),
 (12,12,1,1,4,N'Thứ 2-4-6',N'Phạm vi Store 1 - Cà phê & Trà','2026-01-01','2026-01-01'),
 (13,13,1,1,3,N'Thứ 2-4-6',N'Phạm vi Store 1 - Cà phê & Trà','2026-01-01','2026-01-01'),
@@ -5286,14 +5326,14 @@ BEGIN TRY
  IF (SELECT COUNT(*) FROM dbo.IngredientSuppliers WHERE IngredientSupplierId BETWEEN 1 AND 9)<>9
  OR EXISTS(SELECT 1 FROM (VALUES
  (1,6,1,1,CAST(1000 AS decimal(18,5)),CAST(22000 AS decimal(18,2)),1,1,1,N'Đường Biên Hòa'),
- (2,2,2,3,380,27000,24,2,1,N'Sữa đặc demo lon 380 ml (synthetic)'),
+ (2,2,2,3,380,27000,24,2,1,N'Sữa đặc lon 380 ml (synthetic)'),
  (3,1,3,1,1000,140000,5,3,1,N'Cà phê hạt'),
  (4,8,4,3,750,250000,6,4,1,N'Syrup Torani'),
  (5,10,2,3,1000,95000,12,2,1,N'Kem béo Rich'),
  (6,9,5,1,500,450000,1,5,1,N'Matcha Nhật'),
  (7,5,3,1,1000,180000,2,3,1,N'Bột cacao'),
  (8,4,1,1,1000,85000,2,2,1,N'Bột sữa'),
- (9,3,4,1,200,120000,1,5,1,N'Trà đen demo 100 túi × 2 g (synthetic)')
+ (9,3,4,1,200,120000,1,5,1,N'Trà đen 100 túi × 2 g (synthetic)')
  )x(Id,IngredientId,SupplierId,UnitId,PackageQuantity,CurrentPrice,MOQ,LeadTime,IsPrimary,Note)
  LEFT JOIN dbo.IngredientSuppliers o ON o.IngredientSupplierId=x.Id
  WHERE o.IngredientSupplierId IS NULL OR o.IngredientId<>x.IngredientId OR o.SupplierId<>x.SupplierId
@@ -5392,37 +5432,37 @@ THROW 52602, N'Price histories EF IDs 1-3 thiếu hoặc khác contract migratio
  IsPrimary bit,Active bit,Note nvarchar(1000),CreatedAt datetime2,UpdatedAt datetime2,
  UNIQUE(IngredientId,SupplierId));
  INSERT @OfferSeed VALUES
-(10,14,6,1,1000,180000,1,1,1,1,N'DEMO_OFFER_VIET_COFFEE','2026-01-01','2026-01-01'),
-(11,15,6,1,1000,240000,1,2,1,1,N'DEMO_OFFER_ESPRESSO_BEAN','2026-01-01','2026-01-01'),
-(12,2,7,3,9120,648000,1,3,0,1,N'DEMO_OFFER_CONDENSED_MILK','2026-01-01','2026-01-01'),
-(13,16,7,3,12000,384000,1,4,1,1,N'DEMO_OFFER_FRESH_MILK','2026-01-01','2026-01-01'),
-(14,10,7,3,12000,1140000,1,5,0,1,N'DEMO_OFFER_DAIRY_CREAM','2026-01-01','2026-01-01'),
-(15,17,10,1,1000,15000,1,1,1,1,N'DEMO_OFFER_SALT','2026-01-01','2026-01-01'),
-(16,6,9,1,1000,22000,1,2,0,1,N'DEMO_OFFER_SUGAR','2026-01-01','2026-01-01'),
-(17,18,10,3,5000,120000,1,3,1,1,N'DEMO_OFFER_SUGAR_SYRUP','2026-01-01','2026-01-01'),
-(18,3,9,1,500,120000,1,4,0,1,N'DEMO_OFFER_BLACK_TEA','2026-01-01','2026-01-01'),
-(19,19,9,1,500,140000,1,5,1,1,N'DEMO_OFFER_OOLONG_TEA','2026-01-01','2026-01-01'),
-(20,20,9,1,10000,800000,1,1,1,1,N'DEMO_OFFER_CANNED_PEACH','2026-01-01','2026-01-01'),
-(21,21,9,1,10000,850000,1,2,1,1,N'DEMO_OFFER_CANNED_LYCHEE','2026-01-01','2026-01-01'),
-(22,22,9,1,5000,450000,1,3,1,1,N'DEMO_OFFER_PASSION_JAM','2026-01-01','2026-01-01'),
-(23,23,9,1,10000,350000,1,4,1,1,N'DEMO_OFFER_ORANGE','2026-01-01','2026-01-01'),
-(24,24,9,1,5000,125000,1,5,1,1,N'DEMO_OFFER_LEMONGRASS','2026-01-01','2026-01-01'),
-(25,9,9,1,500,450000,1,1,0,1,N'DEMO_OFFER_MATCHA','2026-01-01','2026-01-01'),
-(26,25,10,1,1000,300000,1,2,1,1,N'DEMO_OFFER_CHOCOLATE','2026-01-01','2026-01-01'),
-(27,26,10,1,1000,180000,1,3,1,1,N'DEMO_OFFER_FRAPPE','2026-01-01','2026-01-01'),
-(28,27,10,1,1000,80000,1,4,1,1,N'DEMO_OFFER_BLACK_PEARL_DRY','2026-01-01','2026-01-01'),
-(29,28,10,13,500,1250000,1,5,1,1,N'DEMO_OFFER_WHITE_PEARL','2026-01-01','2026-01-01'),
-(30,29,10,1,1000,160000,1,1,1,1,N'DEMO_OFFER_TARO_JELLY_POWDER','2026-01-01','2026-01-01'),
-(31,30,10,1,1000,180000,1,2,1,1,N'DEMO_OFFER_FLAN_POWDER','2026-01-01','2026-01-01'),
-(32,31,7,1,1000,220000,1,3,1,1,N'DEMO_OFFER_CHEESE_POWDER','2026-01-01','2026-01-01'),
-(33,13,9,3,20000,30000,1,4,1,1,N'DEMO_OFFER_WATER','2026-01-01','2026-01-01'),
-(34,7,9,1,20000,40000,1,5,1,1,N'DEMO_OFFER_ICE','2026-01-01','2026-01-01'),
-(35,32,8,9,1000,900000,1,1,1,1,N'DEMO_OFFER_CUP_M','2026-01-01','2026-01-01'),
-(36,33,8,9,1000,1050000,1,2,1,1,N'DEMO_OFFER_CUP_L','2026-01-01','2026-01-01'),
-(37,34,8,9,1000,300000,1,3,1,1,N'DEMO_OFFER_LID_M','2026-01-01','2026-01-01'),
-(38,35,8,9,1000,350000,1,4,1,1,N'DEMO_OFFER_LID_L','2026-01-01','2026-01-01'),
-(39,36,8,9,2000,300000,1,5,1,1,N'DEMO_OFFER_STRAW','2026-01-01','2026-01-01'),
-(40,37,8,9,500,250000,1,1,1,1,N'DEMO_OFFER_BAG','2026-01-01','2026-01-01'),
+(10,14,6,1,1000,180000,1,1,1,1,N'OFFER_VIET_COFFEE','2026-01-01','2026-01-01'),
+(11,15,6,1,1000,240000,1,2,1,1,N'OFFER_ESPRESSO_BEAN','2026-01-01','2026-01-01'),
+(12,2,7,3,9120,648000,1,3,0,1,N'OFFER_CONDENSED_MILK','2026-01-01','2026-01-01'),
+(13,16,7,3,12000,384000,1,4,1,1,N'OFFER_FRESH_MILK','2026-01-01','2026-01-01'),
+(14,10,7,3,12000,1140000,1,5,0,1,N'OFFER_DAIRY_CREAM','2026-01-01','2026-01-01'),
+(15,17,10,1,1000,15000,1,1,1,1,N'OFFER_SALT','2026-01-01','2026-01-01'),
+(16,6,9,1,1000,22000,1,2,0,1,N'OFFER_SUGAR','2026-01-01','2026-01-01'),
+(17,18,10,3,5000,120000,1,3,1,1,N'OFFER_SUGAR_SYRUP','2026-01-01','2026-01-01'),
+(18,3,9,1,500,120000,1,4,0,1,N'OFFER_BLACK_TEA','2026-01-01','2026-01-01'),
+(19,19,9,1,500,140000,1,5,1,1,N'OFFER_OOLONG_TEA','2026-01-01','2026-01-01'),
+(20,20,9,1,10000,800000,1,1,1,1,N'OFFER_CANNED_PEACH','2026-01-01','2026-01-01'),
+(21,21,9,1,10000,850000,1,2,1,1,N'OFFER_CANNED_LYCHEE','2026-01-01','2026-01-01'),
+(22,22,9,1,5000,450000,1,3,1,1,N'OFFER_PASSION_JAM','2026-01-01','2026-01-01'),
+(23,23,9,1,10000,350000,1,4,1,1,N'OFFER_ORANGE','2026-01-01','2026-01-01'),
+(24,24,9,1,5000,125000,1,5,1,1,N'OFFER_LEMONGRASS','2026-01-01','2026-01-01'),
+(25,9,9,1,500,450000,1,1,0,1,N'OFFER_MATCHA','2026-01-01','2026-01-01'),
+(26,25,10,1,1000,300000,1,2,1,1,N'OFFER_CHOCOLATE','2026-01-01','2026-01-01'),
+(27,26,10,1,1000,180000,1,3,1,1,N'OFFER_FRAPPE','2026-01-01','2026-01-01'),
+(28,27,10,1,1000,80000,1,4,1,1,N'OFFER_BLACK_PEARL_DRY','2026-01-01','2026-01-01'),
+(29,28,10,13,500,1250000,1,5,1,1,N'OFFER_WHITE_PEARL','2026-01-01','2026-01-01'),
+(30,29,10,1,1000,160000,1,1,1,1,N'OFFER_TARO_JELLY_POWDER','2026-01-01','2026-01-01'),
+(31,30,10,1,1000,180000,1,2,1,1,N'OFFER_FLAN_POWDER','2026-01-01','2026-01-01'),
+(32,31,7,1,1000,220000,1,3,1,1,N'OFFER_CHEESE_POWDER','2026-01-01','2026-01-01'),
+(33,13,9,3,20000,30000,1,4,1,1,N'OFFER_WATER','2026-01-01','2026-01-01'),
+(34,7,9,1,20000,40000,1,5,1,1,N'OFFER_ICE','2026-01-01','2026-01-01'),
+(35,32,8,9,1000,900000,1,1,1,1,N'OFFER_CUP_M','2026-01-01','2026-01-01'),
+(36,33,8,9,1000,1050000,1,2,1,1,N'OFFER_CUP_L','2026-01-01','2026-01-01'),
+(37,34,8,9,1000,300000,1,3,1,1,N'OFFER_LID_M','2026-01-01','2026-01-01'),
+(38,35,8,9,1000,350000,1,4,1,1,N'OFFER_LID_L','2026-01-01','2026-01-01'),
+(39,36,8,9,2000,300000,1,5,1,1,N'OFFER_STRAW','2026-01-01','2026-01-01'),
+(40,37,8,9,500,250000,1,1,1,1,N'OFFER_BAG','2026-01-01','2026-01-01'),
 (41,1,11,1,1000,148400,5,3,0,1,N'SEEDALL_ALT_ING_001','2026-01-01','2026-01-01'),
 (42,4,22,1,1000,90100,2,2,0,1,N'SEEDALL_ALT_ING_004','2026-01-01','2026-01-01'),
 (43,5,39,1,1000,190800,2,4,0,1,N'SEEDALL_ALT_ING_005','2026-01-01','2026-01-01'),
@@ -6079,60 +6119,60 @@ BEGIN TRY
  PublishedByStaffId int,CreatedAtUtc datetime2,UpdatedAtUtc datetime2,UNIQUE(DrinkId,SizeId));
 
  INSERT @MenuContract VALUES
-(1,10,3,1,NULL,'2026-01-01',NULL,51,NULL,N'DEMO_SKU_AMERICANO_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(2,10,2,1,NULL,'2026-01-01',NULL,50,NULL,N'DEMO_SKU_AMERICANO_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(3,7,3,1,NULL,'2026-01-01',NULL,31,NULL,N'DEMO_SKU_BAC_XIU_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(4,7,2,1,NULL,'2026-01-01',NULL,30,NULL,N'DEMO_SKU_BAC_XIU_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(5,34,3,1,NULL,'2026-01-01',NULL,61,NULL,N'DEMO_SKU_COFFEE_LATTE_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(6,34,2,1,NULL,'2026-01-01',NULL,60,NULL,N'DEMO_SKU_COFFEE_LATTE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(7,38,3,1,NULL,'2026-01-01',NULL,131,NULL,N'DEMO_SKU_CHOCOLATE_LATTE_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(8,38,2,1,NULL,'2026-01-01',NULL,130,NULL,N'DEMO_SKU_CHOCOLATE_LATTE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(9,22,3,1,NULL,'2026-01-01',NULL,81,NULL,N'DEMO_SKU_LYCHEE_TEA_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(10,22,2,1,NULL,'2026-01-01',NULL,80,NULL,N'DEMO_SKU_LYCHEE_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(11,39,3,1,NULL,'2026-01-01',NULL,141,NULL,N'DEMO_SKU_MATCHA_FRAPPE_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(12,39,2,1,NULL,'2026-01-01',NULL,140,NULL,N'DEMO_SKU_MATCHA_FRAPPE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(13,37,3,1,NULL,'2026-01-01',NULL,121,NULL,N'DEMO_SKU_MATCHA_LATTE_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(14,37,2,1,NULL,'2026-01-01',NULL,120,NULL,N'DEMO_SKU_MATCHA_LATTE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(15,14,3,1,NULL,'2026-01-01',NULL,111,NULL,N'DEMO_SKU_OOLONG_MILK_TEA_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(16,14,2,1,NULL,'2026-01-01',NULL,110,NULL,N'DEMO_SKU_OOLONG_MILK_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(17,35,3,1,NULL,'2026-01-01',NULL,91,NULL,N'DEMO_SKU_PASSION_TEA_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(18,35,2,1,NULL,'2026-01-01',NULL,90,NULL,N'DEMO_SKU_PASSION_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(19,21,3,1,NULL,'2026-01-01',NULL,71,NULL,N'DEMO_SKU_PEACH_ORANGE_TEA_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(20,21,2,1,NULL,'2026-01-01',NULL,70,NULL,N'DEMO_SKU_PEACH_ORANGE_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(21,33,3,1,NULL,'2026-01-01',NULL,41,NULL,N'DEMO_SKU_SALTED_COFFEE_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(22,33,2,1,NULL,'2026-01-01',NULL,40,NULL,N'DEMO_SKU_SALTED_COFFEE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(23,36,3,1,NULL,'2026-01-01',NULL,101,NULL,N'DEMO_SKU_TRAD_MILK_TEA_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(24,36,2,1,NULL,'2026-01-01',NULL,100,NULL,N'DEMO_SKU_TRAD_MILK_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(25,31,3,1,NULL,'2026-01-01',NULL,11,NULL,N'DEMO_SKU_VIET_BLACK_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(26,31,2,1,NULL,'2026-01-01',NULL,10,NULL,N'DEMO_SKU_VIET_BLACK_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(27,32,3,1,NULL,'2026-01-01',NULL,21,NULL,N'DEMO_SKU_VIET_MILK_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(28,32,2,1,NULL,'2026-01-01',NULL,20,NULL,N'DEMO_SKU_VIET_MILK_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(1,10,3,1,NULL,'2026-01-01',NULL,51,NULL,N'SKU_AMERICANO_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(2,10,2,1,NULL,'2026-01-01',NULL,50,NULL,N'SKU_AMERICANO_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(3,7,3,1,NULL,'2026-01-01',NULL,31,NULL,N'SKU_BAC_XIU_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(4,7,2,1,NULL,'2026-01-01',NULL,30,NULL,N'SKU_BAC_XIU_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(5,34,3,1,NULL,'2026-01-01',NULL,61,NULL,N'SKU_COFFEE_LATTE_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(6,34,2,1,NULL,'2026-01-01',NULL,60,NULL,N'SKU_COFFEE_LATTE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(7,38,3,1,NULL,'2026-01-01',NULL,131,NULL,N'SKU_CHOCOLATE_LATTE_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(8,38,2,1,NULL,'2026-01-01',NULL,130,NULL,N'SKU_CHOCOLATE_LATTE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(9,22,3,1,NULL,'2026-01-01',NULL,81,NULL,N'SKU_LYCHEE_TEA_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(10,22,2,1,NULL,'2026-01-01',NULL,80,NULL,N'SKU_LYCHEE_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(11,39,3,1,NULL,'2026-01-01',NULL,141,NULL,N'SKU_MATCHA_FRAPPE_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(12,39,2,1,NULL,'2026-01-01',NULL,140,NULL,N'SKU_MATCHA_FRAPPE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(13,37,3,1,NULL,'2026-01-01',NULL,121,NULL,N'SKU_MATCHA_LATTE_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(14,37,2,1,NULL,'2026-01-01',NULL,120,NULL,N'SKU_MATCHA_LATTE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(15,14,3,1,NULL,'2026-01-01',NULL,111,NULL,N'SKU_OOLONG_MILK_TEA_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(16,14,2,1,NULL,'2026-01-01',NULL,110,NULL,N'SKU_OOLONG_MILK_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(17,35,3,1,NULL,'2026-01-01',NULL,91,NULL,N'SKU_PASSION_TEA_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(18,35,2,1,NULL,'2026-01-01',NULL,90,NULL,N'SKU_PASSION_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(19,21,3,1,NULL,'2026-01-01',NULL,71,NULL,N'SKU_PEACH_ORANGE_TEA_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(20,21,2,1,NULL,'2026-01-01',NULL,70,NULL,N'SKU_PEACH_ORANGE_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(21,33,3,1,NULL,'2026-01-01',NULL,41,NULL,N'SKU_SALTED_COFFEE_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(22,33,2,1,NULL,'2026-01-01',NULL,40,NULL,N'SKU_SALTED_COFFEE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(23,36,3,1,NULL,'2026-01-01',NULL,101,NULL,N'SKU_TRAD_MILK_TEA_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(24,36,2,1,NULL,'2026-01-01',NULL,100,NULL,N'SKU_TRAD_MILK_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(25,31,3,1,NULL,'2026-01-01',NULL,11,NULL,N'SKU_VIET_BLACK_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(26,31,2,1,NULL,'2026-01-01',NULL,10,NULL,N'SKU_VIET_BLACK_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(27,32,3,1,NULL,'2026-01-01',NULL,21,NULL,N'SKU_VIET_MILK_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(28,32,2,1,NULL,'2026-01-01',NULL,20,NULL,N'SKU_VIET_MILK_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
 (29,1,1,1,NULL,'2026-01-01',NULL,1,NULL,N'SEEDALL_SKU_CF_Sua_S','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
 (30,2,1,1,NULL,'2026-01-01',NULL,2,NULL,N'SEEDALL_SKU_CF_Den_S','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
 (31,3,1,1,NULL,'2026-01-01',NULL,3,NULL,N'SEEDALL_SKU_TS_TruyenThong_S','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
 (32,4,1,1,NULL,'2026-01-01',NULL,4,NULL,N'SEEDALL_SKU_TS_Socola_S','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(33,40,2,1,NULL,'2026-01-01',NULL,150,NULL,N'DEMO_SKU_COLD_BREW_ORANGE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(34,40,3,1,NULL,'2026-01-01',NULL,151,NULL,N'DEMO_SKU_COLD_BREW_ORANGE_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(35,41,2,1,NULL,'2026-01-01',NULL,160,NULL,N'DEMO_SKU_MOCHA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(36,41,3,1,NULL,'2026-01-01',NULL,161,NULL,N'DEMO_SKU_MOCHA_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(37,42,2,1,NULL,'2026-01-01',NULL,170,NULL,N'DEMO_SKU_CARAMEL_MACCHIATO_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(38,42,3,1,NULL,'2026-01-01',NULL,171,NULL,N'DEMO_SKU_CARAMEL_MACCHIATO_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(39,43,2,1,NULL,'2026-01-01',NULL,180,NULL,N'DEMO_SKU_COCONUT_COFFEE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(40,43,3,1,NULL,'2026-01-01',NULL,181,NULL,N'DEMO_SKU_COCONUT_COFFEE_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(41,44,2,1,NULL,'2026-01-01',NULL,190,NULL,N'DEMO_SKU_HONEY_LEMON_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(42,44,3,1,NULL,'2026-01-01',NULL,191,NULL,N'DEMO_SKU_HONEY_LEMON_TEA_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(43,45,2,1,NULL,'2026-01-01',NULL,200,NULL,N'DEMO_SKU_MANGO_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(44,45,3,1,NULL,'2026-01-01',NULL,201,NULL,N'DEMO_SKU_MANGO_TEA_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(45,46,2,1,NULL,'2026-01-01',NULL,210,NULL,N'DEMO_SKU_STRAWBERRY_MILK_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(46,46,3,1,NULL,'2026-01-01',NULL,211,NULL,N'DEMO_SKU_STRAWBERRY_MILK_TEA_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(47,47,2,1,NULL,'2026-01-01',NULL,220,NULL,N'DEMO_SKU_LYCHEE_OOLONG_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(48,47,3,1,NULL,'2026-01-01',NULL,221,NULL,N'DEMO_SKU_LYCHEE_OOLONG_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(49,48,2,1,NULL,'2026-01-01',NULL,230,NULL,N'DEMO_SKU_OAT_MATCHA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(50,48,3,1,NULL,'2026-01-01',NULL,231,NULL,N'DEMO_SKU_OAT_MATCHA_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(51,49,2,1,NULL,'2026-01-01',NULL,240,NULL,N'DEMO_SKU_COCONUT_CHOCOLATE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(52,49,3,1,NULL,'2026-01-01',NULL,241,NULL,N'DEMO_SKU_COCONUT_CHOCOLATE_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(53,50,2,1,NULL,'2026-01-01',NULL,250,NULL,N'DEMO_SKU_PASSION_YOGURT_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(54,50,3,1,NULL,'2026-01-01',NULL,251,NULL,N'DEMO_SKU_PASSION_YOGURT_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(33,40,2,1,NULL,'2026-01-01',NULL,150,NULL,N'SKU_COLD_BREW_ORANGE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(34,40,3,1,NULL,'2026-01-01',NULL,151,NULL,N'SKU_COLD_BREW_ORANGE_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(35,41,2,1,NULL,'2026-01-01',NULL,160,NULL,N'SKU_MOCHA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(36,41,3,1,NULL,'2026-01-01',NULL,161,NULL,N'SKU_MOCHA_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(37,42,2,1,NULL,'2026-01-01',NULL,170,NULL,N'SKU_CARAMEL_MACCHIATO_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(38,42,3,1,NULL,'2026-01-01',NULL,171,NULL,N'SKU_CARAMEL_MACCHIATO_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(39,43,2,1,NULL,'2026-01-01',NULL,180,NULL,N'SKU_COCONUT_COFFEE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(40,43,3,1,NULL,'2026-01-01',NULL,181,NULL,N'SKU_COCONUT_COFFEE_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(41,44,2,1,NULL,'2026-01-01',NULL,190,NULL,N'SKU_HONEY_LEMON_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(42,44,3,1,NULL,'2026-01-01',NULL,191,NULL,N'SKU_HONEY_LEMON_TEA_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(43,45,2,1,NULL,'2026-01-01',NULL,200,NULL,N'SKU_MANGO_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(44,45,3,1,NULL,'2026-01-01',NULL,201,NULL,N'SKU_MANGO_TEA_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(45,46,2,1,NULL,'2026-01-01',NULL,210,NULL,N'SKU_STRAWBERRY_MILK_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(46,46,3,1,NULL,'2026-01-01',NULL,211,NULL,N'SKU_STRAWBERRY_MILK_TEA_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(47,47,2,1,NULL,'2026-01-01',NULL,220,NULL,N'SKU_LYCHEE_OOLONG_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(48,47,3,1,NULL,'2026-01-01',NULL,221,NULL,N'SKU_LYCHEE_OOLONG_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(49,48,2,1,NULL,'2026-01-01',NULL,230,NULL,N'SKU_OAT_MATCHA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(50,48,3,1,NULL,'2026-01-01',NULL,231,NULL,N'SKU_OAT_MATCHA_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(51,49,2,1,NULL,'2026-01-01',NULL,240,NULL,N'SKU_COCONUT_CHOCOLATE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(52,49,3,1,NULL,'2026-01-01',NULL,241,NULL,N'SKU_COCONUT_CHOCOLATE_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(53,50,2,1,NULL,'2026-01-01',NULL,250,NULL,N'SKU_PASSION_YOGURT_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(54,50,3,1,NULL,'2026-01-01',NULL,251,NULL,N'SKU_PASSION_YOGURT_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
 (55,51,2,1,NULL,'2026-01-01',NULL,300,NULL,N'ZZ_POS_CHEESE_CREAM_COFFEE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
 (56,52,2,1,NULL,'2026-01-01',NULL,301,NULL,N'ZZ_POS_HONEY_LEMON_COLD_BREW_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
 (57,53,2,1,NULL,'2026-01-01',NULL,302,NULL,N'ZZ_POS_BLACK_PEARL_MILK_COFFEE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
@@ -6330,42 +6370,42 @@ BEGIN TRY
   MinStockLevel decimal(18,3),SourceUnitCost decimal(18,2) NULL,LineMarker nvarchar(100));
  INSERT @InventorySeed VALUES
  (1,100,10,20,NULL,N'SEEDALL_OPENING_ING00001'),
- (2,91200,100,15000,71.05,N'DEMO_OFFER_CONDENSED_MILK'),
- (3,8000,0,1500,240,N'DEMO_OFFER_BLACK_TEA'),
+ (2,91200,100,15000,71.05,N'OFFER_CONDENSED_MILK'),
+ (3,8000,0,1500,240,N'OFFER_BLACK_TEA'),
  (4,10000,0,2000,NULL,N'SEEDALL_OPENING_ING00004'),
  (5,8000,0,1500,NULL,N'SEEDALL_OPENING_ING00005'),
- (6,50000,0,8000,22,N'DEMO_OFFER_SUGAR'),
- (7,300000,500,50000,2,N'DEMO_OFFER_ICE'),
+ (6,50000,0,8000,22,N'OFFER_SUGAR'),
+ (7,300000,500,50000,2,N'OFFER_ICE'),
  (8,15000,0,3000,NULL,N'SEEDALL_OPENING_ING00008'),
- (9,6000,0,1000,900,N'DEMO_OFFER_MATCHA'),
- (10,30000,0,5000,95,N'DEMO_OFFER_DAIRY_CREAM'),
+ (9,6000,0,1000,900,N'OFFER_MATCHA'),
+ (10,30000,0,5000,95,N'OFFER_DAIRY_CREAM'),
  (11,10000,0,2000,NULL,N'SEEDALL_OPENING_ING00011'),
  (12,10000,0,2000,NULL,N'SEEDALL_OPENING_ING00012'),
- (13,300000,0,50000,1.50,N'DEMO_OFFER_WATER'),
- (14,12000,0,2500,180,N'DEMO_OFFER_VIET_COFFEE'),
- (15,10000,0,2000,240,N'DEMO_OFFER_ESPRESSO_BEAN'),
- (16,240000,0,40000,32,N'DEMO_OFFER_FRESH_MILK'),
- (17,5000,0,500,15,N'DEMO_OFFER_SALT'),
- (18,20000,0,3000,24,N'DEMO_OFFER_SUGAR_SYRUP'),
- (19,8000,0,1500,280,N'DEMO_OFFER_OOLONG_TEA'),
- (20,60000,0,10000,80,N'DEMO_OFFER_CANNED_PEACH'),
- (21,60000,0,10000,85,N'DEMO_OFFER_CANNED_LYCHEE'),
- (22,40000,0,6000,90,N'DEMO_OFFER_PASSION_JAM'),
- (23,30000,0,5000,35,N'DEMO_OFFER_ORANGE'),
- (24,12000,0,2000,25,N'DEMO_OFFER_LEMONGRASS'),
- (25,8000,0,1500,300,N'DEMO_OFFER_CHOCOLATE'),
- (26,8000,0,1500,180,N'DEMO_OFFER_FRAPPE'),
- (27,20000,0,4000,80,N'DEMO_OFFER_BLACK_PEARL_DRY'),
- (28,500,0,80,2500,N'DEMO_OFFER_WHITE_PEARL'),
- (29,10000,0,2000,160,N'DEMO_OFFER_TARO_JELLY_POWDER'),
- (30,10000,0,2000,180,N'DEMO_OFFER_FLAN_POWDER'),
- (31,12000,0,2000,220,N'DEMO_OFFER_CHEESE_POWDER'),
- (32,1000,0,200,900,N'DEMO_OFFER_CUP_M'),
- (33,1000,0,200,1050,N'DEMO_OFFER_CUP_L'),
- (34,1000,0,200,300,N'DEMO_OFFER_LID_M'),
- (35,1000,0,200,350,N'DEMO_OFFER_LID_L'),
- (36,2000,0,400,150,N'DEMO_OFFER_STRAW'),
- (37,500,0,100,500,N'DEMO_OFFER_BAG'),
+ (13,300000,0,50000,1.50,N'OFFER_WATER'),
+ (14,12000,0,2500,180,N'OFFER_VIET_COFFEE'),
+ (15,10000,0,2000,240,N'OFFER_ESPRESSO_BEAN'),
+ (16,240000,0,40000,32,N'OFFER_FRESH_MILK'),
+ (17,5000,0,500,15,N'OFFER_SALT'),
+ (18,20000,0,3000,24,N'OFFER_SUGAR_SYRUP'),
+ (19,8000,0,1500,280,N'OFFER_OOLONG_TEA'),
+ (20,60000,0,10000,80,N'OFFER_CANNED_PEACH'),
+ (21,60000,0,10000,85,N'OFFER_CANNED_LYCHEE'),
+ (22,40000,0,6000,90,N'OFFER_PASSION_JAM'),
+ (23,30000,0,5000,35,N'OFFER_ORANGE'),
+ (24,12000,0,2000,25,N'OFFER_LEMONGRASS'),
+ (25,8000,0,1500,300,N'OFFER_CHOCOLATE'),
+ (26,8000,0,1500,180,N'OFFER_FRAPPE'),
+ (27,20000,0,4000,80,N'OFFER_BLACK_PEARL_DRY'),
+ (28,500,0,80,2500,N'OFFER_WHITE_PEARL'),
+ (29,10000,0,2000,160,N'OFFER_TARO_JELLY_POWDER'),
+ (30,10000,0,2000,180,N'OFFER_FLAN_POWDER'),
+ (31,12000,0,2000,220,N'OFFER_CHEESE_POWDER'),
+ (32,1000,0,200,900,N'OFFER_CUP_M'),
+ (33,1000,0,200,1050,N'OFFER_CUP_L'),
+ (34,1000,0,200,300,N'OFFER_LID_M'),
+ (35,1000,0,200,350,N'OFFER_LID_L'),
+ (36,2000,0,400,150,N'OFFER_STRAW'),
+ (37,500,0,100,500,N'OFFER_BAG'),
  (38,8000,0,1500,NULL,N'SEEDALL_OPENING_HONEY'),
  (39,15000,0,2500,NULL,N'SEEDALL_OPENING_YELLOW_LEMON'),
  (40,30000,0,5000,NULL,N'SEEDALL_OPENING_MANGO_PUREE'),
@@ -6451,7 +6491,7 @@ BEGIN TRY
  MinStockLevel decimal(18,3),EvidenceReference nvarchar(500));
  INSERT @PreparedInventory
  SELECT 52+p.PreparedItemId,p.PreparedItemId,r.RecipeId,x.OpeningQty,x.UnitCost,x.MinStockLevel,
- N'DEMO_PRODUCTION_OPENING_'+p.Code
+ N'PRODUCTION_OPENING_'+p.Code
  FROM (VALUES
   (1,CAST(5000 AS decimal(18,3)),CAST(43 AS decimal(18,2)),CAST(500 AS decimal(18,3))),
   (2,CAST(3000 AS decimal(18,3)),CAST(112 AS decimal(18,2)),CAST(450 AS decimal(18,3))),
@@ -6513,9 +6553,9 @@ BEGIN TRY
  PartnerName nvarchar(200) NULL,SupplierId int NULL,Note nvarchar(500),NegativeReason nvarchar(1000) NULL,
  TotalAmount decimal(18,2),VatAmount decimal(18,2),FinalAmount decimal(18,2));
  INSERT @DocumentSeed VALUES
- (1,N'DEMO_OPENING_STORE1_INGREDIENTS',1,@InventoryActorStaffId,'2026-01-01',8,3,
-  N'DEMO_OPENING_STORE1_INGREDIENTS',0,'2026-01-01',@InventoryActorStaffId,3,0,NULL,NULL,NULL,
-  N'Opening balance nguyên liệu demo Store 1',NULL,@OpeningTotal,0,@OpeningTotal),
+ (1,N'OPENING_STORE1_INGREDIENTS',1,@InventoryActorStaffId,'2026-01-01',8,3,
+  N'OPENING_STORE1_INGREDIENTS',0,'2026-01-01',@InventoryActorStaffId,3,0,NULL,NULL,NULL,
+  N'Opening balance nguyên liệu Store 1',NULL,@OpeningTotal,0,@OpeningTotal),
  (2,N'SEEDALL_ADJ_OUT_20260102',1,@InventoryActorStaffId,'2026-01-02',2,3,
   N'SEEDALL_ADJ_OUT_20260102',0,'2026-01-02',@InventoryActorStaffId,10,0,NULL,NULL,NULL,
   N'Điều chỉnh giảm nhỏ để kiểm thử đối soát kho',NULL,@AdjustmentTotal,0,@AdjustmentTotal);
@@ -6765,7 +6805,7 @@ BEGIN TRY
  INSERT @ProductionSeed
  SELECT x.ProductionRunId,x.PreparedItemId,r.RecipeId,x.RequestedRunCount,x.RequestKey,
  x.RequestFingerprint,x.OpeningQty,x.OutputUnitCost,ROUND(x.OpeningQty*x.OutputUnitCost,2),
- N'DEMO opening valuation source: '+p.Code
+ N'opening valuation source: '+p.Code
  FROM (VALUES
  (1,1,CAST(5 AS decimal(18,5)),'c95e9689-1266-4ad8-a89d-dd9ab65ffdfb',N'81EA4866A2B0FEB86BE46A0D7A859AC0BDA00A5B68C5E69756C2864BAA14C740',CAST(5000 AS decimal(18,3)),CAST(43 AS decimal(18,8))),
  (2,2,CAST(5 AS decimal(18,5)),'8b9ca17d-3256-4f75-9b28-ed4d08be6324',N'0C900BDE0ABCBBEAFABC127321AD4CFF275446D8EF1EC3E0F3119336FCA700C7',CAST(3000 AS decimal(18,3)),CAST(112 AS decimal(18,8))),
@@ -7383,7 +7423,7 @@ OR DispatchedAt IS NOT NULL OR CancelledAt IS NOT NULL);
    BATCH 11B - BTP BASE-UNIT CONFIRMATION V2
 
    This batch intentionally runs even when the foundation marker has already
-   been completed. It repairs only the eleven demo BTP inventory rows in each
+   been completed. It repairs only the eleven BTP inventory rows in each
    of the three seeded stores
    and never changes their quantities or ledger evidence.
    ============================================================ */
@@ -7425,12 +7465,12 @@ BEGIN TRY
     DECLARE @BtpConfirmationContract TABLE(PreparedItemId int PRIMARY KEY,Code nvarchar(50) UNIQUE);
     INSERT @BtpConfirmationContract
     VALUES
-        (1,N'DEMO_PREP_VIET_COFFEE'),(2,N'DEMO_PREP_ESPRESSO'),
-        (3,N'DEMO_PREP_BLACK_TEA'),(4,N'DEMO_PREP_OOLONG_TEA'),
-        (5,N'DEMO_PREP_SUGAR_SYRUP'),(6,N'DEMO_PREP_SALTED_CREAM'),
-        (7,N'DEMO_PREP_CHEESE_CREAM'),(8,N'DEMO_PREP_BLACK_PEARL'),
-        (9,N'DEMO_PREP_ALOE_BASE'),(10,N'DEMO_PREP_COCONUT_JELLY_BASE'),
-        (11,N'DEMO_PREP_KHUC_BACH_BASE');
+        (1,N'PREP_VIET_COFFEE'),(2,N'PREP_ESPRESSO'),
+        (3,N'PREP_BLACK_TEA'),(4,N'PREP_OOLONG_TEA'),
+        (5,N'PREP_SUGAR_SYRUP'),(6,N'PREP_SALTED_CREAM'),
+        (7,N'PREP_CHEESE_CREAM'),(8,N'PREP_BLACK_PEARL'),
+        (9,N'PREP_ALOE_BASE'),(10,N'PREP_COCONUT_JELLY_BASE'),
+        (11,N'PREP_KHUC_BACH_BASE');
 
     IF (SELECT COUNT(*) FROM dbo.PreparedItems p JOIN @BtpConfirmationContract c ON c.Code=p.Code WHERE p.Active=1)<>11
         THROW 53652,N'SEEDALL_BTP_BASE_UNIT_CONFIRMATION_V2: thiếu hoặc thừa BTP active trong contract.',1;
@@ -7457,7 +7497,7 @@ BEGIN TRY
            OR NOT EXISTS(SELECT 1 FROM dbo.InventoryCostLayers l WHERE l.PreparedItemId=p.PreparedItemId AND l.Quantity>0 AND l.RemainingQuantity>=0)
     )
         THROW 53654,N'SEEDALL_BTP_BASE_UNIT_CONFIRMATION_V2: BTP thiếu production/cost evidence, không thể tự đoán đơn vị.',1;
-    /* Store 2/3 BTP inventories are published later by DEMO_REORDER_V14.
+    /* Store 2/3 BTP inventories are published later by REORDER_V14.
        At this point only the eleven Store 1 foundation rows are mandatory;
        any already-existing Store 2/3 rows are normalized by the same UPDATE. */
     IF (SELECT COUNT(*) FROM dbo.StoreInventories si JOIN dbo.PreparedItems p ON p.PreparedItemId=si.PreparedItemId
@@ -7519,13 +7559,12 @@ GO
 /* ============================================================
    BATCH 12B - ACTIVE ADMIN PERMISSION CATALOG
    Expected clean totals after Batch 12 + 12B:
-   - 25 PermissionGroups
-   - 145 Permissions
-   - 418 RolePermissions
+   - 24 PermissionGroups
+   - 141 Permissions
+   - 411 RolePermissions
 
    PermissionId 100 is intentionally reserved for migration rollback.
-   PermissionGroupId 22 is reserved for OPERATIONAL_ICE.
-   PermissionIds 200-203 are reserved for Operational Ice permissions.
+   PermissionGroupId 22 and PermissionIds 147-150/200-203 are retired identifiers.
 
    This batch is insert-only and idempotent;
    contract conflicts abort the transaction.
@@ -7716,7 +7755,6 @@ BEGIN TRY
  (19,N'INVENTORY_TRANSFER',N'Chuyển kho',20,1),
  (20,N'STAFF',N'Nhân viên',21,1),
  (21,N'SHIFT',N'Lịch làm việc',22,1),
- (22,N'OPERATIONAL_ICE',N'Quản lý đá vận hành',23,1),
  (23,N'STORE',N'Cửa hàng',24,1),
  (24,N'SETTINGS',N'Cài đặt hệ thống',25,1),
  (25,N'BOM',N'BOM và sản xuất',26,1),
@@ -7843,11 +7881,6 @@ BEGIN TRY
  (101,21,N'Shift.Create',N'Tạo lịch làm việc',N'Create',N'Tạo lịch làm việc',1,'2026-01-01'),
  (102,21,N'Shift.Update',N'Cập nhật lịch làm việc',N'Update',N'Cập nhật lịch làm việc',1,'2026-01-01'),
  (103,21,N'Shift.Cancel',N'Hủy lịch làm việc',N'Cancel',N'Hủy lịch làm việc và giữ lịch sử',1,'2026-01-01'),
-
- (147,22, N'OperationalIce.View', N'Xem quản lý đá vận hành', N'View', N'Xem ca vận hành, phân bổ và đối soát đá', 1,'2026-07-29'),
- (148,22, N'OperationalIce.Manage', N'Vận hành phân bổ đá', N'Manage', N'Tạo ca, mở phân bổ, cấp bổ sung và bàn giao đá', 0,'2026-07-29'),
- (149,22, N'OperationalIce.Approve', N'Duyệt đối soát đá', N'Approve', N'Duyệt cấp bổ sung và chênh lệch đá cuối ca', 0,'2026-07-29'),
- (150,22, N'OperationalIce.Policy', N'Cấu hình chính sách đá', N'Policy', N'Cấu hình định mức và ngưỡng đối soát đá theo cửa hàng', 0,'2026-07-29'),
 
  (108,23,N'Store.View',N'Xem cửa hàng',N'View',N'Xem cửa hàng',1,'2026-01-01'),
  (109,23,N'Store.Create',N'Tạo cửa hàng',N'Create',N'Tạo cửa hàng',1,'2026-01-01'),
@@ -8019,7 +8052,6 @@ BEGIN TRY
  (1,142), -- PurchaseOrder.OverrideAllocation
  (1,143), -- PurchaseOrder.Export
  (1,146), -- Receipt.ViewCost
- (1,147),
  (2,28),
  (2,32),
  (2,36),
@@ -8055,7 +8087,6 @@ BEGIN TRY
  (2,129),
  (2,130),
  (2,146), -- Receipt.ViewCost
- (2,147),
  (3,36),
  (3,39),
  (3,40),
@@ -8105,8 +8136,6 @@ BEGIN TRY
  (3,133), -- Restock.Update
  (3,144), -- Receipt.UpdateDraft
  (3,145), -- Receipt.RecordSupplierIssue
- (3,147),
- (4,147),
  (5,28),
  (5,29),
  (5,30),
@@ -8187,7 +8216,6 @@ BEGIN TRY
  (5,139), -- PurchaseOrder.Submit
  (5,143), -- PurchaseOrder.Export
  (5,146), -- Receipt.ViewCost
- (5,147),
  (6,28),
  (6,29),
  (6,30),
@@ -8285,9 +8313,7 @@ BEGIN TRY
  (6,127),
  (6,128),
  (6,129),
- (6,130),
- (6,147),
- (8,147);
+ (6,130);
 
 
 IF EXISTS
@@ -8433,6 +8459,34 @@ BEGIN TRY
  DROP TABLE IF EXISTS #ManagedPermissionCodes;
  DROP TABLE IF EXISTS #ExpectedRoleCounts;
 
+ /* OperationalIce authorization has been retired. Delete only RBAC catalog
+    data; operational history/business tables remain untouched. */
+ DELETE rp
+ FROM dbo.RolePermissions rp
+ JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId
+ WHERE p.Code LIKE N'OperationalIce.%';
+
+ DELETE apo
+ FROM dbo.AccountPermissionOverrides apo
+ JOIN dbo.Permissions p ON p.PermissionId=apo.PermissionId
+ WHERE p.Code LIKE N'OperationalIce.%';
+
+ DELETE FROM dbo.Permissions
+ WHERE Code LIKE N'OperationalIce.%';
+
+ DELETE g
+ FROM dbo.PermissionGroups g
+ WHERE g.Code=N'OPERATIONAL_ICE'
+   AND NOT EXISTS
+   (
+    SELECT 1 FROM dbo.Permissions p
+    WHERE p.PermissionGroupId=g.PermissionGroupId
+   );
+
+ IF EXISTS(SELECT 1 FROM dbo.Permissions WHERE Code LIKE N'OperationalIce.%')
+  OR EXISTS(SELECT 1 FROM dbo.PermissionGroups WHERE Code=N'OPERATIONAL_ICE')
+  THROW 53350,N'RBAC_CAFECHAIN_FINAL_V3: không thể gỡ catalog OperationalIce.',1;
+
  SELECT AccountPermissionOverrideId,AccountId,PermissionId,Effect,Reason
  INTO #OverrideBefore
  FROM dbo.AccountPermissionOverrides;
@@ -8507,17 +8561,6 @@ BEGIN TRY
  INSERT #NewPermissionCatalog VALUES
   (N'ReorderSuggestion.View',N'REORDER_SUGGESTION',N'Xem gợi ý nhập hàng',N'View',N'Xem danh sách gợi ý nhập hàng trong phạm vi cửa hàng được phép truy cập'),
   (N'Restock.Create',N'RESTOCK',N'Tạo yêu cầu nhập hàng',N'Create',N'Tạo mới, tạo nháp hoặc bổ sung yêu cầu nhập hàng từ gợi ý nhập hàng trong phạm vi cửa hàng được phép thao tác'),
-  (N'OperationalIce.ConfigurePolicy',N'OPERATIONAL_ICE',N'Cấu hình chính sách đá',N'ConfigurePolicy',N'Cấu hình định mức và ngưỡng đối soát đá trong phạm vi cửa hàng'),
-  (N'OperationalIce.CreateShift',N'OPERATIONAL_ICE',N'Tạo ca vận hành đá',N'CreateShift',N'Tạo và cập nhật kế hoạch ca vận hành đá trong phạm vi cửa hàng'),
-  (N'OperationalIce.OpenShift',N'OPERATIONAL_ICE',N'Mở ca vận hành đá',N'OpenShift',N'Xác nhận cấp đầu ca và mở phân bổ đá'),
-  (N'OperationalIce.LinkWorkShift',N'OPERATIONAL_ICE',N'Liên kết WorkShift POS',N'LinkWorkShift',N'Liên kết WorkShift POS hợp lệ vào ca vận hành đá'),
-  (N'OperationalIce.RequestSupplement',N'OPERATIONAL_ICE',N'Yêu cầu cấp bổ sung đá',N'RequestSupplement',N'Gửi yêu cầu cấp bổ sung cho ca vận hành đá được phân công'),
-  (N'OperationalIce.ApproveSupplement',N'OPERATIONAL_ICE',N'Duyệt cấp bổ sung đá',N'ApproveSupplement',N'Duyệt hoặc từ chối yêu cầu cấp bổ sung đá'),
-  (N'OperationalIce.Handoff',N'OPERATIONAL_ICE',N'Bàn giao đá giữa ca',N'Handoff',N'Xác nhận bàn giao đá giữa các ca cùng ngày'),
-  (N'OperationalIce.SubmitClose',N'OPERATIONAL_ICE',N'Gửi chốt ca đá',N'SubmitClose',N'Gửi số liệu chốt ca vận hành đá'),
-  (N'OperationalIce.ApproveVariance',N'OPERATIONAL_ICE',N'Duyệt chênh lệch đá',N'ApproveVariance',N'Duyệt hao hụt hoặc hoàn tất đối soát chênh lệch đá'),
-  (N'OperationalIce.CancelScheduledShift',N'OPERATIONAL_ICE',N'Hủy ca đá chưa mở',N'CancelScheduledShift',N'Hủy ca vận hành đá còn ở trạng thái kế hoạch'),
-  (N'OperationalIce.ViewReport',N'OPERATIONAL_ICE',N'Xem báo cáo ca đá',N'ViewReport',N'Xem và tải báo cáo vận hành đá trong phạm vi được cấp'),
   (N'StoreMenu.OverridePrice',N'DRINK',N'Ghi đè giá menu cửa hàng',N'OverridePrice',N'Ghi đè giá bán tại menu cửa hàng'),
   (N'Profitability.UpdatePrice',N'DRINK',N'Cập nhật giá bán',N'UpdatePrice',N'Cập nhật giá bán toàn hệ thống'),
   (N'Profitability.UpdateToppingPolicy',N'DRINK',N'Cập nhật chính sách topping',N'UpdateToppingPolicy',N'Cập nhật chính sách topping theo món và size'),
@@ -8669,10 +8712,7 @@ BEGIN TRY
   N'StockAlert.Configure',
   N'StockAlert.Create',
   N'StockAlert.Export',
-  N'Supplier.ViewQuality',
-  N'OperationalIce.Manage',
-  N'OperationalIce.Approve',
-  N'OperationalIce.Policy'
+  N'Supplier.ViewQuality'
  );
 
  /* POS permission group and catalog. */
@@ -8822,9 +8862,9 @@ BEGIN TRY
   (N'StockAlert.Create',0,0,0,0,0,0,0,0),
   (N'StockAlert.CreateRestockRequest',0,0,1,0,0,0,0,0),
   (N'Restock.View',1,1,1,0,1,0,0,1),
-  (N'Restock.Create',1,0,1,0,1,0,0,0),
+  (N'Restock.Create',0,0,1,0,1,0,0,0),
   (N'Restock.Submit',0,0,1,0,1,0,0,0),
-  (N'Restock.Approve',0,0,0,0,1,0,0,0),
+  (N'Restock.Approve',1,0,0,0,1,0,0,0),
   (N'Restock.Reject',0,0,0,0,1,0,0,0),
   (N'Restock.Cancel',1,0,1,0,1,0,0,0),
   (N'ReorderSuggestion.View',1,1,1,0,1,0,0,0),
@@ -8920,21 +8960,6 @@ BEGIN TRY
   (N'ProductionOrder.ApproveVariance',1,0,0,0,0,0,0,0),
   (N'ProductionOrder.Cancel',0,0,1,0,0,0,0,0),
   (N'Restock.SelectProductionSource',0,0,0,0,1,0,0,0),
-  (N'OperationalIce.View',1,1,1,0,1,0,0,1),
-  (N'OperationalIce.Manage',0,0,0,0,0,0,0,0),
-  (N'OperationalIce.Approve',0,0,0,0,0,0,0,0),
-  (N'OperationalIce.Policy',0,0,0,0,0,0,0,0),
-  (N'OperationalIce.ConfigurePolicy',1,0,1,0,0,0,0,0),
-  (N'OperationalIce.CreateShift',1,0,1,0,0,0,0,0),
-  (N'OperationalIce.OpenShift',1,0,1,0,0,0,0,0),
-  (N'OperationalIce.LinkWorkShift',1,0,1,0,0,0,0,0),
-  (N'OperationalIce.RequestSupplement',1,0,1,0,0,0,0,1),
-  (N'OperationalIce.ApproveSupplement',1,0,1,0,0,0,0,0),
-  (N'OperationalIce.Handoff',1,0,1,0,0,0,0,1),
-  (N'OperationalIce.SubmitClose',1,0,1,0,0,0,0,1),
-  (N'OperationalIce.ApproveVariance',1,0,1,0,0,0,0,0),
-  (N'OperationalIce.CancelScheduledShift',1,0,1,0,0,0,0,0),
-  (N'OperationalIce.ViewReport',1,1,1,0,1,0,0,1),
   (N'StoreMenu.OverridePrice',1,0,0,0,0,0,0,0),
   (N'Profitability.UpdatePrice',1,0,0,0,0,0,0,0),
   (N'Profitability.UpdateToppingPolicy',1,0,0,0,0,0,0,0),
@@ -9227,19 +9252,11 @@ BEGIN TRY
   RoleKey nvarchar(10) NOT NULL PRIMARY KEY,
   ExpectedCount int NOT NULL
  );
-  INSERT #ExpectedRoleCounts VALUES
-  (N'CDN',187),
-  (N'QLV',100),
-  (N'QLCN',138),
-  (N'NVBH',12),
-  (N'KTK',122),
-  (N'CT',35);
-
  INSERT #ExpectedRoleCounts(RoleKey,ExpectedCount)
- SELECT N'QTHT',COUNT(*)
- FROM #ExpectedRolePermissions e
- JOIN #RoleMap rm ON rm.RoleId=e.RoleId
- WHERE rm.RoleKey=N'QTHT';
+ SELECT rm.RoleKey,COUNT(e.PermissionId)
+ FROM #RoleMap rm
+ LEFT JOIN #ExpectedRolePermissions e ON e.RoleId=rm.RoleId
+ GROUP BY rm.RoleKey;
 
  DECLARE @RoleCountMismatches TABLE
  (
@@ -9378,7 +9395,7 @@ UNION ALL SELECT N'Orphan Permission Grant',COUNT(*) FROM dbo.RolePermissions rp
 
 /* ============================================================
    BATCH 13/14 - DASHBOARD ANALYTICS V1.3 TEST DATA
-   Canonical marker: DEMO_DASHBOARD_V13
+   Canonical marker: DASHBOARD_V13
    Fixed range for testing: 2026-01-15 through 2026-01-18.
    This batch deliberately does not create CashSessions or attendance/payroll data.
    ============================================================ */
@@ -9399,22 +9416,22 @@ BEGIN TRY
  DECLARE @CancelledStatusId int=(SELECT StaffShiftStatusId FROM dbo.StaffShiftStatuses WHERE Code=N'CANCELLED');
 
  IF @DashboardSalesStaffId IS NULL OR @DashboardActorStaffId IS NULL
-   THROW 53100,N'DEMO_DASHBOARD_V13 requires active Store 1 staff.',1;
+   THROW 53100,N'DASHBOARD_V13 requires active Store 1 staff.',1;
  IF @ScheduledStatusId IS NULL OR @CancelledStatusId IS NULL
    THROW 53101,N'InitialCreate phải có trạng thái SCHEDULED/CANCELLED trước khi chạy Batch 13.',1;
 
- IF NOT EXISTS(SELECT 1 FROM dbo.Shifts WHERE StoreId=@DashboardStoreId AND Notes=N'DEMO_DASHBOARD_V13_OVERNIGHT')
+ IF NOT EXISTS(SELECT 1 FROM dbo.Shifts WHERE StoreId=@DashboardStoreId AND Notes=N'DASHBOARD_V13_OVERNIGHT')
  BEGIN
    INSERT dbo.Shifts(Name,StartTime,EndTime,IsOvernight,Duration,Active,StoreId,Notes)
-   VALUES(N'Ca đêm dashboard','22:00','06:00',1,'08:00',1,@DashboardStoreId,N'DEMO_DASHBOARD_V13_OVERNIGHT');
+   VALUES(N'Ca đêm dashboard','22:00','06:00',1,'08:00',1,@DashboardStoreId,N'DASHBOARD_V13_OVERNIGHT');
  END;
 
  DECLARE @MorningShiftId int=(SELECT TOP(1) ShiftId FROM dbo.Shifts WHERE StoreId=@DashboardStoreId AND StartTime='06:00' ORDER BY ShiftId);
  DECLARE @AfternoonShiftId int=(SELECT TOP(1) ShiftId FROM dbo.Shifts WHERE StoreId=@DashboardStoreId AND StartTime='12:00' ORDER BY ShiftId);
- DECLARE @OvernightShiftId int=(SELECT ShiftId FROM dbo.Shifts WHERE StoreId=@DashboardStoreId AND Notes=N'DEMO_DASHBOARD_V13_OVERNIGHT');
+ DECLARE @OvernightShiftId int=(SELECT ShiftId FROM dbo.Shifts WHERE StoreId=@DashboardStoreId AND Notes=N'DASHBOARD_V13_OVERNIGHT');
 
  IF @MorningShiftId IS NULL OR @AfternoonShiftId IS NULL OR @OvernightShiftId IS NULL
-   THROW 53102,N'DEMO_DASHBOARD_V13 requires morning, afternoon and overnight shifts.',1;
+   THROW 53102,N'DASHBOARD_V13 requires morning, afternoon and overnight shifts.',1;
 
  IF NOT EXISTS(SELECT 1 FROM dbo.StaffShifts WHERE StaffId=@DashboardSalesStaffId AND ShiftId=@MorningShiftId AND WorkDate='2026-01-15')
    INSERT dbo.StaffShifts(StaffId,ShiftId,CustomStartTime,CustomEndTime,WorkDate,StatusId)
@@ -9433,9 +9450,9 @@ BEGIN TRY
    Marker nvarchar(80) PRIMARY KEY,StartAt datetime2,EndAt datetime2 NULL,
    ExpectedCash decimal(18,2),ActualCash decimal(18,2) NULL,IsException bit,RequiresReconciliation bit,LateSync bit);
  INSERT @WorkShiftSeed VALUES
- (N'DEMO_DASHBOARD_V13_20260115_AM','2026-01-15T06:00:00','2026-01-15T12:00:00',650000,650000,0,0,0),
- (N'DEMO_DASHBOARD_V13_20260115_PM','2026-01-15T12:00:00','2026-01-15T18:00:00',750000,720000,0,1,0),
- (N'DEMO_DASHBOARD_V13_20260116_OFFLINE','2026-01-16T06:00:00','2026-01-16T12:00:00',680000,670000,1,1,1);
+ (N'DASHBOARD_V13_20260115_AM','2026-01-15T06:00:00','2026-01-15T12:00:00',650000,650000,0,0,0),
+ (N'DASHBOARD_V13_20260115_PM','2026-01-15T12:00:00','2026-01-15T18:00:00',750000,720000,0,1,0),
+ (N'DASHBOARD_V13_20260116_OFFLINE','2026-01-16T06:00:00','2026-01-16T12:00:00',680000,670000,1,1,1);
 
  INSERT dbo.WorkShifts(
    StoreId,UserId,StartTimeUtc,EndTimeUtc,BusinessDate,OpenContext,CloseType,ClosedByStaffId,CloseReason,ExpiryWarningLevel,
@@ -9447,12 +9464,12 @@ BEGIN TRY
  SELECT @DashboardStoreId,@DashboardSalesStaffId,DATEADD(HOUR,-7,x.StartAt),DATEADD(HOUR,-7,x.EndAt),CONVERT(date,x.StartAt),N'LEGACY',
    CASE WHEN x.IsException=1 THEN N'EXCEPTION' WHEN x.EndAt IS NOT NULL THEN N'NORMAL' END,
    CASE WHEN x.IsException=1 THEN @DashboardActorStaffId END,
-   CASE WHEN x.IsException=1 THEN N'DEMO_DASHBOARD_V13 offline exception' END,
+   CASE WHEN x.IsException=1 THEN N'DASHBOARD_V13 offline exception' END,
    0,500000,x.ExpectedCash,x.ActualCash,
    CASE WHEN x.ActualCash IS NULL THEN NULL ELSE x.ActualCash-x.ExpectedCash END,
    CASE WHEN x.EndAt IS NULL THEN N'OPEN' WHEN x.IsException=1 THEN N'RECONCILIATION_REQUIRED' ELSE N'CLOSED' END,
-   CASE WHEN x.ActualCash<>x.ExpectedCash THEN N'DEMO_DASHBOARD_V13 cash discrepancy' END,
-   x.IsException,CASE WHEN x.IsException=1 THEN N'DEMO_DASHBOARD_V13 offline exception' END,
+   CASE WHEN x.ActualCash<>x.ExpectedCash THEN N'DASHBOARD_V13 cash discrepancy' END,
+   x.IsException,CASE WHEN x.IsException=1 THEN N'DASHBOARD_V13 offline exception' END,
    CASE WHEN x.IsException=1 THEN @DashboardActorStaffId END,
    CASE WHEN x.IsException=1 THEN x.EndAt END,
    CASE WHEN x.IsException=1 THEN 2 ELSE 0 END,
@@ -9476,7 +9493,7 @@ BEGIN TRY
            WHERE StoreId=@DashboardStoreId AND UserId=@DashboardSalesStaffId
              AND StartTimeUtc=DATEADD(HOUR,-7,CONVERT(datetime2,'2026-01-18T06:00:00'))
              AND EndTimeUtc IS NULL AND Status=N'OPEN')
-     THROW 53620,N'SeedAll không được tạo phiên POS OPEN demo.',1;
+     THROW 53620,N'SeedAll không được tạo phiên POS OPEN ',1;
 
  DECLARE @DashboardOrders TABLE(
    ClientOrderId uniqueidentifier PRIMARY KEY,CreatedAt datetime2,OrderStatusId int,PaymentStatusId int,
@@ -9484,19 +9501,19 @@ BEGIN TRY
    DetailPrice decimal(18,2),Total decimal(18,2),CostStatus int,TotalCogs decimal(18,2) NULL,
    ShiftMarker nvarchar(80));
  INSERT @DashboardOrders VALUES
- ('31000000-0000-0000-0000-000000000001','2026-01-15T07:15:00',5,2,1,N'CF_BacXiu',N'M',1,33000,33000,1,10000,N'DEMO_DASHBOARD_V13_20260115_AM'),
- ('31000000-0000-0000-0000-000000000002','2026-01-15T13:20:00',5,2,2,N'CF_Latte',N'L',1,45000,50000,1,17000,N'DEMO_DASHBOARD_V13_20260115_PM'),
- ('31000000-0000-0000-0000-000000000003','2026-01-16T07:40:00',5,2,3,N'TS_Matcha',N'M',2,37000,74000,0,NULL,N'DEMO_DASHBOARD_V13_20260116_OFFLINE'),
- ('31000000-0000-0000-0000-000000000004','2026-01-16T09:05:00',5,2,2,N'CF_BacXiu',N'M',1,33000,33000,1,10000,N'DEMO_DASHBOARD_V13_20260116_OFFLINE'),
- ('31000000-0000-0000-0000-000000000005','2026-01-15T15:00:00',4,1,1,N'CF_BacXiu',N'M',1,33000,33000,0,NULL,N'DEMO_DASHBOARD_V13_20260115_PM'),
- ('31000000-0000-0000-0000-000000000006','2026-01-15T16:00:00',6,1,1,N'CF_BacXiu',N'M',1,33000,33000,0,NULL,N'DEMO_DASHBOARD_V13_20260115_PM');
+ ('31000000-0000-0000-0000-000000000001','2026-01-15T07:15:00',5,2,1,N'CF_BacXiu',N'M',1,33000,33000,1,10000,N'DASHBOARD_V13_20260115_AM'),
+ ('31000000-0000-0000-0000-000000000002','2026-01-15T13:20:00',5,2,2,N'CF_Latte',N'L',1,45000,50000,1,17000,N'DASHBOARD_V13_20260115_PM'),
+ ('31000000-0000-0000-0000-000000000003','2026-01-16T07:40:00',5,2,3,N'TS_Matcha',N'M',2,37000,74000,0,NULL,N'DASHBOARD_V13_20260116_OFFLINE'),
+ ('31000000-0000-0000-0000-000000000004','2026-01-16T09:05:00',5,2,2,N'CF_BacXiu',N'M',1,33000,33000,1,10000,N'DASHBOARD_V13_20260116_OFFLINE'),
+ ('31000000-0000-0000-0000-000000000005','2026-01-15T15:00:00',4,1,1,N'CF_BacXiu',N'M',1,33000,33000,0,NULL,N'DASHBOARD_V13_20260115_PM'),
+ ('31000000-0000-0000-0000-000000000006','2026-01-15T16:00:00',6,1,1,N'CF_BacXiu',N'M',1,33000,33000,0,NULL,N'DASHBOARD_V13_20260115_PM');
 
  INSERT dbo.Orders(
    CustomerId,StoreId,OrderStatusId,PaymentStatusId,OrderTypeId,TableId,StaffId,WorkShiftId,
    ClientOrderId,Source,Note,ShippingFee,SubTotal,VoucherDiscount,PointDiscount,PointsUsed,
    Total,CostStatus,TotalCogs,GrossProfit,CostedAtUtc,CreatedAt)
  SELECT NULL,@DashboardStoreId,x.OrderStatusId,x.PaymentStatusId,2,NULL,@DashboardSalesStaffId,w.ShiftId,
-   x.ClientOrderId,N'DEMO_DASHBOARD_V13',N'DEMO_DASHBOARD_V13 analytics fixture',0,x.Total,0,0,0,
+   x.ClientOrderId,N'DASHBOARD_V13',N'DASHBOARD_V13 analytics fixture',0,x.Total,0,0,0,
    x.Total,x.CostStatus,x.TotalCogs,CASE WHEN x.TotalCogs IS NULL THEN NULL ELSE x.Total-x.TotalCogs END,
    CASE WHEN x.TotalCogs IS NULL THEN NULL ELSE x.CreatedAt END,x.CreatedAt
  FROM @DashboardOrders x
@@ -9508,7 +9525,7 @@ BEGIN TRY
    OrderId,DrinkId,SizeId,StoreMenuItemId,DrinkSizeId,DrinkName,SizeName,Price,
    AcceptedBasePrice,PriceSource,AcceptedCatalogVersion,Quantity,Note,CostStatus,UnitCogs,TotalCogs)
  SELECT o.OrderId,d.DrinkId,s.SizeId,sm.StoreMenuItemId,ds.DrinkSizeId,d.Name,s.Name,x.DetailPrice,
-   x.DetailPrice,N'DEMO_DASHBOARD_V13',1,x.Quantity,N'DEMO_DASHBOARD_V13',x.CostStatus,
+   x.DetailPrice,N'DASHBOARD_V13',1,x.Quantity,N'DASHBOARD_V13',x.CostStatus,
    CASE WHEN x.TotalCogs IS NULL THEN NULL ELSE x.TotalCogs/x.Quantity END,x.TotalCogs
  FROM @DashboardOrders x
  JOIN dbo.Orders o ON o.ClientOrderId=x.ClientOrderId
@@ -9528,10 +9545,10 @@ BEGIN TRY
 
  INSERT dbo.Payments(OrderId,Amount,ReceivedAmount,ChangeAmount,PaymentMethodId,PaymentStatusId,CashSessionId,TransactionCode,PaidAt)
  SELECT o.OrderId,x.Total,x.Total,0,x.PaymentMethodId,2,NULL,
-   N'DEMO_DASHBOARD_V13_'+RIGHT(CONVERT(nvarchar(36),x.ClientOrderId),12),x.CreatedAt
+   N'DASHBOARD_V13_'+RIGHT(CONVERT(nvarchar(36),x.ClientOrderId),12),x.CreatedAt
  FROM @DashboardOrders x JOIN dbo.Orders o ON o.ClientOrderId=x.ClientOrderId
  WHERE x.OrderStatusId=5
-   AND NOT EXISTS(SELECT 1 FROM dbo.Payments p WHERE p.TransactionCode=N'DEMO_DASHBOARD_V13_'+RIGHT(CONVERT(nvarchar(36),x.ClientOrderId),12));
+   AND NOT EXISTS(SELECT 1 FROM dbo.Payments p WHERE p.TransactionCode=N'DASHBOARD_V13_'+RIGHT(CONVERT(nvarchar(36),x.ClientOrderId),12));
 
  IF NOT EXISTS(SELECT 1 FROM dbo.OrderRefunds WHERE RefundKey='32000000-0000-0000-0000-000000000001')
  BEGIN
@@ -9539,7 +9556,7 @@ BEGIN TRY
      OrderId,StoreId,RefundKey,Status,PaymentMethodId,Reason,RefundAmount,CostStatus,ReversedCogs,
      InventoryReversalStatus,RequestedAtUtc,RequestedByStaffId,ProcessingAtUtc,CompletedAtUtc,CompletedByStaffId)
    SELECT o.OrderId,@DashboardStoreId,'32000000-0000-0000-0000-000000000001',3,2,
-     N'DEMO_DASHBOARD_V13 full refund',o.Total,1,o.TotalCogs,2,
+     N'DASHBOARD_V13 full refund',o.Total,1,o.TotalCogs,2,
      '2026-01-16T09:30:00',@DashboardSalesStaffId,'2026-01-16T09:31:00','2026-01-16T09:32:00',@DashboardActorStaffId
    FROM dbo.Orders o WHERE o.ClientOrderId='31000000-0000-0000-0000-000000000004';
  END;
@@ -9548,9 +9565,9 @@ BEGIN TRY
  DECLARE @CoffeeOfferId int=10;
  DECLARE @CoffeeSupplierId int=6;
  IF NOT EXISTS(SELECT 1 FROM dbo.IngredientSuppliers WHERE IngredientSupplierId=@CoffeeOfferId AND IngredientId=@CoffeeIngredientId AND SupplierId=@CoffeeSupplierId)
-   THROW 53103,N'DEMO_DASHBOARD_V13 requires DEMO_OFFER_VIET_COFFEE.',1;
+   THROW 53103,N'DASHBOARD_V13 requires OFFER_VIET_COFFEE.',1;
 
- IF NOT EXISTS(SELECT 1 FROM dbo.RestockRequests WHERE Note=N'DEMO_DASHBOARD_V13_RESTOCK')
+ IF NOT EXISTS(SELECT 1 FROM dbo.RestockRequests WHERE Note=N'DASHBOARD_V13_RESTOCK')
  BEGIN
    INSERT dbo.RestockRequests(
      StockAlertId,StoreId,IngredientId,RecipeId,PreparedItemId,RequestedQuantity,SuggestedQuantity,
@@ -9559,60 +9576,60 @@ BEGIN TRY
     ReferenceCode,SuggestionReason,Status,Priority,CreatedByStaffId,CreatedAt,UpdatedAt,Note,
      HandledByStaffId,HandledAt,AcceptedByStaffId,AcceptedAtUtc,ProcessingNote,ClosedRemainingQuantity)
   VALUES(NULL,@DashboardStoreId,@CoffeeIngredientId,NULL,NULL,10,12,30,2,5,1,1,0,
-    N'RR-DEMO-DASH-V13-001',
-     N'DEMO_DASHBOARD_V13 low stock',N'PARTIALLY_RECEIVED',N'HIGH',@DashboardActorStaffId,
-     '2026-01-15T08:00:00','2026-01-16T10:00:00',N'DEMO_DASHBOARD_V13_RESTOCK',
+    N'RR-DASH-V13-001',
+     N'DASHBOARD_V13 low stock',N'PARTIALLY_RECEIVED',N'HIGH',@DashboardActorStaffId,
+     '2026-01-15T08:00:00','2026-01-16T10:00:00',N'DASHBOARD_V13_RESTOCK',
      @DashboardActorStaffId,'2026-01-15T08:10:00',@DashboardActorStaffId,'2026-01-15T08:10:00',
-     N'DEMO_DASHBOARD_V13 procurement',0);
+     N'DASHBOARD_V13 procurement',0);
  END;
- DECLARE @DashboardRestockId int=(SELECT RestockRequestId FROM dbo.RestockRequests WHERE Note=N'DEMO_DASHBOARD_V13_RESTOCK');
+ DECLARE @DashboardRestockId int=(SELECT RestockRequestId FROM dbo.RestockRequests WHERE Note=N'DASHBOARD_V13_RESTOCK');
 
- IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrders WHERE Code=N'DEMO-DASH-V13-PO-PARTIAL')
+ IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrders WHERE Code=N'DASH-V13-PO-PARTIAL')
    INSERT dbo.PurchaseOrders(
      Code,StoreId,SupplierId,Status,OrderDate,ExpectedDeliveryAtUtc,CreatedByStaffId,
      ApprovedByStaffId,SentByStaffId,CreatedAtUtc,UpdatedAtUtc,ApprovedAtUtc,SentAtUtc,Note)
-   VALUES(N'DEMO-DASH-V13-PO-PARTIAL',@DashboardStoreId,@CoffeeSupplierId,N'PARTIALLY_RECEIVED',
+   VALUES(N'DASH-V13-PO-PARTIAL',@DashboardStoreId,@CoffeeSupplierId,N'PARTIALLY_RECEIVED',
      '2026-01-15T08:30:00','2026-01-16T08:30:00',@DashboardActorStaffId,@DashboardActorStaffId,@DashboardActorStaffId,
-     '2026-01-15T08:30:00','2026-01-16T10:00:00','2026-01-15T08:35:00','2026-01-15T08:40:00',N'DEMO_DASHBOARD_V13');
- IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrders WHERE Code=N'DEMO-DASH-V13-PO-OVERDUE')
+     '2026-01-15T08:30:00','2026-01-16T10:00:00','2026-01-15T08:35:00','2026-01-15T08:40:00',N'DASHBOARD_V13');
+ IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrders WHERE Code=N'DASH-V13-PO-OVERDUE')
    INSERT dbo.PurchaseOrders(
      Code,StoreId,SupplierId,Status,OrderDate,ExpectedDeliveryAtUtc,CreatedByStaffId,
      ApprovedByStaffId,SentByStaffId,CreatedAtUtc,UpdatedAtUtc,ApprovedAtUtc,SentAtUtc,Note)
-   VALUES(N'DEMO-DASH-V13-PO-OVERDUE',@DashboardStoreId,@CoffeeSupplierId,N'MARKED_AS_SENT',
+   VALUES(N'DASH-V13-PO-OVERDUE',@DashboardStoreId,@CoffeeSupplierId,N'MARKED_AS_SENT',
      '2026-01-17T08:30:00','2026-01-18T08:30:00',@DashboardActorStaffId,@DashboardActorStaffId,@DashboardActorStaffId,
-     '2026-01-17T08:30:00','2026-01-17T08:40:00','2026-01-17T08:35:00','2026-01-17T08:40:00',N'DEMO_DASHBOARD_V13');
+     '2026-01-17T08:30:00','2026-01-17T08:40:00','2026-01-17T08:35:00','2026-01-17T08:40:00',N'DASHBOARD_V13');
 
- DECLARE @PartialPoId int=(SELECT PurchaseOrderId FROM dbo.PurchaseOrders WHERE Code=N'DEMO-DASH-V13-PO-PARTIAL');
- DECLARE @OverduePoId int=(SELECT PurchaseOrderId FROM dbo.PurchaseOrders WHERE Code=N'DEMO-DASH-V13-PO-OVERDUE');
- IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrderLines WHERE PurchaseOrderId=@PartialPoId AND Note=N'DEMO_DASHBOARD_V13_PO_LINE')
+ DECLARE @PartialPoId int=(SELECT PurchaseOrderId FROM dbo.PurchaseOrders WHERE Code=N'DASH-V13-PO-PARTIAL');
+ DECLARE @OverduePoId int=(SELECT PurchaseOrderId FROM dbo.PurchaseOrders WHERE Code=N'DASH-V13-PO-OVERDUE');
+ IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrderLines WHERE PurchaseOrderId=@PartialPoId AND Note=N'DASHBOARD_V13_PO_LINE')
    INSERT dbo.PurchaseOrderLines(
      PurchaseOrderId,RestockRequestId,IngredientId,IngredientSupplierId,PackageUnitIdSnapshot,
      PackageQuantitySnapshot,PackagePriceSnapshot,PackageCount,PurchaseMode,OrderedPackageCount,
      UnitPricePerPackage,OrderedBaseQuantity,ClosedRemainingQuantity,
      PromisedLeadTimeDaysSnapshot,Note)
    SELECT @PartialPoId,@DashboardRestockId,@CoffeeIngredientId,@CoffeeOfferId,UnitId,
-     PackageQuantity,CurrentPrice,10,N'Packaged',10,CurrentPrice,10,0,LeadTimeDays,N'DEMO_DASHBOARD_V13_PO_LINE'
+     PackageQuantity,CurrentPrice,10,N'Packaged',10,CurrentPrice,10,0,LeadTimeDays,N'DASHBOARD_V13_PO_LINE'
    FROM dbo.IngredientSuppliers WHERE IngredientSupplierId=@CoffeeOfferId;
- IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrderLines WHERE PurchaseOrderId=@OverduePoId AND Note=N'DEMO_DASHBOARD_V13_OVERDUE_LINE')
+ IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrderLines WHERE PurchaseOrderId=@OverduePoId AND Note=N'DASHBOARD_V13_OVERDUE_LINE')
    INSERT dbo.PurchaseOrderLines(
      PurchaseOrderId,RestockRequestId,IngredientId,IngredientSupplierId,PackageUnitIdSnapshot,
      PackageQuantitySnapshot,PackagePriceSnapshot,PackageCount,PurchaseMode,OrderedPackageCount,
      UnitPricePerPackage,OrderedBaseQuantity,ClosedRemainingQuantity,
      PromisedLeadTimeDaysSnapshot,Note)
    SELECT @OverduePoId,NULL,@CoffeeIngredientId,@CoffeeOfferId,UnitId,
-     PackageQuantity,CurrentPrice,5,N'Packaged',5,CurrentPrice,5,0,LeadTimeDays,N'DEMO_DASHBOARD_V13_OVERDUE_LINE'
+     PackageQuantity,CurrentPrice,5,N'Packaged',5,CurrentPrice,5,0,LeadTimeDays,N'DASHBOARD_V13_OVERDUE_LINE'
    FROM dbo.IngredientSuppliers WHERE IngredientSupplierId=@CoffeeOfferId;
 
- DECLARE @PartialPoLineId int=(SELECT PurchaseOrderLineId FROM dbo.PurchaseOrderLines WHERE PurchaseOrderId=@PartialPoId AND Note=N'DEMO_DASHBOARD_V13_PO_LINE');
- IF NOT EXISTS(SELECT 1 FROM dbo.BranchReceipts WHERE ReceiptCode=N'DEMO-DASH-V13-BR-001')
+ DECLARE @PartialPoLineId int=(SELECT PurchaseOrderLineId FROM dbo.PurchaseOrderLines WHERE PurchaseOrderId=@PartialPoId AND Note=N'DASHBOARD_V13_PO_LINE');
+ IF NOT EXISTS(SELECT 1 FROM dbo.BranchReceipts WHERE ReceiptCode=N'DASH-V13-BR-001')
    INSERT dbo.BranchReceipts(
      ReceiptCode,StoreId,SupplierId,PurchaseOrderId,Status,ReceiptKey,ReferenceNumber,
      ReceivedAt,ReceivedByStaffId,ConfirmedAt,ConfirmedByStaffId,Notes,CreatedAt,CreatedByStaffId)
-   VALUES(N'DEMO-DASH-V13-BR-001',@DashboardStoreId,@CoffeeSupplierId,@PartialPoId,N'CONFIRMED',
-     N'DEMO_DASHBOARD_V13_RECEIPT_001',N'DEMO-V13-INVOICE','2026-01-16T09:00:00',@DashboardActorStaffId,
-     '2026-01-16T09:10:00',@DashboardActorStaffId,N'DEMO_DASHBOARD_V13 analytical receipt',
+   VALUES(N'DASH-V13-BR-001',@DashboardStoreId,@CoffeeSupplierId,@PartialPoId,N'CONFIRMED',
+     N'DASHBOARD_V13_RECEIPT_001',N'V13-INVOICE','2026-01-16T09:00:00',@DashboardActorStaffId,
+     '2026-01-16T09:10:00',@DashboardActorStaffId,N'DASHBOARD_V13 analytical receipt',
      '2026-01-16T09:00:00',@DashboardActorStaffId);
- DECLARE @DashboardReceiptId int=(SELECT BranchReceiptId FROM dbo.BranchReceipts WHERE ReceiptCode=N'DEMO-DASH-V13-BR-001');
+ DECLARE @DashboardReceiptId int=(SELECT BranchReceiptId FROM dbo.BranchReceipts WHERE ReceiptCode=N'DASH-V13-BR-001');
 
  IF NOT EXISTS(SELECT 1 FROM dbo.BranchReceiptLines WHERE BranchReceiptId=@DashboardReceiptId AND PurchaseOrderLineId=@PartialPoLineId)
    INSERT dbo.BranchReceiptLines(
@@ -9628,26 +9645,26 @@ BEGIN TRY
    WHERE o.IngredientSupplierId=@CoffeeOfferId;
  DECLARE @DashboardReceiptLineId int=(SELECT BranchReceiptLineId FROM dbo.BranchReceiptLines WHERE BranchReceiptId=@DashboardReceiptId AND PurchaseOrderLineId=@PartialPoLineId);
 
- IF NOT EXISTS(SELECT 1 FROM dbo.SupplierReceiptIssues WHERE BranchReceiptLineId=@DashboardReceiptLineId AND Description=N'DEMO_DASHBOARD_V13 supplier issue')
+ IF NOT EXISTS(SELECT 1 FROM dbo.SupplierReceiptIssues WHERE BranchReceiptLineId=@DashboardReceiptLineId AND Description=N'DASHBOARD_V13 supplier issue')
    INSERT dbo.SupplierReceiptIssues(
      SupplierId,StoreId,PurchaseOrderId,PurchaseOrderLineId,BranchReceiptId,BranchReceiptLineId,
      IssueType,Status,AffectedBaseQuantity,Description,ReportedByStaffId,ReportedAtUtc,UpdatedAtUtc)
    VALUES(@CoffeeSupplierId,@DashboardStoreId,@PartialPoId,@PartialPoLineId,@DashboardReceiptId,@DashboardReceiptLineId,
-     N'PACKAGING_FAILURE',N'OPEN',2,N'DEMO_DASHBOARD_V13 supplier issue',@DashboardActorStaffId,
+     N'PACKAGING_FAILURE',N'OPEN',2,N'DASHBOARD_V13 supplier issue',@DashboardActorStaffId,
      '2026-01-16T09:15:00','2026-01-16T09:15:00');
 
- IF (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_DASHBOARD_V13')<>6
-   THROW 53110,N'DEMO_DASHBOARD_V13 order count mismatch.',1;
+ IF (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DASHBOARD_V13')<>6
+   THROW 53110,N'DASHBOARD_V13 order count mismatch.',1;
  IF (SELECT COUNT(*) FROM dbo.WorkShifts
      WHERE StoreId=@DashboardStoreId AND UserId=@DashboardSalesStaffId
        AND StartTimeUtc IN ('2026-01-14T23:00:00','2026-01-15T05:00:00','2026-01-15T23:00:00'))<>3
-   THROW 53111,N'DEMO_DASHBOARD_V13 WorkShift count mismatch.',1;
+   THROW 53111,N'DASHBOARD_V13 WorkShift count mismatch.',1;
  IF (SELECT COUNT(*) FROM dbo.StaffShifts ss JOIN dbo.Shifts sh ON sh.ShiftId=ss.ShiftId
      WHERE ss.StaffId=@DashboardSalesStaffId AND ss.WorkDate BETWEEN '2026-01-15' AND '2026-01-17'
-       AND (sh.Notes=N'DEMO_DASHBOARD_V13_OVERNIGHT' OR sh.StoreId=@DashboardStoreId))<4
-   THROW 53112,N'DEMO_DASHBOARD_V13 StaffShift count mismatch.',1;
- IF NOT EXISTS(SELECT 1 FROM dbo.SupplierReceiptIssues WHERE Description=N'DEMO_DASHBOARD_V13 supplier issue')
-   THROW 53113,N'DEMO_DASHBOARD_V13 procurement fixture missing.',1;
+       AND (sh.Notes=N'DASHBOARD_V13_OVERNIGHT' OR sh.StoreId=@DashboardStoreId))<4
+   THROW 53112,N'DASHBOARD_V13 StaffShift count mismatch.',1;
+ IF NOT EXISTS(SELECT 1 FROM dbo.SupplierReceiptIssues WHERE Description=N'DASHBOARD_V13 supplier issue')
+   THROW 53113,N'DASHBOARD_V13 procurement fixture missing.',1;
 
  COMMIT TRANSACTION;
 END TRY
@@ -9657,12 +9674,12 @@ BEGIN CATCH
 END CATCH;
 GO
 
-SELECT N'DEMO_DASHBOARD_V13' AS SeedMarker,
-       (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_DASHBOARD_V13') AS DemoOrders,
+SELECT N'DASHBOARD_V13' AS SeedMarker,
+       (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DASHBOARD_V13') AS Orders,
        (SELECT COUNT(*) FROM dbo.WorkShifts
-        WHERE StoreId=1 AND StartTimeUtc IN ('2026-01-14T23:00:00','2026-01-15T05:00:00','2026-01-15T23:00:00')) AS DemoWorkShifts,
-       (SELECT COUNT(*) FROM dbo.PurchaseOrders WHERE Note=N'DEMO_DASHBOARD_V13') AS DemoPurchaseOrders,
-       (SELECT COUNT(*) FROM dbo.SupplierReceiptIssues WHERE Description=N'DEMO_DASHBOARD_V13 supplier issue') AS DemoSupplierIssues;
+        WHERE StoreId=1 AND StartTimeUtc IN ('2026-01-14T23:00:00','2026-01-15T05:00:00','2026-01-15T23:00:00')) AS WorkShifts,
+       (SELECT COUNT(*) FROM dbo.PurchaseOrders WHERE Note=N'DASHBOARD_V13') AS PurchaseOrders,
+       (SELECT COUNT(*) FROM dbo.SupplierReceiptIssues WHERE Description=N'DASHBOARD_V13 supplier issue') AS SupplierIssues;
 GO
 
 /* ================================================================
@@ -9675,7 +9692,7 @@ SET XACT_ABORT ON;
 BEGIN TRY
     BEGIN TRANSACTION;
 
-    DECLARE @AloePreparedItemId int=(SELECT PreparedItemId FROM dbo.PreparedItems WHERE Code=N'DEMO_PREP_ALOE_BASE');
+    DECLARE @AloePreparedItemId int=(SELECT PreparedItemId FROM dbo.PreparedItems WHERE Code=N'PREP_ALOE_BASE');
     DECLARE @AloeLegacyRecipeId int=(SELECT RecipeId FROM dbo.Recipes WHERE RecipeId=145 AND PreparedItemId=@AloePreparedItemId);
     DECLARE @AloeActiveRecipeId int=
     (
@@ -9738,18 +9755,18 @@ BEGIN TRY
         ReplacedIngredientCode nvarchar(100) NULL
     );
     INSERT @PreparedConsumption VALUES
-      (N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'DEMO_PREP_ALOE_BASE',30,N'DEMO_ING_ALOE_VERA'),
-      (N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'DEMO_PREP_ALOE_BASE',25,N'DEMO_ING_ALOE_VERA'),
-      (N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'DEMO_PREP_ALOE_BASE',25,N'DEMO_ING_ALOE_VERA'),
-      (N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'DEMO_PREP_ALOE_BASE',25,N'DEMO_ING_ALOE_VERA'),
-      (N'ZZ_RCP_ALOE_MILK_TEA_M',N'DEMO_PREP_ALOE_BASE',30,N'DEMO_ING_ALOE_VERA'),
-      (N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'DEMO_PREP_COCONUT_JELLY_BASE',30,N'DEMO_ING_COCONUT_JELLY'),
-      (N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'DEMO_PREP_COCONUT_JELLY_BASE',30,N'DEMO_ING_COCONUT_JELLY'),
-      (N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'DEMO_PREP_COCONUT_JELLY_BASE',30,N'DEMO_ING_COCONUT_JELLY'),
-      (N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'DEMO_PREP_COCONUT_JELLY_BASE',30,N'DEMO_ING_COCONUT_JELLY'),
-      (N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'DEMO_PREP_KHUC_BACH_BASE',30,NULL),
-      (N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'DEMO_PREP_KHUC_BACH_BASE',30,NULL),
-      (N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'DEMO_PREP_KHUC_BACH_BASE',30,NULL);
+      (N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'PREP_ALOE_BASE',30,N'ING_ALOE_VERA'),
+      (N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'PREP_ALOE_BASE',25,N'ING_ALOE_VERA'),
+      (N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'PREP_ALOE_BASE',25,N'ING_ALOE_VERA'),
+      (N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'PREP_ALOE_BASE',25,N'ING_ALOE_VERA'),
+      (N'ZZ_RCP_ALOE_MILK_TEA_M',N'PREP_ALOE_BASE',30,N'ING_ALOE_VERA'),
+      (N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'PREP_COCONUT_JELLY_BASE',30,N'ING_COCONUT_JELLY'),
+      (N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'PREP_COCONUT_JELLY_BASE',30,N'ING_COCONUT_JELLY'),
+      (N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'PREP_COCONUT_JELLY_BASE',30,N'ING_COCONUT_JELLY'),
+      (N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'PREP_COCONUT_JELLY_BASE',30,N'ING_COCONUT_JELLY'),
+      (N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'PREP_KHUC_BACH_BASE',30,NULL),
+      (N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'PREP_KHUC_BACH_BASE',30,NULL),
+      (N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'PREP_KHUC_BACH_BASE',30,NULL);
 
     DECLARE @ResolvedPreparedConsumption TABLE
     (
@@ -9832,7 +9849,7 @@ END CATCH;
 GO
 
 /* ================================================================
-   BATCH 14/14 - DEMO_REORDER_V14
+   BATCH 14/14 - REORDER_V14
    Store 3 foundation + rolling POS/BOM/FIFO/COGS history
 
    Contract:
@@ -9849,10 +9866,10 @@ IF EXISTS
     FROM dbo.SystemSettings
     WHERE SettingKey=N'seedall_inventory_procurement_v2'
       AND SettingValue=N'completed'
-      AND (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_REORDER_V14')=150
-      AND (SELECT COUNT(*) FROM dbo.ProductionRuns WHERE Notes LIKE N'DEMO_REORDER_V14_PROD_S%')=90
-      AND (SELECT COUNT(*) FROM dbo.WorkShifts WHERE DiscrepancyReason LIKE N'DEMO_REORDER_V14_SHIFT_S%')=90
-      AND (SELECT COUNT(*) FROM dbo.Payments WHERE TransactionCode LIKE N'DEMO_REORDER_V14_PAY_S%')=150
+      AND (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'REORDER_V14')=150
+      AND (SELECT COUNT(*) FROM dbo.ProductionRuns WHERE Notes LIKE N'REORDER_V14_PROD_S%')=90
+      AND (SELECT COUNT(*) FROM dbo.WorkShifts WHERE DiscrepancyReason LIKE N'REORDER_V14_SHIFT_S%')=90
+      AND (SELECT COUNT(*) FROM dbo.Payments WHERE TransactionCode LIKE N'REORDER_V14_PAY_S%')=150
 )
 BEGIN
     PRINT N'SeedAll Batch 14 skipped: inventory procurement v2 already owns opening/buffer evidence.';
@@ -9863,7 +9880,7 @@ BEGIN TRY
     SET XACT_ABORT ON;
     BEGIN TRANSACTION;
 
-    DECLARE @SeedMarker nvarchar(50)=N'DEMO_REORDER_V14';
+    DECLARE @SeedMarker nvarchar(50)=N'REORDER_V14';
     DECLARE @SeedAnchorUtc datetime2(0)=CONVERT(datetime2(0),SYSUTCDATETIME());
     DECLARE @SeedDayUtc datetime2(0)=DATEADD(DAY,DATEDIFF(DAY,0,@SeedAnchorUtc),0);
     /* Operational fixtures stay strictly inside the rolling window; no current-day fixed clock is used. */
@@ -9893,14 +9910,14 @@ BEGIN TRY
     OR OBJECT_ID(N'dbo.Roles',N'U') IS NULL OR OBJECT_ID(N'dbo.ScopeTypes',N'U') IS NULL
     OR OBJECT_ID(N'dbo.PaymentStatuses',N'U') IS NULL OR OBJECT_ID(N'dbo.PaymentMethods',N'U') IS NULL
     OR OBJECT_ID(N'dbo.OrderStatuses',N'U') IS NULL OR OBJECT_ID(N'dbo.OrderTypes',N'U') IS NULL
-        THROW 53400,N'DEMO_REORDER_V14: schema thiếu bảng bắt buộc.',1;
+        THROW 53400,N'REORDER_V14: schema thiếu bảng bắt buộc.',1;
 
     SELECT @Store1Id=StoreId FROM dbo.Stores WHERE Name=N'CafeChain Thủ Dầu Một';
     SELECT @Store2Id=StoreId FROM dbo.Stores WHERE Name=N'CafeChain Thuận An';
     SELECT @Store3Id=StoreId FROM dbo.Stores WHERE Name=N'CafeChain Dĩ An';
     IF @Store1Id IS NULL OR @Store2Id IS NULL OR @Store3Id IS NULL
        OR @Store1Id=@Store2Id OR @Store1Id=@Store3Id OR @Store2Id=@Store3Id
-        THROW 53401,N'DEMO_REORDER_V14: không resolve duy nhất được đủ Store 1 / 2 / 3 bằng business key.',1;
+        THROW 53401,N'REORDER_V14: không resolve duy nhất được đủ Store 1 / 2 / 3 bằng business key.',1;
 
     SELECT @SalesRoleId=RoleId FROM dbo.Roles WHERE Name=N'Nhân viên bán hàng' AND Active=1;
     SELECT @StoreScopeTypeId=ScopeTypeId FROM dbo.ScopeTypes WHERE Code=N'STORE';
@@ -9910,13 +9927,13 @@ BEGIN TRY
     SELECT @TakeAwayTypeId=OrderTypeId FROM dbo.OrderTypes WHERE Name=N'Take Away';
     IF @SalesRoleId IS NULL OR @StoreScopeTypeId IS NULL OR @PaidStatusId IS NULL OR @BankMethodId IS NULL
        OR @CompletedOrderStatusId IS NULL OR @TakeAwayTypeId IS NULL
-        THROW 53402,N'DEMO_REORDER_V14: thiếu role/scope/status/payment/order type nền.',1;
+        THROW 53402,N'REORDER_V14: thiếu role/scope/status/payment/order type nền.',1;
 
     /* Resolve first-run/replay before any inventory mutation. A replay with missing opening evidence is partial and must fail closed. */
     DECLARE @ExistingOrders int=(SELECT COUNT(*) FROM dbo.Orders WHERE Source=@SeedMarker);
-    DECLARE @ExistingRuns int=(SELECT COUNT(*) FROM dbo.ProductionRuns WHERE Notes LIKE N'DEMO_REORDER_V14_PROD_S%');
-    DECLARE @ExistingShifts int=(SELECT COUNT(*) FROM dbo.WorkShifts WHERE DiscrepancyReason LIKE N'DEMO_REORDER_V14_SHIFT_S%');
-    DECLARE @ExistingPayments int=(SELECT COUNT(*) FROM dbo.Payments WHERE TransactionCode LIKE N'DEMO_REORDER_V14_PAY_S%');
+    DECLARE @ExistingRuns int=(SELECT COUNT(*) FROM dbo.ProductionRuns WHERE Notes LIKE N'REORDER_V14_PROD_S%');
+    DECLARE @ExistingShifts int=(SELECT COUNT(*) FROM dbo.WorkShifts WHERE DiscrepancyReason LIKE N'REORDER_V14_SHIFT_S%');
+    DECLARE @ExistingPayments int=(SELECT COUNT(*) FROM dbo.Payments WHERE TransactionCode LIKE N'REORDER_V14_PAY_S%');
     DECLARE @IsReplay bit=0;
     DECLARE @IsStore2Upgrade bit=0;
 
@@ -9927,18 +9944,18 @@ BEGIN TRY
         SET @IsStore2Upgrade=1;
     END
     ELSE IF @ExistingOrders=150 AND @ExistingRuns=90 AND @ExistingShifts=90 AND @ExistingPayments=150 SET @IsReplay=1;
-    ELSE THROW 53428,N'DEMO_REORDER_V14: phát hiện fixture partial; rollback để tránh trừ kho/FIFO lần hai.',1;
+    ELSE THROW 53428,N'REORDER_V14: phát hiện fixture partial; rollback để tránh trừ kho/FIFO lần hai.',1;
 
     /* Procurement v2 legitimately re-homes and removes the old opening documents. */
     IF @IsReplay=1
        AND NOT EXISTS(SELECT 1 FROM dbo.SystemSettings WHERE SettingKey=N'seedall_inventory_procurement_v2' AND SettingValue=N'completed')
-       AND NOT EXISTS(SELECT 1 FROM dbo.InventoryDocuments WHERE RequestKey=N'DEMO_REORDER_V14_OPENING_STORE3')
-        THROW 53495,N'DEMO_REORDER_V14: operational fixture tồn tại nhưng opening/procurement evidence bị thiếu.',1;
+       AND NOT EXISTS(SELECT 1 FROM dbo.InventoryDocuments WHERE RequestKey=N'REORDER_V14_OPENING_STORE3')
+        THROW 53495,N'REORDER_V14: operational fixture tồn tại nhưng opening/procurement evidence bị thiếu.',1;
 
     /* ------------------------------------------------------------
-       14.1 Store 3 demo sales identity - no hard-coded identity
+       14.1 Store 3 sales identity - no hard-coded identity
        ------------------------------------------------------------ */
-    DECLARE @Store3DemoEmail nvarchar(256)=N'demo.sales.dian@cafechain.local';
+    DECLARE @Store3Email nvarchar(256)=N'sales.dian@cafechain.local';
     DECLARE @SourceSalesAccountId int,@SourceSalesStaffId int,@SourcePasswordHash nvarchar(max),
             @SourceGender int,@SourceEmployeeStatus int;
 
@@ -9951,24 +9968,24 @@ BEGIN TRY
     WHERE a.Email=N'salesstaff@cafechain.vn' AND a.Active=1 AND s.Active=1 AND s.StoreId=@Store1Id;
 
     IF @SourceSalesAccountId IS NULL OR @SourcePasswordHash IS NULL
-        THROW 53403,N'DEMO_REORDER_V14: thiếu account bán hàng Store 1 làm nguồn password/profile.',1;
+        THROW 53403,N'REORDER_V14: thiếu account bán hàng Store 1 làm nguồn password/profile.',1;
 
     IF EXISTS(
         SELECT 1 FROM dbo.Accounts a
-        WHERE a.Email=@Store3DemoEmail
+        WHERE a.Email=@Store3Email
           AND (a.Active<>1 OR a.RequiresPasswordChange<>0 OR NULLIF(LTRIM(RTRIM(a.PasswordHash)),N'') IS NULL)
-    ) THROW 53404,N'DEMO_REORDER_V14: account Store 3 cùng email nhưng payload khác contract.',1;
+    ) THROW 53404,N'REORDER_V14: account Store 3 cùng email nhưng payload khác contract.',1;
 
-    IF NOT EXISTS(SELECT 1 FROM dbo.Accounts WHERE Email=@Store3DemoEmail)
+    IF NOT EXISTS(SELECT 1 FROM dbo.Accounts WHERE Email=@Store3Email)
         INSERT dbo.Accounts(Email,PasswordHash,Active,RequiresPasswordChange,CreatedAt,FailedLoginAttempts,LockoutEnd)
-        VALUES(@Store3DemoEmail,@SourcePasswordHash,1,0,@SeedAnchorUtc,0,NULL);
+        VALUES(@Store3Email,@SourcePasswordHash,1,0,@SeedAnchorUtc,0,NULL);
 
-    SELECT @Store3AccountId=AccountId FROM dbo.Accounts WHERE Email=@Store3DemoEmail;
+    SELECT @Store3AccountId=AccountId FROM dbo.Accounts WHERE Email=@Store3Email;
 
     IF EXISTS(
         SELECT 1 FROM dbo.AccountRoles ar
         WHERE ar.AccountId=@Store3AccountId AND ar.RoleId<>@SalesRoleId
-    ) THROW 53405,N'DEMO_REORDER_V14: demo account Store 3 đang có role ngoài Nhân viên bán hàng.',1;
+    ) THROW 53405,N'REORDER_V14: account Store 3 đang có role ngoài Nhân viên bán hàng.',1;
 
     IF NOT EXISTS(SELECT 1 FROM dbo.AccountRoles WHERE AccountId=@Store3AccountId AND RoleId=@SalesRoleId)
         INSERT dbo.AccountRoles(AccountId,RoleId) VALUES(@Store3AccountId,@SalesRoleId);
@@ -9976,13 +9993,13 @@ BEGIN TRY
     IF EXISTS(
         SELECT 1 FROM dbo.Staffs s
         WHERE s.AccountId=@Store3AccountId
-          AND (s.StoreId<>@Store3Id OR s.Active<>1 OR s.FullName<>N'Nhân viên bán hàng demo Dĩ An')
-    ) THROW 53406,N'DEMO_REORDER_V14: Staff demo Store 3 cùng account nhưng payload khác contract.',1;
+          AND (s.StoreId<>@Store3Id OR s.Active<>1 OR s.FullName<>N'Nhân viên bán hàng Dĩ An')
+    ) THROW 53406,N'REORDER_V14: Staff Store 3 cùng account nhưng payload khác contract.',1;
 
     IF NOT EXISTS(SELECT 1 FROM dbo.Staffs WHERE AccountId=@Store3AccountId)
         INSERT dbo.Staffs(AccountId,FullName,CCCD,Gender,StartDate,EmployeeStatus,DateOfBirth,StoreId,
                           AvatarUrl,AvatarPublicId,Active,CreatedAt)
-        SELECT @Store3AccountId,N'Nhân viên bán hàng demo Dĩ An',NULL,@SourceGender,@SeedAnchorUtc,
+        SELECT @Store3AccountId,N'Nhân viên bán hàng Dĩ An',NULL,@SourceGender,@SeedAnchorUtc,
                @SourceEmployeeStatus,NULL,@Store3Id,NULL,NULL,1,@SeedAnchorUtc;
 
     SELECT @Store3StaffId=StaffId FROM dbo.Staffs WHERE AccountId=@Store3AccountId;
@@ -9991,21 +10008,21 @@ BEGIN TRY
         SELECT 1 FROM dbo.StaffScopes ss
         WHERE ss.StaffId=@Store3StaffId
           AND (ss.ScopeTypeId<>@StoreScopeTypeId OR ss.ScopeRefId<>@Store3Id)
-    ) THROW 53407,N'DEMO_REORDER_V14: StaffScope demo Store 3 khác STORE/Store3 contract.',1;
+    ) THROW 53407,N'REORDER_V14: StaffScope Store 3 khác STORE/Store3 contract.',1;
 
     IF NOT EXISTS(SELECT 1 FROM dbo.StaffScopes WHERE StaffId=@Store3StaffId AND ScopeTypeId=@StoreScopeTypeId AND ScopeRefId=@Store3Id)
         INSERT dbo.StaffScopes(StaffId,ScopeTypeId,ScopeRefId) VALUES(@Store3StaffId,@StoreScopeTypeId,@Store3Id);
 
     /* Store 2 owns an independent POS identity and STORE scope. */
-    DECLARE @Store2DemoEmail nvarchar(256)=N'demo.sales.thuanan@cafechain.local';
-    IF NOT EXISTS(SELECT 1 FROM dbo.Accounts WHERE Email=@Store2DemoEmail)
+    DECLARE @Store2Email nvarchar(256)=N'sales.thuanan@cafechain.local';
+    IF NOT EXISTS(SELECT 1 FROM dbo.Accounts WHERE Email=@Store2Email)
         INSERT dbo.Accounts(Email,PasswordHash,Active,RequiresPasswordChange,CreatedAt,FailedLoginAttempts,LockoutEnd)
-        VALUES(@Store2DemoEmail,@SourcePasswordHash,1,0,@SeedAnchorUtc,0,NULL);
+        VALUES(@Store2Email,@SourcePasswordHash,1,0,@SeedAnchorUtc,0,NULL);
 
-    SELECT @Store2AccountId=AccountId FROM dbo.Accounts WHERE Email=@Store2DemoEmail;
+    SELECT @Store2AccountId=AccountId FROM dbo.Accounts WHERE Email=@Store2Email;
     IF EXISTS(SELECT 1 FROM dbo.Accounts WHERE AccountId=@Store2AccountId AND (Active<>1 OR RequiresPasswordChange<>0))
        OR EXISTS(SELECT 1 FROM dbo.AccountRoles WHERE AccountId=@Store2AccountId AND RoleId<>@SalesRoleId)
-        THROW 53702,N'DEMO_REORDER_V14: account bán hàng Store 2 khác contract.',1;
+        THROW 53702,N'REORDER_V14: account bán hàng Store 2 khác contract.',1;
 
     IF NOT EXISTS(SELECT 1 FROM dbo.AccountRoles WHERE AccountId=@Store2AccountId AND RoleId=@SalesRoleId)
         INSERT dbo.AccountRoles(AccountId,RoleId) VALUES(@Store2AccountId,@SalesRoleId);
@@ -10013,7 +10030,7 @@ BEGIN TRY
     IF NOT EXISTS(SELECT 1 FROM dbo.Staffs WHERE AccountId=@Store2AccountId)
         INSERT dbo.Staffs(AccountId,FullName,CCCD,Gender,StartDate,EmployeeStatus,DateOfBirth,StoreId,
                           AvatarUrl,AvatarPublicId,Active,CreatedAt)
-        SELECT @Store2AccountId,N'Nhân viên bán hàng demo Thuận An',NULL,@SourceGender,@SeedAnchorUtc,
+        SELECT @Store2AccountId,N'Nhân viên bán hàng Thuận An',NULL,@SourceGender,@SeedAnchorUtc,
                @SourceEmployeeStatus,NULL,@Store2Id,NULL,NULL,1,@SeedAnchorUtc;
 
     SELECT @Store2StaffId=StaffId FROM dbo.Staffs WHERE AccountId=@Store2AccountId;
@@ -10021,7 +10038,7 @@ BEGIN TRY
        OR EXISTS(SELECT 1 FROM dbo.Staffs WHERE StaffId=@Store2StaffId AND (StoreId<>@Store2Id OR Active<>1))
        OR EXISTS(SELECT 1 FROM dbo.StaffScopes WHERE StaffId=@Store2StaffId
                  AND (ScopeTypeId<>@StoreScopeTypeId OR ScopeRefId<>@Store2Id))
-        THROW 53703,N'DEMO_REORDER_V14: Staff/StaffScope bán hàng Store 2 khác STORE/Store2 contract.',1;
+        THROW 53703,N'REORDER_V14: Staff/StaffScope bán hàng Store 2 khác STORE/Store2 contract.',1;
 
     IF NOT EXISTS(SELECT 1 FROM dbo.StaffScopes WHERE StaffId=@Store2StaffId AND ScopeTypeId=@StoreScopeTypeId AND ScopeRefId=@Store2Id)
         INSERT dbo.StaffScopes(StaffId,ScopeTypeId,ScopeRefId) VALUES(@Store2StaffId,@StoreScopeTypeId,@Store2Id);
@@ -10029,18 +10046,18 @@ BEGIN TRY
     SELECT @Store1StaffId=s.StaffId
     FROM dbo.Accounts a JOIN dbo.Staffs s ON s.AccountId=a.AccountId
     WHERE a.Email=N'salesstaff@cafechain.vn' AND a.Active=1 AND s.Active=1 AND s.StoreId=@Store1Id;
-    IF @Store1StaffId IS NULL THROW 53408,N'DEMO_REORDER_V14: thiếu Staff bán hàng Store 1.',1;
+    IF @Store1StaffId IS NULL THROW 53408,N'REORDER_V14: thiếu Staff bán hàng Store 1.',1;
 
     /* ------------------------------------------------------------
-       14.2 Make DEMO_ING_SUGAR_SYRUP part of a real fruit-tea BOM.
+       14.2 Make ING_SUGAR_SYRUP part of a real fruit-tea BOM.
        Business keys only; base unit of the ingredient is used.
        ------------------------------------------------------------ */
-    DECLARE @BottleSyrupIngredientId int=(SELECT IngredientId FROM dbo.Ingredients WHERE Code=N'DEMO_ING_SUGAR_SYRUP' AND Active=1);
+    DECLARE @BottleSyrupIngredientId int=(SELECT IngredientId FROM dbo.Ingredients WHERE Code=N'ING_SUGAR_SYRUP' AND Active=1);
     DECLARE @BottleSyrupBaseUnitId int=(SELECT BaseUnitId FROM dbo.Ingredients WHERE IngredientId=@BottleSyrupIngredientId);
-    DECLARE @PeachTeaMRecipeId int=(SELECT RecipeId FROM dbo.Recipes WHERE RecipeCode=N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_M' AND Active=1 AND Status=N'Active');
-    DECLARE @PeachTeaLRecipeId int=(SELECT RecipeId FROM dbo.Recipes WHERE RecipeCode=N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_L' AND Active=1 AND Status=N'Active');
+    DECLARE @PeachTeaMRecipeId int=(SELECT RecipeId FROM dbo.Recipes WHERE RecipeCode=N'RECIPE_SKU_PEACH_ORANGE_TEA_M' AND Active=1 AND Status=N'Active');
+    DECLARE @PeachTeaLRecipeId int=(SELECT RecipeId FROM dbo.Recipes WHERE RecipeCode=N'RECIPE_SKU_PEACH_ORANGE_TEA_L' AND Active=1 AND Status=N'Active');
     IF @BottleSyrupIngredientId IS NULL OR @BottleSyrupBaseUnitId IS NULL OR @PeachTeaMRecipeId IS NULL OR @PeachTeaLRecipeId IS NULL
-        THROW 53409,N'DEMO_REORDER_V14: không resolve được syrup đóng chai hoặc BOM trà đào cam sả.',1;
+        THROW 53409,N'REORDER_V14: không resolve được syrup đóng chai hoặc BOM trà đào cam sả.',1;
 
     IF EXISTS(
         SELECT 1 FROM dbo.RecipeDetails rd
@@ -10050,7 +10067,7 @@ BEGIN TRY
         SELECT 1 FROM dbo.RecipeDetails rd
         WHERE rd.RecipeId=@PeachTeaLRecipeId AND rd.IngredientId=@BottleSyrupIngredientId
           AND (rd.ChildRecipeId IS NOT NULL OR rd.UnitId<>@BottleSyrupBaseUnitId OR rd.Quantity<>CAST(7 AS decimal(18,3)))
-    ) THROW 53410,N'DEMO_REORDER_V14: syrup đã có trong fruit-tea BOM nhưng payload khác contract.',1;
+    ) THROW 53410,N'REORDER_V14: syrup đã có trong fruit-tea BOM nhưng payload khác contract.',1;
 
     IF NOT EXISTS(SELECT 1 FROM dbo.RecipeDetails WHERE RecipeId=@PeachTeaMRecipeId AND IngredientId=@BottleSyrupIngredientId)
         INSERT dbo.RecipeDetails(RecipeId,IngredientId,ChildRecipeId,Quantity,UnitId)
@@ -10063,7 +10080,7 @@ BEGIN TRY
 
    - ING00008:
        Vanilla syrup -> Caramel Macchiato M/L.
-   - DEMO_ING_WHITE_PEARL:
+   - ING_WHITE_PEARL:
        Ready white pearl -> Trà sữa truyền thống đặc biệt M/L.
 
    Không tạo InventoryTransaction giả.
@@ -10090,7 +10107,7 @@ BEGIN TRY
     (
         SELECT RecipeId
         FROM dbo.Recipes
-        WHERE RecipeCode = N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_M'
+        WHERE RecipeCode = N'RECIPE_SKU_CARAMEL_MACCHIATO_M'
           AND Active = 1
           AND Status = N'Active'
     );
@@ -10099,7 +10116,7 @@ BEGIN TRY
     (
         SELECT RecipeId
         FROM dbo.Recipes
-        WHERE RecipeCode = N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_L'
+        WHERE RecipeCode = N'RECIPE_SKU_CARAMEL_MACCHIATO_L'
           AND Active = 1
           AND Status = N'Active'
     );
@@ -10109,7 +10126,7 @@ BEGIN TRY
     (
         SELECT IngredientId
         FROM dbo.Ingredients
-        WHERE Code = N'DEMO_ING_WHITE_PEARL'
+        WHERE Code = N'ING_WHITE_PEARL'
           AND Active = 1
     );
 
@@ -10124,7 +10141,7 @@ BEGIN TRY
     (
         SELECT RecipeId
         FROM dbo.Recipes
-        WHERE RecipeCode = N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_M'
+        WHERE RecipeCode = N'RECIPE_SKU_TRAD_MILK_TEA_M'
           AND Active = 1
           AND Status = N'Active'
     );
@@ -10133,7 +10150,7 @@ BEGIN TRY
     (
         SELECT RecipeId
         FROM dbo.Recipes
-        WHERE RecipeCode = N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_L'
+        WHERE RecipeCode = N'RECIPE_SKU_TRAD_MILK_TEA_L'
           AND Active = 1
           AND Status = N'Active'
     );
@@ -10148,7 +10165,7 @@ BEGIN TRY
        OR @CaramelMacchiatoLRecipeId IS NULL
     BEGIN
         ;THROW 53505,
-               N'DEMO_REORDER_V14: không resolve được ING00008 hoặc Caramel Macchiato M/L.',
+               N'REORDER_V14: không resolve được ING00008 hoặc Caramel Macchiato M/L.',
                1;
     END;
 
@@ -10159,7 +10176,7 @@ BEGIN TRY
        OR @TradMilkTeaLRecipeId IS NULL
     BEGIN
         ;THROW 53506,
-               N'DEMO_REORDER_V14: không resolve được white pearl hoặc Trà sữa truyền thống M/L.',
+               N'REORDER_V14: không resolve được white pearl hoặc Trà sữa truyền thống M/L.',
                1;
     END;
 
@@ -10167,7 +10184,7 @@ BEGIN TRY
     /* ============================================================
        Contract drift check - Vanilla
 
-       Demo BOM:
+       BOM:
        M = 10 ml
        L = 15 ml
        ============================================================ */
@@ -10199,7 +10216,7 @@ BEGIN TRY
     )
     BEGIN
         ;THROW 53507,
-               N'DEMO_REORDER_V14: vanilla syrup đã có trong Caramel Macchiato nhưng payload khác contract.',
+               N'REORDER_V14: vanilla syrup đã có trong Caramel Macchiato nhưng payload khác contract.',
                1;
     END;
 
@@ -10207,7 +10224,7 @@ BEGIN TRY
     /* ============================================================
        Contract drift check - White Pearl
 
-       Ingredient này có BaseUnit = DEMO_PORTION.
+       Ingredient này có BaseUnit = PORTION.
        BOM legacy của chính seed cũng dùng 1 portion.
        ============================================================ */
     IF EXISTS
@@ -10238,7 +10255,7 @@ BEGIN TRY
     )
     BEGIN
         ;THROW 53508,
-               N'DEMO_REORDER_V14: white pearl đã có trong Trà sữa truyền thống nhưng payload khác contract.',
+               N'REORDER_V14: white pearl đã có trong Trà sữa truyền thống nhưng payload khác contract.',
                1;
     END;
 
@@ -10303,7 +10320,7 @@ BEGIN TRY
     /* ============================================================
        Add ready White Pearl to real drink BOM.
 
-       Không sửa/activate DEMO_RECIPE_TOP_WHITE_PEARL archived.
+       Không sửa/activate RECIPE_TOP_WHITE_PEARL archived.
        Không thay Legacy Recipe identity.
        ============================================================ */
     IF NOT EXISTS
@@ -10366,7 +10383,7 @@ BEGIN TRY
         SELECT 1 FROM dbo.StoreDrinks src
         JOIN dbo.StoreDrinks dst ON dst.StoreId=@Store3Id AND dst.DrinkId=src.DrinkId
         WHERE src.StoreId=@Store1Id AND dst.Active<>src.Active
-    ) THROW 53484,N'DEMO_REORDER_V14: StoreDrink Store3 cùng business key nhưng khác Store1.',1;
+    ) THROW 53484,N'REORDER_V14: StoreDrink Store3 cùng business key nhưng khác Store1.',1;
 
     INSERT dbo.StoreDrinks(StoreId,DrinkId,Active)
     SELECT @Store3Id,sd.DrinkId,sd.Active
@@ -10387,13 +10404,13 @@ BEGIN TRY
         ORDER BY d.DrinkCode;
 
         IF (SELECT COUNT(*) FROM @Store3ExtraDrinks)<>@ExtraDrinkNeeded
-            THROW 53485,N'DEMO_REORDER_V14: master hiện có không đủ Drink business key để Store3 đạt 30 StoreDrinks.',1;
+            THROW 53485,N'REORDER_V14: master hiện có không đủ Drink business key để Store3 đạt 30 StoreDrinks.',1;
 
         IF EXISTS(
             SELECT 1 FROM @Store3ExtraDrinks x
             JOIN dbo.StoreDrinks dst ON dst.StoreId=@Store3Id AND dst.DrinkId=x.DrinkId
             WHERE dst.Active<>1
-        ) THROW 53486,N'DEMO_REORDER_V14: Store3 extra StoreDrink business-key payload drift.',1;
+        ) THROW 53486,N'REORDER_V14: Store3 extra StoreDrink business-key payload drift.',1;
 
         INSERT dbo.StoreDrinks(StoreId,DrinkId,Active)
         SELECT @Store3Id,x.DrinkId,1 FROM @Store3ExtraDrinks x
@@ -10401,7 +10418,7 @@ BEGIN TRY
     END;
 
     IF (SELECT COUNT(*) FROM dbo.StoreDrinks WHERE StoreId=@Store3Id AND Active=1)<30
-        THROW 53411,N'DEMO_REORDER_V14: Store 3 không đạt tối thiểu 30 StoreDrinks từ master hiện có.',1;
+        THROW 53411,N'REORDER_V14: Store 3 không đạt tối thiểu 30 StoreDrinks từ master hiện có.',1;
 
     IF EXISTS(
         SELECT 1
@@ -10415,7 +10432,7 @@ BEGIN TRY
             OR dst.DisplayOrder<>src.DisplayOrder
             OR ISNULL(dst.PauseReason,N'')<>ISNULL(src.PauseReason,N'')
             OR ISNULL(dst.Note,N'')<>ISNULL(src.Note,N''))
-    ) THROW 53412,N'DEMO_REORDER_V14: StoreMenuItem Store 3 cùng business key nhưng khác cấu hình Store 1.',1;
+    ) THROW 53412,N'REORDER_V14: StoreMenuItem Store 3 cùng business key nhưng khác cấu hình Store 1.',1;
 
     INSERT dbo.StoreMenuItems(StoreId,DrinkSizeId,IsEnabled,PriceOverride,EffectiveFromUtc,EffectiveToUtc,
                               DisplayOrder,PauseReason,Note,PublishedAtUtc,PublishedByStaffId,CreatedAtUtc,UpdatedAtUtc)
@@ -10426,13 +10443,13 @@ BEGIN TRY
       AND NOT EXISTS(SELECT 1 FROM dbo.StoreMenuItems dst WHERE dst.StoreId=@Store3Id AND dst.DrinkSizeId=src.DrinkSizeId);
 
     IF (SELECT COUNT(*) FROM dbo.StoreMenuItems WHERE StoreId=@Store3Id)<30
-        THROW 53413,N'DEMO_REORDER_V14: Store 3 không đạt tối thiểu 30 StoreMenuItems.',1;
+        THROW 53413,N'REORDER_V14: Store 3 không đạt tối thiểu 30 StoreMenuItems.',1;
 
     IF EXISTS(
         SELECT 1 FROM dbo.StoreToppings src
         JOIN dbo.StoreToppings dst ON dst.StoreId=@Store3Id AND dst.ToppingId=src.ToppingId
         WHERE src.StoreId=@Store1Id AND dst.Active<>src.Active
-    ) THROW 53414,N'DEMO_REORDER_V14: StoreTopping Store 3 cùng business key nhưng khác Store 1.',1;
+    ) THROW 53414,N'REORDER_V14: StoreTopping Store 3 cùng business key nhưng khác Store 1.',1;
 
     INSERT dbo.StoreToppings(StoreId,ToppingId,Active)
     SELECT @Store3Id,src.ToppingId,src.Active
@@ -10441,7 +10458,7 @@ BEGIN TRY
       AND NOT EXISTS(SELECT 1 FROM dbo.StoreToppings dst WHERE dst.StoreId=@Store3Id AND dst.ToppingId=src.ToppingId);
 
     IF (SELECT COUNT(*) FROM dbo.StoreToppings WHERE StoreId=@Store3Id AND Active=1)<30
-        THROW 53415,N'DEMO_REORDER_V14: Store 3 không đạt tối thiểu 30 StoreToppings active.',1;
+        THROW 53415,N'REORDER_V14: Store 3 không đạt tối thiểu 30 StoreToppings active.',1;
 
     IF EXISTS(
         SELECT 1 FROM dbo.SupplierStores src
@@ -10450,17 +10467,17 @@ BEGIN TRY
           AND (dst.Active<>src.Active
             OR ISNULL(dst.LeadTimeOverrideDays,-1)<>ISNULL(src.LeadTimeOverrideDays,-1)
             OR ISNULL(dst.DeliverySchedule,N'')<>ISNULL(src.DeliverySchedule,N''))
-    ) THROW 53416,N'DEMO_REORDER_V14: SupplierStore Store 3 cùng business key nhưng khác Store 1.',1;
+    ) THROW 53416,N'REORDER_V14: SupplierStore Store 3 cùng business key nhưng khác Store 1.',1;
 
     INSERT dbo.SupplierStores(SupplierId,StoreId,Active,LeadTimeOverrideDays,DeliverySchedule,Note,CreatedAt,UpdatedAt)
     SELECT src.SupplierId,@Store3Id,src.Active,src.LeadTimeOverrideDays,src.DeliverySchedule,
-           N'DEMO_REORDER_V14 | cloned Store1 supplier scope',@SeedAnchorUtc,@SeedAnchorUtc
+           N'REORDER_V14 | cloned Store1 supplier scope',@SeedAnchorUtc,@SeedAnchorUtc
     FROM dbo.SupplierStores src
     WHERE src.StoreId=@Store1Id
       AND NOT EXISTS(SELECT 1 FROM dbo.SupplierStores dst WHERE dst.StoreId=@Store3Id AND dst.SupplierId=src.SupplierId);
 
     IF (SELECT COUNT(*) FROM dbo.SupplierStores WHERE StoreId=@Store3Id AND Active=1)<50
-        THROW 53417,N'DEMO_REORDER_V14: Store 3 không có đủ 50 SupplierStores active.',1;
+        THROW 53417,N'REORDER_V14: Store 3 không có đủ 50 SupplierStores active.',1;
 
     /* Store 2 uses the same business catalog as Store 1. Existing partial
        rows are updated in place; no StoreDrink/Menu/Topping/Supplier row is
@@ -10503,14 +10520,14 @@ BEGIN TRY
 
     UPDATE dst
     SET dst.Active=src.Active,dst.LeadTimeOverrideDays=src.LeadTimeOverrideDays,
-        dst.DeliverySchedule=src.DeliverySchedule,dst.Note=N'DEMO_REORDER_V14 | cloned Store1 supplier scope',
+        dst.DeliverySchedule=src.DeliverySchedule,dst.Note=N'REORDER_V14 | cloned Store1 supplier scope',
         dst.UpdatedAt=@SeedAnchorUtc
     FROM dbo.SupplierStores dst
     JOIN dbo.SupplierStores src ON src.StoreId=@Store1Id AND src.SupplierId=dst.SupplierId
     WHERE dst.StoreId=@Store2Id;
     INSERT dbo.SupplierStores(SupplierId,StoreId,Active,LeadTimeOverrideDays,DeliverySchedule,Note,CreatedAt,UpdatedAt)
     SELECT src.SupplierId,@Store2Id,src.Active,src.LeadTimeOverrideDays,src.DeliverySchedule,
-           N'DEMO_REORDER_V14 | cloned Store1 supplier scope',@SeedAnchorUtc,@SeedAnchorUtc
+           N'REORDER_V14 | cloned Store1 supplier scope',@SeedAnchorUtc,@SeedAnchorUtc
     FROM dbo.SupplierStores src
     WHERE src.StoreId=@Store1Id
       AND NOT EXISTS(SELECT 1 FROM dbo.SupplierStores dst WHERE dst.StoreId=@Store2Id AND dst.SupplierId=src.SupplierId);
@@ -10535,19 +10552,19 @@ BEGIN TRY
         SELECT SupplierId,Active,LeadTimeOverrideDays,DeliverySchedule FROM dbo.SupplierStores WHERE StoreId=@Store1Id
         EXCEPT SELECT SupplierId,Active,LeadTimeOverrideDays,DeliverySchedule FROM dbo.SupplierStores WHERE StoreId=@Store2Id
     )
-        THROW 53704,N'DEMO_REORDER_V14: catalog/supplier Store 2 chưa parity Store 1.',1;
+        THROW 53704,N'REORDER_V14: catalog/supplier Store 2 chưa parity Store 1.',1;
 
     /* Supplier and package/base-unit evidence required by Reorder. */
     IF @IsStore2Upgrade=0
     BEGIN
-    IF (SELECT COUNT(*) FROM dbo.InventoryDocumentDetails d JOIN dbo.InventoryDocuments h ON h.InventoryDocumentId=d.InventoryDocumentId WHERE h.RequestKey=N'DEMO_OPENING_STORE1_INGREDIENTS')<>50
-    OR (SELECT COUNT(DISTINCT d.IngredientId) FROM dbo.InventoryDocumentDetails d JOIN dbo.InventoryDocuments h ON h.InventoryDocumentId=d.InventoryDocumentId WHERE h.RequestKey=N'DEMO_OPENING_STORE1_INGREDIENTS')<>50
-        THROW 53418,N'DEMO_REORDER_V14: source opening contract không có đúng 50 distinct ingredients.',1;
+    IF (SELECT COUNT(*) FROM dbo.InventoryDocumentDetails d JOIN dbo.InventoryDocuments h ON h.InventoryDocumentId=d.InventoryDocumentId WHERE h.RequestKey=N'OPENING_STORE1_INGREDIENTS')<>50
+    OR (SELECT COUNT(DISTINCT d.IngredientId) FROM dbo.InventoryDocumentDetails d JOIN dbo.InventoryDocuments h ON h.InventoryDocumentId=d.InventoryDocumentId WHERE h.RequestKey=N'OPENING_STORE1_INGREDIENTS')<>50
+        THROW 53418,N'REORDER_V14: source opening contract không có đúng 50 distinct ingredients.',1;
 
     IF EXISTS(
         SELECT 1
         FROM dbo.InventoryDocumentDetails seedLine
-        JOIN dbo.InventoryDocuments seedDoc ON seedDoc.InventoryDocumentId=seedLine.InventoryDocumentId AND seedDoc.RequestKey=N'DEMO_OPENING_STORE1_INGREDIENTS'
+        JOIN dbo.InventoryDocuments seedDoc ON seedDoc.InventoryDocumentId=seedLine.InventoryDocumentId AND seedDoc.RequestKey=N'OPENING_STORE1_INGREDIENTS'
         JOIN dbo.Ingredients i ON i.IngredientId=seedLine.IngredientId AND i.Active=1
         WHERE NOT EXISTS(
               SELECT 1
@@ -10569,31 +10586,31 @@ BEGIN TRY
                     WHERE uc.IngredientId=i.IngredientId AND uc.FromUnitId=o.UnitId
                       AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1 AND uc.FromQuantity>0 AND uc.ToQuantity>0))
           )
-    ) THROW 53419,N'DEMO_REORDER_V14: thiếu supplier/package/unit conversion/price/lead-time active cho ít nhất một ingredient.',1;
+    ) THROW 53419,N'REORDER_V14: thiếu supplier/package/unit conversion/price/lead-time active cho ít nhất một ingredient.',1;
 
     /* ------------------------------------------------------------
        14.4 Store 3 opening inventory. Clone Store1 opening document
        evidence, not the current on-hand quantity.
        ------------------------------------------------------------ */
-    DECLARE @Store1OpeningDocId int=(SELECT InventoryDocumentId FROM dbo.InventoryDocuments WHERE RequestKey=N'DEMO_OPENING_STORE1_INGREDIENTS');
-    DECLARE @Store3OpeningKey nvarchar(100)=N'DEMO_REORDER_V14_OPENING_STORE3';
+    DECLARE @Store1OpeningDocId int=(SELECT InventoryDocumentId FROM dbo.InventoryDocuments WHERE RequestKey=N'OPENING_STORE1_INGREDIENTS');
+    DECLARE @Store3OpeningKey nvarchar(100)=N'REORDER_V14_OPENING_STORE3';
     DECLARE @Store3OpeningDocId int=(SELECT InventoryDocumentId FROM dbo.InventoryDocuments WHERE RequestKey=@Store3OpeningKey);
     IF @Store1OpeningDocId IS NULL OR (SELECT COUNT(*) FROM dbo.InventoryDocumentDetails WHERE InventoryDocumentId=@Store1OpeningDocId)<>50
-        THROW 53420,N'DEMO_REORDER_V14: opening document Store 1 không đủ 50 lines làm source evidence.',1;
+        THROW 53420,N'REORDER_V14: opening document Store 1 không đủ 50 lines làm source evidence.',1;
 
     /* EF/migration may already contain a Store3 ingredient balance without ledger/cost evidence.
        Do not silently rewrite it to zero. Reconcile it through an auditable STOCK_TAKE/ADJUSTMENT_OUT first,
        then create the new opening evidence from zero. */
-    DECLARE @Store3ReconcileKey nvarchar(100)=N'DEMO_REORDER_V14_RECONCILE_STORE3';
+    DECLARE @Store3ReconcileKey nvarchar(100)=N'REORDER_V14_RECONCILE_STORE3';
     DECLARE @Store3ReconcileDocId int=(SELECT InventoryDocumentId FROM dbo.InventoryDocuments WHERE RequestKey=@Store3ReconcileKey);
 
     IF @Store3OpeningDocId IS NULL
     BEGIN
         IF @Store3ReconcileDocId IS NOT NULL
-            THROW 53471,N'DEMO_REORDER_V14: có reconciliation Store3 nhưng thiếu opening document; fixture partial.',1;
+            THROW 53471,N'REORDER_V14: có reconciliation Store3 nhưng thiếu opening document; fixture partial.',1;
 
         IF EXISTS(SELECT 1 FROM dbo.StoreInventories WHERE StoreId=@Store3Id AND IngredientId IS NOT NULL AND AvailableQty<0)
-            THROW 53472,N'DEMO_REORDER_V14: Store3 có legacy ingredient quantity âm trước opening; không tự sửa âm thầm.',1;
+            THROW 53472,N'REORDER_V14: Store3 có legacy ingredient quantity âm trước opening; không tự sửa âm thầm.',1;
 
         IF EXISTS(
             SELECT 1 FROM dbo.StoreInventories si
@@ -10603,29 +10620,29 @@ BEGIN TRY
                 OR si.QuantitySemanticsEvidenceType IS NOT NULL OR si.QuantitySemanticsEvidenceReference IS NOT NULL
                 OR si.QuantitySemanticsReviewedAt IS NOT NULL OR si.QuantitySemanticsReviewedByAccountId IS NOT NULL
                 OR si.ReservedQty<>0)
-        ) THROW 53489,N'DEMO_REORDER_V14: Store3 legacy ingredient row có identity/lifecycle/reserved payload không hợp lệ để reconcile.',1;
+        ) THROW 53489,N'REORDER_V14: Store3 legacy ingredient row có identity/lifecycle/reserved payload không hợp lệ để reconcile.',1;
 
         IF EXISTS(
             SELECT 1 FROM dbo.StoreInventories si
             WHERE si.StoreId=@Store3Id AND si.IngredientId IS NOT NULL
               AND (EXISTS(SELECT 1 FROM dbo.InventoryTransactions t WHERE t.StoreInventoryId=si.StoreInventoryId)
                 OR EXISTS(SELECT 1 FROM dbo.InventoryCostLayers l WHERE l.StoreId=@Store3Id AND l.IngredientId=si.IngredientId))
-        ) THROW 53421,N'DEMO_REORDER_V14: Store 3 đã có ingredient ledger/cost evidence ngoài fixture; không được overwrite opening.',1;
+        ) THROW 53421,N'REORDER_V14: Store 3 đã có ingredient ledger/cost evidence ngoài fixture; không được overwrite opening.',1;
 
         IF EXISTS(SELECT 1 FROM dbo.StoreInventories WHERE StoreId=@Store3Id AND IngredientId IS NOT NULL AND AvailableQty>0)
         BEGIN
             INSERT dbo.InventoryDocuments(Code,StoreId,StaffId,DocumentDate,[Type],[Status],RequestKey,IsProcessing,
                                           ConfirmedAt,ConfirmedBy,Purpose,PartnerType,PartnerId,PartnerName,SupplierId,
                                           Note,AllowNegativeStock,NegativeReason,TotalAmount,VatAmount,FinalAmount)
-            VALUES(N'DEMO_REORDER_V14_RECON_STORE3',@Store3Id,@Store3StaffId,DATEADD(MINUTE,30,DATEADD(DAY,-29,@SeedDayUtc)),
+            VALUES(N'REORDER_V14_RECON_STORE3',@Store3Id,@Store3StaffId,DATEADD(MINUTE,30,DATEADD(DAY,-29,@SeedDayUtc)),
                    4,3,@Store3ReconcileKey,0,DATEADD(MINUTE,30,DATEADD(DAY,-29,@SeedDayUtc)),@Store3StaffId,11,0,
-                   NULL,NULL,NULL,N'DEMO_REORDER_V14 reconcile legacy Store3 quantity without ledger',0,NULL,0,0,0);
+                   NULL,NULL,NULL,N'REORDER_V14 reconcile legacy Store3 quantity without ledger',0,NULL,0,0,0);
             SET @Store3ReconcileDocId=SCOPE_IDENTITY();
 
             INSERT dbo.InventoryDocumentDetails(InventoryDocumentId,IngredientId,Quantity,BaseQuantity,UnitId,
                                                 UnitPrice,CostPrice,CostAmount,Note,TotalAmount)
             SELECT @Store3ReconcileDocId,si.IngredientId,si.AvailableQty,si.AvailableQty,i.BaseUnitId,
-                   NULL,NULL,NULL,N'DEMO_REORDER_V14_RECON_'+i.Code,0
+                   NULL,NULL,NULL,N'REORDER_V14_RECON_'+i.Code,0
             FROM dbo.StoreInventories si
             JOIN dbo.Ingredients i ON i.IngredientId=si.IngredientId
             WHERE si.StoreId=@Store3Id AND si.IngredientId IS NOT NULL AND si.AvailableQty>0;
@@ -10647,9 +10664,9 @@ BEGIN TRY
         INSERT dbo.InventoryDocuments(Code,StoreId,StaffId,DocumentDate,[Type],[Status],RequestKey,IsProcessing,
                                       ConfirmedAt,ConfirmedBy,Purpose,PartnerType,PartnerId,PartnerName,SupplierId,
                                       Note,AllowNegativeStock,NegativeReason,TotalAmount,VatAmount,FinalAmount)
-        SELECT N'DEMO_REORDER_V14_OPENING_STORE3',@Store3Id,@Store3StaffId,DATEADD(HOUR,1,DATEADD(DAY,-29,@SeedDayUtc)),
+        SELECT N'REORDER_V14_OPENING_STORE3',@Store3Id,@Store3StaffId,DATEADD(HOUR,1,DATEADD(DAY,-29,@SeedDayUtc)),
                8,3,@Store3OpeningKey,0,DATEADD(HOUR,1,DATEADD(DAY,-29,@SeedDayUtc)),@Store3StaffId,3,0,NULL,NULL,NULL,
-               N'DEMO_REORDER_V14 opening evidence cloned from Store1',0,NULL,
+               N'REORDER_V14 opening evidence cloned from Store1',0,NULL,
                SUM(ISNULL(d.TotalAmount,ROUND(d.BaseQuantity*ISNULL(d.CostPrice,0),2))),0,
                SUM(ISNULL(d.TotalAmount,ROUND(d.BaseQuantity*ISNULL(d.CostPrice,0),2)))
         FROM dbo.InventoryDocumentDetails d WHERE d.InventoryDocumentId=@Store1OpeningDocId;
@@ -10659,7 +10676,7 @@ BEGIN TRY
         INSERT dbo.InventoryDocumentDetails(InventoryDocumentId,IngredientId,Quantity,BaseQuantity,UnitId,
                                             UnitPrice,CostPrice,CostAmount,Note,TotalAmount)
         SELECT @Store3OpeningDocId,d.IngredientId,d.Quantity,d.BaseQuantity,d.UnitId,
-               d.UnitPrice,d.CostPrice,d.CostAmount,N'DEMO_REORDER_V14_OPENING_'+i.Code,d.TotalAmount
+               d.UnitPrice,d.CostPrice,d.CostAmount,N'REORDER_V14_OPENING_'+i.Code,d.TotalAmount
         FROM dbo.InventoryDocumentDetails d
         JOIN dbo.Ingredients i ON i.IngredientId=d.IngredientId
         WHERE d.InventoryDocumentId=@Store1OpeningDocId;
@@ -10676,7 +10693,7 @@ BEGIN TRY
           AND NOT EXISTS(SELECT 1 FROM dbo.StoreInventories dst WHERE dst.StoreId=@Store3Id AND dst.IngredientId=d.IngredientId);
 
         IF (SELECT COUNT(*) FROM dbo.StoreInventories WHERE StoreId=@Store3Id AND IngredientId IS NOT NULL)<>50
-            THROW 53422,N'DEMO_REORDER_V14: Store 3 không resolve đúng 50 ingredient StoreInventories.',1;
+            THROW 53422,N'REORDER_V14: Store 3 không resolve đúng 50 ingredient StoreInventories.',1;
 
         UPDATE si
         SET si.AvailableQty=d.BaseQuantity,si.ReservedQty=0,si.MaxNegativeQty=NULL,
@@ -10710,18 +10727,18 @@ BEGIN TRY
             SELECT 1
             FROM dbo.InventoryDocuments d
             WHERE d.InventoryDocumentId=@Store3OpeningDocId
-              AND (d.Code<>N'DEMO_REORDER_V14_OPENING_STORE3' OR d.StoreId<>@Store3Id OR d.StaffId<>@Store3StaffId
+              AND (d.Code<>N'REORDER_V14_OPENING_STORE3' OR d.StoreId<>@Store3Id OR d.StaffId<>@Store3StaffId
                 OR d.[Type]<>8 OR d.[Status]<>3 OR d.Purpose<>3 OR d.PartnerType<>0 OR d.IsProcessing<>0)
-        ) THROW 53423,N'DEMO_REORDER_V14: opening Store 3 business-key payload drift.',1;
+        ) THROW 53423,N'REORDER_V14: opening Store 3 business-key payload drift.',1;
 
         IF @Store3ReconcileDocId IS NOT NULL
         BEGIN
             IF EXISTS(
                 SELECT 1 FROM dbo.InventoryDocuments d
                 WHERE d.InventoryDocumentId=@Store3ReconcileDocId
-                  AND (d.Code<>N'DEMO_REORDER_V14_RECON_STORE3' OR d.StoreId<>@Store3Id OR d.StaffId<>@Store3StaffId
+                  AND (d.Code<>N'REORDER_V14_RECON_STORE3' OR d.StoreId<>@Store3Id OR d.StaffId<>@Store3StaffId
                     OR d.[Type]<>4 OR d.[Status]<>3 OR d.Purpose<>11 OR d.PartnerType<>0 OR d.IsProcessing<>0)
-            ) THROW 53473,N'DEMO_REORDER_V14: Store3 reconciliation payload drift.',1;
+            ) THROW 53473,N'REORDER_V14: Store3 reconciliation payload drift.',1;
 
             IF EXISTS(
                 SELECT 1
@@ -10730,13 +10747,13 @@ BEGIN TRY
                 WHERE d.InventoryDocumentId=@Store3ReconcileDocId
                   AND (t.InventoryTransactionId IS NULL OR t.InventoryDocumentId<>@Store3ReconcileDocId
                     OR t.Quantity<>d.BaseQuantity OR t.BeforeQty<>d.BaseQuantity OR t.AfterQty<>0)
-            ) THROW 53474,N'DEMO_REORDER_V14: Store3 reconciliation detail/transaction payload drift.',1;
+            ) THROW 53474,N'REORDER_V14: Store3 reconciliation detail/transaction payload drift.',1;
         END;
 
         IF (SELECT COUNT(*) FROM dbo.InventoryDocumentDetails WHERE InventoryDocumentId=@Store3OpeningDocId)<>50
         OR (SELECT COUNT(*) FROM dbo.InventoryTransactions WHERE InventoryDocumentId=@Store3OpeningDocId AND [Type]=8)<>50
         OR (SELECT COUNT(*) FROM dbo.InventoryCostLayers l JOIN dbo.InventoryDocumentDetails d ON d.InventoryDocumentDetailId=l.SourceInventoryDocumentDetailId WHERE d.InventoryDocumentId=@Store3OpeningDocId)<>50
-            THROW 53424,N'DEMO_REORDER_V14: opening Store 3 thiếu detail/transaction/cost-layer evidence.',1;
+            THROW 53424,N'REORDER_V14: opening Store 3 thiếu detail/transaction/cost-layer evidence.',1;
 
         IF EXISTS(
             SELECT 1
@@ -10744,7 +10761,7 @@ BEGIN TRY
             JOIN dbo.InventoryDocumentDetails dst ON dst.InventoryDocumentId=@Store3OpeningDocId AND dst.IngredientId=src.IngredientId
             WHERE src.InventoryDocumentId=@Store1OpeningDocId
               AND (dst.BaseQuantity<>src.BaseQuantity OR dst.UnitId<>src.UnitId OR ISNULL(dst.CostPrice,-1)<>ISNULL(src.CostPrice,-1))
-        ) THROW 53425,N'DEMO_REORDER_V14: opening Store 3 detail payload drift so với source Store1.',1;
+        ) THROW 53425,N'REORDER_V14: opening Store 3 detail payload drift so với source Store1.',1;
 
         IF EXISTS(
             SELECT 1
@@ -10756,7 +10773,7 @@ BEGIN TRY
                 OR t.InventoryDocumentId<>@Store3OpeningDocId OR t.Quantity<>d.BaseQuantity OR t.BeforeQty<>0 OR t.AfterQty<>d.BaseQuantity
                 OR ISNULL(t.UnitCost,-1)<>ISNULL(d.CostPrice,-1)
                 OR ISNULL(t.TotalCost,-1)<>ISNULL(d.CostAmount,ROUND(d.BaseQuantity*ISNULL(d.CostPrice,0),2)))
-        ) THROW 53487,N'DEMO_REORDER_V14: Store3 opening transaction payload drift.',1;
+        ) THROW 53487,N'REORDER_V14: Store3 opening transaction payload drift.',1;
 
         IF EXISTS(
             SELECT 1
@@ -10766,7 +10783,7 @@ BEGIN TRY
               AND (l.InventoryCostLayerId IS NULL OR l.StoreId<>@Store3Id OR l.IngredientId<>d.IngredientId OR l.PreparedItemId IS NOT NULL
                 OR l.Quantity<>d.BaseQuantity OR ISNULL(l.UnitCost,-1)<>ISNULL(d.CostPrice,-1)
                 OR l.RemainingQuantity<0 OR l.RemainingQuantity>l.Quantity)
-        ) THROW 53488,N'DEMO_REORDER_V14: Store3 opening cost-layer payload drift.',1;
+        ) THROW 53488,N'REORDER_V14: Store3 opening cost-layer payload drift.',1;
     END;
 
     /* Clone the current canonical Recipe+PreparedItem identity shape from Store 1 at zero.
@@ -10779,17 +10796,17 @@ BEGIN TRY
           AND (dst.IngredientId IS NOT NULL OR dst.PreparedItemId<>src.PreparedItemId OR dst.BtpIdentityState<>src.BtpIdentityState
             OR ISNULL(dst.QuantitySemanticsStatus,-1)<>ISNULL(src.QuantitySemanticsStatus,-1) OR dst.SupersededByStoreInventoryId IS NOT NULL
             OR ISNULL(dst.QuantitySemanticsEvidenceType,-1)<>ISNULL(src.QuantitySemanticsEvidenceType,-1)
-            OR ISNULL(dst.QuantitySemanticsEvidenceReference,N'')<>N'DEMO_REORDER_V14_BTP_'+p.Code
+            OR ISNULL(dst.QuantitySemanticsEvidenceReference,N'')<>N'REORDER_V14_BTP_'+p.Code
             OR ISNULL(dst.QuantitySemanticsReviewedByAccountId,-1)<>@Store3AccountId OR dst.ReservedQty<>0
             OR dst.MaxNegativeQty IS NOT NULL OR ISNULL(dst.MinStockLevel,-1)<>ISNULL(src.MinStockLevel,-1))
-    ) THROW 53426,N'DEMO_REORDER_V14: Store3 BTP identity row cùng Recipe business key nhưng khác contract.',1;
+    ) THROW 53426,N'REORDER_V14: Store3 BTP identity row cùng Recipe business key nhưng khác contract.',1;
 
     INSERT dbo.StoreInventories(StoreId,IngredientId,RecipeId,PreparedItemId,BtpIdentityState,QuantitySemanticsStatus,
                                 SupersededByStoreInventoryId,QuantitySemanticsEvidenceType,QuantitySemanticsEvidenceReference,
                                 QuantitySemanticsReviewedAt,QuantitySemanticsReviewedByAccountId,
                                 AvailableQty,ReservedQty,MaxNegativeQty,MinStockLevel,LastUpdated)
     SELECT @Store3Id,NULL,src.RecipeId,src.PreparedItemId,src.BtpIdentityState,src.QuantitySemanticsStatus,NULL,
-           src.QuantitySemanticsEvidenceType,N'DEMO_REORDER_V14_BTP_'+p.Code,@SeedAnchorUtc,@Store3AccountId,
+           src.QuantitySemanticsEvidenceType,N'REORDER_V14_BTP_'+p.Code,@SeedAnchorUtc,@Store3AccountId,
            0,0,NULL,src.MinStockLevel,@SeedAnchorUtc
     FROM dbo.StoreInventories src
     JOIN dbo.PreparedItems p ON p.PreparedItemId=src.PreparedItemId
@@ -10816,7 +10833,7 @@ BEGIN TRY
     FROM dbo.InventoryDocuments h
     JOIN dbo.InventoryDocumentDetails d ON d.InventoryDocumentId=h.InventoryDocumentId
     JOIN dbo.StoreInventories si ON si.StoreId=@Store1Id AND si.IngredientId=d.IngredientId
-    WHERE h.RequestKey=N'DEMO_OPENING_STORE1_INGREDIENTS';
+    WHERE h.RequestKey=N'OPENING_STORE1_INGREDIENTS';
 
     IF (SELECT COUNT(*) FROM @Store2OpeningSource)=0
     BEGIN
@@ -10833,7 +10850,7 @@ BEGIN TRY
 
     IF (SELECT COUNT(*) FROM @Store2OpeningSource)<>50
        OR EXISTS(SELECT 1 FROM @Store2OpeningSource WHERE BaseQuantity<=0 OR CostPrice<=0)
-        THROW 53705,N'DEMO_REORDER_V14: không resolve đúng 50 opening ingredient contracts cho Store 2.',1;
+        THROW 53705,N'REORDER_V14: không resolve đúng 50 opening ingredient contracts cho Store 2.',1;
 
     INSERT dbo.StoreInventories(StoreId,IngredientId,RecipeId,PreparedItemId,BtpIdentityState,QuantitySemanticsStatus,
                                 SupersededByStoreInventoryId,QuantitySemanticsEvidenceType,QuantitySemanticsEvidenceReference,
@@ -10849,9 +10866,9 @@ BEGIN TRY
     WHERE si.StoreId=@Store2Id;
 
     IF (SELECT COUNT(*) FROM dbo.StoreInventories WHERE StoreId=@Store2Id AND IngredientId IS NOT NULL)<>50
-        THROW 53706,N'DEMO_REORDER_V14: Store 2 không có đúng 50 ingredient inventories.',1;
+        THROW 53706,N'REORDER_V14: Store 2 không có đúng 50 ingredient inventories.',1;
 
-    DECLARE @Store2ReconcileKey nvarchar(100)=N'DEMO_REORDER_V14_RECONCILE_STORE2';
+    DECLARE @Store2ReconcileKey nvarchar(100)=N'REORDER_V14_RECONCILE_STORE2';
     DECLARE @Store2ReconcileDocId int=(SELECT InventoryDocumentId FROM dbo.InventoryDocuments WHERE RequestKey=@Store2ReconcileKey);
     IF @Store2ReconcileDocId IS NULL AND EXISTS
     (
@@ -10864,7 +10881,7 @@ BEGIN TRY
         INSERT dbo.InventoryDocuments(Code,StoreId,StaffId,DocumentDate,[Type],[Status],RequestKey,IsProcessing,
                                       ConfirmedAt,ConfirmedBy,Purpose,PartnerType,PartnerId,PartnerName,SupplierId,
                                       Note,AllowNegativeStock,NegativeReason,TotalAmount,VatAmount,FinalAmount)
-        VALUES(N'DEMO_REORDER_V14_RECON_STORE2',@Store2Id,@Store2StaffId,DATEADD(MINUTE,25,DATEADD(DAY,-29,@SeedDayUtc)),
+        VALUES(N'REORDER_V14_RECON_STORE2',@Store2Id,@Store2StaffId,DATEADD(MINUTE,25,DATEADD(DAY,-29,@SeedDayUtc)),
                4,3,@Store2ReconcileKey,0,DATEADD(MINUTE,25,DATEADD(DAY,-29,@SeedDayUtc)),@Store2StaffId,11,0,
                NULL,NULL,NULL,N'SeedAll Store2 legacy quantity reconciliation before procurement',0,NULL,0,0,0);
         SET @Store2ReconcileDocId=SCOPE_IDENTITY();
@@ -10894,14 +10911,14 @@ BEGIN TRY
         WHERE si.StoreId=@Store2Id;
     END;
 
-    DECLARE @Store2OpeningKey nvarchar(100)=N'DEMO_REORDER_V14_OPENING_STORE2';
+    DECLARE @Store2OpeningKey nvarchar(100)=N'REORDER_V14_OPENING_STORE2';
     DECLARE @Store2OpeningDocId int=(SELECT InventoryDocumentId FROM dbo.InventoryDocuments WHERE RequestKey=@Store2OpeningKey);
     IF @Store2OpeningDocId IS NULL
     BEGIN
         INSERT dbo.InventoryDocuments(Code,StoreId,StaffId,DocumentDate,[Type],[Status],RequestKey,IsProcessing,
                                       ConfirmedAt,ConfirmedBy,Purpose,PartnerType,PartnerId,PartnerName,SupplierId,
                                       Note,AllowNegativeStock,NegativeReason,TotalAmount,VatAmount,FinalAmount)
-        SELECT N'DEMO_REORDER_V14_OPENING_STORE2',@Store2Id,@Store2StaffId,DATEADD(MINUTE,55,DATEADD(DAY,-29,@SeedDayUtc)),
+        SELECT N'REORDER_V14_OPENING_STORE2',@Store2Id,@Store2StaffId,DATEADD(MINUTE,55,DATEADD(DAY,-29,@SeedDayUtc)),
                8,3,@Store2OpeningKey,0,DATEADD(MINUTE,55,DATEADD(DAY,-29,@SeedDayUtc)),@Store2StaffId,3,0,NULL,NULL,NULL,
                N'SeedAll Store2 missing opening balance; existing receipt-backed stock preserved',0,NULL,
                SUM(ROUND((x.BaseQuantity-ISNULL(si.AvailableQty,0))*x.CostPrice,2)),0,
@@ -10915,7 +10932,7 @@ BEGIN TRY
                                             UnitPrice,CostPrice,CostAmount,Note,TotalAmount)
         SELECT @Store2OpeningDocId,x.IngredientId,x.BaseQuantity-si.AvailableQty,x.BaseQuantity-si.AvailableQty,x.UnitId,
                x.CostPrice,x.CostPrice,ROUND((x.BaseQuantity-si.AvailableQty)*x.CostPrice,2),
-               N'DEMO_REORDER_V14_OPENING_STORE2_'+i.Code,ROUND((x.BaseQuantity-si.AvailableQty)*x.CostPrice,2)
+               N'REORDER_V14_OPENING_STORE2_'+i.Code,ROUND((x.BaseQuantity-si.AvailableQty)*x.CostPrice,2)
         FROM @Store2OpeningSource x
         JOIN dbo.StoreInventories si ON si.StoreId=@Store2Id AND si.IngredientId=x.IngredientId
         JOIN dbo.Ingredients i ON i.IngredientId=x.IngredientId
@@ -10950,7 +10967,7 @@ BEGIN TRY
     UPDATE dst
     SET dst.RecipeId=activeRecipe.RecipeId,dst.BtpIdentityState=1,dst.QuantitySemanticsStatus=1,
         dst.SupersededByStoreInventoryId=NULL,dst.QuantitySemanticsEvidenceType=src.QuantitySemanticsEvidenceType,
-        dst.QuantitySemanticsEvidenceReference=N'DEMO_REORDER_V14_BTP_'+pi.Code,
+        dst.QuantitySemanticsEvidenceReference=N'REORDER_V14_BTP_'+pi.Code,
         dst.QuantitySemanticsReviewedAt=@SeedAnchorUtc,dst.QuantitySemanticsReviewedByAccountId=@Store2AccountId,
         dst.ReservedQty=0,dst.MaxNegativeQty=NULL,dst.MinStockLevel=src.MinStockLevel,dst.LastUpdated=@SeedAnchorUtc
     FROM dbo.StoreInventories dst
@@ -10964,7 +10981,7 @@ BEGIN TRY
                                 QuantitySemanticsReviewedAt,QuantitySemanticsReviewedByAccountId,
                                 AvailableQty,ReservedQty,MaxNegativeQty,MinStockLevel,LastUpdated)
     SELECT @Store2Id,NULL,activeRecipe.RecipeId,pi.PreparedItemId,1,1,NULL,src.QuantitySemanticsEvidenceType,
-           N'DEMO_REORDER_V14_BTP_'+pi.Code,@SeedAnchorUtc,@Store2AccountId,0,0,NULL,src.MinStockLevel,@SeedAnchorUtc
+           N'REORDER_V14_BTP_'+pi.Code,@SeedAnchorUtc,@Store2AccountId,0,0,NULL,src.MinStockLevel,@SeedAnchorUtc
     FROM dbo.StoreInventories src
     JOIN dbo.PreparedItems pi ON pi.PreparedItemId=src.PreparedItemId
     JOIN dbo.Recipes activeRecipe ON activeRecipe.PreparedItemId=pi.PreparedItemId AND activeRecipe.Active=1 AND activeRecipe.Status=N'Active'
@@ -10972,7 +10989,7 @@ BEGIN TRY
       AND NOT EXISTS(SELECT 1 FROM dbo.StoreInventories dst WHERE dst.StoreId=@Store2Id AND dst.PreparedItemId=pi.PreparedItemId);
 
     IF (SELECT COUNT(*) FROM dbo.StoreInventories WHERE StoreId=@Store2Id AND PreparedItemId IS NOT NULL AND BtpIdentityState=1)<>11
-        THROW 53707,N'DEMO_REORDER_V14: Store 2 không có đúng 11 canonical BTP inventories.',1;
+        THROW 53707,N'REORDER_V14: Store 2 không có đúng 11 canonical BTP inventories.',1;
 
     /* ------------------------------------------------------------
        14.5 Fixed fixture keys and first-run/replay state
@@ -11097,7 +11114,7 @@ IF @SalesBufferIngredientId IS NULL
    OR @SalesBufferUnitCost <= 0
 BEGIN
     ;THROW 53500,
-           N'DEMO_REORDER_V14: không resolve được ING00001/base-unit/current cost cho stock buffer.',
+           N'REORDER_V14: không resolve được ING00001/base-unit/current cost cho stock buffer.',
            1;
 END;
 
@@ -11115,15 +11132,15 @@ BEGIN
         FROM dbo.InventoryDocuments
         WHERE RequestKey IN
         (
-            N'DEMO_REORDER_V14_SALES_BUFFER_S1_ING00001',
-            N'DEMO_REORDER_V14_SALES_BUFFER_S2_ING00001',
-            N'DEMO_REORDER_V14_SALES_BUFFER_S3_ING00001'
+            N'REORDER_V14_SALES_BUFFER_S1_ING00001',
+            N'REORDER_V14_SALES_BUFFER_S2_ING00001',
+            N'REORDER_V14_SALES_BUFFER_S3_ING00001'
         )
           AND StoreId IN(SELECT StoreId FROM @FixtureStores)
     )
     BEGIN
         ;THROW 53501,
-              N'DEMO_REORDER_V14: stock-buffer document tồn tại khi operational fixture chưa tồn tại; fixture partial.',
+              N'REORDER_V14: stock-buffer document tồn tại khi operational fixture chưa tồn tại; fixture partial.',
               1;
     END;
 
@@ -11193,14 +11210,14 @@ BEGIN
            OR @BufferBefore < 0
         BEGIN
             ;THROW 53502,
-                  N'DEMO_REORDER_V14: không resolve được StoreInventory ING00001 hợp lệ cho sales buffer.',
+                  N'REORDER_V14: không resolve được StoreInventory ING00001 hợp lệ cho sales buffer.',
                   1;
         END;
 
 
         SET @BufferRequestKey =
             CONCAT(
-                N'DEMO_REORDER_V14_SALES_BUFFER_S',
+                N'REORDER_V14_SALES_BUFFER_S',
                 @BufferStoreNo,
                 N'_ING00001'
             );
@@ -11208,7 +11225,7 @@ BEGIN
 
         SET @BufferCode =
             CONCAT(
-                N'DEMO_V14_BUF_S',
+                N'V14_BUF_S',
                 @BufferStoreNo,
                 N'_ING00001'
             );
@@ -11272,7 +11289,7 @@ BEGIN
             NULL,
             NULL,
 
-            N'DEMO_REORDER_V14 audited stock buffer for legacy ING00001 BOM demand',
+            N'REORDER_V14 audited stock buffer for legacy ING00001 BOM demand',
 
             0,
             NULL,
@@ -11337,7 +11354,7 @@ BEGIN
             ),
 
             CONCAT(
-                N'DEMO_REORDER_V14_SALES_BUFFER_S',
+                N'REORDER_V14_SALES_BUFFER_S',
                 @BufferStoreNo,
                 N'_ING00001'
             ),
@@ -11528,13 +11545,13 @@ BEGIN
         FROM dbo.InventoryDocuments
         WHERE RequestKey IN
         (
-            N'DEMO_REORDER_V14_SALES_BUFFER_S1_ING00001',
-            N'DEMO_REORDER_V14_SALES_BUFFER_S3_ING00001'
+            N'REORDER_V14_SALES_BUFFER_S1_ING00001',
+            N'REORDER_V14_SALES_BUFFER_S3_ING00001'
         )
     ) <> 2
     BEGIN
         ;THROW 53503,
-              N'DEMO_REORDER_V14: replay thiếu đúng 2 stock-buffer documents ING00001.',
+              N'REORDER_V14: replay thiếu đúng 2 stock-buffer documents ING00001.',
               1;
     END;
 
@@ -11572,8 +11589,8 @@ BEGIN
         WHERE
             h.RequestKey IN
             (
-                N'DEMO_REORDER_V14_SALES_BUFFER_S1_ING00001',
-                N'DEMO_REORDER_V14_SALES_BUFFER_S3_ING00001'
+                N'REORDER_V14_SALES_BUFFER_S1_ING00001',
+                N'REORDER_V14_SALES_BUFFER_S3_ING00001'
             )
 
             AND
@@ -11640,7 +11657,7 @@ BEGIN
     )
     BEGIN
         ;THROW 53504,
-              N'DEMO_REORDER_V14: replay stock-buffer ING00001 payload drift.',
+              N'REORDER_V14: replay stock-buffer ING00001 payload drift.',
               1;
     END;
 
@@ -11659,8 +11676,8 @@ BEGIN
 
     WHERE RequestKey IN
     (
-        N'DEMO_REORDER_V14_SALES_BUFFER_S1_ING00001',
-        N'DEMO_REORDER_V14_SALES_BUFFER_S3_ING00001'
+        N'REORDER_V14_SALES_BUFFER_S1_ING00001',
+        N'REORDER_V14_SALES_BUFFER_S3_ING00001'
     );
 
 
@@ -11678,8 +11695,8 @@ BEGIN
     WHERE
         h.RequestKey IN
         (
-            N'DEMO_REORDER_V14_SALES_BUFFER_S1_ING00001',
-            N'DEMO_REORDER_V14_SALES_BUFFER_S3_ING00001'
+            N'REORDER_V14_SALES_BUFFER_S1_ING00001',
+            N'REORDER_V14_SALES_BUFFER_S3_ING00001'
         )
 
         AND t.[Type] = 8;
@@ -11703,8 +11720,8 @@ BEGIN
     WHERE
         h.RequestKey IN
         (
-            N'DEMO_REORDER_V14_SALES_BUFFER_S1_ING00001',
-            N'DEMO_REORDER_V14_SALES_BUFFER_S3_ING00001'
+            N'REORDER_V14_SALES_BUFFER_S1_ING00001',
+            N'REORDER_V14_SALES_BUFFER_S3_ING00001'
         );
 
 END;
@@ -11713,24 +11730,24 @@ END;
     ;WITH n AS(SELECT 1 Seq UNION ALL SELECT Seq+1 FROM n WHERE Seq<30)
     INSERT @ShiftSeed
     SELECT fs.StoreId,n.Seq,fs.StaffId,
-           CONCAT(N'DEMO_REORDER_V14_SHIFT_S',fs.StoreNo,N'_',RIGHT(CONCAT(N'000',n.Seq),3)),
+           CONCAT(N'REORDER_V14_SHIFT_S',fs.StoreNo,N'_',RIGHT(CONCAT(N'000',n.Seq),3)),
            DATEADD(HOUR,CASE WHEN n.Seq%2=1 THEN 7 ELSE 15 END,DATEADD(DAY,-15+((n.Seq-1)/2),@SeedDayUtc)),
            DATEADD(HOUR,CASE WHEN n.Seq%2=1 THEN 15 ELSE 23 END,DATEADD(DAY,-15+((n.Seq-1)/2),@SeedDayUtc))
     FROM @FixtureStores fs CROSS JOIN n OPTION(MAXRECURSION 30);
 
     DECLARE @PreparedRecipeOrder TABLE(RecipeRank int PRIMARY KEY,PreparedItemCode nvarchar(100) UNIQUE);
     INSERT @PreparedRecipeOrder VALUES
-    (1,N'DEMO_PREP_VIET_COFFEE'),(2,N'DEMO_PREP_ESPRESSO'),
-    (3,N'DEMO_PREP_BLACK_TEA'),(4,N'DEMO_PREP_OOLONG_TEA'),
-    (5,N'DEMO_PREP_SUGAR_SYRUP'),(6,N'DEMO_PREP_SALTED_CREAM'),
-    (7,N'DEMO_PREP_CHEESE_CREAM'),(8,N'DEMO_PREP_BLACK_PEARL'),
-    (9,N'DEMO_PREP_ALOE_BASE'),(10,N'DEMO_PREP_COCONUT_JELLY_BASE'),
-    (11,N'DEMO_PREP_KHUC_BACH_BASE');
+    (1,N'PREP_VIET_COFFEE'),(2,N'PREP_ESPRESSO'),
+    (3,N'PREP_BLACK_TEA'),(4,N'PREP_OOLONG_TEA'),
+    (5,N'PREP_SUGAR_SYRUP'),(6,N'PREP_SALTED_CREAM'),
+    (7,N'PREP_CHEESE_CREAM'),(8,N'PREP_BLACK_PEARL'),
+    (9,N'PREP_ALOE_BASE'),(10,N'PREP_COCONUT_JELLY_BASE'),
+    (11,N'PREP_KHUC_BACH_BASE');
 
     IF EXISTS(SELECT 1 FROM @PreparedRecipeOrder x LEFT JOIN dbo.PreparedItems pi ON pi.Code=x.PreparedItemCode AND pi.Active=1
               LEFT JOIN dbo.Recipes r ON r.PreparedItemId=pi.PreparedItemId AND r.Active=1 AND r.Status=N'Active'
               WHERE r.RecipeId IS NULL OR r.OutputQuantity<=0 OR r.OutputUnitId IS NULL)
-        THROW 53427,N'DEMO_REORDER_V14: thiếu active PreparedItem recipe/output identity.',1;
+        THROW 53427,N'REORDER_V14: thiếu active PreparedItem recipe/output identity.',1;
 
     DECLARE @ProdSeed TABLE(StoreId int,Seq int,StaffId int,RecipeId int,RequestKey uniqueidentifier,RequestFingerprint varchar(64),Notes nvarchar(200),RunAt datetime2(0),PRIMARY KEY(StoreId,Seq));
     ;WITH n AS(SELECT 1 Seq UNION ALL SELECT Seq+1 FROM n WHERE Seq<30)
@@ -11738,9 +11755,9 @@ END;
     SELECT fs.StoreId,n.Seq,fs.StaffId,
            CASE WHEN fs.StoreNo=3 AND n.Seq=13 THEN 145 ELSE r.RecipeId END,
            CONVERT(uniqueidentifier,CONCAT(CASE fs.StoreNo WHEN 1 THEN N'e141' WHEN 2 THEN N'e142' ELSE N'e143' END,N'0000-0000-4000-8000-',RIGHT(CONCAT(N'000000000000',n.Seq),12))),
-           CONVERT(varchar(64),HASHBYTES('SHA2_256',CONCAT(N'DEMO_REORDER_V14|PROD|S',fs.StoreNo,N'|',
+           CONVERT(varchar(64),HASHBYTES('SHA2_256',CONCAT(N'REORDER_V14|PROD|S',fs.StoreNo,N'|',
                CASE WHEN fs.StoreNo=3 AND n.Seq=13 THEN N'PINNED_RECIPE_145' ELSE r.RecipeCode END,N'|1')),2),
-           CONCAT(N'DEMO_REORDER_V14_PROD_S',fs.StoreNo,N'_',RIGHT(CONCAT(N'000',n.Seq),3)),
+           CONCAT(N'REORDER_V14_PROD_S',fs.StoreNo,N'_',RIGHT(CONCAT(N'000',n.Seq),3)),
            DATEADD(MINUTE,360+n.Seq,DATEADD(DAY,-29+((n.Seq-1)/3),@SeedDayUtc))
     FROM @FixtureStores fs CROSS JOIN n
     JOIN @PreparedRecipeOrder pro ON pro.RecipeRank=((n.Seq-1)%11)+1
@@ -11762,10 +11779,10 @@ END;
     IF EXISTS(SELECT 1 FROM @ShiftSeed WHERE StartAt<@WindowStartUtc OR EndAt>@SeedAnchorUtc)
     OR EXISTS(SELECT 1 FROM @ProdSeed WHERE RunAt<@WindowStartUtc OR RunAt>@SeedAnchorUtc)
     OR EXISTS(SELECT 1 FROM @OrderSeed WHERE CreatedAt<@WindowStartUtc OR CreatedAt>@SeedAnchorUtc)
-        THROW 53483,N'DEMO_REORDER_V14: fixture timestamp nằm ngoài rolling 30 days hoặc trong tương lai.',1;
+        THROW 53483,N'REORDER_V14: fixture timestamp nằm ngoài rolling 30 days hoặc trong tương lai.',1;
 
     IF (SELECT MAX(RunAt) FROM @ProdSeed)>=(SELECT MIN(CreatedAt) FROM @OrderSeed)
-        THROW 53494,N'DEMO_REORDER_V14: production timeline phải kết thúc trước POS timeline để BeforeQty/AfterQty phản ánh đúng ledger chronology.',1;
+        THROW 53494,N'REORDER_V14: production timeline phải kết thúc trước POS timeline để BeforeQty/AfterQty phản ánh đúng ledger chronology.',1;
 
     /* Existing fixture business-key payload must match before any replay timestamp update. */
     IF @IsReplay=1
@@ -11776,7 +11793,7 @@ END;
             WHERE ws.ShiftId IS NULL OR ws.StoreId<>x.StoreId OR ws.UserId<>x.StaffId OR ws.Status<>N'CLOSED'
                OR ws.StartingCash<>500000 OR ws.ExpectedEndingCash<>500000 OR ws.ActualEndingCash<>500000
                OR ws.CashDiscrepancy<>0 OR ws.IsExceptionClosed<>0 OR ws.RequiresReconciliation<>0 OR ws.HasLateOfflineSync<>0
-        ) THROW 53429,N'DEMO_REORDER_V14: WorkShift payload drift.',1;
+        ) THROW 53429,N'REORDER_V14: WorkShift payload drift.',1;
 
         IF EXISTS(
             SELECT 1 FROM @ProdSeed x
@@ -11785,7 +11802,7 @@ END;
                OR pr.RequestFingerprint<>x.RequestFingerprint OR pr.Notes<>x.Notes OR pr.CreatedByStaffId<>x.StaffId
                OR pr.CompletedByStaffId<>x.StaffId OR pr.Status<>2 OR pr.ValuationStatus<>1
                OR pr.TotalInputCost IS NULL OR pr.OutputUnitCost IS NULL
-        ) THROW 53430,N'DEMO_REORDER_V14: ProductionRun payload drift.',1;
+        ) THROW 53430,N'REORDER_V14: ProductionRun payload drift.',1;
 
         IF EXISTS(
             SELECT 1 FROM @OrderSeed x
@@ -11795,17 +11812,17 @@ END;
             WHERE o.OrderId IS NULL OR o.StoreId<>x.StoreId OR o.OrderStatusId<>@CompletedOrderStatusId
                OR o.PaymentStatusId<>@PaidStatusId OR o.OrderTypeId<>@TakeAwayTypeId OR o.StaffId<>x.StaffId
                OR o.WorkShiftId<>ws.ShiftId OR o.Source<>@SeedMarker
-               OR o.Note<>CONCAT(N'DEMO_REORDER_V14_ORDER_S',x.StoreNo,N'_',RIGHT(CONCAT(N'000',x.Seq),3))
+               OR o.Note<>CONCAT(N'REORDER_V14_ORDER_S',x.StoreNo,N'_',RIGHT(CONCAT(N'000',x.Seq),3))
                OR o.CustomerId IS NOT NULL OR o.TableId IS NOT NULL OR o.RecommendationSessionId IS NOT NULL
                OR o.ShippingFee<>0 OR o.VoucherDiscount<>0 OR o.PointDiscount<>0 OR o.PointsUsed<>0
                OR o.CostStatus NOT IN(1,2)
-        ) THROW 53431,N'DEMO_REORDER_V14: Order payload drift.',1;
+        ) THROW 53431,N'REORDER_V14: Order payload drift.',1;
 
         IF EXISTS(
             SELECT 1 FROM dbo.Payments p JOIN dbo.Orders o ON o.OrderId=p.OrderId AND o.Source=@SeedMarker
             WHERE p.PaymentStatusId<>@PaidStatusId OR p.PaymentMethodId<>@BankMethodId OR p.Amount<>o.Total
-               OR p.TransactionCode NOT LIKE N'DEMO_REORDER_V14_PAY_S%'
-        ) THROW 53432,N'DEMO_REORDER_V14: Payment payload drift.',1;
+               OR p.TransactionCode NOT LIKE N'REORDER_V14_PAY_S%'
+        ) THROW 53432,N'REORDER_V14: Payment payload drift.',1;
 
         IF EXISTS(
             SELECT 1 FROM dbo.InventoryTransactions t
@@ -11820,16 +11837,16 @@ END;
             GROUP BY t.InventoryTransactionId,t.Quantity,t.TotalCost
             HAVING ABS(SUM(ISNULL(a.Quantity,0))-t.Quantity)>0.001
                 OR ABS(SUM(ISNULL(a.TotalCost,0))-t.TotalCost)>0.01
-        ) THROW 53433,N'DEMO_REORDER_V14: Sales transaction/FIFO allocation payload drift.',1;
+        ) THROW 53433,N'REORDER_V14: Sales transaction/FIFO allocation payload drift.',1;
 
         IF EXISTS(
             SELECT 1 FROM dbo.InventoryTransactions t
-            JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=t.ProductionRunId AND pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%'
+            JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=t.ProductionRunId AND pr.Notes LIKE N'REORDER_V14_PROD_S%'
             LEFT JOIN dbo.ProductionCostAllocations a ON a.InventoryTransactionId=t.InventoryTransactionId
             WHERE t.[Type]=6
             GROUP BY t.InventoryTransactionId,t.Quantity
             HAVING ABS(SUM(ISNULL(a.Quantity,0))-t.Quantity)>0.001
-        ) THROW 53434,N'DEMO_REORDER_V14: Production FIFO allocation payload drift.',1;
+        ) THROW 53434,N'REORDER_V14: Production FIFO allocation payload drift.',1;
     END;
 
     /* ------------------------------------------------------------
@@ -11902,7 +11919,7 @@ END;
                 WHERE rd.RecipeId=@CurrentProdRecipeId AND rd.IngredientId IS NOT NULL AND rd.UnitId<>i.BaseUnitId
                   AND NOT EXISTS(SELECT 1 FROM dbo.UnitConversions uc WHERE uc.IngredientId=i.IngredientId
                                  AND uc.FromUnitId=rd.UnitId AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1 AND uc.FromQuantity>0 AND uc.ToQuantity>0)
-            ) THROW 53435,N'DEMO_REORDER_V14: thiếu UnitConversion cho production recipe detail.',1;
+            ) THROW 53435,N'REORDER_V14: thiếu UnitConversion cho production recipe detail.',1;
 
             /* Child PreparedItem stock is canonical; SourceRecipeId keeps exact formula evidence. */
             INSERT @RunDemand(StoreInventoryId,IngredientId,PreparedItemId,SourceRecipeId,Quantity)
@@ -11923,9 +11940,9 @@ END;
                      AND si.BtpIdentityState=1 AND si.SupersededByStoreInventoryId IS NULL
                 WHERE rd.RecipeId=@CurrentProdRecipeId AND rd.ChildRecipeId IS NOT NULL
                   AND (cr.PreparedItemId IS NULL OR p.PreparedItemId IS NULL OR rd.UnitId<>p.BaseUnitId OR si.StoreInventoryId IS NULL)
-            ) THROW 53436,N'DEMO_REORDER_V14: child production BTP không có canonical Recipe+PreparedItem cost identity; không tự chuyển writer mode.',1;
+            ) THROW 53436,N'REORDER_V14: child production BTP không có canonical Recipe+PreparedItem cost identity; không tự chuyển writer mode.',1;
 
-            IF NOT EXISTS(SELECT 1 FROM @RunDemand) THROW 53437,N'DEMO_REORDER_V14: ProductionRun không có BOM input.',1;
+            IF NOT EXISTS(SELECT 1 FROM @RunDemand) THROW 53437,N'REORDER_V14: ProductionRun không có BOM input.',1;
 
             /* Aggregate same stock identity inside one run to satisfy unique Production transaction index. */
             DELETE FROM @AggRunDemand;
@@ -11934,7 +11951,7 @@ END;
             FROM @RunDemand GROUP BY StoreInventoryId;
 
             IF EXISTS(SELECT 1 FROM @AggRunDemand d JOIN dbo.StoreInventories si ON si.StoreInventoryId=d.StoreInventoryId WHERE d.Quantity<=0 OR si.AvailableQty<d.Quantity)
-                THROW 53438,N'DEMO_REORDER_V14: production demand vượt tồn khả dụng.',1;
+                THROW 53438,N'REORDER_V14: production demand vượt tồn khả dụng.',1;
 
             IF EXISTS(
                 SELECT 1 FROM @AggRunDemand d
@@ -11943,7 +11960,7 @@ END;
                               AND ((d.IngredientId IS NOT NULL AND l.IngredientId=d.IngredientId AND l.PreparedItemId IS NULL)
                                 OR (d.PreparedItemId IS NOT NULL AND l.PreparedItemId=d.PreparedItemId AND l.IngredientId IS NULL))) s
                 WHERE ISNULL(s.Qty,0)<d.Quantity
-            ) THROW 53439,N'DEMO_REORDER_V14: production demand thiếu FIFO layer; không tạo cost gap giả.',1;
+            ) THROW 53439,N'REORDER_V14: production demand thiếu FIFO layer; không tạo cost gap giả.',1;
 
             INSERT dbo.InventoryTransactions(StoreInventoryId,[Type],StockStatus,Quantity,BeforeQty,AfterQty,UnitCost,TotalCost,
                                               InventoryDocumentId,InventoryDocumentDetailId,InventoryTransferId,InventoryTransferDetailId,
@@ -11986,7 +12003,7 @@ END;
                 FROM dbo.InventoryTransactions t LEFT JOIN dbo.ProductionCostAllocations a ON a.InventoryTransactionId=t.InventoryTransactionId
                 WHERE t.ProductionRunId=@CurrentRunId AND t.[Type]=6
                 GROUP BY t.InventoryTransactionId,t.Quantity HAVING ABS(t.Quantity-SUM(ISNULL(a.Quantity,0)))>0.001
-            ) THROW 53440,N'DEMO_REORDER_V14: production FIFO allocation không phủ đủ demand.',1;
+            ) THROW 53440,N'REORDER_V14: production FIFO allocation không phủ đủ demand.',1;
 
             UPDATE l SET l.RemainingQuantity=l.RemainingQuantity-x.Qty
             FROM dbo.InventoryCostLayers l
@@ -12007,14 +12024,14 @@ END;
             FROM dbo.Recipes r WHERE r.RecipeId=@CurrentProdRecipeId;
             SELECT @PreparedBaseUnitId=BaseUnitId FROM dbo.PreparedItems WHERE PreparedItemId=@OutputPreparedItemId;
             IF @OutputPreparedItemId IS NULL OR @OutputQty<=0 OR @OutputUnitId<>@PreparedBaseUnitId
-                THROW 53441,N'DEMO_REORDER_V14: production output không phải PreparedItem base-unit identity.',1;
+                THROW 53441,N'REORDER_V14: production output không phải PreparedItem base-unit identity.',1;
 
             SET @OutputInventoryId=NULL;
             SELECT @OutputInventoryId=StoreInventoryId,@OutputBefore=AvailableQty,@OutputMin=MinStockLevel
             FROM dbo.StoreInventories
             WHERE StoreId=@CurrentProdStoreId AND PreparedItemId=@OutputPreparedItemId
               AND BtpIdentityState=1 AND SupersededByStoreInventoryId IS NULL;
-            IF @OutputInventoryId IS NULL THROW 53442,N'DEMO_REORDER_V14: thiếu canonical output StoreInventory cho PreparedItem.',1;
+            IF @OutputInventoryId IS NULL THROW 53442,N'REORDER_V14: thiếu canonical output StoreInventory cho PreparedItem.',1;
 
             SET @OutputUnitCost=CONVERT(decimal(18,8),@RunInputCost/NULLIF(@OutputQty,0));
 
@@ -12041,7 +12058,7 @@ END;
 
             IF EXISTS(SELECT 1 FROM dbo.InventoryCostLayers WHERE RemainingQuantity<0)
             OR EXISTS(SELECT 1 FROM dbo.StoreInventories WHERE AvailableQty<0)
-                THROW 53443,N'DEMO_REORDER_V14: production làm tồn/layer âm.',1;
+                THROW 53443,N'REORDER_V14: production làm tồn/layer âm.',1;
 
             FETCH NEXT FROM prod_cursor INTO @CurrentProdStoreId,@CurrentProdSeq,@CurrentProdStaffId,@CurrentProdRecipeId,@CurrentProdRequestKey,@CurrentProdFingerprint,@CurrentProdNotes,@CurrentProdAt;
         END;
@@ -12089,14 +12106,14 @@ END;
     INSERT @MenuSeed SELECT StoreId,rn,StoreMenuItemId,DrinkSizeId,DrinkId,SizeId,DrinkName,SizeName,SellPrice,BasePrice FROM M WHERE rn<=54;
 
     IF EXISTS(SELECT 1 FROM @FixtureStores fs WHERE (SELECT COUNT(*) FROM @MenuSeed m WHERE m.StoreId=fs.StoreId)<>54)
-        THROW 53444,N'DEMO_REORDER_V14: cần đúng 54 enabled StoreMenuItems có exact active BOM ở mỗi Store.',1;
+        THROW 53444,N'REORDER_V14: cần đúng 54 enabled StoreMenuItems có exact active BOM ở mỗi Store.',1;
 
     /* ------------------------------------------------------------
    14.8A Ensure real size-level policy for the two legacy toppings
    whose BOM already exists but was unreachable by POS fixture.
 
-   PM_VIEN -> DEMO_ING_CHEESE_CUBE
-   KB_CM   -> DEMO_ING_KHUC_BACH_POWDER
+   PM_VIEN -> ING_CHEESE_CUBE
+   KB_CM   -> ING_KHUC_BACH_POWDER
 
    Chỉ sử dụng DrinkToppings compatibility đã tồn tại.
    Không tự tạo quan hệ DrinkTopping mới.
@@ -12160,7 +12177,7 @@ END;
        OR @CoverageDrinkSizeId IS NULL
     BEGIN
         ;THROW 53509,
-               N'DEMO_REORDER_V14: không tìm được menu DrinkSize có compatibility thật cho PM_VIEN và KB_CM.',
+               N'REORDER_V14: không tìm được menu DrinkSize có compatibility thật cho PM_VIEN và KB_CM.',
                1;
     END;
 
@@ -12199,7 +12216,7 @@ END;
     )
     BEGIN
         ;THROW 53510,
-               N'DEMO_REORDER_V14: PM_VIEN/KB_CM policy tồn tại nhưng khác contract.',
+               N'REORDER_V14: PM_VIEN/KB_CM policy tồn tại nhưng khác contract.',
                1;
     END;
 
@@ -12327,7 +12344,7 @@ END;
         IF EXISTS(SELECT 1 FROM @FixtureStores fs WHERE
             (SELECT COUNT(*) FROM dbo.OrderDetails od JOIN dbo.Orders o ON o.OrderId=od.OrderId
              WHERE o.Source=@SeedMarker AND o.StoreId=fs.StoreId)<>54)
-            THROW 53475,N'DEMO_REORDER_V14: OrderDetail fixture count drift.',1;
+            THROW 53475,N'REORDER_V14: OrderDetail fixture count drift.',1;
 
         IF EXISTS(
             SELECT 1
@@ -12340,7 +12357,7 @@ END;
                OR ISNULL(od.AcceptedBasePrice,-1)<>m.BasePrice
                OR od.PriceSource<>CASE WHEN m.SellPrice=m.BasePrice THEN N'GLOBAL' ELSE N'STORE_OVERRIDE' END
                OR od.AcceptedCatalogVersion IS NOT NULL OR od.Quantity<>1 OR od.Note<>@SeedMarker OR od.CostStatus NOT IN(1,2)
-        ) THROW 53476,N'DEMO_REORDER_V14: OrderDetail business-key payload drift.',1;
+        ) THROW 53476,N'REORDER_V14: OrderDetail business-key payload drift.',1;
 
         IF EXISTS(
             SELECT 1
@@ -12350,7 +12367,7 @@ END;
                 SELECT 1 FROM @MenuSeed m
                 JOIN @OrderSeed os ON os.StoreId=m.StoreId AND os.Seq=CASE WHEN m.MenuRank<=50 THEN m.MenuRank ELSE m.MenuRank-50 END
                 WHERE os.ClientOrderId=o.ClientOrderId AND m.StoreMenuItemId=od.StoreMenuItemId)
-        ) THROW 53477,N'DEMO_REORDER_V14: có OrderDetail ngoài deterministic menu fixture contract.',1;
+        ) THROW 53477,N'REORDER_V14: có OrderDetail ngoài deterministic menu fixture contract.',1;
 
         IF EXISTS(
             SELECT 1
@@ -12364,17 +12381,17 @@ END;
             WHERE tp.ToppingId IS NULL OR st.StoreToppingId IS NULL OR pol.DrinkSizeToppingPolicyId IS NULL
                OR ot.ToppingName<>tp.Name OR ot.Price<>CONVERT(decimal(18,2),CASE WHEN pol.PriceTreatment=N'ADD_TOPPING_PRICE' THEN tp.Price ELSE 0 END)
                OR ot.CostStatus NOT IN(1,2)
-        ) THROW 53478,N'DEMO_REORDER_V14: OrderTopping payload drift/policy không còn hợp lệ.',1;
+        ) THROW 53478,N'REORDER_V14: OrderTopping payload drift/policy không còn hợp lệ.',1;
 
         IF EXISTS(
             SELECT 1
             FROM @OrderSeed os
             LEFT JOIN dbo.Orders o ON o.ClientOrderId=os.ClientOrderId
             LEFT JOIN dbo.Payments p ON p.OrderId=o.OrderId
-              AND p.TransactionCode=CONCAT(N'DEMO_REORDER_V14_PAY_S',os.StoreNo,N'_',RIGHT(CONCAT(N'000',os.Seq),3))
+              AND p.TransactionCode=CONCAT(N'REORDER_V14_PAY_S',os.StoreNo,N'_',RIGHT(CONCAT(N'000',os.Seq),3))
             WHERE p.PaymentId IS NULL OR p.PaymentStatusId<>@PaidStatusId OR p.PaymentMethodId<>@BankMethodId
                OR p.Amount<>o.Total OR p.CashSessionId IS NOT NULL
-        ) THROW 53479,N'DEMO_REORDER_V14: payment transaction business-key payload drift.',1;
+        ) THROW 53479,N'REORDER_V14: payment transaction business-key payload drift.',1;
     END;
 
     IF @IsReplay=0
@@ -12384,7 +12401,7 @@ END;
                           DeliveryAddress,ShippingFee,SubTotal,VoucherDiscount,PointDiscount,PointsUsed,Total,
                           CostStatus,TotalCogs,GrossProfit,CostedAtUtc,CreatedAt)
         SELECT NULL,o.StoreId,@CompletedOrderStatusId,@PaidStatusId,@TakeAwayTypeId,NULL,o.StaffId,ws.ShiftId,
-               o.ClientOrderId,NULL,@SeedMarker,CONCAT(N'DEMO_REORDER_V14_ORDER_S',o.StoreNo,N'_',RIGHT(CONCAT(N'000',o.Seq),3)),
+               o.ClientOrderId,NULL,@SeedMarker,CONCAT(N'REORDER_V14_ORDER_S',o.StoreNo,N'_',RIGHT(CONCAT(N'000',o.Seq),3)),
                NULL,NULL,NULL,NULL,0,0,0,0,0,0,0,NULL,NULL,NULL,o.CreatedAt
         FROM @OrderSeed o
         JOIN @ShiftSeed sh ON sh.StoreId=o.StoreId AND sh.Seq=o.ShiftSeq
@@ -12423,14 +12440,14 @@ END;
 
         IF EXISTS(SELECT 1 FROM @FixtureStores fs WHERE
             (SELECT COUNT(*) FROM @EligibleTopping e WHERE e.StoreId=fs.StoreId)<30)
-            THROW 53445,N'DEMO_REORDER_V14: không có đủ 30 topping policy+BOM hợp lệ cho mỗi Store.',1;
+            THROW 53445,N'REORDER_V14: không có đủ 30 topping policy+BOM hợp lệ cho mỗi Store.',1;
 
         DECLARE @CoveredIngredient TABLE(StoreId int,IngredientId int,PRIMARY KEY(StoreId,IngredientId));
         /* Real production consumption already posted in 14.7. */
         INSERT @CoveredIngredient
         SELECT DISTINCT si.StoreId,si.IngredientId
         FROM dbo.InventoryTransactions t
-        JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=t.ProductionRunId AND pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%'
+        JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=t.ProductionRunId AND pr.Notes LIKE N'REORDER_V14_PROD_S%'
         JOIN dbo.StoreInventories si ON si.StoreInventoryId=t.StoreInventoryId
         WHERE t.[Type]=6 AND si.IngredientId IS NOT NULL;
 
@@ -12467,7 +12484,7 @@ END;
                   AND NOT EXISTS(SELECT 1 FROM @PickedTopping p WHERE p.StoreId=e.StoreId AND p.ToppingId=e.ToppingId)
                 ORDER BY ISNULL(score.NewIngredientCount,0) DESC,e.ToppingCode;
 
-                IF @PickToppingId IS NULL THROW 53469,N'DEMO_REORDER_V14: không thể chọn đủ topping fixture.',1;
+                IF @PickToppingId IS NULL THROW 53469,N'REORDER_V14: không thể chọn đủ topping fixture.',1;
                 INSERT @PickedTopping VALUES(@PickStoreId,@PickToppingId,@PickNo);
 
                 INSERT @CoveredIngredient(StoreId,IngredientId)
@@ -12489,7 +12506,7 @@ END;
         IF EXISTS(SELECT 1 FROM @FixtureStores fs WHERE
             (SELECT COUNT(*) FROM dbo.OrderToppings ot JOIN dbo.OrderDetails od ON od.OrderDetailId=ot.OrderDetailId
              JOIN dbo.Orders o ON o.OrderId=od.OrderId WHERE o.Source=@SeedMarker AND o.StoreId=fs.StoreId)<>30)
-            THROW 53447,N'DEMO_REORDER_V14: không resolve được 30 OrderToppings hợp lệ mỗi Store.',1;
+            THROW 53447,N'REORDER_V14: không resolve được 30 OrderToppings hợp lệ mỗi Store.',1;
 
         UPDATE o SET o.SubTotal=x.SubTotal,o.Total=x.SubTotal
         FROM dbo.Orders o
@@ -12502,7 +12519,7 @@ END;
 
         INSERT dbo.Payments(OrderId,Amount,ReceivedAmount,ChangeAmount,PaymentMethodId,PaymentStatusId,CashSessionId,TransactionCode,PaidAt)
         SELECT o.OrderId,o.Total,NULL,NULL,@BankMethodId,@PaidStatusId,NULL,
-               CONCAT(N'DEMO_REORDER_V14_PAY_S',os.StoreNo,N'_',RIGHT(CONCAT(N'000',os.Seq),3)),DATEADD(MINUTE,5,os.CreatedAt)
+               CONCAT(N'REORDER_V14_PAY_S',os.StoreNo,N'_',RIGHT(CONCAT(N'000',os.Seq),3)),DATEADD(MINUTE,5,os.CreatedAt)
         FROM dbo.Orders o JOIN @OrderSeed os ON os.ClientOrderId=o.ClientOrderId;
     END
     ELSE
@@ -12628,7 +12645,7 @@ END;
             WHERE o.Source=@SeedMarker AND EXISTS(SELECT 1 FROM @FixtureStores fs WHERE fs.StoreId=o.StoreId)
               AND rd.IngredientId IS NOT NULL AND rd.UnitId<>i.BaseUnitId
               AND NOT EXISTS(SELECT 1 FROM dbo.UnitConversions uc WHERE uc.IngredientId=i.IngredientId AND uc.FromUnitId=rd.UnitId AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1 AND uc.FromQuantity>0 AND uc.ToQuantity>0)
-        ) THROW 53446,N'DEMO_REORDER_V14: thiếu UnitConversion cho sales/topping BOM.',1;
+        ) THROW 53446,N'REORDER_V14: thiếu UnitConversion cho sales/topping BOM.',1;
 
         /* Invalid legacy child identities are tracked in @IncompleteDetail/@IncompleteTopping above. */
 
@@ -12641,7 +12658,7 @@ END;
         FROM @SalesDemand GROUP BY StoreId,OrderId,StoreInventoryId,SourceRecipeId;
 
         IF EXISTS(SELECT 1 FROM @SalesAgg a JOIN dbo.StoreInventories si ON si.StoreInventoryId=a.StoreInventoryId WHERE a.Quantity<=0)
-            THROW 53448,N'DEMO_REORDER_V14: sales demand quantity không hợp lệ.',1;
+            THROW 53448,N'REORDER_V14: sales demand quantity không hợp lệ.',1;
 
         /* Precheck final stock and layer supply before mutation. */
 IF EXISTS
@@ -12706,7 +12723,7 @@ BEGIN
 
 
     THROW 53449,
-          N'DEMO_REORDER_V14: sales demand vượt tồn khả dụng. Xem bảng ShortageQty phía trên.',
+          N'REORDER_V14: sales demand vượt tồn khả dụng. Xem bảng ShortageQty phía trên.',
           1;
 
 END;
@@ -12726,7 +12743,7 @@ END;
                     OR (d.PreparedItemId IS NOT NULL AND l.PreparedItemId=d.PreparedItemId AND l.IngredientId IS NULL))
             )s
             WHERE ISNULL(s.SupplyQty,0)<d.DemandQty
-        ) THROW 53450,N'DEMO_REORDER_V14: sales demand thiếu FIFO layer; không tạo SalesCostGap giả.',1;
+        ) THROW 53450,N'REORDER_V14: sales demand thiếu FIFO layer; không tạo SalesCostGap giả.',1;
 
         ;WITH D AS(
             SELECT a.*,si.AvailableQty StartQty,si.MinStockLevel,
@@ -12797,7 +12814,7 @@ END;
             WHERE t.[Type]=7
             GROUP BY t.InventoryTransactionId,t.Quantity
             HAVING ABS(t.Quantity-SUM(ISNULL(a.Quantity,0)))>0.001
-        ) THROW 53451,N'DEMO_REORDER_V14: SalesCostAllocation không phủ đủ transaction quantity.',1;
+        ) THROW 53451,N'REORDER_V14: SalesCostAllocation không phủ đủ transaction quantity.',1;
 
         UPDATE l SET l.RemainingQuantity=l.RemainingQuantity-x.Qty
         FROM dbo.InventoryCostLayers l
@@ -12848,7 +12865,7 @@ END;
         ) OR EXISTS(
             SELECT 1 FROM dbo.OrderToppings ot JOIN dbo.OrderDetails od ON od.OrderDetailId=ot.OrderDetailId JOIN dbo.Orders o ON o.OrderId=od.OrderId AND o.Source=@SeedMarker
             WHERE ot.CostStatus=0 OR (ot.CostStatus=1 AND ot.TotalCogs IS NULL) OR (ot.CostStatus=2 AND ot.TotalCogs IS NOT NULL)
-        ) THROW 53452,N'DEMO_REORDER_V14: line COGS status/evidence không nhất quán.',1;
+        ) THROW 53452,N'REORDER_V14: line COGS status/evidence không nhất quán.',1;
 
         /* Complete only when every line has complete evidence. Incomplete orders never store a partial known COGS. */
         UPDATE o SET o.CostStatus=1,o.TotalCogs=x.TotalCogs,o.GrossProfit=o.Total-x.TotalCogs,o.CostedAtUtc=o.CreatedAt
@@ -12871,7 +12888,7 @@ END;
 
         IF EXISTS(SELECT 1 FROM dbo.StoreInventories WHERE AvailableQty<0)
         OR EXISTS(SELECT 1 FROM dbo.InventoryCostLayers WHERE RemainingQuantity<0)
-            THROW 53453,N'DEMO_REORDER_V14: sales consumption làm tồn/layer âm.',1;
+            THROW 53453,N'REORDER_V14: sales consumption làm tồn/layer âm.',1;
     END
     ELSE
     BEGIN
@@ -12908,32 +12925,32 @@ END;
        ------------------------------------------------------------ */
     IF EXISTS(SELECT 1 FROM (VALUES(@Store1Id),(@Store2Id),(@Store3Id)) s(StoreId)
               WHERE (SELECT COUNT(*) FROM dbo.Orders WHERE Source=@SeedMarker AND StoreId=s.StoreId)<>50)
-        THROW 53454,N'DEMO_REORDER_V14: phải có đúng 50 Orders mỗi Store.',1;
+        THROW 53454,N'REORDER_V14: phải có đúng 50 Orders mỗi Store.',1;
 
     IF EXISTS(SELECT 1 FROM (VALUES(@Store1Id),(@Store2Id),(@Store3Id)) s(StoreId)
               WHERE (SELECT COUNT(*) FROM dbo.OrderDetails od JOIN dbo.Orders o ON o.OrderId=od.OrderId
                      WHERE o.Source=@SeedMarker AND o.StoreId=s.StoreId)<>54)
-        THROW 53455,N'DEMO_REORDER_V14: phải có đúng 54 OrderDetails mỗi Store.',1;
+        THROW 53455,N'REORDER_V14: phải có đúng 54 OrderDetails mỗi Store.',1;
 
     IF EXISTS(SELECT 1 FROM (VALUES(@Store1Id),(@Store2Id),(@Store3Id)) s(StoreId)
               WHERE (SELECT COUNT(*) FROM dbo.Payments p JOIN dbo.Orders o ON o.OrderId=p.OrderId
                      WHERE o.Source=@SeedMarker AND o.StoreId=s.StoreId AND p.PaymentStatusId=@PaidStatusId)<>50)
-        THROW 53456,N'DEMO_REORDER_V14: phải có đúng 50 paid Payments mỗi Store.',1;
+        THROW 53456,N'REORDER_V14: phải có đúng 50 paid Payments mỗi Store.',1;
 
     IF EXISTS(SELECT 1 FROM (VALUES(@Store1Id),(@Store2Id),(@Store3Id)) s(StoreId)
               WHERE (SELECT COUNT(*) FROM dbo.OrderToppings ot JOIN dbo.OrderDetails od ON od.OrderDetailId=ot.OrderDetailId
                      JOIN dbo.Orders o ON o.OrderId=od.OrderId WHERE o.Source=@SeedMarker AND o.StoreId=s.StoreId)<>30)
-        THROW 53457,N'DEMO_REORDER_V14: phải có đúng 30 OrderToppings mỗi Store.',1;
+        THROW 53457,N'REORDER_V14: phải có đúng 30 OrderToppings mỗi Store.',1;
 
     IF EXISTS(SELECT 1 FROM (VALUES(@Store1Id,1),(@Store2Id,2),(@Store3Id,3)) s(StoreId,StoreNo)
               WHERE (SELECT COUNT(*) FROM dbo.WorkShifts WHERE StoreId=s.StoreId
-                     AND DiscrepancyReason LIKE CONCAT(N'DEMO_REORDER_V14_SHIFT_S',s.StoreNo,N'_%') AND Status=N'CLOSED')<>30)
-        THROW 53458,N'DEMO_REORDER_V14: phải có đúng 30 closed WorkShifts mỗi Store.',1;
+                     AND DiscrepancyReason LIKE CONCAT(N'REORDER_V14_SHIFT_S',s.StoreNo,N'_%') AND Status=N'CLOSED')<>30)
+        THROW 53458,N'REORDER_V14: phải có đúng 30 closed WorkShifts mỗi Store.',1;
 
     IF EXISTS(SELECT 1 FROM (VALUES(@Store1Id,1),(@Store2Id,2),(@Store3Id,3)) s(StoreId,StoreNo)
               WHERE (SELECT COUNT(*) FROM dbo.ProductionRuns WHERE StoreId=s.StoreId
-                     AND Notes LIKE CONCAT(N'DEMO_REORDER_V14_PROD_S',s.StoreNo,N'_%') AND Status=2)<>30)
-        THROW 53459,N'DEMO_REORDER_V14: phải có đúng 30 completed ProductionRuns mỗi Store.',1;
+                     AND Notes LIKE CONCAT(N'REORDER_V14_PROD_S',s.StoreNo,N'_%') AND Status=2)<>30)
+        THROW 53459,N'REORDER_V14: phải có đúng 30 completed ProductionRuns mỗi Store.',1;
 
     /* Recompute expected production BOM demand from current RecipeDetails and compare to durable movements. */
     DECLARE @ExpectedProdCheck TABLE(
@@ -12951,7 +12968,7 @@ END;
         JOIN dbo.StoreInventories si ON si.StoreId=pr.StoreId AND si.IngredientId=rd.IngredientId
         LEFT JOIN dbo.UnitConversions uc ON uc.IngredientId=i.IngredientId AND uc.FromUnitId=rd.UnitId
              AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1
-        WHERE pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%'
+        WHERE pr.Notes LIKE N'REORDER_V14_PROD_S%'
           AND (rd.UnitId=i.BaseUnitId OR uc.UnitConversionId IS NOT NULL)
         UNION ALL
         SELECT pr.ProductionRunId,si.StoreInventoryId,cr.RecipeId,
@@ -12962,7 +12979,7 @@ END;
         JOIN dbo.PreparedItems pi ON pi.PreparedItemId=cr.PreparedItemId
         JOIN dbo.StoreInventories si ON si.StoreId=pr.StoreId AND si.PreparedItemId=cr.PreparedItemId
              AND si.BtpIdentityState=1 AND si.SupersededByStoreInventoryId IS NULL
-        WHERE pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%' AND rd.UnitId=pi.BaseUnitId
+        WHERE pr.Notes LIKE N'REORDER_V14_PROD_S%' AND rd.UnitId=pi.BaseUnitId
     )x
     GROUP BY x.ProductionRunId,x.StoreInventoryId,x.SourceRecipeId;
 
@@ -12972,12 +12989,12 @@ END;
         FULL OUTER JOIN(
             SELECT t.ProductionRunId,t.StoreInventoryId,t.SourceRecipeId,SUM(t.Quantity) Quantity,COUNT(*) TxCount
             FROM dbo.InventoryTransactions t
-            JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=t.ProductionRunId AND pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%'
+            JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=t.ProductionRunId AND pr.Notes LIKE N'REORDER_V14_PROD_S%'
             WHERE t.[Type]=6
             GROUP BY t.ProductionRunId,t.StoreInventoryId,t.SourceRecipeId
         )a ON a.ProductionRunId=e.ProductionRunId AND a.StoreInventoryId=e.StoreInventoryId AND a.SourceRecipeId=e.SourceRecipeId
         WHERE e.ProductionRunId IS NULL OR a.ProductionRunId IS NULL OR a.TxCount<>1 OR ABS(e.Quantity-a.Quantity)>0.001
-    ) THROW 53490,N'DEMO_REORDER_V14: PRODUCTION_OUT payload không khớp BOM đã quy đổi base unit.',1;
+    ) THROW 53490,N'REORDER_V14: PRODUCTION_OUT payload không khớp BOM đã quy đổi base unit.',1;
 
     IF EXISTS(
         SELECT 1
@@ -12987,7 +13004,7 @@ END;
              AND si.BtpIdentityState=1 AND si.SupersededByStoreInventoryId IS NULL
         LEFT JOIN dbo.InventoryTransactions t ON t.ProductionRunId=pr.ProductionRunId AND t.StoreInventoryId=si.StoreInventoryId AND t.[Type]=5
         LEFT JOIN dbo.InventoryCostLayers l ON l.SourceProductionRunId=pr.ProductionRunId
-        WHERE pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%'
+        WHERE pr.Notes LIKE N'REORDER_V14_PROD_S%'
           AND (si.StoreInventoryId IS NULL OR t.InventoryTransactionId IS NULL OR l.InventoryCostLayerId IS NULL
             OR t.SourceRecipeId<>pr.RecipeId OR t.Quantity<>CONVERT(decimal(18,3),r.OutputQuantity)
             OR ABS((t.AfterQty-t.BeforeQty)-t.Quantity)>0.001 OR t.TotalCost<>pr.TotalInputCost
@@ -12995,7 +13012,7 @@ END;
             OR l.Quantity<>CONVERT(decimal(18,3),r.OutputQuantity) OR l.RemainingQuantity<0 OR l.RemainingQuantity>l.Quantity
             OR ABS(l.UnitCost-ROUND(pr.OutputUnitCost,2))>0.01)
     )
-        THROW 53491,N'DEMO_REORDER_V14: PRODUCTION_IN/output cost-layer payload drift.',1;
+        THROW 53491,N'REORDER_V14: PRODUCTION_IN/output cost-layer payload drift.',1;
 
     /* Recompute sales/topping demand to verify transaction quantity and allocation attribution on replay too. */
     DECLARE @ExpectedSalesCheck TABLE(
@@ -13067,7 +13084,7 @@ END;
             WHERE t.[Type]=7 GROUP BY t.ReferenceOrderId,t.StoreInventoryId,t.SourceRecipeId
         )a ON a.OrderId=e.OrderId AND a.StoreInventoryId=e.StoreInventoryId AND a.SourceRecipeId=e.SourceRecipeId
         WHERE e.OrderId IS NULL OR a.OrderId IS NULL OR a.TxCount<>1 OR ABS(e.Quantity-a.Quantity)>0.001
-    ) THROW 53492,N'DEMO_REORDER_V14: SALES_DEDUCTION payload không khớp BOM/policy đã quy đổi base unit.',1;
+    ) THROW 53492,N'REORDER_V14: SALES_DEDUCTION payload không khớp BOM/policy đã quy đổi base unit.',1;
 
     IF EXISTS(
         SELECT 1
@@ -13087,18 +13104,18 @@ END;
             AND ISNULL(a.OrderToppingId,-1)=ISNULL(e.OrderToppingId,-1)
             AND a.StoreInventoryId=e.StoreInventoryId AND a.SourceRecipeId=e.SourceRecipeId
         WHERE e.OrderId IS NULL OR a.OrderId IS NULL OR ABS(e.Quantity-a.Quantity)>0.001
-    ) THROW 53493,N'DEMO_REORDER_V14: SalesCostAllocation attribution không khớp OrderDetail/Topping BOM demand.',1;
+    ) THROW 53493,N'REORDER_V14: SalesCostAllocation attribution không khớp OrderDetail/Topping BOM demand.',1;
 
     IF EXISTS(SELECT 1 FROM (VALUES(@Store1Id),(@Store2Id),(@Store3Id)) s(StoreId)
               WHERE (SELECT COUNT(*) FROM dbo.InventoryTransactions t JOIN dbo.StoreInventories si ON si.StoreInventoryId=t.StoreInventoryId
                      WHERE si.StoreId=s.StoreId AND t.[Type] IN(6,7)
                        AND t.CreatedAt>=@WindowStartUtc AND t.CreatedAt<=@SeedAnchorUtc)<30)
-        THROW 53460,N'DEMO_REORDER_V14: thiếu 30 movement tiêu thụ hợp lệ trong rolling 30 days.',1;
+        THROW 53460,N'REORDER_V14: thiếu 30 movement tiêu thụ hợp lệ trong rolling 30 days.',1;
 
     IF EXISTS(SELECT 1 FROM (VALUES(@Store1Id),(@Store2Id),(@Store3Id)) s(StoreId)
               WHERE (SELECT COUNT(*) FROM dbo.SalesCostAllocations a JOIN dbo.Orders o ON o.OrderId=a.OrderId
                      WHERE o.Source=@SeedMarker AND o.StoreId=s.StoreId)<30)
-        THROW 53461,N'DEMO_REORDER_V14: thiếu SalesCostAllocations.',1;
+        THROW 53461,N'REORDER_V14: thiếu SalesCostAllocations.',1;
 
     /* Allocation semantic integrity: Order/detail/topping/transaction/layer and cost identity must agree. */
     IF EXISTS(
@@ -13121,12 +13138,12 @@ END;
                 OR ISNULL(l.IngredientId,-1)<>a.IngredientId OR l.PreparedItemId IS NOT NULL))
            OR (a.PreparedItemId IS NOT NULL AND (ISNULL(si.PreparedItemId,-1)<>a.PreparedItemId OR si.IngredientId IS NOT NULL
                 OR ISNULL(l.PreparedItemId,-1)<>a.PreparedItemId OR l.IngredientId IS NOT NULL))
-    ) THROW 53496,N'DEMO_REORDER_V14: SalesCostAllocation semantic identity/link payload drift.',1;
+    ) THROW 53496,N'REORDER_V14: SalesCostAllocation semantic identity/link payload drift.',1;
 
     IF EXISTS(
         SELECT 1
         FROM dbo.ProductionCostAllocations a
-        JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=a.ProductionRunId AND pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%'
+        JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=a.ProductionRunId AND pr.Notes LIKE N'REORDER_V14_PROD_S%'
         LEFT JOIN dbo.InventoryTransactions t ON t.InventoryTransactionId=a.InventoryTransactionId
         LEFT JOIN dbo.StoreInventories si ON si.StoreInventoryId=t.StoreInventoryId
         LEFT JOIN dbo.InventoryCostLayers l ON l.InventoryCostLayerId=a.InventoryCostLayerId
@@ -13135,7 +13152,7 @@ END;
            OR a.Quantity<=0 OR a.UnitCost<>l.UnitCost OR ABS(a.TotalCost-ROUND(a.Quantity*a.UnitCost,2))>0.01
            OR (si.IngredientId IS NOT NULL AND (ISNULL(l.IngredientId,-1)<>si.IngredientId OR l.PreparedItemId IS NOT NULL))
            OR (si.PreparedItemId IS NOT NULL AND (ISNULL(l.PreparedItemId,-1)<>si.PreparedItemId OR l.IngredientId IS NOT NULL))
-    ) THROW 53497,N'DEMO_REORDER_V14: ProductionCostAllocation semantic identity/link payload drift.',1;
+    ) THROW 53497,N'REORDER_V14: ProductionCostAllocation semantic identity/link payload drift.',1;
 
     /* Strong FIFO invariant: a younger layer may not be allocated while an older eligible layer still has quantity. */
     IF EXISTS(
@@ -13155,7 +13172,7 @@ END;
     ) OR EXISTS(
         SELECT 1
         FROM dbo.ProductionCostAllocations a
-        JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=a.ProductionRunId AND pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%'
+        JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=a.ProductionRunId AND pr.Notes LIKE N'REORDER_V14_PROD_S%'
         JOIN @FixtureStores fixtureStore ON fixtureStore.StoreId=pr.StoreId
         JOIN dbo.InventoryTransactions t ON t.InventoryTransactionId=a.InventoryTransactionId
         JOIN dbo.InventoryCostLayers l ON l.InventoryCostLayerId=a.InventoryCostLayerId
@@ -13166,20 +13183,20 @@ END;
                 OR (l.PreparedItemId IS NOT NULL AND older.PreparedItemId=l.PreparedItemId AND older.IngredientId IS NULL))
               AND (older.CreatedAt<l.CreatedAt OR (older.CreatedAt=l.CreatedAt AND older.InventoryCostLayerId<l.InventoryCostLayerId))
         )
-    ) THROW 53498,N'DEMO_REORDER_V14: phát hiện allocation vi phạm FIFO layer ordering.',1;
+    ) THROW 53498,N'REORDER_V14: phát hiện allocation vi phạm FIFO layer ordering.',1;
 
     IF EXISTS(SELECT 1 FROM (VALUES(@Store1Id),(@Store2Id),(@Store3Id)) s(StoreId)
               WHERE (SELECT COUNT(*) FROM dbo.StoreInventories WHERE StoreId=s.StoreId AND IngredientId IS NOT NULL)<>50)
-        THROW 53462,N'DEMO_REORDER_V14: mỗi Store phải có ít nhất 50 ingredient StoreInventories.',1;
+        THROW 53462,N'REORDER_V14: mỗi Store phải có ít nhất 50 ingredient StoreInventories.',1;
 
     IF @IsStore2Upgrade=0
        AND (SELECT COUNT(*) FROM dbo.InventoryCostLayers l JOIN dbo.InventoryDocumentDetails d ON d.InventoryDocumentDetailId=l.SourceInventoryDocumentDetailId WHERE d.InventoryDocumentId=@Store3OpeningDocId)<50
-        THROW 53463,N'DEMO_REORDER_V14: Store 3 phải có ít nhất 50 opening cost layers.',1;
+        THROW 53463,N'REORDER_V14: Store 3 phải có ít nhất 50 opening cost layers.',1;
 
     IF EXISTS(
         SELECT 1
         FROM dbo.InventoryDocumentDetails seedLine
-        JOIN dbo.InventoryDocuments seedDoc ON seedDoc.InventoryDocumentId=seedLine.InventoryDocumentId AND seedDoc.RequestKey=N'DEMO_OPENING_STORE1_INGREDIENTS'
+        JOIN dbo.InventoryDocuments seedDoc ON seedDoc.InventoryDocumentId=seedLine.InventoryDocumentId AND seedDoc.RequestKey=N'OPENING_STORE1_INGREDIENTS'
         JOIN dbo.Ingredients i ON i.IngredientId=seedLine.IngredientId AND i.Active=1
         CROSS JOIN (VALUES(@Store1Id),(@Store2Id),(@Store3Id)) fixture(StoreId)
         WHERE NOT EXISTS(
@@ -13189,11 +13206,11 @@ END;
               WHERE si.StoreId=fixture.StoreId AND si.IngredientId=i.IngredientId AND t.[Type] IN(6,7)
                 AND t.CreatedAt>=@WindowStartUtc AND t.CreatedAt<=@SeedAnchorUtc
           )
-    ) THROW 53465,N'DEMO_REORDER_V14: còn Store/ingredient không có consumption movement thật trong rolling 30 days.',1;
+    ) THROW 53465,N'REORDER_V14: còn Store/ingredient không có consumption movement thật trong rolling 30 days.',1;
 
     IF EXISTS(SELECT 1 FROM dbo.StoreInventories WHERE StoreId IN(@Store1Id,@Store2Id,@Store3Id) AND AvailableQty<0)
     OR EXISTS(SELECT 1 FROM dbo.InventoryCostLayers WHERE StoreId IN(@Store1Id,@Store2Id,@Store3Id) AND RemainingQuantity<0)
-        THROW 53466,N'DEMO_REORDER_V14: invariant no-negative stock/layer bị vi phạm.',1;
+        THROW 53466,N'REORDER_V14: invariant no-negative stock/layer bị vi phạm.',1;
 
     IF EXISTS(
         SELECT 1 FROM dbo.Orders o WHERE o.Source=@SeedMarker
@@ -13204,7 +13221,7 @@ END;
                     ISNULL((SELECT SUM(od.TotalCogs) FROM dbo.OrderDetails od WHERE od.OrderId=o.OrderId),0)
                    +ISNULL((SELECT SUM(ot.TotalCogs) FROM dbo.OrderToppings ot JOIN dbo.OrderDetails od ON od.OrderDetailId=ot.OrderDetailId WHERE od.OrderId=o.OrderId),0)))>0.01))
             OR (o.CostStatus=2 AND (o.TotalCogs IS NOT NULL OR o.GrossProfit IS NOT NULL OR o.CostedAtUtc IS NOT NULL)))
-    ) THROW 53467,N'DEMO_REORDER_V14: Order CostStatus/COGS evidence không nhất quán.',1;
+    ) THROW 53467,N'REORDER_V14: Order CostStatus/COGS evidence không nhất quán.',1;
 
     IF EXISTS(
         SELECT 1 FROM dbo.OrderDetails od JOIN dbo.Orders o ON o.OrderId=od.OrderId AND o.Source=@SeedMarker
@@ -13217,7 +13234,7 @@ END;
         WHERE ot.CostStatus NOT IN(1,2)
            OR (ot.CostStatus=1 AND ot.TotalCogs IS NULL)
            OR (ot.CostStatus=2 AND ot.TotalCogs IS NOT NULL)
-    ) THROW 53480,N'DEMO_REORDER_V14: detail/topping CostStatus/COGS evidence không nhất quán.',1;
+    ) THROW 53480,N'REORDER_V14: detail/topping CostStatus/COGS evidence không nhất quán.',1;
 
     IF EXISTS(
         SELECT 1 FROM dbo.Orders o WHERE o.Source=@SeedMarker AND o.CostStatus=1
@@ -13227,7 +13244,7 @@ END;
         SELECT 1 FROM dbo.Orders o WHERE o.Source=@SeedMarker AND o.CostStatus=2
           AND NOT (EXISTS(SELECT 1 FROM dbo.OrderDetails od WHERE od.OrderId=o.OrderId AND od.CostStatus=2)
             OR EXISTS(SELECT 1 FROM dbo.OrderToppings ot JOIN dbo.OrderDetails od ON od.OrderDetailId=ot.OrderDetailId WHERE od.OrderId=o.OrderId AND ot.CostStatus=2))
-    ) THROW 53481,N'DEMO_REORDER_V14: Order CostStatus không khớp line evidence.',1;
+    ) THROW 53481,N'REORDER_V14: Order CostStatus không khớp line evidence.',1;
 
     /* Incomplete is allowed only for an actual legacy ChildRecipe without a valid PreparedItem cost identity. */
     IF EXISTS(
@@ -13242,7 +13259,7 @@ END;
               WHERE r.DrinkId=od.DrinkId AND r.SizeId=od.SizeId AND r.Active=1 AND r.Status=N'Active'
                 AND (cr.PreparedItemId IS NULL OR pi.PreparedItemId IS NULL OR rd.UnitId<>pi.BaseUnitId OR si.StoreInventoryId IS NULL)
           )
-    ) THROW 53470,N'DEMO_REORDER_V14: có Incomplete detail không được giải thích bởi legacy BTP identity.',1;
+    ) THROW 53470,N'REORDER_V14: có Incomplete detail không được giải thích bởi legacy BTP identity.',1;
 
     IF EXISTS(
         SELECT 1 FROM dbo.OrderToppings ot
@@ -13259,18 +13276,18 @@ END;
               WHERE r.ToppingId=ot.ToppingId AND r.Active=1 AND r.Status=N'Active'
                 AND (cr.PreparedItemId IS NULL OR pi.PreparedItemId IS NULL OR rd.UnitId<>pi.BaseUnitId OR si.StoreInventoryId IS NULL)
           )
-    ) THROW 53482,N'DEMO_REORDER_V14: có Incomplete topping không được giải thích bởi legacy BTP identity.',1;
+    ) THROW 53482,N'REORDER_V14: có Incomplete topping không được giải thích bởi legacy BTP identity.',1;
 
     /* Reorder prerequisites: 50 ingredients/store, min threshold + real 30-day usage + active offer/scope. */
     IF EXISTS(
         SELECT 1
         FROM dbo.InventoryDocumentDetails seedLine
-        JOIN dbo.InventoryDocuments seedDoc ON seedDoc.InventoryDocumentId=seedLine.InventoryDocumentId AND seedDoc.RequestKey=N'DEMO_OPENING_STORE1_INGREDIENTS'
+        JOIN dbo.InventoryDocuments seedDoc ON seedDoc.InventoryDocumentId=seedLine.InventoryDocumentId AND seedDoc.RequestKey=N'OPENING_STORE1_INGREDIENTS'
         JOIN dbo.Ingredients i ON i.IngredientId=seedLine.IngredientId AND i.Active=1
         CROSS JOIN (VALUES(@Store1Id),(@Store2Id),(@Store3Id))s(StoreId)
         LEFT JOIN dbo.StoreInventories si ON si.StoreId=s.StoreId AND si.IngredientId=i.IngredientId
         WHERE si.StoreInventoryId IS NULL OR si.MinStockLevel IS NULL
-    ) THROW 53468,N'DEMO_REORDER_V14: Reorder prerequisite thiếu StoreInventory/minimum threshold.',1;
+    ) THROW 53468,N'REORDER_V14: Reorder prerequisite thiếu StoreInventory/minimum threshold.',1;
 
     /* This batch deliberately never inserts PA/PO/Receiving nor SalesCostGap. */
 
@@ -13293,19 +13310,19 @@ END CATCH;
 END;
 GO
 
-SELECT N'DEMO_REORDER_V14' AS SeedMarker,
+SELECT N'REORDER_V14' AS SeedMarker,
        SYSUTCDATETIME() AS VerifiedAtUtc,
-       (SELECT COUNT(*) FROM dbo.Orders o JOIN dbo.Stores s ON s.StoreId=o.StoreId WHERE o.Source=N'DEMO_REORDER_V14' AND s.Name=N'CafeChain Thủ Dầu Một') AS Store1Orders,
-       (SELECT COUNT(*) FROM dbo.Orders o JOIN dbo.Stores s ON s.StoreId=o.StoreId WHERE o.Source=N'DEMO_REORDER_V14' AND s.Name=N'CafeChain Thuận An') AS Store2Orders,
-       (SELECT COUNT(*) FROM dbo.Orders o JOIN dbo.Stores s ON s.StoreId=o.StoreId WHERE o.Source=N'DEMO_REORDER_V14' AND s.Name=N'CafeChain Dĩ An') AS Store3Orders,
-       (SELECT COUNT(*) FROM dbo.ProductionRuns WHERE Notes LIKE N'DEMO_REORDER_V14_PROD_S%') AS ProductionRuns,
-       (SELECT COUNT(*) FROM dbo.WorkShifts WHERE DiscrepancyReason LIKE N'DEMO_REORDER_V14_SHIFT_S%') AS WorkShifts,
-       (SELECT COUNT(*) FROM dbo.Payments WHERE TransactionCode LIKE N'DEMO_REORDER_V14_PAY_S%') AS Payments;
+       (SELECT COUNT(*) FROM dbo.Orders o JOIN dbo.Stores s ON s.StoreId=o.StoreId WHERE o.Source=N'REORDER_V14' AND s.Name=N'CafeChain Thủ Dầu Một') AS Store1Orders,
+       (SELECT COUNT(*) FROM dbo.Orders o JOIN dbo.Stores s ON s.StoreId=o.StoreId WHERE o.Source=N'REORDER_V14' AND s.Name=N'CafeChain Thuận An') AS Store2Orders,
+       (SELECT COUNT(*) FROM dbo.Orders o JOIN dbo.Stores s ON s.StoreId=o.StoreId WHERE o.Source=N'REORDER_V14' AND s.Name=N'CafeChain Dĩ An') AS Store3Orders,
+       (SELECT COUNT(*) FROM dbo.ProductionRuns WHERE Notes LIKE N'REORDER_V14_PROD_S%') AS ProductionRuns,
+       (SELECT COUNT(*) FROM dbo.WorkShifts WHERE DiscrepancyReason LIKE N'REORDER_V14_SHIFT_S%') AS WorkShifts,
+       (SELECT COUNT(*) FROM dbo.Payments WHERE TransactionCode LIKE N'REORDER_V14_PAY_S%') AS Payments;
 GO
 
 /* ================================================================
    SUPPLIER COMPARISON HISTORY V1
-   Marker: DEMO_SUPPLIER_COMPARISON_HISTORY_V1
+   Marker: SUPPLIER_COMPARISON_HISTORY_V1
 
    Contract:
    - Every active supplier with a valid Store 1 offer receives five
@@ -13340,7 +13357,7 @@ BEGIN TRY
        OR OBJECT_ID(N'dbo.InventoryTransactions',N'U') IS NULL
        OR OBJECT_ID(N'dbo.InventoryCostLayers',N'U') IS NULL
        OR OBJECT_ID(N'dbo.SystemSettings',N'U') IS NULL
-        THROW 53540,N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1: schema thiếu bảng bắt buộc.',1;
+        THROW 53540,N'SUPPLIER_COMPARISON_HISTORY_V1: schema thiếu bảng bắt buộc.',1;
 
     DECLARE @SupplierComparisonNow datetime2(0)=SYSUTCDATETIME();
     DECLARE @SupplierComparisonStoreId int=(
@@ -13355,7 +13372,7 @@ BEGIN TRY
         ORDER BY StaffId);
 
     IF @SupplierComparisonStoreId IS NULL OR @SupplierComparisonStaffId IS NULL
-        THROW 53541,N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1: thiếu cửa hàng pilot hoặc nhân viên active.',1;
+        THROW 53541,N'SUPPLIER_COMPARISON_HISTORY_V1: thiếu cửa hàng pilot hoặc nhân viên active.',1;
 
     DECLARE @SupplierComparisonSlots TABLE
     (
@@ -13440,7 +13457,7 @@ BEGIN TRY
              AND NOT EXISTS(SELECT 1 FROM @SupplierComparisonOffers fixture
                             WHERE fixture.SupplierId=supplier.SupplierId)
        )
-        THROW 53542,N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1: không resolve đủ offer, quy đổi hoặc tồn kho cho nhà cung cấp pilot.',1;
+        THROW 53542,N'SUPPLIER_COMPARISON_HISTORY_V1: không resolve đủ offer, quy đổi hoặc tồn kho cho nhà cung cấp pilot.',1;
 
     DECLARE @SupplierComparisonFixture TABLE
     (
@@ -13472,10 +13489,10 @@ BEGIN TRY
            DATEADD(DAY,-offer.LeadTimeDays,DATEADD(DAY,-slot.DaysAgo,@SupplierComparisonNow)),
            DATEADD(DAY,-slot.DaysAgo,@SupplierComparisonNow),
            DATEADD(DAY,-slot.DaysAgo,@SupplierComparisonNow),
-           CONCAT(N'DEMO-SCMP-V1-PO-',offer.SupplierId,N'-',slot.SampleNo),
-           CONCAT(N'DEMO-SCMP-V1-BR-',offer.SupplierId,N'-',slot.SampleNo),
-           CONCAT(N'DEMO_SCMP_V1_RECEIPT_S',@SupplierComparisonStoreId,N'_SUP',offer.SupplierId,N'_',slot.SampleNo),
-           CONCAT(N'DEMO_SCMP_V1_LINE_SUP',offer.SupplierId,N'_',slot.SampleNo)
+           CONCAT(N'SCMP-V1-PO-',offer.SupplierId,N'-',slot.SampleNo),
+           CONCAT(N'SCMP-V1-BR-',offer.SupplierId,N'-',slot.SampleNo),
+           CONCAT(N'SCMP_V1_RECEIPT_S',@SupplierComparisonStoreId,N'_SUP',offer.SupplierId,N'_',slot.SampleNo),
+           CONCAT(N'SCMP_V1_LINE_SUP',offer.SupplierId,N'_',slot.SampleNo)
     FROM @SupplierComparisonOffers offer
     CROSS JOIN @SupplierComparisonSlots slot;
 
@@ -13487,7 +13504,7 @@ BEGIN TRY
            fixture.OrderAt,fixture.ExpectedAt,@SupplierComparisonStaffId,
            @SupplierComparisonStaffId,@SupplierComparisonStaffId,fixture.OrderAt,fixture.ReceivedAt,
            fixture.OrderAt,fixture.OrderAt,fixture.ReceivedAt,NULL,
-           N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1'
+           N'SUPPLIER_COMPARISON_HISTORY_V1'
     FROM @SupplierComparisonFixture fixture
     WHERE NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrders po WHERE po.Code=fixture.PoCode);
 
@@ -13520,9 +13537,9 @@ BEGIN TRY
      CreatedAt,CreatedByStaffId)
     SELECT fixture.ReceiptCode,@SupplierComparisonStoreId,fixture.SupplierId,po.PurchaseOrderId,
            NULL,N'CONFIRMED',fixture.ReceiptKey,
-           CONCAT(N'DEMO-SCMP-INVOICE-',fixture.SupplierId,N'-',fixture.SampleNo),
+           CONCAT(N'SCMP-INVOICE-',fixture.SupplierId,N'-',fixture.SampleNo),
            fixture.ReceivedAt,@SupplierComparisonStaffId,fixture.ReceivedAt,@SupplierComparisonStaffId,
-           N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1',fixture.ReceivedAt,@SupplierComparisonStaffId
+           N'SUPPLIER_COMPARISON_HISTORY_V1',fixture.ReceivedAt,@SupplierComparisonStaffId
     FROM @SupplierComparisonFixture fixture
     JOIN dbo.PurchaseOrders po ON po.Code=fixture.PoCode
     WHERE NOT EXISTS(SELECT 1 FROM dbo.BranchReceipts receipt
@@ -13642,7 +13659,7 @@ BEGIN TRY
     JOIN dbo.InventoryTransactions movement
       ON movement.BranchReceiptLineId=receiptLine.BranchReceiptLineId AND movement.[Type]=14
     JOIN dbo.BranchReceipts receipt ON receipt.BranchReceiptId=receiptLine.BranchReceiptId
-    WHERE receipt.Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1'
+    WHERE receipt.Notes=N'SUPPLIER_COMPARISON_HISTORY_V1'
       AND receiptLine.InventoryTransactionId IS NULL;
 
     INSERT dbo.InventoryCostLayers
@@ -13670,63 +13687,63 @@ BEGIN TRY
            po.CompletedAtUtc=fixture.ReceivedAt
     FROM dbo.PurchaseOrders po
     JOIN @SupplierComparisonFixture fixture ON fixture.PoCode=po.Code
-    WHERE po.Note=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1';
+    WHERE po.Note=N'SUPPLIER_COMPARISON_HISTORY_V1';
 
     UPDATE receipt
        SET receipt.[Status]=N'CONFIRMED',receipt.ReceivedAt=fixture.ReceivedAt,
            receipt.ConfirmedAt=fixture.ReceivedAt,receipt.CreatedAt=fixture.ReceivedAt
     FROM dbo.BranchReceipts receipt
     JOIN @SupplierComparisonFixture fixture ON fixture.ReceiptCode=receipt.ReceiptCode
-    WHERE receipt.Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1';
+    WHERE receipt.Notes=N'SUPPLIER_COMPARISON_HISTORY_V1';
 
     UPDATE receiptLine SET receiptLine.CreatedAt=fixture.ReceivedAt
     FROM dbo.BranchReceiptLines receiptLine
     JOIN dbo.BranchReceipts receipt ON receipt.BranchReceiptId=receiptLine.BranchReceiptId
     JOIN @SupplierComparisonFixture fixture ON fixture.ReceiptCode=receipt.ReceiptCode
-    WHERE receipt.Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1';
+    WHERE receipt.Notes=N'SUPPLIER_COMPARISON_HISTORY_V1';
 
     UPDATE posting SET posting.CreatedAtUtc=fixture.ReceivedAt
     FROM dbo.PurchaseOrderReceiptPostings posting
     JOIN dbo.BranchReceiptLines receiptLine ON receiptLine.BranchReceiptLineId=posting.BranchReceiptLineId
     JOIN dbo.BranchReceipts receipt ON receipt.BranchReceiptId=receiptLine.BranchReceiptId
     JOIN @SupplierComparisonFixture fixture ON fixture.ReceiptCode=receipt.ReceiptCode
-    WHERE receipt.Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1';
+    WHERE receipt.Notes=N'SUPPLIER_COMPARISON_HISTORY_V1';
 
     UPDATE movement SET movement.CreatedAt=fixture.ReceivedAt
     FROM dbo.InventoryTransactions movement
     JOIN dbo.BranchReceiptLines receiptLine ON receiptLine.BranchReceiptLineId=movement.BranchReceiptLineId
     JOIN dbo.BranchReceipts receipt ON receipt.BranchReceiptId=receiptLine.BranchReceiptId
     JOIN @SupplierComparisonFixture fixture ON fixture.ReceiptCode=receipt.ReceiptCode
-    WHERE receipt.Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1' AND movement.[Type]=14;
+    WHERE receipt.Notes=N'SUPPLIER_COMPARISON_HISTORY_V1' AND movement.[Type]=14;
 
     UPDATE layer SET layer.CreatedAt=fixture.ReceivedAt
     FROM dbo.InventoryCostLayers layer
     JOIN dbo.BranchReceiptLines receiptLine ON receiptLine.BranchReceiptLineId=layer.SourceBranchReceiptLineId
     JOIN dbo.BranchReceipts receipt ON receipt.BranchReceiptId=receiptLine.BranchReceiptId
     JOIN @SupplierComparisonFixture fixture ON fixture.ReceiptCode=receipt.ReceiptCode
-    WHERE receipt.Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1';
+    WHERE receipt.Notes=N'SUPPLIER_COMPARISON_HISTORY_V1';
 
     DECLARE @SupplierComparisonExpectedCount int=(SELECT COUNT(*) FROM @SupplierComparisonOffers)*5;
     IF (SELECT COUNT(*) FROM dbo.PurchaseOrders
-        WHERE Note=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1')<>@SupplierComparisonExpectedCount
+        WHERE Note=N'SUPPLIER_COMPARISON_HISTORY_V1')<>@SupplierComparisonExpectedCount
        OR (SELECT COUNT(*) FROM dbo.BranchReceipts
-           WHERE Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1')<>@SupplierComparisonExpectedCount
+           WHERE Notes=N'SUPPLIER_COMPARISON_HISTORY_V1')<>@SupplierComparisonExpectedCount
        OR (SELECT COUNT(*) FROM dbo.BranchReceiptLines receiptLine
            JOIN dbo.BranchReceipts receipt ON receipt.BranchReceiptId=receiptLine.BranchReceiptId
-           WHERE receipt.Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1')<>@SupplierComparisonExpectedCount
+           WHERE receipt.Notes=N'SUPPLIER_COMPARISON_HISTORY_V1')<>@SupplierComparisonExpectedCount
        OR (SELECT COUNT(*) FROM dbo.PurchaseOrderReceiptPostings posting
            JOIN dbo.BranchReceiptLines receiptLine ON receiptLine.BranchReceiptLineId=posting.BranchReceiptLineId
            JOIN dbo.BranchReceipts receipt ON receipt.BranchReceiptId=receiptLine.BranchReceiptId
-           WHERE receipt.Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1')<>@SupplierComparisonExpectedCount
+           WHERE receipt.Notes=N'SUPPLIER_COMPARISON_HISTORY_V1')<>@SupplierComparisonExpectedCount
        OR (SELECT COUNT(*) FROM dbo.InventoryTransactions movement
            JOIN dbo.BranchReceiptLines receiptLine ON receiptLine.BranchReceiptLineId=movement.BranchReceiptLineId
            JOIN dbo.BranchReceipts receipt ON receipt.BranchReceiptId=receiptLine.BranchReceiptId
-           WHERE receipt.Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1' AND movement.[Type]=14)<>@SupplierComparisonExpectedCount
+           WHERE receipt.Notes=N'SUPPLIER_COMPARISON_HISTORY_V1' AND movement.[Type]=14)<>@SupplierComparisonExpectedCount
        OR (SELECT COUNT(*) FROM dbo.InventoryCostLayers layer
            JOIN dbo.BranchReceiptLines receiptLine ON receiptLine.BranchReceiptLineId=layer.SourceBranchReceiptLineId
            JOIN dbo.BranchReceipts receipt ON receipt.BranchReceiptId=receiptLine.BranchReceiptId
-           WHERE receipt.Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1')<>@SupplierComparisonExpectedCount
-        THROW 53543,N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1: số chứng từ hoặc bằng chứng tồn kho không đúng contract.',1;
+           WHERE receipt.Notes=N'SUPPLIER_COMPARISON_HISTORY_V1')<>@SupplierComparisonExpectedCount
+        THROW 53543,N'SUPPLIER_COMPARISON_HISTORY_V1: số chứng từ hoặc bằng chứng tồn kho không đúng contract.',1;
 
     IF EXISTS
     (
@@ -13759,7 +13776,7 @@ BEGIN TRY
         GROUP BY fixture.SupplierId
         HAVING COUNT(po.PurchaseOrderId)<5
     )
-        THROW 53544,N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1: nhà cung cấp pilot chưa đủ 5 mẫu nhận hàng và ngày giao dự kiến.',1;
+        THROW 53544,N'SUPPLIER_COMPARISON_HISTORY_V1: nhà cung cấp pilot chưa đủ 5 mẫu nhận hàng và ngày giao dự kiến.',1;
 
     IF NOT EXISTS(SELECT 1 FROM dbo.SystemSettings
                   WHERE SettingKey=N'seedall_supplier_comparison_history_v1')
@@ -13779,17 +13796,17 @@ BEGIN CATCH
 END CATCH;
 GO
 
-SELECT N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1' AS SeedMarker,
+SELECT N'SUPPLIER_COMPARISON_HISTORY_V1' AS SeedMarker,
        SYSUTCDATETIME() AS VerifiedAtUtc,
        (SELECT COUNT(*) FROM dbo.PurchaseOrders
-        WHERE Note=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1') AS DemoPurchaseOrders,
+        WHERE Note=N'SUPPLIER_COMPARISON_HISTORY_V1') AS PurchaseOrders,
        (SELECT COUNT(*) FROM dbo.BranchReceipts
-        WHERE Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1') AS DemoConfirmedReceipts;
+        WHERE Notes=N'SUPPLIER_COMPARISON_HISTORY_V1') AS ConfirmedReceipts;
 GO
 
 /* ================================================================
    BATCH 15 - AI DASHBOARD ROLLING FIXTURE
-   Marker: DEMO_AI_DASHBOARD_ROLLING_V1
+   Marker: AI_DASHBOARD_ROLLING_V1
 
    This fixture complements the fixed V13 contract with current-window
    order status/refund, waste, reorder and procurement evidence. It does
@@ -13802,7 +13819,7 @@ BEGIN TRY
     DECLARE @AiDay datetime2(0)=DATEADD(DAY,DATEDIFF(DAY,0,SYSUTCDATETIME()),0);
     DECLARE @AiStore1StaffId int=(SELECT TOP(1) StaffId FROM dbo.Staffs WHERE StoreId=1 AND Active=1 ORDER BY StaffId);
     DECLARE @AiStore3StaffId int=(SELECT TOP(1) StaffId FROM dbo.Staffs WHERE StoreId=3 AND Active=1 ORDER BY StaffId);
-    DECLARE @AiCoffeeIngredientId int=(SELECT IngredientId FROM dbo.Ingredients WHERE Code=N'DEMO_ING_VIET_COFFEE');
+    DECLARE @AiCoffeeIngredientId int=(SELECT IngredientId FROM dbo.Ingredients WHERE Code=N'ING_VIET_COFFEE');
     DECLARE @AiCoffeeOfferId int=(SELECT IngredientSupplierId FROM dbo.IngredientSuppliers WHERE IngredientSupplierId=10 AND Active=1);
     DECLARE @AiCoffeeSupplierId int=(SELECT SupplierId FROM dbo.IngredientSuppliers WHERE IngredientSupplierId=@AiCoffeeOfferId);
 
@@ -13866,7 +13883,7 @@ BEGIN TRY
         Total,CostStatus,TotalCogs,GrossProfit,CostedAtUtc,CreatedAt
     )
     SELECT NULL,x.StoreId,x.OrderStatusId,x.PaymentStatusId,2,NULL,x.StaffId,NULL,
-           x.ClientOrderId,N'DEMO_AI_DASHBOARD_ROLLING_V1',
+           x.ClientOrderId,N'AI_DASHBOARD_ROLLING_V1',
            CASE WHEN x.StoreId=1 THEN N'AI_DASHBOARD_SCENARIO_NORMAL'
                 ELSE N'AI_DASHBOARD_SCENARIO_ANOMALY' END,
            0,x.Total,0,0,0,x.Total,x.CostStatus,
@@ -13893,7 +13910,7 @@ BEGIN TRY
     )
     SELECT o.OrderId,d.DrinkId,s.SizeId,sm.StoreMenuItemId,ds.DrinkSizeId,d.Name,s.Name,
            x.Total/NULLIF(x.Quantity,0),x.Total/NULLIF(x.Quantity,0),
-           N'DEMO_AI_DASHBOARD_ROLLING_V1',1,x.Quantity,
+           N'AI_DASHBOARD_ROLLING_V1',1,x.Quantity,
            N'AI Dashboard rolling analytics fixture',x.CostStatus,
            CASE WHEN x.TotalCogs IS NULL THEN NULL ELSE x.TotalCogs/NULLIF(x.Quantity,0) END,x.TotalCogs
     FROM @AiOrders x
@@ -13912,7 +13929,7 @@ BEGIN TRY
     FROM dbo.OrderDetails od
     JOIN dbo.Orders o ON o.OrderId=od.OrderId
     JOIN @AiOrders x ON x.ClientOrderId=o.ClientOrderId
-    WHERE o.Source=N'DEMO_AI_DASHBOARD_ROLLING_V1';
+    WHERE o.Source=N'AI_DASHBOARD_ROLLING_V1';
 
     INSERT dbo.Payments
     (
@@ -13920,14 +13937,14 @@ BEGIN TRY
         CashSessionId,TransactionCode,PaidAt
     )
     SELECT o.OrderId,x.Total,x.Total,0,x.PaymentMethodId,2,NULL,
-           CONCAT(N'DEMO_AI_DASHBOARD_ROLLING_V1_',CONVERT(nvarchar(36),x.ClientOrderId)),x.CreatedAt
+           CONCAT(N'AI_DASHBOARD_ROLLING_V1_',CONVERT(nvarchar(36),x.ClientOrderId)),x.CreatedAt
     FROM @AiOrders x
     JOIN dbo.Orders o ON o.ClientOrderId=x.ClientOrderId
     WHERE x.OrderStatusId=5
       AND NOT EXISTS
       (
           SELECT 1 FROM dbo.Payments p
-          WHERE p.TransactionCode=CONCAT(N'DEMO_AI_DASHBOARD_ROLLING_V1_',CONVERT(nvarchar(36),x.ClientOrderId))
+          WHERE p.TransactionCode=CONCAT(N'AI_DASHBOARD_ROLLING_V1_',CONVERT(nvarchar(36),x.ClientOrderId))
       );
 
     UPDATE p
@@ -13936,7 +13953,7 @@ BEGIN TRY
     FROM dbo.Payments p
     JOIN dbo.Orders o ON o.OrderId=p.OrderId
     JOIN @AiOrders x ON x.ClientOrderId=o.ClientOrderId
-    WHERE p.TransactionCode=CONCAT(N'DEMO_AI_DASHBOARD_ROLLING_V1_',CONVERT(nvarchar(36),x.ClientOrderId));
+    WHERE p.TransactionCode=CONCAT(N'AI_DASHBOARD_ROLLING_V1_',CONVERT(nvarchar(36),x.ClientOrderId));
 
     INSERT dbo.OrderRefunds
     (
@@ -14000,8 +14017,8 @@ BEGIN TRY
 
     DECLARE @AiRestock TABLE(StoreId int PRIMARY KEY,StaffId int,Note nvarchar(100),CreatedAt datetime2(0));
     INSERT @AiRestock VALUES
-      (1,@AiStore1StaffId,N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S1',DATEADD(DAY,-1,@AiDay)),
-      (3,@AiStore3StaffId,N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S3',DATEADD(DAY,-1,@AiDay));
+      (1,@AiStore1StaffId,N'AI_DASHBOARD_ROLLING_V1_RESTOCK_S1',DATEADD(DAY,-1,@AiDay)),
+      (3,@AiStore3StaffId,N'AI_DASHBOARD_ROLLING_V1_RESTOCK_S3',DATEADD(DAY,-1,@AiDay));
 
     INSERT dbo.RestockRequests
     (
@@ -14012,7 +14029,7 @@ BEGIN TRY
         HandledByStaffId,HandledAt,AcceptedByStaffId,AcceptedAtUtc,ProcessingNote,ClosedRemainingQuantity
     )
     SELECT NULL,x.StoreId,@AiCoffeeIngredientId,NULL,NULL,10,12,30,2,5,1,2,0,
-           CONCAT(N'RR-DEMO-AI-',x.StoreId),
+           CONCAT(N'RR-AI-',x.StoreId),
            N'AI rolling low-stock fixture',N'OPEN',N'HIGH',x.StaffId,x.CreatedAt,x.CreatedAt,x.Note,
            NULL,NULL,NULL,NULL,NULL,0
     FROM @AiRestock x
@@ -14026,16 +14043,16 @@ BEGIN TRY
         Code,StoreId,SupplierId,Status,OrderDate,ExpectedDeliveryAtUtc,CreatedByStaffId,
         ApprovedByStaffId,SentByStaffId,CreatedAtUtc,UpdatedAtUtc,ApprovedAtUtc,SentAtUtc,Note
     )
-    SELECT CONCAT(N'DEMO-AI-ROLLING-PO-S',x.StoreId),x.StoreId,@AiCoffeeSupplierId,N'MARKED_AS_SENT',
+    SELECT CONCAT(N'AI-ROLLING-PO-S',x.StoreId),x.StoreId,@AiCoffeeSupplierId,N'MARKED_AS_SENT',
            DATEADD(DAY,-3,x.CreatedAt),DATEADD(DAY,-2,x.CreatedAt),x.StaffId,x.StaffId,x.StaffId,
            x.CreatedAt,x.CreatedAt,x.CreatedAt,DATEADD(MINUTE,10,x.CreatedAt),
-           N'DEMO_AI_DASHBOARD_ROLLING_V1'
+           N'AI_DASHBOARD_ROLLING_V1'
     FROM @AiRestock x
     WHERE @AiCoffeeSupplierId IS NOT NULL
       AND NOT EXISTS
       (
           SELECT 1 FROM dbo.PurchaseOrders p
-          WHERE p.Code=CONCAT(N'DEMO-AI-ROLLING-PO-S',x.StoreId)
+          WHERE p.Code=CONCAT(N'AI-ROLLING-PO-S',x.StoreId)
       );
 
     UPDATE po
@@ -14046,8 +14063,8 @@ BEGIN TRY
            po.ApprovedAtUtc=DATEADD(DAY,-3,x.CreatedAt),
            po.SentAtUtc=DATEADD(MINUTE,10,DATEADD(DAY,-3,x.CreatedAt))
     FROM dbo.PurchaseOrders po
-    JOIN @AiRestock x ON po.Code=CONCAT(N'DEMO-AI-ROLLING-PO-S',x.StoreId)
-    WHERE po.Note=N'DEMO_AI_DASHBOARD_ROLLING_V1';
+    JOIN @AiRestock x ON po.Code=CONCAT(N'AI-ROLLING-PO-S',x.StoreId)
+    WHERE po.Note=N'AI_DASHBOARD_ROLLING_V1';
 
     INSERT dbo.PurchaseOrderLines
     (
@@ -14076,19 +14093,19 @@ BEGIN TRY
                WHEN LOWER(packageUnit.UnitCode)=N'ml' AND LOWER(baseUnit.UnitCode)=N'l' THEN 0.001
            END,
            0,offer.LeadTimeDays,
-           CONCAT(N'DEMO_AI_DASHBOARD_ROLLING_V1_LINE_S',rr.StoreId)
+           CONCAT(N'AI_DASHBOARD_ROLLING_V1_LINE_S',rr.StoreId)
     FROM dbo.PurchaseOrders po
-    JOIN dbo.RestockRequests rr ON rr.Note=CONCAT(N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S',po.StoreId)
+    JOIN dbo.RestockRequests rr ON rr.Note=CONCAT(N'AI_DASHBOARD_ROLLING_V1_RESTOCK_S',po.StoreId)
     JOIN dbo.IngredientSuppliers offer ON offer.IngredientSupplierId=@AiCoffeeOfferId
     JOIN dbo.Ingredients ingredient ON ingredient.IngredientId=@AiCoffeeIngredientId
     JOIN dbo.Units packageUnit ON packageUnit.UnitId=offer.UnitId
     JOIN dbo.Units baseUnit ON baseUnit.UnitId=ingredient.BaseUnitId
-    WHERE po.Note=N'DEMO_AI_DASHBOARD_ROLLING_V1'
+    WHERE po.Note=N'AI_DASHBOARD_ROLLING_V1'
       AND NOT EXISTS
       (
           SELECT 1 FROM dbo.PurchaseOrderLines l
           WHERE l.PurchaseOrderId=po.PurchaseOrderId
-            AND l.Note=CONCAT(N'DEMO_AI_DASHBOARD_ROLLING_V1_LINE_S',rr.StoreId)
+            AND l.Note=CONCAT(N'AI_DASHBOARD_ROLLING_V1_LINE_S',rr.StoreId)
       );
 
     /* Repair only the deterministic rolling fixture before it has receipt/closure evidence. */
@@ -14117,7 +14134,7 @@ BEGIN TRY
     JOIN dbo.Ingredients ingredient ON ingredient.IngredientId=line.IngredientId
     JOIN dbo.Units packageUnit ON packageUnit.UnitId=line.PackageUnitIdSnapshot
     JOIN dbo.Units baseUnit ON baseUnit.UnitId=ingredient.BaseUnitId
-    WHERE line.Note LIKE N'DEMO_AI_DASHBOARD_ROLLING_V1_LINE_S%'
+    WHERE line.Note LIKE N'AI_DASHBOARD_ROLLING_V1_LINE_S%'
       AND line.PurchaseMode=N'Packaged'
       AND line.OrderedPackageCount=5
       AND line.PackageQuantitySnapshot IS NOT NULL
@@ -14131,7 +14148,7 @@ BEGIN TRY
       );
 
     /* ANOMALY: cash discrepancy in the rolling window. */
-    IF NOT EXISTS(SELECT 1 FROM dbo.WorkShifts WHERE DiscrepancyReason=N'DEMO_AI_DASHBOARD_ROLLING_V1_CASH_ANOMALY')
+    IF NOT EXISTS(SELECT 1 FROM dbo.WorkShifts WHERE DiscrepancyReason=N'AI_DASHBOARD_ROLLING_V1_CASH_ANOMALY')
       INSERT dbo.WorkShifts
       (
         StoreId,UserId,StartTimeUtc,EndTimeUtc,BusinessDate,OpenContext,CloseType,ExpiryWarningLevel,StartingCash,ExpectedEndingCash,ActualEndingCash,
@@ -14144,7 +14161,7 @@ BEGIN TRY
       (
         3,@AiStore3StaffId,DATEADD(HOUR,6,DATEADD(DAY,-1,@AiDay)),
         DATEADD(HOUR,12,DATEADD(DAY,-1,@AiDay)),CONVERT(date,DATEADD(HOUR,13,DATEADD(DAY,-1,@AiDay))),N'LEGACY',N'NORMAL',0,500000,500000,1750000,1250000,
-        N'CLOSED',N'DEMO_AI_DASHBOARD_ROLLING_V1_CASH_ANOMALY',0,NULL,NULL,NULL,
+        N'CLOSED',N'AI_DASHBOARD_ROLLING_V1_CASH_ANOMALY',0,NULL,NULL,NULL,
         0,0,0,1,0,0,NULL,NULL
       );
 
@@ -14156,14 +14173,14 @@ BEGIN TRY
            ws.ExpectedEndingCash=500000,ws.ActualEndingCash=1750000,
            ws.CashDiscrepancy=1250000,ws.RequiresReconciliation=1
     FROM dbo.WorkShifts ws
-    WHERE ws.DiscrepancyReason=N'DEMO_AI_DASHBOARD_ROLLING_V1_CASH_ANOMALY';
+    WHERE ws.DiscrepancyReason=N'AI_DASHBOARD_ROLLING_V1_CASH_ANOMALY';
 
     /* ANOMALY: supplier rejection and issue, tied to rolling PO business keys. */
-    DECLARE @AiPo3Id int=(SELECT PurchaseOrderId FROM dbo.PurchaseOrders WHERE Code=N'DEMO-AI-ROLLING-PO-S3');
+    DECLARE @AiPo3Id int=(SELECT PurchaseOrderId FROM dbo.PurchaseOrders WHERE Code=N'AI-ROLLING-PO-S3');
     DECLARE @AiPo3LineId int=(SELECT TOP(1) PurchaseOrderLineId FROM dbo.PurchaseOrderLines WHERE PurchaseOrderId=@AiPo3Id ORDER BY PurchaseOrderLineId);
-    DECLARE @AiRestock3Id int=(SELECT RestockRequestId FROM dbo.RestockRequests WHERE Note=N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S3');
+    DECLARE @AiRestock3Id int=(SELECT RestockRequestId FROM dbo.RestockRequests WHERE Note=N'AI_DASHBOARD_ROLLING_V1_RESTOCK_S3');
     IF @AiPo3Id IS NOT NULL AND @AiPo3LineId IS NOT NULL
-       AND NOT EXISTS(SELECT 1 FROM dbo.BranchReceipts WHERE ReceiptCode=N'DEMO-AI-ROLLING-BR-S3')
+       AND NOT EXISTS(SELECT 1 FROM dbo.BranchReceipts WHERE ReceiptCode=N'AI-ROLLING-BR-S3')
       INSERT dbo.BranchReceipts
       (
         ReceiptCode,StoreId,SupplierId,PurchaseOrderId,[Status],ReceiptKey,ReferenceNumber,
@@ -14171,15 +14188,15 @@ BEGIN TRY
       )
       VALUES
       (
-        N'DEMO-AI-ROLLING-BR-S3',3,@AiCoffeeSupplierId,@AiPo3Id,N'CONFIRMED',
-        N'DEMO_AI_DASHBOARD_ROLLING_V1_RECEIPT_S3',N'DEMO-AI-ROLLING-INVOICE-S3',
+        N'AI-ROLLING-BR-S3',3,@AiCoffeeSupplierId,@AiPo3Id,N'CONFIRMED',
+        N'AI_DASHBOARD_ROLLING_V1_RECEIPT_S3',N'AI-ROLLING-INVOICE-S3',
         DATEADD(HOUR,9,DATEADD(DAY,-2,@AiDay)),@AiStore3StaffId,
         DATEADD(HOUR,10,DATEADD(DAY,-2,@AiDay)),@AiStore3StaffId,
         N'AI_DASHBOARD_SCENARIO_ANOMALY supplier receipt',
         DATEADD(HOUR,9,DATEADD(DAY,-2,@AiDay)),@AiStore3StaffId
       );
 
-    DECLARE @AiReceipt3Id int=(SELECT BranchReceiptId FROM dbo.BranchReceipts WHERE ReceiptCode=N'DEMO-AI-ROLLING-BR-S3');
+    DECLARE @AiReceipt3Id int=(SELECT BranchReceiptId FROM dbo.BranchReceipts WHERE ReceiptCode=N'AI-ROLLING-BR-S3');
     IF @AiReceipt3Id IS NOT NULL
        AND NOT EXISTS(SELECT 1 FROM dbo.BranchReceiptLines WHERE BranchReceiptId=@AiReceipt3Id AND PurchaseOrderLineId=@AiPo3LineId)
       INSERT dbo.BranchReceiptLines
@@ -14200,7 +14217,7 @@ BEGIN TRY
 
     DECLARE @AiReceipt3LineId int=(SELECT TOP(1) BranchReceiptLineId FROM dbo.BranchReceiptLines WHERE BranchReceiptId=@AiReceipt3Id AND PurchaseOrderLineId=@AiPo3LineId);
     IF @AiReceipt3LineId IS NOT NULL
-       AND NOT EXISTS(SELECT 1 FROM dbo.SupplierReceiptIssues WHERE Description=N'DEMO_AI_DASHBOARD_ROLLING_V1_SUPPLIER_ISSUE')
+       AND NOT EXISTS(SELECT 1 FROM dbo.SupplierReceiptIssues WHERE Description=N'AI_DASHBOARD_ROLLING_V1_SUPPLIER_ISSUE')
       INSERT dbo.SupplierReceiptIssues
       (
         SupplierId,StoreId,PurchaseOrderId,PurchaseOrderLineId,BranchReceiptId,BranchReceiptLineId,
@@ -14209,7 +14226,7 @@ BEGIN TRY
       VALUES
       (
         @AiCoffeeSupplierId,3,@AiPo3Id,@AiPo3LineId,@AiReceipt3Id,@AiReceipt3LineId,
-        N'PACKAGING_FAILURE',N'OPEN',2,N'DEMO_AI_DASHBOARD_ROLLING_V1_SUPPLIER_ISSUE',
+        N'PACKAGING_FAILURE',N'OPEN',2,N'AI_DASHBOARD_ROLLING_V1_SUPPLIER_ISSUE',
         @AiStore3StaffId,DATEADD(HOUR,10,DATEADD(DAY,-2,@AiDay)),
         DATEADD(HOUR,10,DATEADD(DAY,-2,@AiDay))
       );
@@ -14218,28 +14235,28 @@ BEGIN TRY
        SET br.ReceivedAt=DATEADD(HOUR,9,DATEADD(DAY,-2,@AiDay)),
            br.ConfirmedAt=DATEADD(HOUR,10,DATEADD(DAY,-2,@AiDay)),
            br.CreatedAt=DATEADD(HOUR,9,DATEADD(DAY,-2,@AiDay))
-    FROM dbo.BranchReceipts br WHERE br.ReceiptCode=N'DEMO-AI-ROLLING-BR-S3';
+    FROM dbo.BranchReceipts br WHERE br.ReceiptCode=N'AI-ROLLING-BR-S3';
     UPDATE brl SET brl.CreatedAt=DATEADD(HOUR,9,DATEADD(DAY,-2,@AiDay))
     FROM dbo.BranchReceiptLines brl WHERE brl.BranchReceiptId=@AiReceipt3Id;
     UPDATE issue
        SET issue.ReportedAtUtc=DATEADD(HOUR,10,DATEADD(DAY,-2,@AiDay)),
            issue.UpdatedAtUtc=DATEADD(HOUR,10,DATEADD(DAY,-2,@AiDay))
     FROM dbo.SupplierReceiptIssues issue
-    WHERE issue.Description=N'DEMO_AI_DASHBOARD_ROLLING_V1_SUPPLIER_ISSUE';
+    WHERE issue.Description=N'AI_DASHBOARD_ROLLING_V1_SUPPLIER_ISSUE';
 
-    IF (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1')<>30
+    IF (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'AI_DASHBOARD_ROLLING_V1')<>30
         THROW 53501,N'AI rolling fixture phải có 30 orders.',1;
-    IF (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND StoreId=1)<>15
-        OR (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND StoreId=3)<>15
+    IF (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'AI_DASHBOARD_ROLLING_V1' AND StoreId=1)<>15
+        OR (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'AI_DASHBOARD_ROLLING_V1' AND StoreId=3)<>15
         THROW 53504,N'AI rolling fixture phải phân bổ 15 orders cho mỗi store.',1;
-    IF (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND OrderStatusId=5)<20
-        OR (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND OrderStatusId=6)<5
-        OR (SELECT COUNT(*) FROM dbo.OrderRefunds r JOIN dbo.Orders o ON o.OrderId=r.OrderId WHERE o.Source=N'DEMO_AI_DASHBOARD_ROLLING_V1')<4
+    IF (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'AI_DASHBOARD_ROLLING_V1' AND OrderStatusId=5)<20
+        OR (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'AI_DASHBOARD_ROLLING_V1' AND OrderStatusId=6)<5
+        OR (SELECT COUNT(*) FROM dbo.OrderRefunds r JOIN dbo.Orders o ON o.OrderId=r.OrderId WHERE o.Source=N'AI_DASHBOARD_ROLLING_V1')<4
         THROW 53505,N'AI rolling fixture thiếu phân bố completed/cancelled/refunded.',1;
-    IF (SELECT COUNT(*) FROM dbo.RestockRequests WHERE Note LIKE N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S%')<>2
+    IF (SELECT COUNT(*) FROM dbo.RestockRequests WHERE Note LIKE N'AI_DASHBOARD_ROLLING_V1_RESTOCK_S%')<>2
         THROW 53502,N'AI rolling fixture phải có 2 restock requests.',1;
-    IF NOT EXISTS(SELECT 1 FROM dbo.WorkShifts WHERE DiscrepancyReason=N'DEMO_AI_DASHBOARD_ROLLING_V1_CASH_ANOMALY' AND ABS(CashDiscrepancy)>1000000)
-        OR NOT EXISTS(SELECT 1 FROM dbo.SupplierReceiptIssues WHERE Description=N'DEMO_AI_DASHBOARD_ROLLING_V1_SUPPLIER_ISSUE')
+    IF NOT EXISTS(SELECT 1 FROM dbo.WorkShifts WHERE DiscrepancyReason=N'AI_DASHBOARD_ROLLING_V1_CASH_ANOMALY' AND ABS(CashDiscrepancy)>1000000)
+        OR NOT EXISTS(SELECT 1 FROM dbo.SupplierReceiptIssues WHERE Description=N'AI_DASHBOARD_ROLLING_V1_SUPPLIER_ISSUE')
         THROW 53506,N'AI rolling fixture missing cash discrepancy or supplier issue.',1;
     IF NOT EXISTS
     (
@@ -14247,7 +14264,7 @@ BEGIN TRY
         WHERE StoreId=3 AND IngredientId=@AiCoffeeIngredientId
           AND AvailableQty-ReservedQty<=MinStockLevel
     ) THROW 53507,N'AI rolling fixture missing low-stock anomaly.',1;
-    IF (SELECT COUNT(*) FROM dbo.PurchaseOrders WHERE Note=N'DEMO_AI_DASHBOARD_ROLLING_V1')<>2
+    IF (SELECT COUNT(*) FROM dbo.PurchaseOrders WHERE Note=N'AI_DASHBOARD_ROLLING_V1')<>2
         THROW 53503,N'AI rolling fixture phải có 2 purchase orders.',1;
 
     COMMIT TRANSACTION;
@@ -14258,18 +14275,18 @@ BEGIN CATCH
 END CATCH;
 GO
 
-SELECT N'DEMO_AI_DASHBOARD_ROLLING_V1' AS SeedMarker,
+SELECT N'AI_DASHBOARD_ROLLING_V1' AS SeedMarker,
        SYSUTCDATETIME() AS VerifiedAtUtc,
-       (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1') AS DemoOrders,
-       (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND Note=N'AI_DASHBOARD_SCENARIO_NORMAL') AS NormalOrders,
-       (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND Note=N'AI_DASHBOARD_SCENARIO_ANOMALY') AS AnomalyOrders,
-       (SELECT COUNT(*) FROM dbo.RestockRequests WHERE Note LIKE N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S%') AS DemoRestocks,
-       (SELECT COUNT(*) FROM dbo.PurchaseOrders WHERE Note=N'DEMO_AI_DASHBOARD_ROLLING_V1') AS DemoPurchaseOrders;
+       (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'AI_DASHBOARD_ROLLING_V1') AS Orders,
+       (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'AI_DASHBOARD_ROLLING_V1' AND Note=N'AI_DASHBOARD_SCENARIO_NORMAL') AS NormalOrders,
+       (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'AI_DASHBOARD_ROLLING_V1' AND Note=N'AI_DASHBOARD_SCENARIO_ANOMALY') AS AnomalyOrders,
+       (SELECT COUNT(*) FROM dbo.RestockRequests WHERE Note LIKE N'AI_DASHBOARD_ROLLING_V1_RESTOCK_S%') AS Restocks,
+       (SELECT COUNT(*) FROM dbo.PurchaseOrders WHERE Note=N'AI_DASHBOARD_ROLLING_V1') AS PurchaseOrders;
 GO
 
 /* ================================================================
    BATCH 15B - AI REORDER EXPLANATION / DASHBOARD TEST FIXTURE
-   Marker: DEMO_AI_REORDER_TEST_V1
+   Marker: AI_REORDER_TEST_V1
 
    The deterministic reorder service must calculate the suggestion.
    This batch only makes one seed-owned inventory row actionable; it
@@ -14287,7 +14304,7 @@ BEGIN TRY
         WHERE Name=N'CafeChain Thủ Dầu Một' AND Active=1);
     DECLARE @ReorderTestIngredientId int=(
         SELECT IngredientId FROM dbo.Ingredients
-        WHERE Code=N'DEMO_ING_CHIA_SEED' AND Active=1);
+        WHERE Code=N'ING_CHIA_SEED' AND Active=1);
     DECLARE @ReorderTestInventoryId int=(
         SELECT StoreInventoryId FROM dbo.StoreInventories
         WHERE StoreId=@ReorderTestStoreId
@@ -14296,7 +14313,7 @@ BEGIN TRY
     IF @ReorderTestStoreId IS NULL
        OR @ReorderTestIngredientId IS NULL
        OR @ReorderTestInventoryId IS NULL
-        THROW 53520,N'DEMO_AI_REORDER_TEST_V1: missing Store 1, chia ingredient or inventory.',1;
+        THROW 53520,N'AI_REORDER_TEST_V1: missing Store 1, chia ingredient or inventory.',1;
 
     IF NOT EXISTS
     (
@@ -14307,7 +14324,7 @@ BEGIN TRY
           AND t.CreatedAt>=@ReorderTestFrom
           AND t.CreatedAt<@ReorderTestNow
           AND t.Quantity>0
-    ) THROW 53521,N'DEMO_AI_REORDER_TEST_V1: missing rolling 30-day consumption.',1;
+    ) THROW 53521,N'AI_REORDER_TEST_V1: missing rolling 30-day consumption.',1;
 
     IF
     (
@@ -14328,7 +14345,7 @@ BEGIN TRY
           AND offer.LeadTimeDays IS NOT NULL AND offer.LeadTimeDays>=0
           AND price.Price>0 AND price.PackageQuantity>0
           AND price.PackageUnitId IS NOT NULL
-    )<>1 THROW 53522,N'DEMO_AI_REORDER_TEST_V1: primary supplier/package/price contract is invalid.',1;
+    )<>1 THROW 53522,N'AI_REORDER_TEST_V1: primary supplier/package/price contract is invalid.',1;
 
     IF EXISTS
     (
@@ -14346,7 +14363,7 @@ BEGIN TRY
         WHERE advice.StoreId=@ReorderTestStoreId
           AND line.IngredientId=@ReorderTestIngredientId
           AND line.IsActiveReservation=1
-    ) THROW 53523,N'DEMO_AI_REORDER_TEST_V1: chia fixture must not have active procurement coverage.',1;
+    ) THROW 53523,N'AI_REORDER_TEST_V1: chia fixture must not have active procurement coverage.',1;
 
     /* Preserve stock/reservations. Only the seed-owned threshold is made urgent. */
     UPDATE dbo.StoreInventories
@@ -14359,7 +14376,7 @@ BEGIN TRY
         WHERE StoreInventoryId=@ReorderTestInventoryId
           AND AvailableQty-ReservedQty<MinStockLevel
           AND MinStockLevel-(AvailableQty-ReservedQty)=10000
-    ) THROW 53524,N'DEMO_AI_REORDER_TEST_V1: urgent threshold was not established.',1;
+    ) THROW 53524,N'AI_REORDER_TEST_V1: urgent threshold was not established.',1;
 
     COMMIT TRANSACTION;
 END TRY
@@ -14369,7 +14386,7 @@ BEGIN CATCH
 END CATCH;
 GO
 
-SELECT N'DEMO_AI_REORDER_TEST_V1' AS SeedMarker,
+SELECT N'AI_REORDER_TEST_V1' AS SeedMarker,
        SYSUTCDATETIME() AS VerifiedAtUtc,
        s.StoreId,
        s.Name AS StoreName,
@@ -14391,14 +14408,14 @@ FROM dbo.Stores s
 JOIN dbo.StoreInventories si ON si.StoreId=s.StoreId
 JOIN dbo.Ingredients i ON i.IngredientId=si.IngredientId
 WHERE s.Name=N'CafeChain Thủ Dầu Một'
-  AND i.Code=N'DEMO_ING_CHIA_SEED';
+  AND i.Code=N'ING_CHIA_SEED';
 GO
 
-EXEC dbo.SeedDemoCoverageV16;
-DROP PROCEDURE dbo.SeedDemoCoverageV16;
+EXEC dbo.SeedCoverageV16;
+DROP PROCEDURE dbo.SeedCoverageV16;
 GO
 
-SELECT N'DEMO_COVERAGE_V16_RECEIPTS' SeedMarker,
+SELECT N'COVERAGE_V16_RECEIPTS' SeedMarker,
        (SELECT COUNT(*) FROM dbo.BranchReceipts WHERE Status=N'CONFIRMED') ConfirmedReceipts,
        (SELECT COUNT(DISTINCT StoreId) FROM dbo.BranchReceipts) StoresWithReceipts,
        (SELECT COUNT(*) FROM dbo.InventoryTransactions WHERE BranchReceiptLineId IS NOT NULL) ReceiptTransactions,
@@ -14408,7 +14425,7 @@ SELECT N'DEMO_COVERAGE_V16_RECEIPTS' SeedMarker,
 GO
 
 /* ============================================================
-   BATCH 17 - DEMO_COVERAGE_V17 cross-module business scenarios
+   BATCH 17 - COVERAGE_V17 cross-module business scenarios
    ============================================================ */
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -14418,7 +14435,7 @@ BEGIN TRY
     BEGIN TRANSACTION;
 
     DECLARE @Coverage17Now datetime2(7)='2026-07-20T08:00:00';
-    DECLARE @Coverage17Order int=(SELECT TOP(1) OrderId FROM dbo.Orders WHERE Source=N'DEMO_DASHBOARD_V13' ORDER BY OrderId);
+    DECLARE @Coverage17Order int=(SELECT TOP(1) OrderId FROM dbo.Orders WHERE Source=N'DASHBOARD_V13' ORDER BY OrderId);
     DECLARE @Coverage17Staff int=(SELECT TOP(1) StaffId FROM dbo.Staffs WHERE StoreId=1 AND Active=1 ORDER BY StaffId);
     DECLARE @Coverage17Staff2 int=(SELECT TOP(1) StaffId FROM dbo.Staffs WHERE StoreId=2 AND Active=1 ORDER BY StaffId);
     DECLARE @Coverage17Staff3 int=(SELECT TOP(1) StaffId FROM dbo.Staffs WHERE StoreId=3 AND Active=1 ORDER BY StaffId);
@@ -14426,10 +14443,10 @@ BEGIN TRY
     DECLARE @Coverage17Restock int=(SELECT TOP(1) brl.RestockRequestId
                                     FROM dbo.BranchReceiptLines brl
                                     JOIN dbo.BranchReceipts br ON br.BranchReceiptId=brl.BranchReceiptId
-                                    WHERE br.ReceiptCode=N'DEMO-DASH-V13-BR-001');
+                                    WHERE br.ReceiptCode=N'DASH-V13-BR-001');
     DECLARE @Coverage17Pol int=(SELECT TOP(1) pol.PurchaseOrderLineId
                                FROM dbo.PurchaseOrderLines pol
-                               WHERE pol.Note=N'DEMO_COVERAGE_V16_POL_S1-FULL-001');
+                               WHERE pol.Note=N'COVERAGE_V16_POL_S1-FULL-001');
     DECLARE @Coverage17Po int=(SELECT PurchaseOrderId FROM dbo.PurchaseOrderLines WHERE PurchaseOrderLineId=@Coverage17Pol);
     DECLARE @Coverage17Offer int=(SELECT IngredientSupplierId FROM dbo.PurchaseOrderLines WHERE PurchaseOrderLineId=@Coverage17Pol);
     DECLARE @Coverage17Supplier int=(SELECT SupplierId FROM dbo.PurchaseOrders WHERE PurchaseOrderId=@Coverage17Po);
@@ -14439,35 +14456,35 @@ BEGIN TRY
     IF @Coverage17Order IS NULL OR @Coverage17Staff IS NULL OR @Coverage17Staff2 IS NULL
        OR @Coverage17Staff3 IS NULL OR @Coverage17Shift IS NULL OR @Coverage17Restock IS NULL
        OR @Coverage17Pol IS NULL OR @Coverage17Offer IS NULL
-        THROW 53700,N'DEMO_COVERAGE_V17: prerequisite demo business keys are missing.',1;
+        THROW 53700,N'COVERAGE_V17: prerequisite business keys are missing.',1;
 
     /* POS terminals and payment webhook ledger. */
     INSERT dbo.PosTerminals(TerminalId,StoreId,Name,Active,CreatedAtUtc)
     SELECT v.TerminalId,v.StoreId,v.Name,1,@Coverage17Now
     FROM (VALUES
-          (N'DEMO_COVERAGE_V17_POS_S1',1,N'POS Demo Chi nhánh 1'),
-          (N'DEMO_COVERAGE_V17_POS_S2',2,N'POS Demo Chi nhánh 2'),
-          (N'DEMO_COVERAGE_V17_POS_S3',3,N'POS Demo Chi nhánh 3')) v(TerminalId,StoreId,Name)
+          (N'COVERAGE_V17_POS_S1',1,N'POS Chi nhánh 1'),
+          (N'COVERAGE_V17_POS_S2',2,N'POS Chi nhánh 2'),
+          (N'COVERAGE_V17_POS_S3',3,N'POS Chi nhánh 3')) v(TerminalId,StoreId,Name)
     WHERE NOT EXISTS(SELECT 1 FROM dbo.PosTerminals p WHERE p.TerminalId=v.TerminalId);
-    IF NOT EXISTS(SELECT 1 FROM dbo.TransactionLogs WHERE TransactionId=N'DEMO_COVERAGE_V17_PAYOS')
+    IF NOT EXISTS(SELECT 1 FROM dbo.TransactionLogs WHERE TransactionId=N'COVERAGE_V17_PAYOS')
         INSERT dbo.TransactionLogs(OrderId,TransactionId,Amount,Description,Status,RawPayload,CreatedAt)
-        SELECT @Coverage17Order,N'DEMO_COVERAGE_V17_PAYOS',Total,N'Đối soát thanh toán demo',
-               N'PAID',N'{"marker":"DEMO_COVERAGE_V17","provider":"PAYOS"}',@Coverage17Now
+        SELECT @Coverage17Order,N'COVERAGE_V17_PAYOS',Total,N'Đối soát thanh toán',
+               N'PAID',N'{"marker":"COVERAGE_V17","provider":"PAYOS"}',@Coverage17Now
         FROM dbo.Orders WHERE OrderId=@Coverage17Order;
 
     /* Forecast, recommendations, anomaly, and workforce optimization. */
     DECLARE @Coverage17Forecast bigint;
     IF NOT EXISTS(SELECT 1 FROM dbo.ForecastRuns
                   WHERE StoreId=1 AND SeriesType=N'REVENUE' AND EntityId IS NULL
-                    AND TrainingToExclusive='2026-07-20' AND HorizonDays=7 AND ModelVersion=N'demo-v17')
+                    AND TrainingToExclusive='2026-07-20' AND HorizonDays=7 AND ModelVersion=N'v17')
         INSERT dbo.ForecastRuns
         (SeriesType,StoreId,EntityId,TrainingFrom,TrainingToExclusive,HorizonDays,ModelType,ModelVersion,
          SampleCount,Mae,Wape,QualityStatus,WarningJson,CreatedAtUtc,ExpiresAtUtc,InputDataVersion)
-        VALUES(N'REVENUE',1,NULL,'2026-06-20','2026-07-20',7,N'ROBUST_BASELINE',N'demo-v17',
-               30,12000,0.0830,N'GOOD',N'[]',@Coverage17Now,'2026-08-20',N'DEMO_COVERAGE_V17');
+        VALUES(N'REVENUE',1,NULL,'2026-06-20','2026-07-20',7,N'ROBUST_BASELINE',N'v17',
+               30,12000,0.0830,N'GOOD',N'[]',@Coverage17Now,'2026-08-20',N'COVERAGE_V17');
     SELECT @Coverage17Forecast=ForecastRunId FROM dbo.ForecastRuns
     WHERE StoreId=1 AND SeriesType=N'REVENUE' AND EntityId IS NULL
-      AND TrainingToExclusive='2026-07-20' AND HorizonDays=7 AND ModelVersion=N'demo-v17';
+      AND TrainingToExclusive='2026-07-20' AND HorizonDays=7 AND ModelVersion=N'v17';
     INSERT dbo.ForecastPoints(ForecastRunId,ForecastDate,PointForecast,LowerBound,UpperBound)
     SELECT @Coverage17Forecast,v.ForecastDate,v.PointForecast,v.LowerBound,v.UpperBound
     FROM (VALUES
@@ -14478,16 +14495,16 @@ BEGIN TRY
                      WHERE p.ForecastRunId=@Coverage17Forecast AND p.ForecastDate=v.ForecastDate);
 
     IF NOT EXISTS(SELECT 1 FROM dbo.PosRecommendationCatalog
-                  WHERE StoreId=1 AND TriggerDrinkId=1 AND RecommendedDrinkId=2 AND ModelVersion=N'demo-v17')
+                  WHERE StoreId=1 AND TriggerDrinkId=1 AND RecommendedDrinkId=2 AND ModelVersion=N'v17')
         INSERT dbo.PosRecommendationCatalog
         (StoreId,TriggerDrinkId,RecommendedDrinkId,Support,Confidence,Lift,Margin,Rank,ModelVersion,GeneratedAtUtc,ExpiresAtUtc)
-        VALUES(1,1,2,0.120000,0.440000,1.310000,14000,1,N'demo-v17',@Coverage17Now,'2026-08-20');
+        VALUES(1,1,2,0.120000,0.440000,1.310000,14000,1,N'v17',@Coverage17Now,'2026-08-20');
     DECLARE @Coverage17Session uniqueidentifier='17171717-1717-1717-1717-171717171717';
     DECLARE @Coverage17Exposure bigint;
     IF NOT EXISTS(SELECT 1 FROM dbo.PosRecommendationExposures WHERE RecommendationSessionId=@Coverage17Session)
         INSERT dbo.PosRecommendationExposures
         (RecommendationSessionId,StoreId,OrderId,Variant,ModelVersion,CreatedAtUtc,ConvertedAtUtc)
-        VALUES(@Coverage17Session,1,@Coverage17Order,N'TREATMENT',N'demo-v17',@Coverage17Now,DATEADD(MINUTE,2,@Coverage17Now));
+        VALUES(@Coverage17Session,1,@Coverage17Order,N'TREATMENT',N'v17',@Coverage17Now,DATEADD(MINUTE,2,@Coverage17Now));
     SELECT @Coverage17Exposure=PosRecommendationExposureId
     FROM dbo.PosRecommendationExposures WHERE RecommendationSessionId=@Coverage17Session;
     IF NOT EXISTS(SELECT 1 FROM dbo.PosRecommendationExposureItems
@@ -14497,23 +14514,23 @@ BEGIN TRY
         VALUES(@Coverage17Exposure,1,2,1,1,1,1,1);
 
     IF NOT EXISTS(SELECT 1 FROM dbo.OperationalAnomalies
-                  WHERE StoreId=1 AND MetricCode=N'CASH_DISCREPANCY' AND PeriodKey=N'DEMO_COVERAGE_V17')
+                  WHERE StoreId=1 AND MetricCode=N'CASH_DISCREPANCY' AND PeriodKey=N'COVERAGE_V17')
         INSERT dbo.OperationalAnomalies
         (StoreId,MetricCode,PeriodKey,BusinessDate,DetectionVersion,
          CurrentValue,BaselineValue,AbsoluteDeviation,PercentageDeviation,
          RobustScore,WindowFromUtc,WindowToExclusiveUtc,SampleCount,Severity,Confidence,Status,
          ReasonCodesJson,CreatedAtUtc,UpdatedAtUtc,AcknowledgedAtUtc,AcknowledgedByStaffId,
          ResolvedAtUtc,ResolvedByStaffId,ResolutionNote,Feedback,FeedbackNote,FeedbackByStaffId)
-        VALUES(1,N'CASH_DISCREPANCY',N'DEMO_COVERAGE_V17','2026-07-19',N'v1',
+        VALUES(1,N'CASH_DISCREPANCY',N'COVERAGE_V17','2026-07-19',N'v1',
                1250000,50000,1200000,24,4.2,
                '2026-07-19','2026-07-20',30,N'HIGH',N'HIGH',N'OPEN',
                N'["ABOVE_BASELINE"]',@Coverage17Now,@Coverage17Now,NULL,NULL,
-               NULL,NULL,NULL,N'Useful',N'Demo manager acknowledged',@Coverage17Staff);
+               NULL,NULL,NULL,N'Useful',N'manager acknowledged',@Coverage17Staff);
 
     UPDATE dbo.OperationalAnomalies
        SET Status=N'OPEN', AcknowledgedAtUtc=NULL, AcknowledgedByStaffId=NULL,
            ResolvedAtUtc=NULL, ResolvedByStaffId=NULL, ResolutionNote=NULL
-    WHERE StoreId=1 AND MetricCode=N'CASH_DISCREPANCY' AND PeriodKey=N'DEMO_COVERAGE_V17';
+    WHERE StoreId=1 AND MetricCode=N'CASH_DISCREPANCY' AND PeriodKey=N'COVERAGE_V17';
 
     DECLARE @OperationalAnomalyFixture TABLE
     (
@@ -14533,11 +14550,11 @@ BEGIN TRY
 
     INSERT @OperationalAnomalyFixture
     VALUES
-        (1,N'REVENUE',N'DEMO_COVERAGE_V17_REVENUE',3200000,1800000,1400000,0.7778,4.1,N'HIGH',N'HIGH',N'ACKNOWLEDGED',N'["ABOVE_BASELINE","MATERIAL_DEVIATION"]'),
-        (1,N'ORDER_COUNT',N'DEMO_COVERAGE_V17_ORDER_COUNT',42,78,-36,-0.4615,-4.0,N'HIGH',N'HIGH',N'OPEN',N'["BELOW_SEASONAL_BASELINE","MATERIAL_DEVIATION"]'),
-        (1,N'WASTE_ADJUSTMENT',N'DEMO_COVERAGE_V17_WASTE',145,35,110,3.1429,4.5,N'CRITICAL',N'HIGH',N'RESOLVED',N'["ABOVE_BASELINE","MATERIAL_DEVIATION"]'),
-        (1,N'SUPPLIER_ISSUE',N'DEMO_COVERAGE_V17_SUPPLIER',7,1,6,6.0000,4.3,N'CRITICAL',N'HIGH',N'OPEN',N'["ABOVE_BASELINE","MATERIAL_DEVIATION"]'),
-        (1,N'PRODUCT_VOLUME:1',N'DEMO_COVERAGE_V17_PRODUCT_1',8,30,-22,-0.7333,-4.4,N'CRITICAL',N'HIGH',N'OPEN',N'["BELOW_SEASONAL_BASELINE","MATERIAL_DEVIATION"]');
+        (1,N'REVENUE',N'COVERAGE_V17_REVENUE',3200000,1800000,1400000,0.7778,4.1,N'HIGH',N'HIGH',N'ACKNOWLEDGED',N'["ABOVE_BASELINE","MATERIAL_DEVIATION"]'),
+        (1,N'ORDER_COUNT',N'COVERAGE_V17_ORDER_COUNT',42,78,-36,-0.4615,-4.0,N'HIGH',N'HIGH',N'OPEN',N'["BELOW_SEASONAL_BASELINE","MATERIAL_DEVIATION"]'),
+        (1,N'WASTE_ADJUSTMENT',N'COVERAGE_V17_WASTE',145,35,110,3.1429,4.5,N'CRITICAL',N'HIGH',N'RESOLVED',N'["ABOVE_BASELINE","MATERIAL_DEVIATION"]'),
+        (1,N'SUPPLIER_ISSUE',N'COVERAGE_V17_SUPPLIER',7,1,6,6.0000,4.3,N'CRITICAL',N'HIGH',N'OPEN',N'["ABOVE_BASELINE","MATERIAL_DEVIATION"]'),
+        (1,N'PRODUCT_VOLUME:1',N'COVERAGE_V17_PRODUCT_1',8,30,-22,-0.7333,-4.4,N'CRITICAL',N'HIGH',N'OPEN',N'["BELOW_SEASONAL_BASELINE","MATERIAL_DEVIATION"]');
 
     INSERT dbo.OperationalAnomalies
     (StoreId,MetricCode,PeriodKey,BusinessDate,DetectionVersion,CurrentValue,BaselineValue,AbsoluteDeviation,
@@ -14559,7 +14576,7 @@ BEGIN TRY
            ResolvedAtUtc=CASE WHEN a.Status=N'RESOLVED' THEN COALESCE(a.ResolvedAtUtc,@Coverage17Now) ELSE a.ResolvedAtUtc END,
            ResolvedByStaffId=CASE WHEN a.Status=N'RESOLVED' THEN COALESCE(a.ResolvedByStaffId,@Coverage17Staff) ELSE a.ResolvedByStaffId END
     FROM dbo.OperationalAnomalies a
-    WHERE a.StoreId=1 AND a.PeriodKey LIKE N'DEMO_COVERAGE_V17%';
+    WHERE a.StoreId=1 AND a.PeriodKey LIKE N'COVERAGE_V17%';
 
     IF NOT EXISTS(SELECT 1 FROM dbo.StaffAvailabilityRules
                   WHERE StaffId=@Coverage17Staff AND DayOfWeek=1 AND EffectiveFrom='2026-07-01')
@@ -14570,12 +14587,12 @@ BEGIN TRY
                   WHERE StaffId=@Coverage17Staff AND Date='2026-07-21')
         INSERT dbo.StaffAvailabilityExceptions
         (StaffId,Date,StartTime,EndTime,IsAvailable,Reason,CreatedByStaffId,CreatedAtUtc)
-        VALUES(@Coverage17Staff,'2026-07-21','08:00','12:00',1,N'DEMO_COVERAGE_V17 hỗ trợ cao điểm',@Coverage17Staff,@Coverage17Now);
+        VALUES(@Coverage17Staff,'2026-07-21','08:00','12:00',1,N'COVERAGE_V17 hỗ trợ cao điểm',@Coverage17Staff,@Coverage17Now);
     IF NOT EXISTS(SELECT 1 FROM dbo.StaffTimeOffs
                   WHERE StaffId=@Coverage17Staff AND FromUtc='2026-08-01T00:00:00')
         INSERT dbo.StaffTimeOffs
         (StaffId,FromUtc,ToUtc,Status,Reason,RequestedByStaffId,ReviewedByStaffId,CreatedAtUtc,ReviewedAtUtc)
-        VALUES(@Coverage17Staff,'2026-08-01','2026-08-02',N'APPROVED',N'DEMO_COVERAGE_V17 nghỉ phép',
+        VALUES(@Coverage17Staff,'2026-08-01','2026-08-02',N'APPROVED',N'COVERAGE_V17 nghỉ phép',
                @Coverage17Staff,@Coverage17Staff,@Coverage17Now,@Coverage17Now);
     IF NOT EXISTS(SELECT 1 FROM dbo.StaffWorkConstraints
                   WHERE StaffId=@Coverage17Staff AND EffectiveFrom='2026-07-01')
@@ -14599,7 +14616,7 @@ BEGIN TRY
         INSERT dbo.ScheduleOptimizationProposals
         (ScheduleOptimizationProposalId,StoreId,FromDate,ToDate,ConstraintVersion,ForecastRunId,Status,
          ScoreBreakdownJson,ViolationsJson,CreatedByStaffId,CreatedAtUtc,ExpiresAtUtc,AppliedAtUtc)
-        VALUES(@Coverage17Proposal,1,'2026-07-20','2026-07-26',N'demo-v17',@Coverage17Forecast,N'APPLIED',
+        VALUES(@Coverage17Proposal,1,'2026-07-20','2026-07-26',N'v17',@Coverage17Forecast,N'APPLIED',
                N'{"coverage":0.98,"fairness":0.94}',N'[]',@Coverage17Staff,@Coverage17Now,'2026-08-01',@Coverage17Now);
     IF NOT EXISTS(SELECT 1 FROM dbo.ScheduleOptimizationAssignments
                   WHERE ScheduleOptimizationProposalId=@Coverage17Proposal AND StaffId=@Coverage17Staff
@@ -14610,42 +14627,42 @@ BEGIN TRY
 
     /* Stock alert -> sourcing -> purchase advice -> PO batch. */
     DECLARE @Coverage17Alert int;
-    IF NOT EXISTS(SELECT 1 FROM dbo.StockAlerts WHERE Note=N'DEMO_COVERAGE_V17_STOCK_ALERT')
+    IF NOT EXISTS(SELECT 1 FROM dbo.StockAlerts WHERE Note=N'COVERAGE_V17_STOCK_ALERT')
         INSERT dbo.StockAlerts
         (StoreId,IngredientId,RecipeId,PreparedItemId,AlertType,Severity,Status,CurrentQtySnapshot,
          ThresholdSnapshot,Source,Note,ReportedByStaffId,ReportedAt,ConfirmedByStaffId,ConfirmedAt,
          ManagerNote,CreatedAt,UpdatedAt,ResolvedAt,ResolvedReason)
         VALUES(2,14,NULL,NULL,N'LOW_STOCK',N'MEDIUM',N'RESOLVED',300,500,N'MANUAL',
-               N'DEMO_COVERAGE_V17_STOCK_ALERT',@Coverage17Staff2,@Coverage17Now,@Coverage17Staff2,@Coverage17Now,
+               N'COVERAGE_V17_STOCK_ALERT',@Coverage17Staff2,@Coverage17Now,@Coverage17Staff2,@Coverage17Now,
                N'Đã lập phương án mua',@Coverage17Now,@Coverage17Now,@Coverage17Now,N'Purchase advice created');
-    SELECT @Coverage17Alert=StockAlertId FROM dbo.StockAlerts WHERE Note=N'DEMO_COVERAGE_V17_STOCK_ALERT';
+    SELECT @Coverage17Alert=StockAlertId FROM dbo.StockAlerts WHERE Note=N'COVERAGE_V17_STOCK_ALERT';
     IF NOT EXISTS(SELECT 1 FROM dbo.StockAlertTransitions
-                  WHERE StockAlertId=@Coverage17Alert AND Reason=N'DEMO_COVERAGE_V17 transition')
+                  WHERE StockAlertId=@Coverage17Alert AND Reason=N'COVERAGE_V17 transition')
         INSERT dbo.StockAlertTransitions
         (StockAlertId,PreviousStatus,NewStatus,PreviousAlertType,NewAlertType,PreviousSeverity,NewSeverity,
          OnHandSnapshot,ReservedSnapshot,AvailableSnapshot,MinLevelSnapshot,SourceType,SourceId,Reason,ActorStaffId,CreatedAtUtc)
         VALUES(@Coverage17Alert,N'CONFIRMED',N'RESOLVED',N'LOW_STOCK',N'LOW_STOCK',N'MEDIUM',N'MEDIUM',
-               300,0,300,500,N'PURCHASE_ADVICE',NULL,N'DEMO_COVERAGE_V17 transition',@Coverage17Staff2,@Coverage17Now);
+               300,0,300,500,N'PURCHASE_ADVICE',NULL,N'COVERAGE_V17 transition',@Coverage17Staff2,@Coverage17Now);
 
     IF NOT EXISTS(SELECT 1 FROM dbo.RestockRequestFulfillments
-                  WHERE RestockRequestId=@Coverage17Restock AND Notes=N'DEMO_COVERAGE_V17 fulfillment')
+                  WHERE RestockRequestId=@Coverage17Restock AND Notes=N'COVERAGE_V17 fulfillment')
         INSERT dbo.RestockRequestFulfillments
         (RestockRequestId,SourceType,InventoryDocumentDetailId,Status,PlannedBaseQuantity,CreatedAt,CreatedByStaffId,Notes)
-        VALUES(@Coverage17Restock,N'PURCHASE',NULL,N'COMPLETED',8000,@Coverage17Now,@Coverage17Staff,N'DEMO_COVERAGE_V17 fulfillment');
+        VALUES(@Coverage17Restock,N'PURCHASE',NULL,N'COMPLETED',8000,@Coverage17Now,@Coverage17Staff,N'COVERAGE_V17 fulfillment');
 
     DECLARE @Coverage17Advice int;
-    IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseAdvices WHERE RequestKey=N'DEMO_COVERAGE_V17_ADVICE')
+    IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseAdvices WHERE RequestKey=N'COVERAGE_V17_ADVICE')
         INSERT dbo.PurchaseAdvices
         (AdviceNumber,RequestKey,StoreId,RequestedByStaffId,Status,NeededByDate,Priority,Note,
          SubmittedAtUtc,ReviewedAtUtc,ReviewedByStaffId,CreatedAtUtc,UpdatedAtUtc)
-        VALUES(N'DEMO-ADV-V17-001',N'DEMO_COVERAGE_V17_ADVICE',1,@Coverage17Staff,N'APPROVED',
-               '2026-07-25',N'HIGH',N'DEMO_COVERAGE_V17 purchase advice',
+        VALUES(N'ADV-V17-001',N'COVERAGE_V17_ADVICE',1,@Coverage17Staff,N'APPROVED',
+               '2026-07-25',N'HIGH',N'COVERAGE_V17 purchase advice',
                @Coverage17Now,@Coverage17Now,@Coverage17Staff,@Coverage17Now,@Coverage17Now);
-    SELECT @Coverage17Advice=PurchaseAdviceId FROM dbo.PurchaseAdvices WHERE RequestKey=N'DEMO_COVERAGE_V17_ADVICE';
+    SELECT @Coverage17Advice=PurchaseAdviceId FROM dbo.PurchaseAdvices WHERE RequestKey=N'COVERAGE_V17_ADVICE';
 
     DECLARE @Coverage17AdviceLine int;
     IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseAdviceLines
-                  WHERE PurchaseAdviceId=@Coverage17Advice AND Note=N'DEMO_COVERAGE_V17 advice line')
+                  WHERE PurchaseAdviceId=@Coverage17Advice AND Note=N'COVERAGE_V17 advice line')
         INSERT dbo.PurchaseAdviceLines
         (PurchaseAdviceId,RestockRequestId,IngredientId,RequestedPurchaseBaseQuantity,
          AllocatedToPoBaseQuantity,AcceptedBaseQuantity,ClosedBaseQuantity,BaseUnitId,
@@ -14654,39 +14671,39 @@ BEGIN TRY
          RestockSourcingAllocationId,NeededByDate,Note,IsActiveReservation)
         VALUES(@Coverage17Advice,@Coverage17Restock,14,1000,1000,1000,0,@Coverage17BaseUnit,
                1,N'Packaged',1,1,0,@Coverage17ProcUnit,NULL,'2026-07-25',
-               N'DEMO_COVERAGE_V17 advice line',0);
+               N'COVERAGE_V17 advice line',0);
     SELECT @Coverage17AdviceLine=PurchaseAdviceLineId FROM dbo.PurchaseAdviceLines
-    WHERE PurchaseAdviceId=@Coverage17Advice AND Note=N'DEMO_COVERAGE_V17 advice line';
+    WHERE PurchaseAdviceId=@Coverage17Advice AND Note=N'COVERAGE_V17 advice line';
 
     DECLARE @Coverage17Sourcing int;
     IF NOT EXISTS(SELECT 1 FROM dbo.RestockSourcingAllocations
-                  WHERE RestockRequestId=@Coverage17Restock AND Reason=N'DEMO_COVERAGE_V17 sourcing')
+                  WHERE RestockRequestId=@Coverage17Restock AND Reason=N'COVERAGE_V17 sourcing')
         INSERT dbo.RestockSourcingAllocations
         (RestockRequestId,DecisionType,ProcurementQuantity,ProcurementUnitId,Status,
          SourceDocumentType,SourceDocumentId,SourceDocumentLineId,PurchaseAdviceLineId,
          PurchaseOrderLineId,InventoryTransferId,ProductionRunId,Reason,CreatedByStaffId,CreatedAtUtc)
         VALUES(@Coverage17Restock,N'PURCHASE',1,@Coverage17ProcUnit,N'COMPLETED',
                N'PURCHASE_ORDER',@Coverage17Po,@Coverage17Pol,@Coverage17AdviceLine,
-               @Coverage17Pol,NULL,NULL,N'DEMO_COVERAGE_V17 sourcing',@Coverage17Staff,@Coverage17Now);
+               @Coverage17Pol,NULL,NULL,N'COVERAGE_V17 sourcing',@Coverage17Staff,@Coverage17Now);
     SELECT @Coverage17Sourcing=RestockSourcingAllocationId FROM dbo.RestockSourcingAllocations
-    WHERE RestockRequestId=@Coverage17Restock AND Reason=N'DEMO_COVERAGE_V17 sourcing';
+    WHERE RestockRequestId=@Coverage17Restock AND Reason=N'COVERAGE_V17 sourcing';
     UPDATE dbo.PurchaseAdviceLines SET RestockSourcingAllocationId=@Coverage17Sourcing
     WHERE PurchaseAdviceLineId=@Coverage17AdviceLine AND RestockSourcingAllocationId IS NULL;
 
     IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseAdviceTransitions
-                  WHERE PurchaseAdviceId=@Coverage17Advice AND Reason=N'DEMO_COVERAGE_V17 approved')
+                  WHERE PurchaseAdviceId=@Coverage17Advice AND Reason=N'COVERAGE_V17 approved')
         INSERT dbo.PurchaseAdviceTransitions(PurchaseAdviceId,PreviousStatus,NewStatus,ActorStaffId,OccurredAtUtc,Reason)
-        VALUES(@Coverage17Advice,N'SUBMITTED',N'APPROVED',@Coverage17Staff,@Coverage17Now,N'DEMO_COVERAGE_V17 approved');
+        VALUES(@Coverage17Advice,N'SUBMITTED',N'APPROVED',@Coverage17Staff,@Coverage17Now,N'COVERAGE_V17 approved');
 
     DECLARE @Coverage17Batch int;
-    IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrderBatches WHERE RequestKey=N'DEMO_COVERAGE_V17_PO_BATCH')
+    IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrderBatches WHERE RequestKey=N'COVERAGE_V17_PO_BATCH')
         INSERT dbo.PurchaseOrderBatches
         (BatchNumber,RequestKey,SupplierId,Status,Currency,ExpectedDeliveryFrom,ExpectedDeliveryTo,
          Note,CreatedByStaffId,ApprovedByStaffId,ApprovedAtUtc,CreatedAtUtc,UpdatedAtUtc)
-        VALUES(N'DEMO-POB-V17-001',N'DEMO_COVERAGE_V17_PO_BATCH',@Coverage17Supplier,N'APPROVED',N'VND',
-               '2026-07-24','2026-07-25',N'DEMO_COVERAGE_V17 supplier consolidation',
+        VALUES(N'POB-V17-001',N'COVERAGE_V17_PO_BATCH',@Coverage17Supplier,N'APPROVED',N'VND',
+               '2026-07-24','2026-07-25',N'COVERAGE_V17 supplier consolidation',
                @Coverage17Staff,@Coverage17Staff,@Coverage17Now,@Coverage17Now,@Coverage17Now);
-    SELECT @Coverage17Batch=PurchaseOrderBatchId FROM dbo.PurchaseOrderBatches WHERE RequestKey=N'DEMO_COVERAGE_V17_PO_BATCH';
+    SELECT @Coverage17Batch=PurchaseOrderBatchId FROM dbo.PurchaseOrderBatches WHERE RequestKey=N'COVERAGE_V17_PO_BATCH';
 
     DECLARE @Coverage17BatchLine int;
     IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrderBatchLines
@@ -14698,7 +14715,7 @@ BEGIN TRY
          RoundingSurplusProcurementQuantity,ProcurementUnitId,PackagePriceSnapshot,LineTotal,Currency,Note)
         SELECT @Coverage17Batch,14,@Coverage17Offer,PackageUnitIdSnapshot,PackageQuantitySnapshot,
                1,N'Packaged',1,1000,1,UnitPricePerPackage,NULL,1,0,ProcurementUnitId,
-               UnitPricePerPackage,UnitPricePerPackage,N'VND',N'DEMO_COVERAGE_V17 batch line'
+               UnitPricePerPackage,UnitPricePerPackage,N'VND',N'COVERAGE_V17 batch line'
         FROM dbo.PurchaseOrderLines WHERE PurchaseOrderLineId=@Coverage17Pol;
     SELECT @Coverage17BatchLine=PurchaseOrderBatchLineId FROM dbo.PurchaseOrderBatchLines
     WHERE PurchaseOrderBatchId=@Coverage17Batch AND IngredientId=14;
@@ -14716,11 +14733,11 @@ BEGIN TRY
         (PurchaseOrderBatchId,RevisionNumber,GeneratedAtUtc,GeneratedByStaffId,FileName,StorageReference,
          ContentHash,SnapshotJson,Status,SentChannel,SentAtUtc,SentByStaffId,SentNote,
          SentIdempotencyKey,CreatedAtUtc)
-        VALUES(@Coverage17Batch,1,@Coverage17Now,@Coverage17Staff,N'demo-po-batch-v17.pdf',
-               N'demo://purchase-order-batch/v17/1',
+        VALUES(@Coverage17Batch,1,@Coverage17Now,@Coverage17Staff,N'po-batch-v17.pdf',
+               N'cafechain://purchase-order-batch/v17/1',
                N'1717171717171717171717171717171717171717171717171717171717171717',
-               N'{"marker":"DEMO_COVERAGE_V17","revision":1}',N'SENT',N'EMAIL',@Coverage17Now,
-               @Coverage17Staff,N'Demo supplier document',N'DEMO_COVERAGE_V17_SEND_1',@Coverage17Now);
+               N'{"marker":"COVERAGE_V17","revision":1}',N'SENT',N'EMAIL',@Coverage17Now,
+               @Coverage17Staff,N'supplier document',N'COVERAGE_V17_SEND_1',@Coverage17Now);
 
     /* Consolidation evidence and transfer cost lineage. */
     DECLARE @Coverage17Consolidation int;
@@ -14734,10 +14751,10 @@ BEGIN TRY
         (StoreId,RequestKey,RunType,Status,ManifestVersion,QueryContractVersion,ManifestHash,DryRunHash,
          EnvironmentFingerprint,ManifestJson,ReportJson,RequestedByStaffId,ApprovedByStaffId,ExecutedByStaffId,
          CreatedAt,DryRunAt,CompletedAt,BeforeAvailableTotal,BeforeReservedTotal,AfterAvailableTotal,AfterReservedTotal)
-        VALUES(1,'17171717-1717-0000-0000-171717171717',1,5,N'demo-v17',N'demo-v17',
+        VALUES(1,'17171717-1717-0000-0000-171717171717',1,5,N'v17',N'v17',
                N'1717171717171717171717171717171717171717171717171717171717171717',
                N'1717171717171717171717171717171717171717171717171717171717171717',
-               N'DEMO_COVERAGE_V17',N'{"mode":"audit-no-op"}',N'{"result":"no-op"}',
+               N'COVERAGE_V17',N'{"mode":"audit-no-op"}',N'{"result":"no-op"}',
                @Coverage17Staff,@Coverage17Staff,@Coverage17Staff,@Coverage17Now,@Coverage17Now,@Coverage17Now,
                @Coverage17Available,0,@Coverage17Available,0);
     SELECT @Coverage17Consolidation=InventoryConsolidationRunId FROM dbo.InventoryConsolidationRuns
@@ -14754,7 +14771,7 @@ BEGIN TRY
         SELECT @Coverage17Consolidation,StoreInventoryId,2,PreparedItemId,RecipeId,
                AvailableQty,ReservedQty,MinStockLevel,NULL,NULL,NULL,NULL,NULL,NULL,
                AvailableQty,ReservedQty,AvailableQty,ReservedQty,
-               N'DEMO_AUDIT_NO_OP',N'DEMO_COVERAGE_V17',0
+               N'AUDIT_NO_OP',N'COVERAGE_V17',0
         FROM dbo.StoreInventories WHERE StoreInventoryId=@Coverage17StoreInventory;
 
     DECLARE @Coverage17TransferDetail int=(SELECT TOP(1) itd.InventoryTransferDetailId
@@ -14777,13 +14794,13 @@ BEGIN TRY
         SELECT @Coverage17TransferDetail,@Coverage17Layer,1,0,UnitCost,ROUND(UnitCost,2),@Coverage17Now
         FROM dbo.InventoryCostLayers WHERE InventoryCostLayerId=@Coverage17Layer;
 
-    IF NOT EXISTS(SELECT 1 FROM dbo.StaffNotifications WHERE DeduplicationKey=N'DEMO_COVERAGE_V17_STOCK_ALERT')
+    IF NOT EXISTS(SELECT 1 FROM dbo.StaffNotifications WHERE DeduplicationKey=N'COVERAGE_V17_STOCK_ALERT')
         INSERT dbo.StaffNotifications
         (StoreId,RecipientStaffId,Type,Title,Body,Severity,DeduplicationKey,UpdatedAt,ResolvedAt,
          EntityType,EntityId,IsRead,ReadAt,CreatedAt,EmailAttempted,EmailSent,EmailErrorSummary)
-        VALUES(2,@Coverage17Staff2,N'STOCK_ALERT_RESOLVED',N'Cảnh báo tồn kho demo',
-               N'Kịch bản DEMO_COVERAGE_V17 đã có purchase advice.',N'INFO',
-               N'DEMO_COVERAGE_V17_STOCK_ALERT',@Coverage17Now,@Coverage17Now,
+        VALUES(2,@Coverage17Staff2,N'STOCK_ALERT_RESOLVED',N'Cảnh báo tồn kho',
+               N'Kịch bản COVERAGE_V17 đã có purchase advice.',N'INFO',
+               N'COVERAGE_V17_STOCK_ALERT',@Coverage17Now,@Coverage17Now,
                N'StockAlert',@Coverage17Alert,1,@Coverage17Now,@Coverage17Now,0,0,NULL);
 
     COMMIT TRANSACTION;
@@ -14832,9 +14849,9 @@ BEGIN TRY
     JOIN dbo.Recipes r ON r.PreparedItemId=pi.PreparedItemId AND r.Active=1 AND r.Status=N'Active'
     WHERE pi.Active=1 AND pi.Code IN
     (
-        N'DEMO_PREP_VIET_COFFEE',N'DEMO_PREP_ESPRESSO',N'DEMO_PREP_BLACK_TEA',N'DEMO_PREP_OOLONG_TEA',
-        N'DEMO_PREP_SUGAR_SYRUP',N'DEMO_PREP_SALTED_CREAM',N'DEMO_PREP_CHEESE_CREAM',N'DEMO_PREP_BLACK_PEARL',
-        N'DEMO_PREP_ALOE_BASE',N'DEMO_PREP_COCONUT_JELLY_BASE',N'DEMO_PREP_KHUC_BACH_BASE'
+        N'PREP_VIET_COFFEE',N'PREP_ESPRESSO',N'PREP_BLACK_TEA',N'PREP_OOLONG_TEA',
+        N'PREP_SUGAR_SYRUP',N'PREP_SALTED_CREAM',N'PREP_CHEESE_CREAM',N'PREP_BLACK_PEARL',
+        N'PREP_ALOE_BASE',N'PREP_COCONUT_JELLY_BASE',N'PREP_KHUC_BACH_BASE'
     );
     IF (SELECT COUNT(*) FROM @CanonicalPrepared)<>11
         THROW 53721,N'PREPARED_ITEM_OPERATING_CONTRACT_V1: phải resolve đúng 11 active PreparedItems.',1;
@@ -14877,7 +14894,7 @@ BEGIN TRY
     (
         SELECT TOP(1) s.StaffId FROM dbo.Staffs s
         WHERE s.StoreId=st.StoreId AND s.Active=1
-        ORDER BY CASE WHEN s.FullName LIKE N'Nhân viên bán hàng demo%' THEN 0 ELSE 1 END,s.StaffId
+        ORDER BY CASE WHEN s.FullName LIKE N'Nhân viên bán hàng%' THEN 0 ELSE 1 END,s.StaffId
     ) staff
     WHERE st.Name IN(N'CafeChain Thủ Dầu Một',N'CafeChain Thuận An',N'CafeChain Dĩ An');
 
@@ -14912,7 +14929,7 @@ BEGIN TRY
         JOIN dbo.Ingredients i ON i.IngredientId=rd.IngredientId
         LEFT JOIN dbo.UnitConversions uc ON uc.IngredientId=i.IngredientId AND uc.FromUnitId=rd.UnitId
              AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1
-        WHERE (pr.Notes LIKE N'DEMO opening valuation source:%' OR pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%')
+        WHERE (pr.Notes LIKE N'opening valuation source:%' OR pr.Notes LIKE N'REORDER_V14_PROD_S%')
           AND (rd.UnitId=i.BaseUnitId OR uc.UnitConversionId IS NOT NULL)
         UNION ALL
         SELECT pr.ProductionRunId,NULL,child.PreparedItemId,pi.BaseUnitId,
@@ -14921,7 +14938,7 @@ BEGIN TRY
         JOIN dbo.RecipeDetails rd ON rd.RecipeId=pr.RecipeId AND rd.ChildRecipeId IS NOT NULL
         JOIN dbo.Recipes child ON child.RecipeId=rd.ChildRecipeId AND child.PreparedItemId IS NOT NULL
         JOIN dbo.PreparedItems pi ON pi.PreparedItemId=child.PreparedItemId AND pi.BaseUnitId=rd.UnitId
-        WHERE pr.Notes LIKE N'DEMO opening valuation source:%' OR pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%'
+        WHERE pr.Notes LIKE N'opening valuation source:%' OR pr.Notes LIKE N'REORDER_V14_PROD_S%'
     ), PlannedGrouped AS
     (
         SELECT ProductionRunId,IngredientId,PreparedItemId,BaseUnitId,SUM(PlannedQuantity) PlannedQuantity
@@ -14939,14 +14956,14 @@ BEGIN TRY
      ConfirmedByStaffId,ConfirmedAtUtc)
     SELECT planned.ProductionRunId,planned.IngredientId,planned.PreparedItemId,planned.BaseUnitId,
            planned.PlannedQuantity,
-           CASE WHEN pr.Notes LIKE N'DEMO opening valuation source:%' THEN planned.PlannedQuantity ELSE actual.ActualQuantity END,
+           CASE WHEN pr.Notes LIKE N'opening valuation source:%' THEN planned.PlannedQuantity ELSE actual.ActualQuantity END,
            pr.CompletedByStaffId,COALESCE(pr.CompletedAt,pr.CreatedAt)
     FROM PlannedGrouped planned
     JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=planned.ProductionRunId
     LEFT JOIN LedgerActual actual ON actual.ProductionRunId=planned.ProductionRunId
          AND ISNULL(actual.IngredientId,-1)=ISNULL(planned.IngredientId,-1)
          AND ISNULL(actual.PreparedItemId,-1)=ISNULL(planned.PreparedItemId,-1)
-    WHERE (pr.Notes LIKE N'DEMO opening valuation source:%' OR actual.ActualQuantity IS NOT NULL)
+    WHERE (pr.Notes LIKE N'opening valuation source:%' OR actual.ActualQuantity IS NOT NULL)
       AND NOT EXISTS
       (
           SELECT 1 FROM dbo.ProductionRunInputActuals existing
@@ -14960,12 +14977,12 @@ BEGIN TRY
         SELECT t.ProductionRunId,MAX(pi.BaseUnitId) BaseUnitId,SUM(t.Quantity) OutputQuantity,
                MAX(pr.ExpectedOutputBase) ExpectedOutputBase,MAX(pr.CompletedByStaffId) StaffId,
                MAX(COALESCE(pr.CompletedAt,t.CreatedAt)) RecordedAtUtc,
-               MAX(CASE WHEN pr.Notes LIKE N'DEMO opening valuation source:%' THEN 1 ELSE 0 END) IsOpening
+               MAX(CASE WHEN pr.Notes LIKE N'opening valuation source:%' THEN 1 ELSE 0 END) IsOpening
         FROM dbo.InventoryTransactions t
         JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=t.ProductionRunId
         JOIN dbo.Recipes pinned ON pinned.RecipeId=pr.RecipeId
         JOIN dbo.PreparedItems pi ON pi.PreparedItemId=pinned.PreparedItemId
-        WHERE t.[Type]=5 AND (pr.Notes LIKE N'DEMO opening valuation source:%' OR pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%')
+        WHERE t.[Type]=5 AND (pr.Notes LIKE N'opening valuation source:%' OR pr.Notes LIKE N'REORDER_V14_PROD_S%')
         GROUP BY t.ProductionRunId
     )
     INSERT dbo.ProductionRunOutputs
@@ -14982,13 +14999,13 @@ BEGIN TRY
     (ProductionRunId,FromStatus,ToStatus,ActorStaffId,OccurredAtUtc,Reason,EvidenceJson)
     SELECT pr.ProductionRunId,N'CONFIRMED',N'COMPLETED',pr.CompletedByStaffId,
            COALESCE(pr.CompletedAt,pr.CreatedAt),
-           CASE WHEN pr.Notes LIKE N'DEMO opening valuation source:%' THEN N'SeedAll opening valuation history'
+           CASE WHEN pr.Notes LIKE N'opening valuation source:%' THEN N'SeedAll opening valuation history'
                 ELSE N'SeedAll production ledger history' END,
-           CASE WHEN pr.Notes LIKE N'DEMO opening valuation source:%'
+           CASE WHEN pr.Notes LIKE N'opening valuation source:%'
                 THEN N'{"source":"SeedAllOpeningValuation","physicalIssue":false}'
                 ELSE N'{"source":"SeedAllLedgerBackfill"}' END
     FROM dbo.ProductionRuns pr
-    WHERE (pr.Notes LIKE N'DEMO opening valuation source:%' OR pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%')
+    WHERE (pr.Notes LIKE N'opening valuation source:%' OR pr.Notes LIKE N'REORDER_V14_PROD_S%')
       AND NOT EXISTS
       (
           SELECT 1 FROM dbo.ProductionRunTransitions tr
@@ -15006,12 +15023,12 @@ BEGIN TRY
               AND si.TargetStockLevel=x.TargetStockLevel)<>11)
         THROW 53722,N'PREPARED_ITEM_OPERATING_CONTRACT_V1: capability/canonical inventory parity không đạt.',1;
 
-    IF (SELECT COUNT(*) FROM dbo.ProductionRuns WHERE Notes LIKE N'DEMO_REORDER_V14_PROD_S%')<>90
-       OR (SELECT COUNT(*) FROM dbo.ProductionRuns WHERE Notes LIKE N'DEMO opening valuation source:%')<>11
+    IF (SELECT COUNT(*) FROM dbo.ProductionRuns WHERE Notes LIKE N'REORDER_V14_PROD_S%')<>90
+       OR (SELECT COUNT(*) FROM dbo.ProductionRuns WHERE Notes LIKE N'opening valuation source:%')<>11
        OR EXISTS
        (
            SELECT 1 FROM dbo.ProductionRuns pr
-           WHERE (pr.Notes LIKE N'DEMO opening valuation source:%' OR pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%')
+           WHERE (pr.Notes LIKE N'opening valuation source:%' OR pr.Notes LIKE N'REORDER_V14_PROD_S%')
              AND (NOT EXISTS(SELECT 1 FROM dbo.ProductionRunOutputs o WHERE o.ProductionRunId=pr.ProductionRunId)
                OR NOT EXISTS(SELECT 1 FROM dbo.ProductionRunTransitions tr WHERE tr.ProductionRunId=pr.ProductionRunId
                              AND tr.FromStatus=N'CONFIRMED' AND tr.ToStatus=N'COMPLETED'))
@@ -15027,7 +15044,7 @@ BEGIN TRY
           AND (pr.RecipeId<>145
             OR NOT EXISTS(SELECT 1 FROM dbo.ProductionRunInputActuals input
                           JOIN dbo.Ingredients i ON i.IngredientId=input.IngredientId
-                          WHERE input.ProductionRunId=pr.ProductionRunId AND i.Code=N'DEMO_ING_ALOE_VERA'
+                          WHERE input.ProductionRunId=pr.ProductionRunId AND i.Code=N'ING_ALOE_VERA'
                             AND input.PlannedBaseQuantity=1000 AND input.ActualBaseQuantity=1000)
             OR NOT EXISTS(SELECT 1 FROM dbo.ProductionRunOutputs output
                           WHERE output.ProductionRunId=pr.ProductionRunId

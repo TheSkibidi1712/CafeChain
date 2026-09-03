@@ -1,8 +1,6 @@
 /* CafeChain - Danh mục hành chính Việt Nam hai cấp.
    Nguồn: Phụ lục Quyết định 19/2025/QĐ-TTg, hiệu lực 01/07/2025.
    34 tỉnh/thành phố; 3.321 xã/phường/đặc khu. UTF-8, idempotent, giữ dữ liệu lịch sử. */
-USE CafeChain;
-GO
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 SET ANSI_NULLS ON;
