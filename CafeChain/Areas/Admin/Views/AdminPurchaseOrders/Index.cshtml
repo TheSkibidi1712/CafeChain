@@ -35,7 +35,7 @@
                 <input type="hidden" name="status" value="@statusFilter" />
                 <div class="po-filter-grid">
                     <div class="po-field">
-                        <label class="ops-form-label mb-0" for="purchaseOrderStoreId">Chi nhánh</label>
+                        <label class="ops-form-label mb-0" for="purchaseOrderStoreId"><i class="fa-solid fa-store me-1 text-secondary" aria-hidden="true"></i> Chi nhánh</label>
                         <select id="purchaseOrderStoreId" name="storeId" class="po-select" onchange="this.form.submit()">
                             @foreach (var store in stores)
                             {
