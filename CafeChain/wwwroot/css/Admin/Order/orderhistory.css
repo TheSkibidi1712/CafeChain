@@ -411,3 +411,132 @@
         margin: -15px;
     }
 }
+
+/* =====================================================
+   DRAWER / OFFCANVAS DETAILS
+===================================================== */
+.history-drawer {
+    width: 450px !important;
+    border-left: none;
+    box-shadow: -5px 0 25px rgba(0,0,0,0.05);
+    background-color: #FFFDFB;
+}
+
+.history-drawer .offcanvas-header {
+    background: #FCFAF8;
+    border-bottom: 1px solid #E9DED4;
+    padding: 20px 24px;
+}
+
+.history-drawer .offcanvas-title {
+    color: #3D2418;
+    font-size: 1.25rem;
+    margin-top: 4px;
+}
+
+.history-drawer .text-muted.small {
+    color: #8C6A54 !important;
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.drawer-section {
+    padding: 24px;
+    border-bottom: 1px dashed #E9DED4;
+}
+
+.drawer-section:last-child {
+    border-bottom: none;
+    background: #FCFAF8;
+}
+
+.drawer-section__title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #5C3F2B;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.drawer-section__title::before {
+    content: '';
+    display: block;
+    width: 4px;
+    height: 16px;
+    background: #C67A45;
+    border-radius: 4px;
+}
+
+.drawer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 24px;
+}
+
+.drawer-grid > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.drawer-grid .field-label {
+    font-size: 0.75rem;
+    color: #8C6A54;
+    font-weight: 600;
+}
+
+.drawer-grid .field-value {
+    font-size: 0.9rem;
+    color: #201812;
+    font-weight: 500;
+}
+
+.drawer-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 12px 0;
+    border-bottom: 1px solid #F5F0EA;
+}
+
+.drawer-line:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.drawer-line__title {
+    font-weight: 700;
+    color: #3D2418;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+}
+
+.drawer-line__meta {
+    font-size: 0.8rem;
+    color: #8C6A54;
+    line-height: 1.4;
+}
+
+.drawer-line__amount {
+    font-weight: 700;
+    color: #C67A45;
+    font-size: 0.95rem;
+}
+
+.drawer-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 2px solid #E9DED4;
+    font-size: 1.2rem;
+    font-weight: 900;
+    color: #2F6F5E;
+}
