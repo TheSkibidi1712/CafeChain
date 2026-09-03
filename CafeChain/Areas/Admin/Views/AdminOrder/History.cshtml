@@ -193,6 +193,21 @@
     const pill = (value, tone = 'neutral') =>
         `<span class="history-pill history-pill--${tone}">${escapeHtml(value || 'Chưa xác định')}</span>`;
 
+    const field = (label, value) => `
+        <div>
+            <div class="field-label">${escapeHtml(label)}</div>
+            <div class="field-value">${value || '<span class="text-muted">Chưa xác định</span>'}</div>
+        </div>`;
+
+    const refundStatus = statusId => {
+        switch (statusId) {
+            case 1: return pill('Chờ xử lý', 'neutral');
+            case 2: return pill('Đã hoàn tiền', 'paid');
+            case 3: return pill('Thất bại', 'refund');
+            default: return pill('Chưa xác định', 'neutral');
+        }
+    };
+
     function currentFilter() {
         const storeValue = document.getElementById('filterStore').value;
         return {
@@ -350,44 +365,44 @@
             </div>`).join('');
         const refund = detail.refund ? `
             <section class="drawer-section">
-                <h3 class="drawer-section__title">Hoàn tiền</h3>
+                <h3 class="drawer-section__title"><i class="fas fa-undo"></i> Hoàn tiền</h3>
                 <div class="drawer-grid">
                     ${field('Mã hoàn tiền', `#${detail.refund.orderRefundId}`)}
                     ${field('Trạng thái', refundStatus(detail.refund.status))}
                     ${field('Số tiền', money(detail.refund.amount))}
                     ${field('Hoàn tất lúc', dateTime(detail.refund.completedAtUtc))}
                 </div>
-                <div class="mt-3">${field('Lý do', detail.refund.reason)}</div>
+                <div class="mt-3">${field('Lý do', escapeHtml(detail.refund.reason))}</div>
             </section>` : '';
 
         document.getElementById('drawerBody').innerHTML = `
             <section class="drawer-section">
-                <h3 class="drawer-section__title">Thông tin giao dịch</h3>
+                <h3 class="drawer-section__title"><i class="fas fa-info-circle"></i> Thông tin giao dịch</h3>
                 <div class="drawer-grid">
-                    ${field('Cửa hàng', detail.storeName)}
-                    ${field('Thu ngân', detail.staffName)}
+                    ${field('Cửa hàng', escapeHtml(detail.storeName))}
+                    ${field('Thu ngân', escapeHtml(detail.staffName))}
                     ${field('WorkShift', detail.workShiftId ? `#${detail.workShiftId}` : 'Chưa xác định')}
-                    ${field('Loại đơn', detail.orderTypeName || 'Chưa xác định')}
-                    ${field('Thanh toán lúc', detail.createdAtDisplay || 'Chưa xác định')}
-                    ${field('ClientOrderId', detail.clientOrderId || 'Không có')}
+                    ${field('Loại đơn', escapeHtml(detail.orderTypeName || 'Chưa xác định'))}
+                    ${field('Thanh toán lúc', escapeHtml(detail.createdAtDisplay || 'Chưa xác định'))}
+                    ${field('ClientOrderId', escapeHtml(detail.clientOrderId || 'Không có'))}
                 </div>
             </section>
             <section class="drawer-section">
-                <h3 class="drawer-section__title">Trạng thái</h3>
+                <h3 class="drawer-section__title"><i class="fas fa-check-circle"></i> Trạng thái</h3>
                 <div class="drawer-grid">
-                    ${field('Tài chính', detail.orderStatusName)}
-                    ${field('Đồng bộ', detail.syncState)}
-                    ${field('Hóa đơn', detail.receiptState)}
-                    ${field('Tem', detail.drinkLabelState)}
-                    ${field('Ghi nhận kho', detail.inventoryPostingState)}
+                    ${field('Tài chính', pill(detail.orderStatusName, detail.orderStatusId === 3 ? 'refund' : 'paid'))}
+                    ${field('Đồng bộ', pill(detail.syncState))}
+                    ${field('Hóa đơn', pill(detail.receiptState))}
+                    ${field('Tem', pill(detail.drinkLabelState))}
+                    ${field('Ghi nhận kho', pill(detail.inventoryPostingState))}
                 </div>
             </section>
             <section class="drawer-section">
-                <h3 class="drawer-section__title">Thanh toán</h3>
+                <h3 class="drawer-section__title"><i class="fas fa-credit-card"></i> Thanh toán</h3>
                 ${payments || '<div class="text-muted">Chưa có dữ liệu thanh toán.</div>'}
             </section>
             <section class="drawer-section">
-                <h3 class="drawer-section__title">Món đã bán</h3>
+                <h3 class="drawer-section__title"><i class="fas fa-coffee"></i> Món đã bán</h3>
                 ${items || '<div class="text-muted">Không có dữ liệu món.</div>'}
             </section>
             ${refund}
@@ -398,18 +413,6 @@
                 <div class="drawer-total"><span>Tổng cộng</span><span>${money(detail.total)}</span></div>
             </section>`;
     }
-
-    const field = (label, value) => `
-        <div class="drawer-field">
-            <div class="drawer-field__label">${escapeHtml(label)}</div>
-            <div class="drawer-field__value">${escapeHtml(value ?? 'Chưa xác định')}</div>
-        </div>`;
-    const refundStatus = status => ({
-        Requested: 'Đã yêu cầu',
-        Processing: 'Đang xử lý',
-        Completed: 'Đã hoàn tất',
-        Failed: 'Thất bại'
-    })[status] || 'Chưa xác định';
 
     let searchTimer;
     document.getElementById('filterSearch').addEventListener('input', () => {
